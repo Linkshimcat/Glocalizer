@@ -1,4 +1,4 @@
-# NAVER OGQ PROJECT
+# NAVER OGQ PROJECT 
 
 <h2>Glocalizer</h2>
 
