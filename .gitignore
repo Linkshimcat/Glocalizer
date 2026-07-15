@@ -25,4 +25,4 @@ dist-ssr
 .vite
 
 # 환경변수 (API 키 등 비밀 값 — 절대 커밋 금지)
-.env
+
