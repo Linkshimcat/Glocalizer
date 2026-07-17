@@ -1,1 +1,63 @@
+/* 에디터 오버레이 텍스트용 폰트 */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Black+Han+Sans&family=Caveat:wght@700&family=Do+Hyeon&family=Fredoka:wght@600&family=Gaegu&family=Jua&family=Lobster&family=Luckiest+Guy&family=Nanum+Pen+Script&family=Noto+Sans+JP:wght@700&family=Poppins:wght@700&display=swap');
 @import 'tailwindcss';
+
+@theme {
+  /* Landing PNG 기준 디자인 토큰 (Source of Truth) */
+  --font-sans:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, Roboto, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+
+  --color-brand: #22c55e;
+  --color-brand-dark: #16a34a;
+  --color-brand-soft: #eafbf1;
+
+  --color-ink: #191f28;
+  --color-sub: #8b95a1;
+  --color-surface: #f2f4f6;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  @apply bg-white text-ink antialiased;
+}
+
+/* 에디터 캔버스 투명 배경 표시용 체커보드 */
+.checkerboard {
+  background: repeating-conic-gradient(#e9ecef 0% 25%, #ffffff 0% 50%) 0 0 / 20px 20px;
+}
+
+/* 랜딩 히어로 카드 플로팅 애니메이션 */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+.animate-float-delay {
+  animation: float 4s ease-in-out 2s infinite;
+}
+
+/* 토스트 등장 애니메이션 */
+@keyframes toast-in {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out;
+}

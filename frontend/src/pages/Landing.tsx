@@ -1,0 +1,129 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import translateIcon from '../assets/iconsax-translate.svg'
+import Footer from '../components/Footer'
+import Header from '../components/Header'
+
+const LANG_PILLS = [
+  { flag: '🇺🇸', code: 'EN' },
+  { flag: '🇯🇵', code: 'JP' },
+  { flag: '🇨🇳', code: 'ZH' },
+  { flag: '🇧🇷', code: 'PT' },
+  { flag: '🇩🇪', code: 'DE' },
+  { flag: '🇫🇷', code: 'FR' },
+  { flag: '🇻🇳', code: 'VN' },
+]
+
+/** 히어로 우측 카드에서 순환되는 현지화 대상 언어들 */
+const CYCLE_LANGS = [
+  { flag: '🇺🇸', code: 'EN' },
+  { flag: '🇯🇵', code: 'JP' },
+  { flag: '🇨🇳', code: 'ZH' },
+  { flag: '🇧🇷', code: 'PT' },
+  { flag: '🇩🇪', code: 'DE' },
+  { flag: '🇫🇷', code: 'FR' },
+]
+
+export default function Landing() {
+  const navigate = useNavigate()
+
+  // KR → ?? 언어 순환 (페이드 아웃 → 교체 → 페이드 인)
+  const [cycleIdx, setCycleIdx] = useState(0)
+  const [fading, setFading] = useState(false)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFading(true)
+      setTimeout(() => {
+        setCycleIdx(i => (i + 1) % CYCLE_LANGS.length)
+        setFading(false)
+      }, 350)
+    }, 2200)
+    return () => clearInterval(timer)
+  }, [])
+
+  const cycleLang = CYCLE_LANGS[cycleIdx]
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+
+      <main className="mx-auto grid w-full max-w-[1400px] flex-1 items-center gap-16 px-10 py-20 lg:grid-cols-2">
+        {/* 좌측: 카피 */}
+        <div>
+          <h1 className="text-5xl leading-[1.25] font-extrabold tracking-tight md:text-[56px]">
+            한국 이모티콘,
+            <br />
+            <span className="text-brand">전 세계 언어로</span>
+            <span className="ml-1">🌏</span>
+            <br />
+            자동 번역{' '}
+            <img
+              src={translateIcon}
+              alt=""
+              aria-hidden
+              className="inline-block h-11 w-11 align-[-4px]"
+            />
+          </h1>
+
+          <p className="mt-7 text-[17px] leading-relaxed font-medium text-[#4E5968]">
+            AI가 이미지 속 텍스트를 인식하고 제거한 뒤,
+            <br />각 문화에 맞는 표현으로 재삽입합니다. 38개국 지원.
+          </p>
+
+          <div className="mt-12 flex flex-wrap gap-2">
+            {LANG_PILLS.map(({ flag, code }) => (
+              <span
+                key={code}
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-[#4E5968]"
+              >
+                <span>{flag}</span>
+                {code}
+              </span>
+            ))}
+            <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-dark">
+              +30개
+            </span>
+          </div>
+        </div>
+
+        {/* 우측: 데모 비주얼 — KR에서 시작하기를 거쳐 여러 언어로 현지화 */}
+        <div className="relative h-[480px] overflow-hidden rounded-[28px] border-[1.5px] border-ink bg-[#FBFBFB]">
+          {/* 연결선: KR → 시작하기 */}
+          <div className="absolute left-[88px] top-[150px] h-[90px] w-[calc(50%-180px)] rounded-bl-[24px] border-b-2 border-l-2 border-brand" />
+          {/* 연결선: 시작하기 → 순환 언어 카드 */}
+          <div className="absolute left-[calc(50%+88px)] right-[96px] top-[240px] h-[80px] rounded-tr-[24px] border-r-2 border-t-2 border-brand" />
+
+          {/* KR 카드 — 좌측 상단, 프레임 밖으로 살짝 잘림 */}
+          <div className="absolute -left-12 top-12 flex items-center gap-3 rounded-3xl bg-surface py-7 pl-16 pr-9 shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
+            <span className="text-4xl">🇰🇷</span>
+            <span className="text-5xl font-extrabold text-[#6B7684]">KR</span>
+          </div>
+
+          {/* 순환 언어 카드 — 우측 하단, EN→JP→ZH→… 페이드 전환 */}
+          <div className="absolute -right-12 bottom-14 flex items-center gap-3 rounded-3xl bg-surface py-7 pl-9 pr-16 shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
+            <span
+              className={`text-4xl transition-opacity duration-300 ${fading ? 'opacity-0' : 'opacity-100'}`}
+            >
+              {cycleLang.flag}
+            </span>
+            <span
+              className={`min-w-[100px] text-5xl font-extrabold text-[#6B7684] transition-opacity duration-300 ${fading ? 'opacity-0' : 'opacity-100'}`}
+            >
+              {cycleLang.code}
+            </span>
+          </div>
+
+          {/* 중앙: 시작하기 버튼 */}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand px-11 py-5 text-[26px] font-bold text-white shadow-[0_20px_50px_rgba(34,197,94,0.45)] transition-transform hover:scale-105 active:scale-100"
+          >
+            시작하기
+          </button>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  )
+}
