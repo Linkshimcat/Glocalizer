@@ -44,7 +44,7 @@ export default function Result() {
               현지화가 끝났어요!
             </h1>
             <p className="mt-2 text-[16px] font-medium text-[#4E5968]">
-              이모티콘 {items.length}장이 {langLabel}(으)로 번역됐어요.
+              이모티콘 {items.length}장이 {langLabel}(으)로 번역완료.
               <br />
               다운로드가 시작됐는지 확인해보세요.
             </p>

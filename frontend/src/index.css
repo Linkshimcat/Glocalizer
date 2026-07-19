@@ -1,5 +1,5 @@
-/* 에디터 오버레이 텍스트용 폰트 */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Black+Han+Sans&family=Caveat:wght@700&family=Do+Hyeon&family=Fredoka:wght@600&family=Gaegu&family=Jua&family=Lobster&family=Luckiest+Guy&family=Nanum+Pen+Script&family=Noto+Sans+JP:wght@700&family=Poppins:wght@700&display=swap');
+/* 에디터 오버레이 텍스트용 폰트 (폰트별 지원 굵기 로드) */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Black+Han+Sans&family=Caveat:wght@400;700&family=Do+Hyeon&family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&family=Jua&family=Lobster&family=Luckiest+Guy&family=Nanum+Pen+Script&family=Noto+Sans+JP:wght@400;500;700;900&family=Poppins:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 @theme {

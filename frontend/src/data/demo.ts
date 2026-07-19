@@ -55,31 +55,80 @@ export const DEMO_ITEMS: DemoItem[] = [
   },
 ]
 
-export const FONTS = [
-  'Pretendard',
-  'Bangers',
-  'Luckiest Guy',
-  'Anton',
-  'Fredoka',
-  'Poppins',
-  'Caveat',
-  'Lobster',
-  'Jua',
-  'Do Hyeon',
-  'Black Han Sans',
-  'Gaegu',
-  'Nanum Pen Script',
-  'Noto Sans JP',
-]
+export interface FontWeight {
+  label: string
+  value: number
+}
 
-export const COLORS = ['#191F28', '#FFFFFF', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6']
+export interface FontDef {
+  name: string
+  /** 이 폰트가 실제로 지원(로드)하는 굵기 목록 */
+  weights: FontWeight[]
+}
 
-export const WEIGHTS = [
+// 굵기 프리셋
+const FULL: FontWeight[] = [
   { label: 'Thin', value: 200 },
   { label: 'Regular', value: 400 },
   { label: 'Medium', value: 500 },
   { label: 'Bold', value: 800 },
-] as const
+]
+const REG_MED_SEMI_BOLD: FontWeight[] = [
+  { label: 'Regular', value: 400 },
+  { label: 'Medium', value: 500 },
+  { label: 'SemiBold', value: 600 },
+  { label: 'Bold', value: 700 },
+]
+const REG_BOLD: FontWeight[] = [
+  { label: 'Regular', value: 400 },
+  { label: 'Bold', value: 700 },
+]
+// 단일 굵기(디스플레이) 폰트 — 굵기 조절 불가
+const SINGLE: FontWeight[] = [{ label: 'Regular', value: 400 }]
+
+export const FONTS: FontDef[] = [
+  { name: 'Pretendard', weights: FULL },
+  { name: 'Bangers', weights: SINGLE },
+  { name: 'Luckiest Guy', weights: SINGLE },
+  { name: 'Anton', weights: SINGLE },
+  { name: 'Fredoka', weights: REG_MED_SEMI_BOLD },
+  { name: 'Poppins', weights: REG_MED_SEMI_BOLD },
+  { name: 'Caveat', weights: REG_BOLD },
+  { name: 'Lobster', weights: SINGLE },
+  { name: 'Jua', weights: SINGLE },
+  { name: 'Do Hyeon', weights: SINGLE },
+  { name: 'Black Han Sans', weights: SINGLE },
+  { name: 'Gaegu', weights: REG_BOLD },
+  { name: 'Nanum Pen Script', weights: SINGLE },
+  {
+    name: 'Noto Sans JP',
+    weights: [
+      { label: 'Regular', value: 400 },
+      { label: 'Medium', value: 500 },
+      { label: 'Bold', value: 700 },
+      { label: 'Black', value: 900 },
+    ],
+  },
+]
+
+export const FONT_NAMES = FONTS.map(f => f.name)
+
+/** 폰트가 지원하는 굵기 목록 */
+export function fontWeights(name: string): FontWeight[] {
+  return FONTS.find(f => f.name === name)?.weights ?? SINGLE
+}
+
+/** 현재 굵기를 새 폰트가 지원하는 가장 가까운 값으로 보정 */
+export function clampWeight(fontName: string, weight: number): number {
+  const values = fontWeights(fontName).map(w => w.value)
+  if (values.includes(weight)) return weight
+  return values.reduce(
+    (best, v) => (Math.abs(v - weight) < Math.abs(best - weight) ? v : best),
+    values[0],
+  )
+}
+
+export const COLORS = ['#191F28', '#FFFFFF', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6']
 
 /** GIF 원본 여부 — 다운로드 형식 제한에 사용 */
 export function isGif(file: { name: string; type?: string }) {

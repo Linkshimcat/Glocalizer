@@ -1,5 +1,5 @@
 import JSZip from 'jszip'
-import { WEIGHTS, isGif, type DemoItem } from '../data/demo'
+import { isGif, type DemoItem } from '../data/demo'
 import { DEFAULT_STYLE, hexToRgba, resolveText, type Style } from './style'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 512px 캔버스로 합성 */
@@ -29,17 +29,18 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
   }
 
-  // 원본 이미지 (에디터와 동일하게 70% 영역 안에 맞춤)
+  // 원본 이미지 (에디터와 동일: 캔버스에 꽉 차게 object-contain + 배율)
+  const imageScale = (style.imageScale ?? 100) / 100
   if (item.url) {
     const img = await loadImage(item.url)
-    const maxDisplay = EDITOR_SIZE * 0.7
-    const ratio =
-      Math.min(maxDisplay / img.width, maxDisplay / img.height, 1) * SCALE
-    const w = img.width * ratio
-    const h = img.height * ratio
+    // 캔버스(패딩 2px 제외)에 맞춰 contain
+    const box = CANVAS_SIZE - 8
+    const contain = Math.min(box / img.width, box / img.height) * imageScale
+    const w = img.width * contain
+    const h = img.height * contain
     ctx.drawImage(img, (CANVAS_SIZE - w) / 2, (CANVAS_SIZE - h) / 2, w, h)
   } else {
-    ctx.font = `${Math.round(120 * SCALE)}px sans-serif`
+    ctx.font = `${Math.round(120 * SCALE * imageScale)}px sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(item.emoji, CANVAS_SIZE / 2, CANVAS_SIZE / 2)
@@ -47,7 +48,7 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
 
   // 번역 텍스트
   const text = resolveText(style, item.suggestions)
-  const weight = WEIGHTS[style.weight].value
+  const weight = style.weight
   const fontPx = Math.round(style.size * SCALE)
   const fontSpec = `${weight} ${fontPx}px '${style.font}', sans-serif`
   try {

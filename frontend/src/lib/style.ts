@@ -1,4 +1,4 @@
-import { COLORS, FONTS } from '../data/demo'
+import { COLORS, FONT_NAMES } from '../data/demo'
 
 /** 에디터 편집 스타일 (undo/redo · 내보내기 단위) */
 export interface Style {
@@ -7,6 +7,7 @@ export interface Style {
   customText: string
   font: string
   size: number
+  /** CSS font-weight 값 (예: 400, 800) */
   weight: number
   rotation: number
   color: string
@@ -22,14 +23,16 @@ export interface Style {
   /** 캔버스 중앙 기준 텍스트 위치 오프셋 (px, 340px 에디터 기준) */
   x: number
   y: number
+  /** 원본 이미지 크기 배율 (%, 100 = 캔버스에 꽉 차게) */
+  imageScale: number
 }
 
 export const DEFAULT_STYLE: Style = {
   suggestion: 0,
   customText: '',
-  font: FONTS[0],
+  font: FONT_NAMES[0],
   size: 28,
-  weight: 3,
+  weight: 800,
   rotation: 0,
   color: COLORS[0],
   transparent: true,
@@ -43,6 +46,7 @@ export const DEFAULT_STYLE: Style = {
   shadowOpacity: 35,
   x: 0,
   y: 105,
+  imageScale: 100,
 }
 
 export function hexToRgba(hex: string, alpha: number) {

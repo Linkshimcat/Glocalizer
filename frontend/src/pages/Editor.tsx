@@ -24,7 +24,14 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Logo from '../components/Logo'
 import { useToast } from '../components/Toast'
-import { COLORS, FONTS, WEIGHTS, isGif, toDemoItems } from '../data/demo'
+import {
+  COLORS,
+  FONT_NAMES,
+  clampWeight,
+  fontWeights,
+  isGif,
+  toDemoItems,
+} from '../data/demo'
 import {
   downloadBlob,
   exportFileName,
@@ -211,6 +218,8 @@ export default function Editor() {
 
   const [zoom, setZoom] = useState(100)
   const [preview, setPreview] = useState(false)
+  // 캔버스 위 번역 텍스트 선택 여부 (선택 시에만 초록 편집 박스+핸들 표시)
+  const [selected, setSelected] = useState(true)
   const [mobileTab, setMobileTab] = useState<MobileTab>('번역')
   const [exportName, setExportName] = useState('glocalizer_export')
   const [exportFormat, setExportFormat] = useState<'PNG' | 'GIF' | 'ZIP'>('ZIP')
@@ -221,15 +230,18 @@ export default function Editor() {
     setStyle(savedStyles[items[idx].id] ?? DEFAULT_STYLE)
     setPast([])
     setFuture([])
+    setSelected(true)
     if (!isGif(items[idx])) setExportFormat(f => (f === 'GIF' ? 'ZIP' : f))
   }
+  // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
-    setDoneIds(prev => (prev.includes(current.id) ? prev : [...prev, current.id]))
     if (currentIdx < items.length - 1) selectItem(currentIdx + 1)
   }
   const goPrev = () => {
     if (currentIdx > 0) selectItem(currentIdx - 1)
   }
+  const markCurrentDone = () =>
+    setDoneIds(prev => (prev.includes(current.id) ? prev : [...prev, current.id]))
 
   /** 리스트에서 이모티콘 삭제 (마지막 1장은 유지) */
   const deleteItem = (idx: number) => {
@@ -271,11 +283,19 @@ export default function Editor() {
     const startAngle = (Math.atan2(startY - cy, startX - cx) * 180) / Math.PI
     const startDist = Math.max(10, Math.hypot(startX - cx, startY - cy))
 
+    // 텍스트 박스가 캔버스 정사각형(320px, 반지름 160)을 벗어나지 않도록 클램프 범위 계산
+    const HALF = 160
+    const boxHalfW = rect ? rect.width / scale / 2 : 40
+    const boxHalfH = rect ? rect.height / scale / 2 : 20
+    const maxX = Math.max(10, HALF - boxHalfW)
+    const maxY = Math.max(10, HALF - boxHalfH)
+    const clamp = (v: number, m: number) => Math.max(-m, Math.min(m, v))
+
     const onMove = (ev: PointerEvent) => {
       if (mode === 'move') {
         live({
-          x: Math.max(-170, Math.min(170, Math.round(orig.x + (ev.clientX - startX) / scale))),
-          y: Math.max(-170, Math.min(170, Math.round(orig.y + (ev.clientY - startY) / scale))),
+          x: clamp(Math.round(orig.x + (ev.clientX - startX) / scale), maxX),
+          y: clamp(Math.round(orig.y + (ev.clientY - startY) / scale), maxY),
         })
       } else if (mode === 'resize') {
         const ratio = Math.hypot(ev.clientX - cx, ev.clientY - cy) / startDist
@@ -310,6 +330,7 @@ export default function Editor() {
         await renderItemToPng(current, style),
         exportFileName(current.name, langCode, 'png'),
       )
+      markCurrentDone()
     } finally {
       setBusy(false)
     }
@@ -324,6 +345,7 @@ export default function Editor() {
         await zipItems(items, stylesMap, langCode),
         `${exportName.trim() || 'glocalizer_export'}.zip`,
       )
+      setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
       navigate('/result')
     } finally {
       setBusy(false)
@@ -350,6 +372,7 @@ export default function Editor() {
           exportFileName(current.name, langCode, 'gif'),
         )
       }
+      markCurrentDone()
       navigate('/result')
     } finally {
       setBusy(false)
@@ -360,7 +383,7 @@ export default function Editor() {
     fontSize: style.size,
     color: style.color,
     fontFamily: `'${style.font}', sans-serif`,
-    fontWeight: WEIGHTS[style.weight].value,
+    fontWeight: style.weight,
     WebkitTextStroke: style.strokeOn
       ? `${style.strokeWidth}px ${style.strokeColor}`
       : undefined,
@@ -386,27 +409,106 @@ export default function Editor() {
   const tabClass = (tab: MobileTab) =>
     `${mobileTab === tab ? 'block' : 'hidden'} lg:block`
 
+  /* ── 상단 바 도구 (모바일·데스크톱 공용) ──────────────────────── */
+  const historyControls = (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={undo}
+        disabled={past.length === 0}
+        title="실행 취소"
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface disabled:text-gray-300"
+      >
+        <Undo2 className="h-4 w-4" />
+      </button>
+      <button
+        onClick={redo}
+        disabled={future.length === 0}
+        title="다시 실행"
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface disabled:text-gray-300"
+      >
+        <Redo2 className="h-4 w-4" />
+      </button>
+      <button
+        onClick={resetStyle}
+        title="초기화"
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface"
+      >
+        <RotateCcw className="h-4 w-4" />
+      </button>
+    </div>
+  )
+
+  const previewControl = (
+    <button
+      onClick={() => setPreview(p => !p)}
+      title="미리보기"
+      className={`flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-bold transition-colors ${
+        preview ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'
+      }`}
+    >
+      {preview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      미리보기
+    </button>
+  )
+
+  const pngControl = (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={downloadCurrentPng}
+      disabled={busy}
+    >
+      <Download className="h-4 w-4" /> PNG 저장
+    </Button>
+  )
+
   return (
     <div className="flex min-h-screen flex-col bg-white lg:h-screen">
       {/* 상단 바 */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2.5 lg:h-16 lg:flex-nowrap lg:gap-3 lg:px-6 lg:py-0">
-        {/* 모바일: 뒤로가기 + 타이틀 */}
-        <button
-          onClick={() => navigate('/dashboard')}
-          aria-label="대시보드로 돌아가기"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface lg:hidden"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <div className="min-w-0 flex-1 lg:hidden">
-          <p className="text-sm font-extrabold">AI 에디터</p>
-          <p className="truncate text-[11px] font-semibold text-sub">
-            {currentIdx + 1} / {items.length} · {current.name}
-          </p>
+      <div className="border-b border-gray-100">
+        {/* ── 모바일 상단 바 (2줄) ── */}
+        <div className="lg:hidden">
+          {/* 1줄: 뒤로가기 + 파일명 + 저장 */}
+          <div className="flex items-center gap-2 px-3 pt-2.5">
+            <button
+              onClick={() => navigate('/dashboard')}
+              aria-label="대시보드로 돌아가기"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-extrabold leading-tight">
+                AI 에디터{' '}
+                <span className="font-semibold text-sub">
+                  {currentIdx + 1}/{items.length}
+                </span>
+              </p>
+              <p className="truncate text-[12px] font-semibold text-sub">
+                {current.name}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={downloadAllZip}
+              disabled={busy}
+              className="shrink-0"
+            >
+              <FileArchive className="h-4 w-4" /> {busy ? '저장 중…' : '저장'}
+            </Button>
+          </div>
+          {/* 2줄: 편집 도구 */}
+          <div className="flex items-center gap-1 px-3 pb-2 pt-1.5">
+            {historyControls}
+            <span className="mx-1 h-5 w-px bg-gray-200" />
+            {previewControl}
+            <div className="flex-1" />
+            {pngControl}
+          </div>
         </div>
 
-        {/* 데스크톱: 로고 + 파일명 + 언어 배지 */}
-        <div className="hidden items-center gap-3 lg:flex">
+        {/* ── 데스크톱 상단 바 (1줄) ── */}
+        <div className="hidden h-16 items-center gap-3 px-6 lg:flex">
           <Logo small />
           <span className="h-5 w-px bg-gray-200" />
           <span className="text-sm font-semibold text-sub">{current.name}</span>
@@ -416,67 +518,17 @@ export default function Editor() {
               {targetLangs.map(l => l.label).join(' · ')}로 번역 중
             </span>
           )}
-        </div>
-        <div className="hidden flex-1 lg:block" />
-
-        {/* 실행취소 / 다시실행 / 초기화 */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={undo}
-            disabled={past.length === 0}
-            title="실행 취소"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface disabled:text-gray-300"
-          >
-            <Undo2 className="h-4 w-4" />
-          </button>
-          <button
-            onClick={redo}
-            disabled={future.length === 0}
-            title="다시 실행"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface disabled:text-gray-300"
-          >
-            <Redo2 className="h-4 w-4" />
-          </button>
-          <button
-            onClick={resetStyle}
-            title="초기화"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-        </div>
-        <span className="hidden h-5 w-px bg-gray-200 lg:inline" />
-
-        {/* 미리보기 토글 */}
-        <button
-          onClick={() => setPreview(p => !p)}
-          title="미리보기"
-          className={`flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-bold transition-colors ${
-            preview ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'
-          }`}
-        >
-          {preview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          <span className="hidden lg:inline">미리보기</span>
-        </button>
-        <span className="hidden h-5 w-px bg-gray-200 lg:inline" />
-
-        <Button
-          variant="secondary"
-          size="sm"
-          title="PNG 저장"
-          onClick={downloadCurrentPng}
-          disabled={busy}
-        >
-          <Download className="h-4 w-4" />
-          <span className="hidden lg:inline">PNG 저장</span>
-        </Button>
-        <Button size="sm" onClick={downloadAllZip} disabled={busy}>
-          <FileArchive className="h-4 w-4" />
-          <span className="hidden lg:inline">
+          <div className="flex-1" />
+          {historyControls}
+          <span className="h-5 w-px bg-gray-200" />
+          {previewControl}
+          <span className="h-5 w-px bg-gray-200" />
+          {pngControl}
+          <Button size="sm" onClick={downloadAllZip} disabled={busy}>
+            <FileArchive className="h-4 w-4" />
             {busy ? '만드는 중…' : '전체 ZIP 다운로드'}
-          </span>
-          <span className="lg:hidden">저장</span>
-        </Button>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[240px_1fr_320px] lg:overflow-hidden">
@@ -549,15 +601,19 @@ export default function Editor() {
             >
               <ChevronLeft className="h-4 w-4" /> 이전
             </Button>
-            <Button size="sm" onClick={goNext} className="flex-1">
-              {currentIdx === items.length - 1 ? '완료' : '다음'}{' '}
-              <ChevronRight className="h-4 w-4" />
+            <Button
+              size="sm"
+              onClick={goNext}
+              disabled={currentIdx === items.length - 1}
+              className="flex-1"
+            >
+              다음 <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </aside>
 
         {/* 캔버스 */}
-        <section className="relative flex flex-col items-center justify-center gap-5 overflow-hidden bg-surface pb-16 pt-8 lg:py-0">
+        <section className="relative flex flex-col items-center justify-center gap-5 overflow-hidden bg-surface pb-24 pt-8 lg:py-0">
           {current.korean ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-brand-dark shadow-sm">
               <ScanText className="h-4 w-4" />
@@ -575,20 +631,29 @@ export default function Editor() {
             style={{ transform: `scale(${zoom / 100})` }}
           >
             <div
+              onPointerDown={() => setSelected(false)}
               className={`relative flex h-[320px] w-[320px] items-center justify-center rounded-3xl shadow-[0_16px_48px_rgba(0,0,0,0.12)] sm:h-[340px] sm:w-[340px] ${
                 style.transparent ? 'checkerboard' : 'bg-white'
               }`}
             >
-              {/* 원본 이미지 (또는 데모 이모지) */}
+              {/* 원본 이미지 (또는 데모 이모지) — 캔버스 정사각형에 꽉 차게 + 배율 조절 */}
               {current.url ? (
-                <img
-                  src={current.url}
-                  alt={current.name}
-                  draggable={false}
-                  className="max-h-[70%] max-w-[70%] select-none object-contain"
-                />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-3xl p-2">
+                  <img
+                    src={current.url}
+                    alt={current.name}
+                    draggable={false}
+                    className="h-full w-full select-none object-contain"
+                    style={{ transform: `scale(${style.imageScale / 100})` }}
+                  />
+                </div>
               ) : (
-                <span className="select-none text-[120px]">{current.emoji}</span>
+                <span
+                  className="select-none text-[120px]"
+                  style={{ transform: `scale(${style.imageScale / 100})` }}
+                >
+                  {current.emoji}
+                </span>
               )}
 
               {/* 지워진 원본 텍스트 자리 표시 */}
@@ -605,8 +670,20 @@ export default function Editor() {
                   transform: `translate(-50%, -50%) translate(${style.x}px, ${style.y}px) rotate(${style.rotation}deg)`,
                 }}
               >
-                {preview ? (
-                  <span className="whitespace-nowrap" style={overlayTextStyle}>
+                {preview || !selected ? (
+                  // 미리보기 or 선택 해제 상태 — 텍스트만 표시 (클릭하면 다시 선택)
+                  <span
+                    onPointerDown={
+                      preview
+                        ? undefined
+                        : e => {
+                            e.stopPropagation()
+                            setSelected(true)
+                          }
+                    }
+                    className={`whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`}
+                    style={overlayTextStyle}
+                  >
                     {suggestionText}
                   </span>
                 ) : (
@@ -654,7 +731,7 @@ export default function Editor() {
           </p>
 
           {/* 이전 / 다음 (모바일 오버레이) */}
-          <div className="absolute bottom-5 left-4 flex gap-2 lg:hidden">
+          <div className="absolute bottom-14 left-4 flex gap-2 lg:hidden">
             <button
               onClick={goPrev}
               disabled={currentIdx === 0}
@@ -664,14 +741,15 @@ export default function Editor() {
             </button>
             <button
               onClick={goNext}
-              className="rounded-xl bg-brand px-3.5 py-2 text-xs font-bold text-white"
+              disabled={currentIdx === items.length - 1}
+              className="rounded-xl bg-brand px-3.5 py-2 text-xs font-bold text-white disabled:bg-gray-200 disabled:text-gray-400"
             >
-              {currentIdx === items.length - 1 ? '완료' : '다음 →'}
+              다음 →
             </button>
           </div>
 
           {/* 줌 컨트롤 */}
-          <div className="absolute bottom-5 right-4 flex gap-1 rounded-xl bg-white p-1 shadow-sm lg:bottom-4">
+          <div className="absolute bottom-14 right-4 flex gap-1 rounded-xl bg-white p-1 shadow-sm lg:bottom-4">
             {ZOOMS.map(z => (
               <button
                 key={z}
@@ -772,7 +850,12 @@ export default function Editor() {
             {/* AI 폰트 추천 — 원본 글씨체 기반 (API 연동 전 데모) */}
             {style.font !== current.recommendedFont && (
               <button
-                onClick={() => update({ font: current.recommendedFont })}
+                onClick={() =>
+                  update({
+                    font: current.recommendedFont,
+                    weight: clampWeight(current.recommendedFont, style.weight),
+                  })
+                }
                 className="mt-3 flex w-full items-center gap-2 rounded-2xl border-2 border-dashed border-brand/40 bg-brand-soft/60 px-4 py-2.5 text-left transition-colors hover:border-brand"
               >
                 <Sparkles className="h-4 w-4 shrink-0 text-brand-dark" />
@@ -794,10 +877,15 @@ export default function Editor() {
             )}
             <select
               value={style.font}
-              onChange={e => update({ font: e.target.value })}
+              onChange={e =>
+                update({
+                  font: e.target.value,
+                  weight: clampWeight(e.target.value, style.weight),
+                })
+              }
               className="mt-3 h-11 w-full rounded-xl border-2 border-gray-100 bg-white px-3 text-[15px] font-semibold outline-none focus:border-brand"
             >
-              {FONTS.map(f => (
+              {FONT_NAMES.map(f => (
                 <option key={f} value={f} style={{ fontFamily: `'${f}', sans-serif` }}>
                   {f}
                   {f === current.recommendedFont ? ' ✨ 추천' : ''}
@@ -808,21 +896,34 @@ export default function Editor() {
 
           <section className={tabClass('폰트')}>
             <PanelTitle>굵기</PanelTitle>
-            <div className="mt-3 grid grid-cols-4 gap-1.5">
-              {WEIGHTS.map((w, i) => (
-                <button
-                  key={w.label}
-                  onClick={() => update({ weight: i })}
-                  className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
-                    style.weight === i
-                      ? 'border-brand bg-brand-soft text-brand-dark'
-                      : 'border-gray-100 bg-white text-sub hover:border-gray-200'
-                  }`}
-                >
-                  {w.label}
-                </button>
-              ))}
-            </div>
+            {(() => {
+              const weights = fontWeights(style.font)
+              if (weights.length <= 1) {
+                return (
+                  <p className="mt-3 rounded-xl bg-surface px-4 py-3 text-xs font-semibold text-sub">
+                    이 폰트는 한 가지 굵기만 지원해요.
+                  </p>
+                )
+              }
+              const cols = weights.length === 2 ? 'grid-cols-2' : 'grid-cols-4'
+              return (
+                <div className={`mt-3 grid gap-1.5 ${cols}`}>
+                  {weights.map(w => (
+                    <button
+                      key={w.value}
+                      onClick={() => update({ weight: w.value })}
+                      className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                        style.weight === w.value
+                          ? 'border-brand bg-brand-soft text-brand-dark'
+                          : 'border-gray-100 bg-white text-sub hover:border-gray-200'
+                      }`}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
           </section>
 
           <section className={tabClass('폰트')}>
@@ -986,6 +1087,24 @@ export default function Editor() {
               ))}
             </div>
           </section>
+
+          {/* 원본 이미지 크기 */}
+          {current.url && (
+            <section className={tabClass('스타일')}>
+              <PanelTitle>원본 이미지 크기</PanelTitle>
+              <div className="mt-3">
+                <RangeRow
+                  label="크기"
+                  min={50}
+                  max={150}
+                  value={style.imageScale}
+                  suffix="%"
+                  onBegin={beginGesture}
+                  onLive={v => live({ imageScale: v })}
+                />
+              </div>
+            </section>
+          )}
 
           <section className={tabClass('스타일')}>
             <PanelTitle>배경</PanelTitle>
