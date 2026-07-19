@@ -112,7 +112,7 @@ export default function Landing() {
           {/* 중앙: 시작하기 버튼 */}
           <button
             onClick={() => navigate('/dashboard')}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand px-11 py-5 text-[26px] font-bold text-white shadow-[0_20px_50px_rgba(34,197,94,0.45)] transition-transform hover:scale-105 active:scale-100"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-brand px-9 py-4 text-[22px] font-bold text-white shadow-[0_20px_50px_rgba(34,197,94,0.45)] transition-transform hover:scale-105 active:scale-100 sm:px-11 sm:py-5 sm:text-[26px]"
           >
             시작하기
           </button>
