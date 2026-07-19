@@ -67,10 +67,11 @@ export default function Landing() {
 
           <p className="mt-7 text-[17px] leading-relaxed font-medium text-[#4E5968]">
             AI가 이미지 속 텍스트를 인식하고 제거한 뒤,
-            <br />각 문화에 맞는 표현으로 재삽입합니다. 38개국 지원.
+            <br />각 문화에 맞는 표현으로 재삽입합니다.
           </p>
 
-          <div className="mt-12 flex flex-wrap gap-2">
+          <p className="mt-12 text-sm font-semibold text-[#4E5968]">*20개국 지원.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {LANG_PILLS.map(({ flag, code }) => (
               <span
                 key={code}
@@ -81,18 +82,13 @@ export default function Landing() {
               </span>
             ))}
             <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-dark">
-              +30개
+              +20개
             </span>
           </div>
         </div>
 
-        {/* 우측: 데모 비주얼 — KR에서 시작하기를 거쳐 여러 언어로 현지화 */}
+        {/* 우측: 데모 비주얼 — KR에서 여러 언어로 현지화 */}
         <div className="relative h-[480px] overflow-hidden rounded-[28px] border-[1.5px] border-ink bg-[#FBFBFB]">
-          {/* 연결선: KR → 시작하기 */}
-          <div className="absolute left-[88px] top-[150px] h-[90px] w-[calc(50%-180px)] rounded-bl-[24px] border-b-2 border-l-2 border-brand" />
-          {/* 연결선: 시작하기 → 순환 언어 카드 */}
-          <div className="absolute left-[calc(50%+88px)] right-[96px] top-[240px] h-[80px] rounded-tr-[24px] border-r-2 border-t-2 border-brand" />
-
           {/* KR 카드 — 좌측 상단, 프레임 밖으로 살짝 잘림 */}
           <div className="absolute -left-12 top-12 flex items-center gap-3 rounded-3xl bg-surface py-7 pl-16 pr-9 shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
             <span className="text-4xl">🇰🇷</span>
