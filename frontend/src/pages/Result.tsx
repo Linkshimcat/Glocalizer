@@ -1,23 +1,9 @@
-import {
-  ArrowLeft,
-  Check,
-  FileArchive,
-  FileImage,
-  Film,
-  Home,
-  Sparkles,
-} from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ArrowLeft, Check, Home, Sparkles } from 'lucide-react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
-import { isGif, toDemoItems } from '../data/demo'
-import {
-  downloadBlob,
-  exportFileName,
-  renderItemToPng,
-  zipItems,
-} from '../lib/exportImage'
+import { toDemoItems } from '../data/demo'
 import { DEFAULT_STYLE, resolveText } from '../lib/style'
 import { useUploads } from '../store/uploads'
 
@@ -33,70 +19,10 @@ function StepIndicator() {
   )
 }
 
-// GIF는 움직이는 원본(GIF)을 올렸을 때만 활성화
-function downloadOptions(hasGif: boolean) {
-  return [
-    {
-      icon: FileArchive,
-      label: 'ZIP 패키지',
-      sub: '모든 이모티콘 한 번에',
-      highlight: true,
-      disabled: false,
-    },
-    {
-      icon: FileImage,
-      label: 'PNG 파일',
-      sub: '한 장씩 개별 저장',
-      highlight: false,
-      disabled: false,
-    },
-    {
-      icon: Film,
-      label: 'GIF 파일',
-      sub: hasGif ? '움직이는 이모티콘용' : 'GIF 원본을 올리면 받을 수 있어요',
-      highlight: false,
-      disabled: !hasGif,
-    },
-  ]
-}
-
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
-
 export default function Result() {
   const navigate = useNavigate()
   const { files, targetLangs, styles } = useUploads()
   const items = useMemo(() => toDemoItems(files), [files])
-  const [busy, setBusy] = useState<string | null>(null)
-
-  const langCode = targetLangs[0]?.code ?? 'en'
-
-  const handleDownload = async (label: string) => {
-    setBusy(label)
-    try {
-      if (label === 'ZIP 패키지') {
-        downloadBlob(await zipItems(items, styles, langCode), 'glocalizer_export.zip')
-      } else if (label === 'PNG 파일') {
-        for (const item of items) {
-          downloadBlob(
-            await renderItemToPng(item, styles[item.id] ?? DEFAULT_STYLE),
-            exportFileName(item.name, langCode, 'png'),
-          )
-          await sleep(300)
-        }
-      } else {
-        for (const item of items.filter(isGif)) {
-          if (!item.url) continue
-          downloadBlob(
-            await fetch(item.url).then(r => r.blob()),
-            exportFileName(item.name, langCode, 'gif'),
-          )
-          await sleep(300)
-        }
-      }
-    } finally {
-      setBusy(null)
-    }
-  }
 
   const langLabel =
     targetLangs.length > 0
@@ -120,56 +46,13 @@ export default function Result() {
             <p className="mt-2 text-[16px] font-medium text-[#4E5968]">
               이모티콘 {items.length}장이 {langLabel}(으)로 번역됐어요.
               <br />
-              원하는 형식으로 다운로드하세요.
+              다운로드가 시작됐는지 확인해보세요.
             </p>
           </div>
         </div>
 
-        {/* 다운로드 옵션 */}
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {downloadOptions(items.some(isGif)).map(
-            ({ icon: Icon, label, sub, highlight, disabled }) => (
-              <div
-                key={label}
-                className={`flex flex-col gap-4 rounded-[24px] border-2 p-6 ${
-                  highlight
-                    ? 'border-brand bg-brand-soft'
-                    : disabled
-                      ? 'border-gray-100 bg-surface opacity-70'
-                      : 'border-gray-100 bg-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
-                      highlight ? 'bg-white' : 'bg-surface'
-                    }`}
-                  >
-                    <Icon
-                      className={`h-5 w-5 ${disabled ? 'text-sub' : 'text-brand-dark'}`}
-                    />
-                  </span>
-                  <div>
-                    <p className="text-[15px] font-extrabold">{label}</p>
-                    <p className="text-xs font-semibold text-sub">{sub}</p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant={highlight ? 'primary' : 'secondary'}
-                  glow={highlight}
-                  disabled={disabled || busy !== null}
-                  onClick={() => handleDownload(label)}
-                >
-                  {busy === label ? '만드는 중…' : '다운로드'}
-                </Button>
-              </div>
-            ),
-          )}
-        </div>
-
         {/* 결과 미리보기 */}
-        <section className="mt-14">
+        <section className="mt-12">
           <h2 className="text-lg font-bold">번역 결과 미리보기</h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
             {items.map(item => (
@@ -211,14 +94,22 @@ export default function Result() {
           <Button
             variant="secondary"
             onClick={() => navigate('/editor')}
-            className="flex-1"
+            className="min-h-14 flex-1 md:min-h-0"
           >
             <ArrowLeft className="h-4 w-4" /> 에디터로 돌아가기
           </Button>
-          <Button variant="secondary" onClick={() => navigate('/')} className="flex-1">
+          <Button
+            variant="secondary"
+            onClick={() => navigate('/')}
+            className="min-h-14 flex-1 md:min-h-0"
+          >
             <Home className="h-4 w-4" /> 메인으로
           </Button>
-          <Button onClick={() => navigate('/dashboard')} className="flex-1" glow>
+          <Button
+            onClick={() => navigate('/dashboard')}
+            className="min-h-14 flex-1 md:min-h-0"
+            glow
+          >
             <Sparkles className="h-4 w-4" /> 새로 시작하기
           </Button>
         </div>
