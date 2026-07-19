@@ -3,26 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import translateIcon from '../assets/iconsax-translate.svg'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
+import { LANGUAGES } from '../store/uploads'
 
-const LANG_PILLS = [
-  { flag: '🇺🇸', code: 'EN' },
-  { flag: '🇯🇵', code: 'JP' },
-  { flag: '🇨🇳', code: 'ZH' },
-  { flag: '🇧🇷', code: 'PT' },
-  { flag: '🇩🇪', code: 'DE' },
-  { flag: '🇫🇷', code: 'FR' },
-  { flag: '🇻🇳', code: 'VN' },
-]
+/** 언어 코드 → 칩에 표시할 짧은 코드 (예: zh-TW → ZH-TW, ja → JA) */
+const shortCode = (code: string) => code.toUpperCase()
 
-/** 히어로 우측 카드에서 순환되는 현지화 대상 언어들 */
-const CYCLE_LANGS = [
-  { flag: '🇺🇸', code: 'EN' },
-  { flag: '🇯🇵', code: 'JP' },
-  { flag: '🇨🇳', code: 'ZH' },
-  { flag: '🇧🇷', code: 'PT' },
-  { flag: '🇩🇪', code: 'DE' },
-  { flag: '🇫🇷', code: 'FR' },
-]
+/** 히어로 우측 카드 순환용 — 지역 변형 중복 제거(zh-TW 등) */
+const CYCLE_LANGS = LANGUAGES.filter(
+  (l, i, arr) =>
+    arr.findIndex(x => x.code.split('-')[0] === l.code.split('-')[0]) === i,
+)
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -71,19 +61,16 @@ export default function Landing() {
           </p>
 
           <p className="mt-12 text-sm font-semibold text-[#4E5968]">*20개국 지원.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {LANG_PILLS.map(({ flag, code }) => (
+          <div className="mt-3 flex max-w-[520px] flex-wrap gap-2">
+            {LANGUAGES.map(lang => (
               <span
-                key={code}
+                key={lang.code}
                 className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-[#4E5968]"
               >
-                <span>{flag}</span>
-                {code}
+                <span>{lang.flag}</span>
+                {shortCode(lang.code)}
               </span>
             ))}
-            <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-dark">
-              +20개
-            </span>
           </div>
         </div>
 
@@ -92,7 +79,7 @@ export default function Landing() {
           {/* KR 카드 — 좌측 상단, 프레임 밖으로 살짝 잘림 */}
           <div className="absolute -left-12 top-12 flex items-center gap-3 rounded-3xl bg-surface py-7 pl-16 pr-9 shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
             <span className="text-4xl">🇰🇷</span>
-            <span className="text-5xl font-extrabold text-[#6B7684]">KR</span>
+            <span className="text-5xl font-extrabold text-ink">KR</span>
           </div>
 
           {/* 순환 언어 카드 — 우측 하단, EN→JP→ZH→… 페이드 전환 */}
@@ -103,9 +90,9 @@ export default function Landing() {
               {cycleLang.flag}
             </span>
             <span
-              className={`min-w-[100px] text-5xl font-extrabold text-[#6B7684] transition-opacity duration-300 ${fading ? 'opacity-0' : 'opacity-100'}`}
+              className={`min-w-[100px] text-5xl font-extrabold text-ink transition-opacity duration-300 ${fading ? 'opacity-0' : 'opacity-100'}`}
             >
-              {cycleLang.code}
+              {shortCode(cycleLang.code)}
             </span>
           </div>
 

@@ -20,8 +20,15 @@ function StepIndicator() {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { files, addFiles, removeFile, removeFiles, targetLangs, toggleTargetLang } =
-    useUploads()
+  const {
+    files,
+    addFiles,
+    removeFile,
+    removeFiles,
+    targetLangs,
+    toggleTargetLang,
+    setTargetLangs,
+  } = useUploads()
   const [dragging, setDragging] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -51,7 +58,9 @@ export default function Dashboard() {
     if (images.length < incoming.length) {
       toast('이미지 파일(PNG · JPG · GIF)만 올릴 수 있어요!')
     }
-    addFiles(images)
+    // 새로 올린 이모티콘은 자동으로 선택됨
+    const newIds = addFiles(images)
+    setSelectedIds(prev => [...prev, ...newIds])
     runProgress(images.length)
   }
 
@@ -73,6 +82,16 @@ export default function Dashboard() {
   const deleteSelected = () => {
     removeFiles(selectedIds)
     setSelectedIds([])
+  }
+
+  const allLangsSelected = targetLangs.length === LANGUAGES.length
+  const toggleAllLangs = () => {
+    if (allLangsSelected) {
+      setTargetLangs([])
+    } else {
+      setTargetLangs(LANGUAGES)
+      setShowAllLangs(true) // 전체 선택 시 목록도 펼쳐 보여줌
+    }
   }
 
   const canStart = files.length > 0 && targetLangs.length > 0
@@ -101,7 +120,7 @@ export default function Dashboard() {
           role="button"
           tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && inputRef.current?.click()}
-          className={`mt-10 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-8 py-16 transition-colors ${
+          className={`mt-10 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-4 py-12 transition-colors sm:px-8 sm:py-16 ${
             dragging
               ? 'border-brand bg-brand-soft'
               : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/50'
@@ -110,10 +129,13 @@ export default function Dashboard() {
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft">
             <Upload className="h-7 w-7 text-brand-dark" strokeWidth={2.5} />
           </span>
-          <div className="text-center">
+          <div className="break-keep text-center">
             <p className="text-lg font-bold">파일을 여기에 끌어다 놓으세요</p>
             <p className="mt-1 text-sm font-medium text-sub">
-              PNG · JPG · GIF · 여러 장을 한 번에 올릴 수 있어요
+              <span className="whitespace-nowrap">PNG · JPG · GIF</span>
+              <span className="mx-1 hidden sm:inline">·</span>
+              <br className="sm:hidden" />
+              <span className="whitespace-nowrap">여러 장을 한 번에 올릴 수 있어요</span>
             </p>
           </div>
           <Button size="sm" onClick={e => e.stopPropagation()} className="pointer-events-none">
@@ -227,9 +249,19 @@ export default function Dashboard() {
 
         {/* 언어 선택 (다중) */}
         <section className="mt-12">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-lg font-bold">번역할 언어를 골라주세요</h2>
-            <span className="text-sm font-semibold text-sub">여러 개도 좋아요</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-lg font-bold">번역할 언어를 골라주세요</h2>
+              <span className="hidden text-sm font-semibold text-sub sm:inline">
+                여러 개도 좋아요
+              </span>
+            </div>
+            <button
+              onClick={toggleAllLangs}
+              className="shrink-0 text-sm font-semibold text-brand-dark hover:underline"
+            >
+              {allLangsSelected ? '전체 해제' : '전체 선택'}
+            </button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             {(showAllLangs ? LANGUAGES : LANGUAGES.slice(0, 7)).map(lang => {

@@ -36,15 +36,25 @@ export const LANGUAGES: Language[] = [
   { code: 'th', flag: '🇹🇭', label: 'ภาษาไทย' },
   { code: 'id', flag: '🇮🇩', label: 'Bahasa Indonesia' },
   { code: 'ru', flag: '🇷🇺', label: 'Русский' },
+  { code: 'it', flag: '🇮🇹', label: 'Italiano' },
+  { code: 'ar', flag: '🇸🇦', label: 'العربية' },
+  { code: 'hi', flag: '🇮🇳', label: 'हिन्दी' },
+  { code: 'nl', flag: '🇳🇱', label: 'Nederlands' },
+  { code: 'tr', flag: '🇹🇷', label: 'Türkçe' },
+  { code: 'pl', flag: '🇵🇱', label: 'Polski' },
+  { code: 'ms', flag: '🇲🇾', label: 'Bahasa Melayu' },
+  { code: 'tl', flag: '🇵🇭', label: 'Filipino' },
 ]
 
 interface UploadState {
   files: UploadFile[]
-  addFiles: (files: File[]) => void
+  /** 추가된 파일들의 id 목록을 반환 (자동 선택 등에 사용) */
+  addFiles: (files: File[]) => string[]
   removeFile: (id: string) => void
   removeFiles: (ids: string[]) => void
   targetLangs: Language[]
   toggleTargetLang: (lang: Language) => void
+  setTargetLangs: (langs: Language[]) => void
   /** 파일별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
   styles: Record<string, Style>
   saveStyle: (id: string, style: Style) => void
@@ -71,6 +81,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         type: f.type,
       }))
     setFiles(prev => [...prev, ...next])
+    return next.map(f => f.id)
   }, [])
 
   const removeFiles = useCallback((ids: string[]) => {
@@ -103,6 +114,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       removeFiles,
       targetLangs,
       toggleTargetLang,
+      setTargetLangs,
       styles,
       saveStyle,
     }),
