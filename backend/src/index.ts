@@ -1,15 +1,18 @@
-import 'dotenv/config';
-import express from 'express';
+import { createApp } from './app.js';
+import { env } from './config/env.js';
+import { logger } from './config/logger.js';
+import { ensureStorageBucket } from './config/supabase.js';
 
-const app = express();
-const port = Number(process.env.PORT) || 3000;
+async function main() {
+  await ensureStorageBucket();
 
-app.use(express.json());
+  const app = createApp();
+  app.listen(env.PORT, () => {
+    logger.info(`Glocalizer backend running at http://localhost:${env.PORT}`);
+  });
+}
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
-});
-
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+main().catch((err) => {
+  logger.error({ err }, 'Failed to start server');
+  process.exit(1);
 });
