@@ -61,3 +61,56 @@ body {
 .animate-toast-in {
   animation: toast-in 0.25s ease-out;
 }
+
+/* 완료 체크 — 원 팝인 + 체크 그려지기 + 링 퍼짐 */
+@keyframes success-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes success-check {
+  0% {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+@keyframes success-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.animate-success-pop {
+  animation: success-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.animate-success-check {
+  animation: success-check 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s both;
+}
+.animate-success-ring {
+  animation: success-ring 1s ease-out 0.3s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-success-pop,
+  .animate-success-check,
+  .animate-success-ring {
+    animation: none;
+  }
+}

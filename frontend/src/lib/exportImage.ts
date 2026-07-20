@@ -69,6 +69,7 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
   if (style.shadowOn) {
     ctx.shadowColor = hexToRgba(style.shadowColor, style.shadowOpacity / 100)
     ctx.shadowBlur = style.shadowBlur * SCALE
+    ctx.shadowOffsetX = style.shadowX * SCALE
     ctx.shadowOffsetY = style.shadowY * SCALE
   }
   if (style.strokeOn) {

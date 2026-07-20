@@ -18,7 +18,11 @@ export interface Style {
   shadowOn: boolean
   shadowColor: string
   shadowBlur: number
+  /** 그림자 가로 오프셋 (px, 음수=왼쪽) */
+  shadowX: number
+  /** 그림자 세로 오프셋 (px, 음수=위쪽) */
   shadowY: number
+  /** 그림자 불투명도 (%, 100=진함 / 0=투명) — UI에선 '투명도'로 반전 표시 */
   shadowOpacity: number
   /** 캔버스 중앙 기준 텍스트 위치 오프셋 (px, 340px 에디터 기준) */
   x: number
@@ -45,8 +49,9 @@ export const DEFAULT_STYLE: Style = {
   shadowOn: false,
   shadowColor: '#000000',
   shadowBlur: 10,
+  shadowX: 0,
   shadowY: 4,
-  shadowOpacity: 35,
+  shadowOpacity: 50,
   x: 0,
   y: 105,
   alignH: null,

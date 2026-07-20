@@ -467,7 +467,7 @@ export default function Editor() {
       ? `${style.strokeWidth}px ${style.strokeColor}`
       : undefined,
     textShadow: style.shadowOn
-      ? `0 ${style.shadowY}px ${style.shadowBlur}px ${hexToRgba(style.shadowColor, style.shadowOpacity / 100)}`
+      ? `${style.shadowX}px ${style.shadowY}px ${style.shadowBlur}px ${hexToRgba(style.shadowColor, style.shadowOpacity / 100)}`
       : undefined,
   }
 
@@ -586,6 +586,15 @@ export default function Editor() {
               <FileArchive className="h-4 w-4" /> {busy ? '저장 중…' : '저장'}
             </Button>
           </div>
+          {/* 번역 대상 언어 배지 (모바일) */}
+          {targetLangs.length > 0 && (
+            <div className="px-3 pt-1.5">
+              <span className="block truncate rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-brand-dark">
+                {targetLangs.map(l => l.flag).join(' ')}{' '}
+                {targetLangs.map(l => l.label).join(' · ')}로 번역 중
+              </span>
+            </div>
+          )}
           {/* 2줄: 편집 도구 */}
           <div className="flex items-center gap-1 px-3 pb-2 pt-1.5">
             {historyControls}
@@ -681,23 +690,23 @@ export default function Editor() {
             })}
           </div>
           {/* 이전 / 다음 (데스크톱) */}
-          <div className="hidden gap-2 border-t border-gray-100 p-3 xl:flex">
+          <div className="hidden gap-2 border-t border-gray-100 p-2.5 xl:flex">
             <Button
               variant="secondary"
               size="sm"
               onClick={goPrev}
               disabled={currentIdx === 0}
-              className="flex-1"
+              className="flex-1 gap-1 px-2! whitespace-nowrap"
             >
-              <ChevronLeft className="h-4 w-4" /> 이전
+              <ChevronLeft className="h-4 w-4 shrink-0" /> 이전
             </Button>
             <Button
               size="sm"
               onClick={goNext}
               disabled={currentIdx === items.length - 1}
-              className="flex-1"
+              className="flex-1 gap-1 px-2! whitespace-nowrap"
             >
-              다음 <ChevronRight className="h-4 w-4" />
+              다음 <ChevronRight className="h-4 w-4 shrink-0" />
             </Button>
           </div>
         </aside>
@@ -1102,22 +1111,32 @@ export default function Editor() {
                   onLive={v => live({ shadowBlur: v })}
                 />
                 <RangeRow
-                  label="거리"
-                  min={0}
+                  label="가로"
+                  min={-20}
+                  max={20}
+                  value={style.shadowX}
+                  suffix="px"
+                  onBegin={beginGesture}
+                  onLive={v => live({ shadowX: v })}
+                />
+                <RangeRow
+                  label="세로"
+                  min={-20}
                   max={20}
                   value={style.shadowY}
                   suffix="px"
                   onBegin={beginGesture}
                   onLive={v => live({ shadowY: v })}
                 />
+                {/* 투명도: 0% = 진한 그림자, 100% = 안 보임 (내부 opacity는 반전 저장) */}
                 <RangeRow
-                  label="불투명도"
+                  label="투명도"
                   min={0}
                   max={100}
-                  value={style.shadowOpacity}
+                  value={100 - style.shadowOpacity}
                   suffix="%"
                   onBegin={beginGesture}
-                  onLive={v => live({ shadowOpacity: v })}
+                  onLive={v => live({ shadowOpacity: 100 - v })}
                 />
               </div>
             )}

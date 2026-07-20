@@ -36,8 +36,16 @@ export default function Result() {
       <main className="mx-auto max-w-[880px] px-6 py-16">
         {/* 완료 히어로 */}
         <div className="flex flex-col items-center gap-5 rounded-[28px] bg-brand-soft px-8 py-12 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand shadow-[0_12px_32px_rgba(34,197,94,0.4)]">
-            <Check className="h-8 w-8 text-white" strokeWidth={3.5} />
+          <span className="relative flex h-16 w-16 items-center justify-center">
+            {/* 퍼지는 링 */}
+            <span className="animate-success-ring absolute inset-0 rounded-full bg-brand" />
+            {/* 팝인되는 초록 원 */}
+            <span className="animate-success-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-brand shadow-[0_12px_32px_rgba(34,197,94,0.4)]">
+              <Check
+                className="animate-success-check h-8 w-8 text-white"
+                strokeWidth={3.5}
+              />
+            </span>
           </span>
           <div>
             <h1 className="text-[32px] font-extrabold tracking-tight">
