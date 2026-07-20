@@ -8,12 +8,12 @@ import { LANGUAGES, useUploads } from '../store/uploads'
 
 function StepIndicator() {
   return (
-    <div className="hidden items-center gap-2 text-sm font-semibold text-sub md:flex">
+    <div className="flex items-center gap-2 text-xs font-semibold text-sub md:text-sm">
       <span className="text-brand-dark">1 업로드</span>
-      <span>›</span>
-      <span>2 편집</span>
-      <span>›</span>
-      <span>3 다운로드</span>
+      <span className="hidden sm:inline">›</span>
+      <span className="hidden sm:inline">2 편집</span>
+      <span className="hidden sm:inline">›</span>
+      <span className="hidden sm:inline">3 다운로드</span>
     </div>
   )
 }
@@ -25,13 +25,15 @@ export default function Dashboard() {
     addFiles,
     removeFile,
     removeFiles,
+    selectedFileIds,
+    toggleFileSelection,
+    setSelectedFileIds,
     targetLangs,
     toggleTargetLang,
     setTargetLangs,
   } = useUploads()
   const [dragging, setDragging] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showAllLangs, setShowAllLangs] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
@@ -59,8 +61,7 @@ export default function Dashboard() {
       toast('이미지 파일(PNG · JPG · GIF)만 올릴 수 있어요!')
     }
     // 새로 올린 이모티콘은 자동으로 선택됨
-    const newIds = addFiles(images)
-    setSelectedIds(prev => [...prev, ...newIds])
+    addFiles(images)
     runProgress(images.length)
   }
 
@@ -70,18 +71,12 @@ export default function Dashboard() {
     handleFiles(Array.from(e.dataTransfer.files))
   }
 
-  const toggleSelect = (id: string) =>
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
-    )
-
-  const allSelected = files.length > 0 && selectedIds.length === files.length
+  const allSelected = files.length > 0 && files.every(file => selectedFileIds.includes(file.id))
   const toggleSelectAll = () =>
-    setSelectedIds(allSelected ? [] : files.map(f => f.id))
+    setSelectedFileIds(allSelected ? [] : files.map(file => file.id))
 
   const deleteSelected = () => {
-    removeFiles(selectedIds)
-    setSelectedIds([])
+    removeFiles(selectedFileIds)
   }
 
   const allLangsSelected = targetLangs.length === LANGUAGES.length
@@ -94,16 +89,17 @@ export default function Dashboard() {
     }
   }
 
-  const canStart = files.length > 0 && targetLangs.length > 0
+  const selectedCount = files.filter(file => selectedFileIds.includes(file.id)).length
+  const hasFiles = files.length > 0
+  const canStart = selectedCount > 0 && targetLangs.length > 0
 
   return (
     <div className="min-h-screen bg-white">
       <Header right={<StepIndicator />} />
 
-      <main className="mx-auto max-w-[880px] px-6 py-16">
-        <h1 className="text-[34px] font-extrabold tracking-tight">
-          이모티콘을 올려주세요
-        </h1>
+      <main className="mx-auto max-w-[880px] px-4 pb-32 pt-10 sm:px-6 sm:py-16 lg:pb-16">
+        <p className="text-sm font-extrabold text-brand-dark">1단계 · 업로드</p>
+        <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">이모티콘을 올려주세요</h1>
         <p className="mt-2 text-[16px] font-medium text-sub">
           PNG, JPG, GIF 파일을 끌어다 놓으면 바로 시작할 수 있어요.
         </p>
@@ -172,12 +168,18 @@ export default function Dashboard() {
           </div>
         )}
 
+        {hasFiles && progress === null && (
+          <p className="mt-5 text-sm font-bold text-brand-dark">
+            {selectedCount}장을 번역 대상으로 골랐어요.
+          </p>
+        )}
+
         {/* 업로드된 파일 */}
         {files.length > 0 && (
           <section className="mt-12">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">
-                올린 이모티콘 <span className="text-brand-dark">{files.length}</span>장
+                번역할 이모티콘 <span className="text-brand-dark">{selectedCount}</span>장
               </h2>
               <div className="flex items-center gap-3 text-sm font-semibold">
                 <button
@@ -186,14 +188,14 @@ export default function Dashboard() {
                 >
                   {allSelected ? '선택 해제' : '전체 선택'}
                 </button>
-                {selectedIds.length > 0 && (
+                {selectedCount > 0 && (
                   <>
                     <span className="text-gray-200">|</span>
                     <button
                       onClick={deleteSelected}
                       className="text-[#EF4444] hover:underline"
                     >
-                      선택 삭제 ({selectedIds.length})
+                      선택 삭제 ({selectedCount})
                     </button>
                   </>
                 )}
@@ -201,11 +203,11 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
               {files.map(file => {
-                const selected = selectedIds.includes(file.id)
+                const selected = selectedFileIds.includes(file.id)
                 return (
                   <div
                     key={file.id}
-                    onClick={() => toggleSelect(file.id)}
+                    onClick={() => toggleFileSelection(file.id)}
                     className={`group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border-2 transition-colors ${
                       selected ? 'border-brand bg-brand-soft' : 'border-transparent bg-surface'
                     }`}
@@ -230,7 +232,6 @@ export default function Dashboard() {
                       onClick={e => {
                         e.stopPropagation()
                         removeFile(file.id)
-                        setSelectedIds(prev => prev.filter(x => x !== file.id))
                       }}
                       aria-label={`${file.name} 삭제`}
                       className="absolute right-1.5 top-1.5 hidden h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-white group-hover:flex"
@@ -248,7 +249,7 @@ export default function Dashboard() {
         )}
 
         {/* 언어 선택 (다중) */}
-        <section className="mt-12">
+        <section className={`mt-12 transition-opacity ${hasFiles ? 'opacity-100' : 'pointer-events-none opacity-40'}`}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
               <h2 className="text-lg font-bold">번역할 언어를 골라주세요</h2>
@@ -258,6 +259,7 @@ export default function Dashboard() {
             </div>
             <button
               onClick={toggleAllLangs}
+              disabled={!hasFiles}
               className="shrink-0 text-sm font-semibold text-brand-dark hover:underline"
             >
               {allLangsSelected ? '전체 해제' : '전체 선택'}
@@ -270,6 +272,7 @@ export default function Dashboard() {
                 <button
                   key={lang.code}
                   onClick={() => toggleTargetLang(lang)}
+                  disabled={!hasFiles}
                   className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left transition-colors ${
                     selected
                       ? 'border-brand bg-brand-soft'
@@ -297,7 +300,7 @@ export default function Dashboard() {
         </section>
 
         {/* CTA */}
-        <div className="mt-14 flex justify-center">
+        <div className="mt-14 hidden justify-center lg:flex">
           <Button
             size="lg"
             glow={canStart}
@@ -305,15 +308,45 @@ export default function Dashboard() {
             onClick={() => navigate('/editor')}
             className="min-w-[280px]"
           >
-            {files.length > 0 ? `${files.length}장 번역하기 →` : '번역하기 →'}
+            {selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
           </Button>
         </div>
         {!canStart && (
-          <p className="mt-4 text-center text-sm font-medium text-sub">
-            이모티콘을 올리고 언어를 고르면 시작할 수 있어요.
+          <p className="mt-4 hidden text-center text-sm font-medium text-sub lg:block">
+            {!hasFiles
+              ? '이모티콘을 먼저 올려주세요.'
+              : selectedCount === 0
+                ? '번역할 이모티콘을 골라주세요.'
+                : '번역할 언어를 골라주세요.'}
+          </p>
+        )}
+        {canStart && (
+          <p className="mt-4 hidden text-center text-sm font-medium text-sub lg:block">
+            편집 화면에서 번역 문구와 폰트를 다듬을 수 있어요.
           </p>
         )}
       </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-100 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+        <Button
+          size="md"
+          glow={canStart}
+          disabled={!canStart}
+          onClick={() => navigate('/editor')}
+          className="w-full"
+        >
+          {selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
+        </Button>
+        <p className="mt-1.5 text-center text-xs font-medium text-sub">
+          {!hasFiles
+            ? '이모티콘을 먼저 올려주세요.'
+            : selectedCount === 0
+              ? '번역할 이모티콘을 골라주세요.'
+              : targetLangs.length === 0
+                ? '번역할 언어를 골라주세요.'
+                : '편집 화면에서 문구와 폰트를 다듬을 수 있어요.'}
+        </p>
+      </div>
     </div>
   )
 }

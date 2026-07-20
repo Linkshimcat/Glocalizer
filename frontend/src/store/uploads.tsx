@@ -62,10 +62,14 @@ function readAsDataURL(file: File): Promise<string> {
 
 interface UploadState {
   files: UploadFile[]
+  /** 현재 번역·편집 대상으로 선택된 파일 ID */
+  selectedFileIds: string[]
   /** 추가된 파일들의 id 목록을 반환 (자동 선택 등에 사용) */
   addFiles: (files: File[]) => string[]
   removeFile: (id: string) => void
   removeFiles: (ids: string[]) => void
+  toggleFileSelection: (id: string) => void
+  setSelectedFileIds: (ids: string[]) => void
   targetLangs: Language[]
   toggleTargetLang: (lang: Language) => void
   setTargetLangs: (langs: Language[]) => void
@@ -79,6 +83,10 @@ const UploadContext = createContext<UploadState | null>(null)
 export function UploadProvider({ children }: { children: ReactNode }) {
   // 초기값을 sessionStorage에서 복원 → 새로고침해도 유지
   const [files, setFiles] = useState<UploadFile[]>(() => loadSession('files', []))
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>(() => {
+    const saved = loadSession<string[] | null>('selectedFileIds', null)
+    return saved ?? loadSession<UploadFile[]>('files', []).map(file => file.id)
+  })
   const [targetLangs, setTargetLangs] = useState<Language[]>(() =>
     loadSession('targetLangs', []),
   )
@@ -88,6 +96,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
   // 상태 변경 시 세션에 저장
   useEffect(() => saveSession('files', files), [files])
+  useEffect(() => saveSession('selectedFileIds', selectedFileIds), [selectedFileIds])
   useEffect(() => saveSession('targetLangs', targetLangs), [targetLangs])
   useEffect(() => saveSession('styles', styles), [styles])
 
@@ -110,11 +119,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         })),
       ])
     })
+    setSelectedFileIds(prev => [...new Set([...prev, ...ids])])
     return ids
   }, [])
 
   const removeFiles = useCallback((ids: string[]) => {
     setFiles(prev => prev.filter(f => !ids.includes(f.id)))
+    setSelectedFileIds(prev => prev.filter(id => !ids.includes(id)))
     setStyles(prev => {
       const next = { ...prev }
       ids.forEach(id => delete next[id])
@@ -123,6 +134,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const removeFile = useCallback((id: string) => removeFiles([id]), [removeFiles])
+
+  const toggleFileSelection = useCallback((id: string) => {
+    setSelectedFileIds(prev =>
+      prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id],
+    )
+  }, [])
 
   const toggleTargetLang = useCallback((lang: Language) => {
     setTargetLangs(prev =>
@@ -135,16 +152,30 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       files,
+      selectedFileIds,
       addFiles,
       removeFile,
       removeFiles,
+      toggleFileSelection,
+      setSelectedFileIds,
       targetLangs,
       toggleTargetLang,
       setTargetLangs,
       styles,
       saveStyle,
     }),
-    [files, addFiles, removeFile, removeFiles, targetLangs, toggleTargetLang, styles, saveStyle],
+    [
+      files,
+      selectedFileIds,
+      addFiles,
+      removeFile,
+      removeFiles,
+      toggleFileSelection,
+      targetLangs,
+      toggleTargetLang,
+      styles,
+      saveStyle,
+    ],
   )
 
   return <UploadContext.Provider value={value}>{children}</UploadContext.Provider>
