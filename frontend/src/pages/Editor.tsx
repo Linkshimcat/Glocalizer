@@ -6,12 +6,14 @@ import {
   Eye,
   EyeOff,
   FileArchive,
+  LoaderCircle,
   Redo2,
   RotateCcw,
-  ScanText,
   Sparkles,
+  SlidersHorizontal,
   Trash2,
   Undo2,
+  X,
 } from 'lucide-react'
 import {
   useEffect,
@@ -44,8 +46,16 @@ import { useUploads } from '../store/uploads'
 const ALIGN_X = { left: -95, center: 0, right: 95 } as const
 const ALIGN_Y = { top: -105, middle: 0, bottom: 105 } as const
 const ZOOMS = [50, 100, 200]
+const DEFAULT_ZOOM = 100
 
 type MobileTab = '번역' | '폰트' | '스타일'
+type MobileCanvasTab = '원본' | '미리보기'
+
+const DEMO_LOADING_STEPS = [
+  '한글을 찾고 있어요…',
+  '자연스러운 표현을 고르고 있어요…',
+] as const
+const DEMO_LOADING_STEP_MS = 1200
 
 /* ── 작은 UI 헬퍼 ─────────────────────────────────────────────────── */
 
@@ -190,13 +200,25 @@ function RangeRow({ label, min, max, value, suffix = '', onBegin, onLive }: Rang
 
 export default function Editor() {
   const navigate = useNavigate()
-  const { files, removeFile, targetLangs, styles: savedStyles, saveStyle } = useUploads()
+  const {
+    files,
+    selectedFileIds,
+    removeFile,
+    targetLangs,
+    styles: savedStyles,
+    saveStyle,
+  } = useUploads()
 
   // 업로드된 파일이 있으면 그걸 쓰고, 없으면 데모 데이터로 시연
   const [removedDemoIds, setRemovedDemoIds] = useState<string[]>([])
+  const selectedFiles = useMemo(
+    () => files.filter(file => selectedFileIds.includes(file.id)),
+    [files, selectedFileIds],
+  )
+  const editorFiles = files.length > 0 && selectedFiles.length > 0 ? selectedFiles : files
   const items = useMemo(
-    () => toDemoItems(files).filter(item => !removedDemoIds.includes(item.id)),
-    [files, removedDemoIds],
+    () => toDemoItems(editorFiles).filter(item => !removedDemoIds.includes(item.id)),
+    [editorFiles, removedDemoIds],
   )
 
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -245,11 +267,15 @@ export default function Editor() {
   }
   const resetStyle = () => update(DEFAULT_STYLE)
 
-  const [zoom, setZoom] = useState(100)
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const [preview, setPreview] = useState(false)
   // 캔버스 위 번역 텍스트 선택 여부 (선택 시에만 초록 편집 박스+핸들 표시)
   const [selected, setSelected] = useState(true)
   const [mobileTab, setMobileTab] = useState<MobileTab>('번역')
+  const [mobileCanvasTab, setMobileCanvasTab] = useState<MobileCanvasTab>('미리보기')
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false)
+  const [loadingStep, setLoadingStep] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
   const [exportName, setExportName] = useState('glocalizer_export')
   const [exportFormat, setExportFormat] = useState<'PNG' | 'GIF' | 'ZIP'>('ZIP')
 
@@ -260,8 +286,24 @@ export default function Editor() {
     setPast([])
     setFuture([])
     setSelected(true)
+    setZoom(DEFAULT_ZOOM)
     if (!isGif(items[idx])) setExportFormat(f => (f === 'GIF' ? 'ZIP' : f))
   }
+
+  useEffect(() => {
+    const nextStepTimer = window.setTimeout(
+      () => setLoadingStep(1),
+      DEMO_LOADING_STEP_MS,
+    )
+    const finishTimer = window.setTimeout(
+      () => setIsLoading(false),
+      DEMO_LOADING_STEP_MS * DEMO_LOADING_STEPS.length,
+    )
+    return () => {
+      window.clearTimeout(nextStepTimer)
+      window.clearTimeout(finishTimer)
+    }
+  }, [])
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
     if (currentIdx < items.length - 1) selectItem(currentIdx + 1)
@@ -348,6 +390,10 @@ export default function Editor() {
   const usingCustom = style.customText.trim().length > 0
   const suggestionText = resolveText(style, current.suggestions)
   const gifOk = isGif(current)
+  const canvasZoomStyle = {
+    transform: `scale(${zoom / 100})`,
+    transformOrigin: 'center center',
+  }
 
   /* ── 다운로드 ─────────────────────────────────────────────────── */
 
@@ -363,6 +409,7 @@ export default function Editor() {
         exportFileName(current.name, langCode, 'png'),
       )
       markCurrentDone()
+      navigate('/result')
     } finally {
       setBusy(false)
     }
@@ -437,9 +484,9 @@ export default function Editor() {
     '-left-1 top-1/2 -translate-y-1/2',
   ]
 
-  /** 모바일 탭별 표시 (데스크톱에선 전부 표시) */
+  /** 설정 패널 탭별 표시 */
   const tabClass = (tab: MobileTab) =>
-    `${mobileTab === tab ? 'block' : 'hidden'} lg:block`
+    mobileTab === tab ? 'block' : 'hidden'
 
   /* ── 상단 바 도구 (모바일·데스크톱 공용) ──────────────────────── */
   const historyControls = (
@@ -492,6 +539,16 @@ export default function Editor() {
     >
       <Download className="h-4 w-4" /> PNG 저장
     </Button>
+  )
+
+  const inspectorToggle = (
+    <button
+      onClick={() => setIsInspectorOpen(open => !open)}
+      aria-expanded={isInspectorOpen}
+      className="hidden h-9 items-center gap-1.5 rounded-xl bg-surface px-3 text-sm font-bold text-ink lg:flex xl:hidden"
+    >
+      <SlidersHorizontal className="h-4 w-4" /> 설정
+    </button>
   )
 
   return (
@@ -554,6 +611,7 @@ export default function Editor() {
           {historyControls}
           <span className="h-5 w-px bg-gray-200" />
           {previewControl}
+          {inspectorToggle}
           <span className="h-5 w-px bg-gray-200" />
           {pngControl}
           <Button size="sm" onClick={downloadAllZip} disabled={busy}>
@@ -563,13 +621,13 @@ export default function Editor() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[240px_1fr_320px] lg:overflow-hidden">
+      <div className="flex flex-1 flex-col xl:grid xl:grid-cols-[192px_minmax(0,1fr)_288px] xl:overflow-hidden">
         {/* 파일 리스트 — 모바일에선 가로 스트립 */}
-        <aside className="flex flex-col border-b border-gray-100 lg:border-b-0 lg:border-r">
-          <p className="px-4 pb-2 pt-3 text-xs font-bold text-sub lg:pt-4">
+        <aside className="flex flex-col border-b border-gray-100 xl:border-b-0 xl:border-r">
+          <p className="px-4 pb-2 pt-3 text-xs font-bold text-sub xl:pt-4">
             이모티콘 {items.length}장 · 완료 {doneIds.length}장
           </p>
-          <div className="flex gap-1.5 overflow-x-auto px-2 pb-2 lg:flex-1 lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:pb-0">
+          <div className="flex gap-1.5 overflow-x-auto px-2 pb-2 xl:flex-1 xl:flex-col xl:overflow-x-visible xl:overflow-y-auto xl:pb-0">
             {items.map((item, idx) => {
               const active = idx === currentIdx
               const done = doneIds.includes(item.id)
@@ -580,7 +638,7 @@ export default function Editor() {
                   tabIndex={0}
                   onClick={() => selectItem(idx)}
                   onKeyDown={e => e.key === 'Enter' && selectItem(idx)}
-                  className={`group flex w-48 shrink-0 cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors lg:mb-1.5 lg:w-auto lg:shrink ${
+                  className={`group flex w-48 shrink-0 cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors xl:mb-1.5 xl:w-auto xl:shrink ${
                     active ? 'bg-brand-soft' : 'hover:bg-surface'
                   }`}
                 >
@@ -613,7 +671,7 @@ export default function Editor() {
                         deleteItem(idx)
                       }}
                       title={`${item.name} 삭제`}
-                      className="shrink-0 rounded-lg p-1.5 text-sub transition-colors hover:bg-white hover:text-[#EF4444] lg:opacity-0 lg:group-hover:opacity-100"
+                      className="shrink-0 rounded-lg p-1.5 text-sub transition-colors hover:bg-white hover:text-[#EF4444] xl:opacity-0 xl:group-hover:opacity-100"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -623,7 +681,7 @@ export default function Editor() {
             })}
           </div>
           {/* 이전 / 다음 (데스크톱) */}
-          <div className="hidden gap-2 border-t border-gray-100 p-3 lg:flex">
+          <div className="hidden gap-2 border-t border-gray-100 p-3 xl:flex">
             <Button
               variant="secondary"
               size="sm"
@@ -644,123 +702,115 @@ export default function Editor() {
           </div>
         </aside>
 
-        {/* 캔버스 */}
-        <section className="relative flex flex-col items-center justify-center gap-5 overflow-hidden bg-surface pb-24 pt-8 lg:py-0">
-          {current.korean ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-brand-dark shadow-sm">
-              <ScanText className="h-4 w-4" />
-              &lsquo;{current.korean}&rsquo; 텍스트를 찾았어요
+        {/* 원본 / 변환 미리보기 캔버스 */}
+        <section className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-surface pb-24 pt-5 lg:gap-5 lg:pb-8 lg:pt-5">
+          <div className="flex w-full max-w-[800px] items-center justify-between gap-3 px-5">
+            <span className="text-xs font-bold text-sub">
+              {current.korean ? '텍스트를 찾았어요' : '직접 문구를 입력해보세요'}
             </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-sub shadow-sm">
-              <ScanText className="h-4 w-4" />
-              텍스트를 감지하지 못했어요 — 직접 입력해보세요
-            </span>
-          )}
-
-          <div
-            className="flex h-[360px] w-[360px] items-center justify-center"
-            style={{ transform: `scale(${zoom / 100})` }}
-          >
-            <div
-              onPointerDown={() => setSelected(false)}
-              className={`relative flex h-[320px] w-[320px] items-center justify-center rounded-3xl shadow-[0_16px_48px_rgba(0,0,0,0.12)] sm:h-[340px] sm:w-[340px] ${
-                style.transparent ? 'checkerboard' : 'bg-white'
-              }`}
-            >
-              {/* 원본 이미지 (또는 데모 이모지) — 캔버스 정사각형에 꽉 차게 + 배율 조절 */}
-              {current.url ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-3xl p-2">
-                  <img
-                    src={current.url}
-                    alt={current.name}
-                    draggable={false}
-                    className="h-full w-full select-none object-contain"
-                    style={{ transform: `scale(${style.imageScale / 100})` }}
-                  />
-                </div>
-              ) : (
-                <span
-                  className="select-none text-[120px]"
-                  style={{ transform: `scale(${style.imageScale / 100})` }}
+            <div className="flex shrink-0 gap-1 rounded-xl bg-white p-1">
+              {ZOOMS.map(z => (
+                <button
+                  key={z}
+                  onClick={() => setZoom(z)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${
+                    zoom === z ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'
+                  }`}
                 >
-                  {current.emoji}
-                </span>
+                  {z}%
+                </button>
+              ))}
+              {zoom !== DEFAULT_ZOOM && (
+                <button
+                  onClick={() => setZoom(DEFAULT_ZOOM)}
+                  className="rounded-lg px-2.5 py-1 text-xs font-bold text-sub transition-colors hover:bg-surface hover:text-ink"
+                >
+                  원래 크기
+                </button>
               )}
-
-              {/* 지워진 원본 텍스트 자리 표시 */}
-              {!preview && current.korean && (
-                <span className="absolute top-6 left-1/2 -translate-x-1/2 rounded-md border border-dashed border-sub/50 px-3 py-0.5 text-sm font-semibold text-sub/60 line-through">
-                  {current.korean}
-                </span>
-              )}
-
-              {/* 번역 텍스트 오버레이 — 드래그 이동 / 핸들 크기 / 회전 */}
-              <div
-                className="absolute left-1/2 top-1/2"
-                style={{
-                  transform: `translate(-50%, -50%) translate(${style.x}px, ${style.y}px) rotate(${style.rotation}deg)`,
-                }}
-              >
-                {preview || !selected ? (
-                  // 미리보기 or 선택 해제 상태 — 텍스트만 표시 (클릭하면 다시 선택)
-                  <span
-                    onPointerDown={
-                      preview
-                        ? undefined
-                        : e => {
-                            e.stopPropagation()
-                            setSelected(true)
-                          }
-                    }
-                    className={`whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`}
-                    style={overlayTextStyle}
-                  >
-                    {suggestionText}
-                  </span>
-                ) : (
-                  <div
-                    ref={boxRef}
-                    onPointerDown={e => startGesture(e, 'move')}
-                    className="touch-none relative cursor-move border-2 border-brand px-3 py-1"
-                  >
-                    <span
-                      className="select-none whitespace-nowrap"
-                      style={overlayTextStyle}
-                    >
-                      {suggestionText}
-                    </span>
-
-                    {/* 모서리 핸들 — 크기 조절 */}
-                    {cornerHandles.map(pos => (
-                      <span
-                        key={pos}
-                        onPointerDown={e => startGesture(e, 'resize')}
-                        className={`touch-none absolute h-2.5 w-2.5 rounded-[2px] border-2 border-brand bg-white ${pos}`}
-                      />
-                    ))}
-                    {/* 변 핸들 — 표시용 */}
-                    {edgeHandles.map(pos => (
-                      <span
-                        key={pos}
-                        className={`pointer-events-none absolute h-2 w-2 rounded-[2px] border-2 border-brand bg-white ${pos}`}
-                      />
-                    ))}
-                    {/* 회전 핸들 */}
-                    <span className="pointer-events-none absolute -top-6 left-1/2 h-4 w-px -translate-x-1/2 bg-brand" />
-                    <span
-                      onPointerDown={e => startGesture(e, 'rotate')}
-                      className="touch-none absolute -top-10 left-1/2 flex h-4 w-4 -translate-x-1/2 cursor-grab items-center justify-center rounded-full border-2 border-brand bg-white active:cursor-grabbing"
-                    />
-                  </div>
-                )}
-              </div>
             </div>
           </div>
+          <div className="grid w-full max-w-[760px] grid-cols-2 gap-2 px-4 lg:hidden">
+            {(['원본', '미리보기'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setMobileCanvasTab(tab)}
+                className={`h-10 rounded-xl text-sm font-bold transition-colors ${
+                  mobileCanvasTab === tab
+                    ? 'bg-brand text-white'
+                    : 'bg-white text-sub'
+                }`}
+              >
+                {tab === '원본' ? '원본' : '변환 미리보기'}
+              </button>
+            ))}
+          </div>
 
-          <p className="hidden px-6 text-center text-xs font-semibold text-sub lg:block">
-            텍스트를 끌어서 옮기고, 모서리로 크기를, 위 핸들로 회전을 조절해보세요
-          </p>
+          <div className="grid w-full max-w-[800px] grid-cols-1 gap-5 px-5 lg:grid-cols-2 lg:gap-6">
+            {/* 좌측: 원본과 감지 위치 */}
+            <article className={`${mobileCanvasTab === '원본' ? 'block' : 'hidden'} lg:block`}>
+              <p className="mb-2 text-center text-sm font-extrabold text-ink">원본</p>
+              <div className="mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl bg-white sm:h-[340px] sm:w-[340px]">
+                <div className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
+                  {current.url ? (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
+                      <img src={current.url} alt={current.name} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
+                    </div>
+                  ) : (
+                    <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
+                  )}
+                  {current.korean && (
+                    <span className="absolute left-1/2 top-6 -translate-x-1/2 rounded-md border-2 border-dashed border-sub/70 px-3 py-1 text-sm font-bold text-ink">
+                      {current.korean}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <p className="mt-3 text-center text-xs font-semibold text-sub">
+                {current.korean ? '텍스트를 찾았어요' : '텍스트를 찾지 못했어요'}
+              </p>
+            </article>
+
+            {/* 우측: 변환 미리보기와 편집 제스처 */}
+            <article className={`${mobileCanvasTab === '미리보기' ? 'block' : 'hidden'} lg:block`}>
+              <p className="mb-2 text-center text-sm font-extrabold text-ink">변환 미리보기</p>
+              <div className="checkerboard mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl sm:h-[340px] sm:w-[340px]">
+                <div onPointerDown={() => setSelected(false)} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
+                  <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
+                  <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -50%) translate(${style.x}px, ${style.y}px) rotate(${style.rotation}deg)` }}>
+                    {preview || !selected ? (
+                      <span onPointerDown={preview ? undefined : e => { e.stopPropagation(); setSelected(true) }} className={`whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`} style={overlayTextStyle}>{suggestionText}</span>
+                    ) : (
+                      <div ref={boxRef} onPointerDown={e => startGesture(e, 'move')} className="touch-none relative cursor-move border-2 border-brand px-3 py-1">
+                        <span className="select-none whitespace-nowrap" style={overlayTextStyle}>{suggestionText}</span>
+                        {cornerHandles.map(pos => <span key={pos} onPointerDown={e => startGesture(e, 'resize')} className={`touch-none absolute h-2.5 w-2.5 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
+                        {edgeHandles.map(pos => <span key={pos} className={`pointer-events-none absolute h-2 w-2 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
+                        <span className="pointer-events-none absolute -top-6 left-1/2 h-4 w-px -translate-x-1/2 bg-brand" />
+                        <span onPointerDown={e => startGesture(e, 'rotate')} className="touch-none absolute -top-10 left-1/2 flex h-4 w-4 -translate-x-1/2 cursor-grab items-center justify-center rounded-full border-2 border-brand bg-white active:cursor-grabbing" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-center text-xs font-semibold text-sub">
+                {current.url
+                  ? '데모 미리보기예요. 실제 배경 복원은 API 연결 후 처리돼요.'
+                  : '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요'}
+              </p>
+            </article>
+          </div>
+
+          {isLoading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface/90 px-6">
+              <div className="flex w-full max-w-xs flex-col items-center rounded-3xl bg-white px-7 py-8 text-center shadow-[0_12px_32px_rgba(0,0,0,0.08)]">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft">
+                  <LoaderCircle className="h-6 w-6 animate-spin text-brand-dark" />
+                </span>
+                <p className="mt-4 text-lg font-extrabold">{DEMO_LOADING_STEPS[loadingStep]}</p>
+                <p className="mt-1 text-sm font-medium text-sub">잠시만 기다려주세요</p>
+              </div>
+            </div>
+          )}
 
           {/* 이전 / 다음 (모바일 오버레이) */}
           <div className="absolute bottom-14 left-4 flex gap-2 lg:hidden">
@@ -780,33 +830,25 @@ export default function Editor() {
             </button>
           </div>
 
-          {/* 줌 컨트롤 */}
-          <div className="absolute bottom-14 right-4 flex gap-1 rounded-xl bg-white p-1 shadow-sm lg:bottom-4">
-            {ZOOMS.map(z => (
-              <button
-                key={z}
-                onClick={() => setZoom(z)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${
-                  zoom === z ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'
-                }`}
-              >
-                {z}%
-              </button>
-            ))}
-          </div>
-
-          {/* 진행 표시 (데스크톱) */}
-          <span className="absolute bottom-4 left-4 hidden text-xs font-bold text-sub lg:block">
-            {currentIdx + 1} / {items.length}
-          </span>
         </section>
 
-        {/* 컨트롤 패널 — 모바일에선 바텀시트 스타일 */}
-        <aside className="relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] lg:mt-0 lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-none lg:overflow-y-auto">
-          {/* 시트 핸들 + 탭 (모바일 전용) */}
-          <div className="-mb-2 lg:hidden">
-            <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-200" />
-            <div className="mt-4 grid grid-cols-3 gap-2">
+        {isInspectorOpen && (
+          <button
+            aria-label="설정 패널 닫기"
+            onClick={() => setIsInspectorOpen(false)}
+            className="fixed inset-0 z-30 hidden bg-ink/20 lg:block xl:hidden"
+          />
+        )}
+
+        {/* 컨트롤 패널 — 중간 화면에서는 슬라이드 패널 */}
+        <aside
+          className={`relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
+            isInspectorOpen ? 'lg:translate-x-0' : 'lg:translate-x-full'
+          }`}
+        >
+          <div className="-mb-2">
+            <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-200 lg:hidden" />
+            <div className="mt-4 grid grid-cols-3 gap-2 lg:mt-0">
               {(['번역', '폰트', '스타일'] as const).map(tab => (
                 <button
                   key={tab}
@@ -821,6 +863,13 @@ export default function Editor() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => setIsInspectorOpen(false)}
+              aria-label="설정 패널 닫기"
+              className="absolute right-4 top-4 hidden rounded-xl p-2 text-sub hover:bg-surface lg:block xl:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
           {/* ── 번역 탭 ── */}
@@ -1189,7 +1238,7 @@ export default function Editor() {
           </section>
 
           {/* ── 내보내기 (모바일에선 항상 표시) ── */}
-          <section className="border-t border-gray-100 pt-6">
+          <section className="mt-auto border-t border-gray-100 bg-white pt-6 xl:sticky xl:bottom-0 xl:pb-1">
             <PanelTitle>내보내기</PanelTitle>
             <input
               value={exportName}
