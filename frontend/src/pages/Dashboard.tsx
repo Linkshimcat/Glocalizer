@@ -284,12 +284,15 @@ export default function Dashboard() {
                 </button>
               )
             })}
-            <button
-              onClick={() => setShowAllLangs(v => !v)}
-              className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 px-4 py-4 text-[15px] font-bold text-sub transition-colors hover:border-brand/50 hover:text-brand-dark"
-            >
-              {showAllLangs ? '접기' : `+ ${LANGUAGES.length - 7}개 더보기`}
-            </button>
+            {/* 언어가 7개를 넘을 때만 더보기/접기 노출 */}
+            {LANGUAGES.length > 7 && (
+              <button
+                onClick={() => setShowAllLangs(v => !v)}
+                className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 px-4 py-4 text-[15px] font-bold text-sub transition-colors hover:border-brand/50 hover:text-brand-dark"
+              >
+                {showAllLangs ? '접기' : `+ ${LANGUAGES.length - 7}개 더보기`}
+              </button>
+            )}
           </div>
         </section>
 

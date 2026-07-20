@@ -23,6 +23,9 @@ export interface Style {
   /** 캔버스 중앙 기준 텍스트 위치 오프셋 (px, 340px 에디터 기준) */
   x: number
   y: number
+  /** 선택된 정렬 프리셋 (null = 자유 위치/미선택). 버튼 하이라이트·토글용 */
+  alignH: 'left' | 'center' | 'right' | null
+  alignV: 'top' | 'middle' | 'bottom' | null
   /** 원본 이미지 크기 배율 (%, 100 = 캔버스에 꽉 차게) */
   imageScale: number
 }
@@ -46,6 +49,8 @@ export const DEFAULT_STYLE: Style = {
   shadowOpacity: 35,
   x: 0,
   y: 105,
+  alignH: null,
+  alignV: 'bottom',
   imageScale: 100,
 }
 

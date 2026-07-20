@@ -27,23 +27,6 @@ export const LANGUAGES: Language[] = [
   { code: 'en', flag: '🇺🇸', label: 'English' },
   { code: 'ja', flag: '🇯🇵', label: '日本語' },
   { code: 'zh', flag: '🇨🇳', label: '中文 (简体)' },
-  { code: 'zh-TW', flag: '🇹🇼', label: '中文 (繁體)' },
-  { code: 'es', flag: '🇪🇸', label: 'Español' },
-  { code: 'fr', flag: '🇫🇷', label: 'Français' },
-  { code: 'de', flag: '🇩🇪', label: 'Deutsch' },
-  { code: 'pt', flag: '🇧🇷', label: 'Português' },
-  { code: 'vi', flag: '🇻🇳', label: 'Tiếng Việt' },
-  { code: 'th', flag: '🇹🇭', label: 'ภาษาไทย' },
-  { code: 'id', flag: '🇮🇩', label: 'Bahasa Indonesia' },
-  { code: 'ru', flag: '🇷🇺', label: 'Русский' },
-  { code: 'it', flag: '🇮🇹', label: 'Italiano' },
-  { code: 'ar', flag: '🇸🇦', label: 'العربية' },
-  { code: 'hi', flag: '🇮🇳', label: 'हिन्दी' },
-  { code: 'nl', flag: '🇳🇱', label: 'Nederlands' },
-  { code: 'tr', flag: '🇹🇷', label: 'Türkçe' },
-  { code: 'pl', flag: '🇵🇱', label: 'Polski' },
-  { code: 'ms', flag: '🇲🇾', label: 'Bahasa Melayu' },
-  { code: 'tl', flag: '🇵🇭', label: 'Filipino' },
 ]
 
 interface UploadState {

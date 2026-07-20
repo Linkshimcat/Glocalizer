@@ -137,9 +137,13 @@ interface RangeRowProps {
 }
 
 function RangeRow({ label, min, max, value, suffix = '', onBegin, onLive }: RangeRowProps) {
+  const clampValue = (v: number) => Math.max(min, Math.min(max, v))
+  // 타이핑 중 임시 문자열 (포커스 아닐 땐 null → 슬라이더 값과 동기화)
+  const [draft, setDraft] = useState<string | null>(null)
+  const shown = draft ?? String(value)
   return (
     <div className="flex items-center gap-3">
-      <span className="w-14 shrink-0 text-xs font-semibold text-sub">{label}</span>
+      <span className="w-12 shrink-0 text-xs font-semibold text-sub">{label}</span>
       <input
         type="range"
         min={min}
@@ -149,10 +153,35 @@ function RangeRow({ label, min, max, value, suffix = '', onBegin, onLive }: Rang
         onChange={e => onLive(Number(e.target.value))}
         className="accent-brand min-w-0 flex-1"
       />
-      <span className="w-11 shrink-0 text-right text-sm font-bold text-brand-dark">
-        {value}
-        {suffix}
-      </span>
+      {/* 값 직접 입력 — 슬라이더로 못 맞추는 정확한 값을 타이핑 */}
+      <div className="flex h-8 w-[62px] shrink-0 items-center rounded-lg border-2 border-gray-100 bg-white px-1.5 focus-within:border-brand">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          value={shown}
+          onFocus={() => {
+            onBegin()
+            setDraft(String(value))
+          }}
+          onChange={e => {
+            setDraft(e.target.value)
+            const n = Number(e.target.value)
+            if (e.target.value !== '' && e.target.value !== '-' && !Number.isNaN(n)) {
+              onLive(clampValue(n))
+            }
+          }}
+          onBlur={() => {
+            const n = Number(draft)
+            onLive(Number.isNaN(n) || draft === '' ? min : clampValue(n))
+            setDraft(null)
+          }}
+          className="w-full min-w-0 bg-transparent text-right text-sm font-bold text-brand-dark outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        {suffix && (
+          <span className="pl-0.5 text-xs font-bold text-brand-dark">{suffix}</span>
+        )}
+      </div>
     </div>
   )
 }
@@ -293,9 +322,12 @@ export default function Editor() {
 
     const onMove = (ev: PointerEvent) => {
       if (mode === 'move') {
+        // 자유 이동 시 정렬 프리셋 선택 해제
         live({
           x: clamp(Math.round(orig.x + (ev.clientX - startX) / scale), maxX),
           y: clamp(Math.round(orig.y + (ev.clientY - startY) / scale), maxY),
+          alignH: null,
+          alignV: null,
         })
       } else if (mode === 'resize') {
         const ratio = Math.hypot(ev.clientX - cx, ev.clientY - cy) / startDist
@@ -1044,47 +1076,73 @@ export default function Editor() {
 
           <section className={tabClass('스타일')}>
             <PanelTitle>정렬</PanelTitle>
-            <div className="mt-3 grid grid-cols-6 gap-1.5">
-              {(
-                [
-                  ['left', '좌'],
-                  ['center', '중'],
-                  ['right', '우'],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => update({ x: ALIGN_X[key] })}
-                  title={`가로 ${label}`}
-                  className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
-                    style.x === ALIGN_X[key]
-                      ? 'border-brand bg-brand-soft text-brand-dark'
-                      : 'border-gray-100 bg-white text-sub hover:border-gray-200'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-              {(
-                [
-                  ['top', '상'],
-                  ['middle', '중'],
-                  ['bottom', '하'],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => update({ y: ALIGN_Y[key] })}
-                  title={`세로 ${label}`}
-                  className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
-                    style.y === ALIGN_Y[key]
-                      ? 'border-brand bg-brand-soft text-brand-dark'
-                      : 'border-gray-100 bg-white text-sub hover:border-gray-200'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* 가로 정렬 — 한 번 더 누르면 선택 해제 */}
+            <div className="mt-3 flex items-center gap-2">
+              <span className="w-8 shrink-0 text-xs font-semibold text-sub">가로</span>
+              <div className="grid flex-1 grid-cols-3 gap-1.5">
+                {(
+                  [
+                    ['left', '좌'],
+                    ['center', '가운데'],
+                    ['right', '우'],
+                  ] as const
+                ).map(([key, label]) => {
+                  const active = style.alignH === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() =>
+                        update(
+                          active
+                            ? { alignH: null }
+                            : { alignH: key, x: ALIGN_X[key] },
+                        )
+                      }
+                      className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                        active
+                          ? 'border-brand bg-brand-soft text-brand-dark'
+                          : 'border-gray-100 bg-white text-sub hover:border-gray-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            {/* 세로 정렬 */}
+            <div className="mt-2 flex items-center gap-2">
+              <span className="w-8 shrink-0 text-xs font-semibold text-sub">세로</span>
+              <div className="grid flex-1 grid-cols-3 gap-1.5">
+                {(
+                  [
+                    ['top', '상'],
+                    ['middle', '가운데'],
+                    ['bottom', '하'],
+                  ] as const
+                ).map(([key, label]) => {
+                  const active = style.alignV === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() =>
+                        update(
+                          active
+                            ? { alignV: null }
+                            : { alignV: key, y: ALIGN_Y[key] },
+                        )
+                      }
+                      className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                        active
+                          ? 'border-brand bg-brand-soft text-brand-dark'
+                          : 'border-gray-100 bg-white text-sub hover:border-gray-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </section>
 

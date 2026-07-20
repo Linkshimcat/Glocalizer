@@ -60,7 +60,9 @@ export default function Landing() {
             <br />각 문화에 맞는 표현으로 재삽입합니다.
           </p>
 
-          <p className="mt-12 text-sm font-semibold text-[#4E5968]">*20개국 지원.</p>
+          <p className="mt-12 text-sm font-semibold text-[#4E5968]">
+            *{LANGUAGES.length}개국 지원.
+          </p>
           <div className="mt-3 flex max-w-[520px] flex-wrap gap-2">
             {LANGUAGES.map(lang => (
               <span
