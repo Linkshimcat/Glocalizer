@@ -1,16 +1,14 @@
 import { supabase } from '../config/supabase.js';
-import { AppError } from '../errors/app-error.js';
+import { unwrapList, unwrapNullableRow, unwrapVoid } from '../utils/db-result.js';
 import type { OcrRegion, OcrRegionRow } from '../types/ocr.js';
 
 export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): Promise<void> {
-  const { error: deleteError } = await supabase.from('ocr_regions').delete().eq('asset_id', assetId);
-  if (deleteError) {
-    throw new AppError('INTERNAL_ERROR', { cause: deleteError.message }, 'OCR 결과 초기화에 실패했습니다.');
-  }
+  const deleteResult = await supabase.from('ocr_regions').delete().eq('asset_id', assetId);
+  unwrapVoid(deleteResult, 'OCR 결과 초기화에 실패했습니다.');
 
   if (regions.length === 0) return;
 
-  const { error: insertError } = await supabase.from('ocr_regions').insert(
+  const insertResult = await supabase.from('ocr_regions').insert(
     regions.map((region) => ({
       id: region.id,
       asset_id: assetId,
@@ -25,22 +23,20 @@ export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): 
     })),
   );
 
-  if (insertError) {
-    throw new AppError('INTERNAL_ERROR', { cause: insertError.message }, 'OCR 결과 저장에 실패했습니다.');
-  }
+  unwrapVoid(insertResult, 'OCR 결과 저장에 실패했습니다.');
 }
 
 export async function findPrimaryRegion(assetId: string): Promise<OcrRegionRow | null> {
-  const { data, error } = await supabase
-    .from('ocr_regions')
-    .select()
-    .eq('asset_id', assetId)
-    .eq('is_primary', true)
-    .maybeSingle();
+  const result = await supabase.from('ocr_regions').select().eq('asset_id', assetId).eq('is_primary', true).maybeSingle();
+  return unwrapNullableRow<OcrRegionRow>(result, 'OCR 대표 영역 조회에 실패했습니다.');
+}
 
-  if (error) {
-    throw new AppError('INTERNAL_ERROR', { cause: error.message }, 'OCR 대표 영역 조회에 실패했습니다.');
-  }
+export async function findRegionsByAssetId(assetId: string): Promise<OcrRegionRow[]> {
+  const result = await supabase.from('ocr_regions').select().eq('asset_id', assetId).order('reading_order');
+  return unwrapList<OcrRegionRow>(result, 'OCR 영역 조회에 실패했습니다.');
+}
 
-  return (data as OcrRegionRow) ?? null;
+export async function findRegionById(regionId: string): Promise<OcrRegionRow | null> {
+  const result = await supabase.from('ocr_regions').select().eq('id', regionId).maybeSingle();
+  return unwrapNullableRow<OcrRegionRow>(result, 'OCR 영역 조회에 실패했습니다.');
 }

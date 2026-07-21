@@ -1,7 +1,8 @@
 import { supabase } from '../config/supabase.js';
-import { AppError } from '../errors/app-error.js';
+import { unwrapList, unwrapNullableRow, unwrapVoid } from '../utils/db-result.js';
 import type { RecommendedStyle, TargetLanguage, TranslationCandidate } from '../types/localization.js';
 import type { TranslationReviewResult } from '../types/review.js';
+import type { TranslationRow } from '../types/translation.js';
 
 interface UpsertTranslationInput {
   ocrRegionId: string;
@@ -16,7 +17,7 @@ interface UpsertTranslationInput {
 }
 
 export async function upsertTranslation(input: UpsertTranslationInput): Promise<void> {
-  const { error } = await supabase.from('translations').upsert(
+  const result = await supabase.from('translations').upsert(
     {
       ocr_region_id: input.ocrRegionId,
       language_code: input.languageCode,
@@ -31,7 +32,25 @@ export async function upsertTranslation(input: UpsertTranslationInput): Promise<
     { onConflict: 'ocr_region_id,language_code' },
   );
 
-  if (error) {
-    throw new AppError('INTERNAL_ERROR', { cause: error.message }, '번역 결과 저장에 실패했습니다.');
-  }
+  unwrapVoid(result, '번역 결과 저장에 실패했습니다.');
+}
+
+export async function findTranslationsByOcrRegionId(ocrRegionId: string): Promise<TranslationRow[]> {
+  const result = await supabase.from('translations').select().eq('ocr_region_id', ocrRegionId);
+  return unwrapList<TranslationRow>(result, '번역 결과 조회에 실패했습니다.');
+}
+
+export async function findTranslation(ocrRegionId: string, languageCode: TargetLanguage): Promise<TranslationRow | null> {
+  const result = await supabase.from('translations').select().eq('ocr_region_id', ocrRegionId).eq('language_code', languageCode).maybeSingle();
+  return unwrapNullableRow<TranslationRow>(result, '번역 결과 조회에 실패했습니다.');
+}
+
+export async function incrementRegenerateCount(ocrRegionId: string, languageCode: TargetLanguage, nextCount: number): Promise<void> {
+  const result = await supabase
+    .from('translations')
+    .update({ regenerate_count: nextCount })
+    .eq('ocr_region_id', ocrRegionId)
+    .eq('language_code', languageCode);
+
+  unwrapVoid(result, '재생성 횟수 갱신에 실패했습니다.');
 }

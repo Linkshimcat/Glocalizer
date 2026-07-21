@@ -2,6 +2,7 @@ import { env } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import { withRetry } from '../../utils/retry.js';
 import type { ErrorCode } from '../../errors/error-codes.js';
+import { postJsonToNvidia, shouldRetryNvidiaError } from './nvidia-http.js';
 
 /**
  * https://integrate.api.nvidia.com/v1/chat/completions 는 OpenAI Chat Completions 호환
@@ -21,18 +22,21 @@ export interface ChatCompletionRequest {
   errorCode: ErrorCode;
 }
 
+interface ChatCompletionResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+}
+
 export async function callChatCompletion(request: ChatCompletionRequest): Promise<string> {
   const endpoint = `${env.NVIDIA_LLM_BASE_URL.replace(/\/+$/, '')}/chat/completions`;
 
   return withRetry(
     async () => {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${request.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const json = await postJsonToNvidia<ChatCompletionResponse>({
+        url: endpoint,
+        apiKey: request.apiKey,
+        errorCode: request.errorCode,
+        errorLabel: 'NVIDIA LLM',
+        body: {
           model: request.model,
           messages: request.messages,
           temperature: request.temperature ?? 0.7,
@@ -41,23 +45,10 @@ export async function callChatCompletion(request: ChatCompletionRequest): Promis
           stream: false,
           ...(request.jsonMode ? { response_format: { type: 'json_object' } } : {}),
           ...request.extraBody,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new AppError(
-          request.errorCode,
-          { status: response.status, body: body.slice(0, 500) },
-          `NVIDIA LLM 요청이 실패했습니다 (status ${response.status}).`,
-        );
-      }
-
-      const json = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
       const content = json.choices?.[0]?.message?.content;
-
       if (!content) {
         throw new AppError(request.errorCode, undefined, 'NVIDIA LLM 응답에 content가 없습니다.');
       }
@@ -65,9 +56,9 @@ export async function callChatCompletion(request: ChatCompletionRequest): Promis
       return content;
     },
     {
-      attempts: 3,
+      attempts: env.MAX_TRANSLATION_RETRIES,
       delayMs: 500,
-      shouldRetry: (err) => !(err instanceof AppError) || (typeof err.details?.status === 'number' && err.details.status >= 500),
+      shouldRetry: shouldRetryNvidiaError,
     },
   );
 }

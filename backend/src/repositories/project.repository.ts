@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { AppError } from '../errors/app-error.js';
+import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 import type { LocalizationOptions, ProjectRow, ProjectStatus, TargetLanguage } from '../types/project.js';
 
 interface CreateProjectInput {
@@ -10,7 +10,7 @@ interface CreateProjectInput {
 }
 
 export async function insertProject(input: CreateProjectInput): Promise<ProjectRow> {
-  const { data, error } = await supabase
+  const result = await supabase
     .from('projects')
     .insert({
       access_token_hash: input.accessTokenHash,
@@ -21,21 +21,12 @@ export async function insertProject(input: CreateProjectInput): Promise<ProjectR
     .select()
     .single();
 
-  if (error || !data) {
-    throw new AppError('INTERNAL_ERROR', { cause: error?.message }, '프로젝트를 생성하지 못했습니다.');
-  }
-
-  return data as ProjectRow;
+  return unwrapRow<ProjectRow>(result, '프로젝트를 생성하지 못했습니다.');
 }
 
 export async function findProjectById(projectId: string): Promise<ProjectRow | null> {
-  const { data, error } = await supabase.from('projects').select().eq('id', projectId).maybeSingle();
-
-  if (error) {
-    throw new AppError('INTERNAL_ERROR', { cause: error.message }, '프로젝트 조회에 실패했습니다.');
-  }
-
-  return (data as ProjectRow) ?? null;
+  const result = await supabase.from('projects').select().eq('id', projectId).maybeSingle();
+  return unwrapNullableRow<ProjectRow>(result, '프로젝트 조회에 실패했습니다.');
 }
 
 interface ProjectStageUpdate {
@@ -47,7 +38,7 @@ interface ProjectStageUpdate {
 }
 
 export async function updateProjectStage(projectId: string, patch: ProjectStageUpdate): Promise<void> {
-  const { error } = await supabase
+  const result = await supabase
     .from('projects')
     .update({
       ...(patch.status !== undefined ? { status: patch.status } : {}),
@@ -59,7 +50,15 @@ export async function updateProjectStage(projectId: string, patch: ProjectStageU
     })
     .eq('id', projectId);
 
-  if (error) {
-    throw new AppError('INTERNAL_ERROR', { cause: error.message }, '프로젝트 상태를 갱신하지 못했습니다.');
-  }
+  unwrapVoid(result, '프로젝트 상태를 갱신하지 못했습니다.');
+}
+
+export async function deleteProjectRow(projectId: string): Promise<void> {
+  const result = await supabase.from('projects').delete().eq('id', projectId);
+  unwrapVoid(result, '프로젝트 삭제에 실패했습니다.');
+}
+
+export async function findExpiredProjects(): Promise<ProjectRow[]> {
+  const result = await supabase.from('projects').select().lt('expires_at', new Date().toISOString());
+  return unwrapList<ProjectRow>(result, '만료된 프로젝트 조회에 실패했습니다.');
 }
