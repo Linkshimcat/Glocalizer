@@ -55,6 +55,14 @@ export async function runOcrForAsset(asset: AssetRow): Promise<AssetOcrResult> {
       return { assetId: asset.id, status: 'failed', regionCount: 0, errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage };
     }
 
+    const anyKorean = merged.some(region => region.containsKorean);
+    if (!anyKorean) {
+      const errorMessage = '이미지에서 한국어 텍스트를 찾지 못했습니다. 선명한 PNG 파일로 다시 시도해주세요.';
+      await updateAsset(asset.id, { status: 'failed', stage: 'ocr', errorCode: 'OCR_KOREAN_NOT_FOUND', errorMessage });
+      await replaceOcrRegions(asset.id, merged);
+      return { assetId: asset.id, status: 'failed', regionCount: merged.length, errorCode: 'OCR_KOREAN_NOT_FOUND', errorMessage };
+    }
+
     const withPrimary = selectPrimaryRegion(merged, asset.width, asset.height);
     await replaceOcrRegions(asset.id, withPrimary);
     await updateAsset(asset.id, { status: 'ocr', stage: 'ocr', progress: 100 });

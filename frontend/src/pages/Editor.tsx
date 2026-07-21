@@ -31,16 +31,19 @@ import {
   FONT_NAMES,
   clampWeight,
   fontWeights,
-  isGif,
-  toDemoItems,
+  itemRegions,
+  toEditorItems,
 } from '../data/demo'
+import { api } from '../lib/api/client'
+import type { ProjectResultsResponse } from '../lib/api/types'
 import {
   downloadBlob,
   exportFileName,
+  itemRegionRenders,
   renderItemToPng,
   zipItems,
 } from '../lib/exportImage'
-import { DEFAULT_STYLE, hexToRgba, resolveText, type Style } from '../lib/style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleForRegion, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
 
 const ALIGN_X = { left: -95, center: 0, right: 95 } as const
@@ -50,12 +53,6 @@ const DEFAULT_ZOOM = 100
 
 type MobileTab = '번역' | '폰트' | '스타일'
 type MobileCanvasTab = '원본' | '미리보기'
-
-const DEMO_LOADING_STEPS = [
-  '한글을 찾고 있어요…',
-  '자연스러운 표현을 고르고 있어요…',
-] as const
-const DEMO_LOADING_STEP_MS = 1200
 
 /* ── 작은 UI 헬퍼 ─────────────────────────────────────────────────── */
 
@@ -201,39 +198,45 @@ function RangeRow({ label, min, max, value, suffix = '', onBegin, onLive }: Rang
 export default function Editor() {
   const navigate = useNavigate()
   const {
-    files,
-    selectedFileIds,
     removeFile,
     targetLangs,
+    projectSession,
     styles: savedStyles,
     saveStyle,
   } = useUploads()
 
-  // 업로드된 파일이 있으면 그걸 쓰고, 없으면 데모 데이터로 시연
-  const [removedDemoIds, setRemovedDemoIds] = useState<string[]>([])
-  const selectedFiles = useMemo(
-    () => files.filter(file => selectedFileIds.includes(file.id)),
-    [files, selectedFileIds],
-  )
-  const editorFiles = files.length > 0 && selectedFiles.length > 0 ? selectedFiles : files
+  const [results, setResults] = useState<ProjectResultsResponse | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [removedIds, setRemovedIds] = useState<string[]>([])
+  const languageCode = targetLangs[0]?.code ?? 'en'
   const items = useMemo(
-    () => toDemoItems(editorFiles).filter(item => !removedDemoIds.includes(item.id)),
-    [editorFiles, removedDemoIds],
+    () => (results ? toEditorItems(results.assets, languageCode).filter(item => !removedIds.includes(item.id)) : []),
+    [results, languageCode, removedIds],
   )
 
   const [currentIdx, setCurrentIdx] = useState(0)
-  const current = items[Math.min(currentIdx, items.length - 1)]
+  const current = items[Math.min(currentIdx, items.length - 1)]!
   const [doneIds, setDoneIds] = useState<string[]>([])
 
-  // 텍스트 감지 실패 시 경고 토스트 (이모티콘당 1회)
+  // 한 이미지 안의 여러 텍스트 영역 — 삭제된 영역 제외, 활성 영역 하나를 편집
+  const [removedRegionIds, setRemovedRegionIds] = useState<string[]>([])
+  const [regionIdx, setRegionIdx] = useState(0)
+  const regions = useMemo(
+    () => (current ? itemRegions(current).filter(region => !removedRegionIds.includes(region.regionId)) : []),
+    [current, removedRegionIds],
+  )
+  const activeRegion = regions[Math.min(regionIdx, Math.max(0, regions.length - 1))]
+  const styleKeyFor = (itemId: string, regionId: string) => `${itemId}:${regionId}`
+
+  // 텍스트 감지 실패 시 경고 토스트 (영역당 1회)
   const toast = useToast()
   const warnedIdRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!current.korean && warnedIdRef.current !== current.id) {
-      warnedIdRef.current = current.id
-      toast('현재 이모티콘에서 텍스트를 감지하지 못했어요!')
+    if (activeRegion && !activeRegion.korean && warnedIdRef.current !== activeRegion.regionId) {
+      warnedIdRef.current = activeRegion.regionId
+      toast('현재 텍스트 영역에서 문구를 감지하지 못했어요!')
     }
-  }, [current.id, current.korean, toast])
+  }, [activeRegion, toast])
 
   // 스타일 + undo/redo 히스토리
   const [style, setStyle] = useState<Style>(DEFAULT_STYLE)
@@ -274,36 +277,98 @@ export default function Editor() {
   const [mobileTab, setMobileTab] = useState<MobileTab>('번역')
   const [mobileCanvasTab, setMobileCanvasTab] = useState<MobileCanvasTab>('미리보기')
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
-  const [loadingStep, setLoadingStep] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [exportName, setExportName] = useState('glocalizer_export')
-  const [exportFormat, setExportFormat] = useState<'PNG' | 'GIF' | 'ZIP'>('ZIP')
+  const [exportFormat, setExportFormat] = useState<'PNG' | 'ZIP'>('ZIP')
+  const [busy, setBusy] = useState(false)
+
+  /** 활성 영역 스타일을 로컬 저장 후, 새 영역(없으면 기본값)을 편집 스타일로 로드 */
+  const loadRegionStyle = (itemId: string, region: { regionId: string; pos: { x: number; y: number }; size: number; recommendedFont: string }) =>
+    savedStyles[styleKeyFor(itemId, region.regionId)] ?? styleForRegion(region.pos, region.size, region.recommendedFont)
 
   const selectItem = (idx: number) => {
-    saveStyle(current.id, style)
+    if (activeRegion) saveStyle(styleKeyFor(current.id, activeRegion.regionId), style)
+    const first = itemRegions(items[idx])[0]
     setCurrentIdx(idx)
-    setStyle(savedStyles[items[idx].id] ?? DEFAULT_STYLE)
+    setRegionIdx(0)
+    if (first) setStyle(loadRegionStyle(items[idx].id, first))
     setPast([])
     setFuture([])
     setSelected(true)
     setZoom(DEFAULT_ZOOM)
-    if (!isGif(items[idx])) setExportFormat(f => (f === 'GIF' ? 'ZIP' : f))
   }
 
+  const selectRegion = (idx: number) => {
+    if (activeRegion) saveStyle(styleKeyFor(current.id, activeRegion.regionId), style)
+    const region = regions[idx]
+    setRegionIdx(idx)
+    if (region) setStyle(loadRegionStyle(current.id, region))
+    setPast([])
+    setFuture([])
+    setSelected(true)
+  }
+
+  /** 텍스트 영역 삭제 (마지막 1개는 유지) — 내보내기·미리보기에서 제외된다 */
+  const deleteRegion = (regionId: string) => {
+    if (regions.length <= 1) return
+    setRemovedRegionIds(prev => [...prev, regionId])
+    setRegionIdx(0)
+  }
+
+  // 최초 로드 시 첫 영역의 위치·폰트로 편집 스타일을 시드한다 (이미지가 바뀌면 다시)
+  const seededItemRef = useRef<string | null>(null)
   useEffect(() => {
-    const nextStepTimer = window.setTimeout(
-      () => setLoadingStep(1),
-      DEMO_LOADING_STEP_MS,
-    )
-    const finishTimer = window.setTimeout(
-      () => setIsLoading(false),
-      DEMO_LOADING_STEP_MS * DEMO_LOADING_STEPS.length,
-    )
-    return () => {
-      window.clearTimeout(nextStepTimer)
-      window.clearTimeout(finishTimer)
+    if (!current || !activeRegion) return
+    if (seededItemRef.current === current.id) return
+    seededItemRef.current = current.id
+    setStyle(loadRegionStyle(current.id, activeRegion))
+    setPast([])
+    setFuture([])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, activeRegion])
+
+  useEffect(() => {
+    if (!projectSession) { navigate('/dashboard', { replace: true }); return }
+    let cancelled = false
+    let timer: number | undefined
+    const load = async () => {
+      try {
+        const status = await api.getStatus(projectSession)
+        if (status.status === 'failed') throw new Error('이미지 처리에 실패했어요. 대시보드에서 다시 시도해주세요.')
+        if (status.status !== 'completed') {
+          timer = window.setTimeout(load, 1500)
+          return
+        }
+        const nextResults = await api.getResults(projectSession)
+        if (!cancelled) { setResults(nextResults); setIsLoading(false) }
+      } catch (error) {
+        if (!cancelled) { setLoadError(error instanceof Error ? error.message : '결과를 불러오지 못했어요.'); setIsLoading(false) }
+      }
     }
-  }, [])
+    void load()
+    return () => { cancelled = true; if (timer) window.clearTimeout(timer) }
+  }, [navigate, projectSession])
+
+  useEffect(() => {
+    if (!projectSession || !current || !activeRegion || isLoading) return
+    const timer = window.setTimeout(() => {
+      void api.saveEditorState(projectSession, current.id, activeRegion.regionId, languageCode, style as unknown as Record<string, unknown>).catch(() => undefined)
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [current, activeRegion, isLoading, languageCode, projectSession, style])
+
+  const regenerateSuggestions = async () => {
+    if (!projectSession || !current || !activeRegion) return
+    setBusy(true)
+    try {
+      await api.regenerate(projectSession, current.id, activeRegion.regionId, languageCode)
+      setResults(await api.getResults(projectSession))
+      setStyle(previous => ({ ...previous, suggestion: 0, customText: '' }))
+      toast('새 번역 후보를 만들었어요.')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : '번역을 다시 만들지 못했어요.')
+    } finally { setBusy(false) }
+  }
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
     if (currentIdx < items.length - 1) selectItem(currentIdx + 1)
@@ -319,13 +384,14 @@ export default function Editor() {
     if (items.length <= 1) return
     const item = items[idx]
     setDoneIds(prev => prev.filter(id => id !== item.id))
-    if (files.length > 0) removeFile(item.id)
-    else setRemovedDemoIds(prev => [...prev, item.id])
+    removeFile(item.id)
+    setRemovedIds(prev => [...prev, item.id])
     if (idx < currentIdx) {
       setCurrentIdx(c => c - 1)
     } else if (idx === currentIdx) {
       setCurrentIdx(Math.min(currentIdx, items.length - 2))
-      setStyle(DEFAULT_STYLE)
+      setRegionIdx(0)
+      seededItemRef.current = null // 새 이미지에서 첫 영역 스타일 다시 시드
       setPast([])
       setFuture([])
     }
@@ -387,9 +453,24 @@ export default function Editor() {
     window.addEventListener('pointerup', onUp)
   }
 
+  if (!current) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-surface px-6 text-center">
+        <div className="max-w-sm rounded-3xl bg-white p-8">
+          <LoaderCircle className={`mx-auto h-8 w-8 text-brand-dark ${isLoading ? 'animate-spin' : ''}`} />
+          <h1 className="mt-4 text-xl font-extrabold">{loadError ?? '현지화 결과를 준비하고 있어요'}</h1>
+          <p className="mt-2 text-sm font-medium text-sub">{loadError ? '대시보드에서 이미지를 다시 올려주세요.' : 'AI 작업이 끝나면 자동으로 에디터를 열어요.'}</p>
+          {loadError && <Button className="mt-5" onClick={() => navigate('/dashboard')}>대시보드로</Button>}
+        </div>
+      </main>
+    )
+  }
+
+  // current이 있으면 편집 가능한 영역이 최소 1개 보장되지만, 타입 안전을 위해 방어한다.
+  if (!activeRegion) return null
+
   const usingCustom = style.customText.trim().length > 0
-  const suggestionText = resolveText(style, current.suggestions)
-  const gifOk = isGif(current)
+  const suggestionText = resolveText(style, activeRegion.suggestions)
   const canvasZoomStyle = {
     transform: `scale(${zoom / 100})`,
     transformOrigin: 'center center',
@@ -397,15 +478,17 @@ export default function Editor() {
 
   /* ── 다운로드 ─────────────────────────────────────────────────── */
 
-  const [busy, setBusy] = useState(false)
-  const langCode = targetLangs[0]?.code ?? 'en'
+  const langCode = languageCode
+
+  /** 활성 영역 편집분까지 반영한 스타일 맵 (내보내기 직전 스냅샷) */
+  const stylesWithActive = () => ({ ...savedStyles, [styleKeyFor(current.id, activeRegion.regionId)]: style })
 
   const downloadCurrentPng = async () => {
     setBusy(true)
     try {
-      saveStyle(current.id, style)
+      saveStyle(styleKeyFor(current.id, activeRegion.regionId), style)
       downloadBlob(
-        await renderItemToPng(current, style),
+        await renderItemToPng(current, itemRegionRenders(current, stylesWithActive())),
         exportFileName(current.name, langCode, 'png'),
       )
       markCurrentDone()
@@ -418,10 +501,9 @@ export default function Editor() {
   const downloadAllZip = async () => {
     setBusy(true)
     try {
-      saveStyle(current.id, style)
-      const stylesMap = { ...savedStyles, [current.id]: style }
+      saveStyle(styleKeyFor(current.id, activeRegion.regionId), style)
       downloadBlob(
-        await zipItems(items, stylesMap, langCode),
+        await zipItems(items, stylesWithActive(), langCode),
         `${exportName.trim() || 'glocalizer_export'}.zip`,
       )
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
@@ -438,17 +520,11 @@ export default function Editor() {
     }
     setBusy(true)
     try {
-      saveStyle(current.id, style)
+      saveStyle(styleKeyFor(current.id, activeRegion.regionId), style)
       if (exportFormat === 'PNG') {
         downloadBlob(
-          await renderItemToPng(current, style),
+          await renderItemToPng(current, itemRegionRenders(current, stylesWithActive())),
           exportFileName(current.name, langCode, 'png'),
-        )
-      } else if (current.url) {
-        // GIF: 원본 애니메이션 파일 그대로 저장 (프레임별 텍스트 합성은 백엔드 연동 시)
-        downloadBlob(
-          await fetch(current.url).then(r => r.blob()),
-          exportFileName(current.name, langCode, 'gif'),
         )
       }
       markCurrentDone()
@@ -458,18 +534,26 @@ export default function Editor() {
     }
   }
 
-  const overlayTextStyle: React.CSSProperties = {
-    fontSize: style.size,
-    color: style.color,
-    fontFamily: `'${style.font}', sans-serif`,
-    fontWeight: style.weight,
-    WebkitTextStroke: style.strokeOn
-      ? `${style.strokeWidth}px ${style.strokeColor}`
+  const textCss = (s: Style): React.CSSProperties => ({
+    fontSize: s.size,
+    color: s.color,
+    fontFamily: `'${s.font}', sans-serif`,
+    fontWeight: s.weight,
+    WebkitTextStroke: s.strokeOn ? `${s.strokeWidth}px ${s.strokeColor}` : undefined,
+    textShadow: s.shadowOn
+      ? `${s.shadowX}px ${s.shadowY}px ${s.shadowBlur}px ${hexToRgba(s.shadowColor, s.shadowOpacity / 100)}`
       : undefined,
-    textShadow: style.shadowOn
-      ? `${style.shadowX}px ${style.shadowY}px ${style.shadowBlur}px ${hexToRgba(style.shadowColor, style.shadowOpacity / 100)}`
-      : undefined,
-  }
+  })
+  const overlayTextStyle = textCss(style)
+  /** 비활성 영역(정적 표시용) 렌더 정보 */
+  const otherRegions = regions
+    .map((region, rIdx) => ({ region, rIdx }))
+    .filter(({ rIdx }) => rIdx !== Math.min(regionIdx, Math.max(0, regions.length - 1)))
+    .map(({ region, rIdx }) => {
+      const rStyle = savedStyles[styleKeyFor(current.id, region.regionId)] ?? styleForRegion(region.pos, region.size, region.recommendedFont)
+      return { region, rIdx, rStyle, text: resolveText(rStyle, region.suggestions) }
+    })
+    .filter(({ text }) => text.length > 0)
 
   const cornerHandles = [
     '-left-1 -top-1 cursor-nwse-resize',
@@ -715,7 +799,7 @@ export default function Editor() {
         <section className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-surface pb-24 pt-5 lg:gap-5 lg:pb-8 lg:pt-5">
           <div className="flex w-full max-w-[800px] items-center justify-between gap-3 px-5">
             <span className="text-xs font-bold text-sub">
-              {current.korean ? '텍스트를 찾았어요' : '직접 문구를 입력해보세요'}
+              {activeRegion.korean ? '텍스트를 찾았어요' : '직접 문구를 입력해보세요'}
             </span>
             <div className="flex shrink-0 gap-1 rounded-xl bg-white p-1">
               {ZOOMS.map(z => (
@@ -761,22 +845,22 @@ export default function Editor() {
               <p className="mb-2 text-center text-sm font-extrabold text-ink">원본</p>
               <div className="mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl bg-white sm:h-[340px] sm:w-[340px]">
                 <div className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
-                  {current.url ? (
+                  {current.originalUrl ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
-                      <img src={current.url} alt={current.name} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
+                      <img src={current.originalUrl} alt={current.name} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
                     </div>
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {current.korean && (
+                  {activeRegion.korean && (
                     <span className="absolute left-1/2 top-6 -translate-x-1/2 rounded-md border-2 border-dashed border-sub/70 px-3 py-1 text-sm font-bold text-ink">
-                      {current.korean}
+                      {activeRegion.korean}
                     </span>
                   )}
                 </div>
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
-                {current.korean ? '텍스트를 찾았어요' : '텍스트를 찾지 못했어요'}
+                {activeRegion.korean ? '텍스트를 찾았어요' : '텍스트를 찾지 못했어요'}
               </p>
             </article>
 
@@ -785,7 +869,18 @@ export default function Editor() {
               <p className="mb-2 text-center text-sm font-extrabold text-ink">변환 미리보기</p>
               <div className="checkerboard mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl sm:h-[340px] sm:w-[340px]">
                 <div onPointerDown={() => setSelected(false)} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
-                  <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
+                  {(current.cleanedUrl ?? current.originalUrl) && <img src={current.cleanedUrl ?? current.originalUrl} alt={`${current.name} 정리 이미지`} draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain p-2" style={{ transform: `scale(${style.imageScale / 100})` }} />}
+                  {/* 다른 텍스트 영역들 — 정적 표시, 클릭하면 그 영역으로 전환 */}
+                  {otherRegions.map(({ region, rIdx, rStyle, text }) => (
+                    <div
+                      key={region.regionId}
+                      onPointerDown={preview ? undefined : e => { e.stopPropagation(); selectRegion(rIdx) }}
+                      className={`absolute left-1/2 top-1/2 ${preview ? '' : 'cursor-pointer opacity-80 hover:opacity-100'}`}
+                      style={{ transform: `translate(-50%, -50%) translate(${rStyle.x}px, ${rStyle.y}px) rotate(${rStyle.rotation}deg)` }}
+                    >
+                      <span className="whitespace-nowrap" style={textCss(rStyle)}>{text}</span>
+                    </div>
+                  ))}
                   <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -50%) translate(${style.x}px, ${style.y}px) rotate(${style.rotation}deg)` }}>
                     {preview || !selected ? (
                       <span onPointerDown={preview ? undefined : e => { e.stopPropagation(); setSelected(true) }} className={`whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`} style={overlayTextStyle}>{suggestionText}</span>
@@ -802,9 +897,7 @@ export default function Editor() {
                 </div>
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
-                {current.url
-                  ? '데모 미리보기예요. 실제 배경 복원은 API 연결 후 처리돼요.'
-                  : '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요'}
+                텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요
               </p>
             </article>
           </div>
@@ -815,7 +908,7 @@ export default function Editor() {
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft">
                   <LoaderCircle className="h-6 w-6 animate-spin text-brand-dark" />
                 </span>
-                <p className="mt-4 text-lg font-extrabold">{DEMO_LOADING_STEPS[loadingStep]}</p>
+                <p className="mt-4 text-lg font-extrabold">AI가 이미지를 처리하고 있어요…</p>
                 <p className="mt-1 text-sm font-medium text-sub">잠시만 기다려주세요</p>
               </div>
             </div>
@@ -883,9 +976,46 @@ export default function Editor() {
 
           {/* ── 번역 탭 ── */}
           <section className={tabClass('번역')}>
-            <PanelTitle>AI 번역 추천</PanelTitle>
+            {/* 감지된 텍스트 영역 선택 — 이미지에 글자가 여러 개면 여기서 전환·삭제 */}
+            {regions.length > 1 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <PanelTitle>텍스트 영역 {regions.length}개</PanelTitle>
+                  <span className="text-xs font-semibold text-sub">편집할 영역을 고르세요</span>
+                </div>
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {regions.map((region, rIdx) => {
+                    const isActive = rIdx === Math.min(regionIdx, regions.length - 1)
+                    return (
+                      <div
+                        key={region.regionId}
+                        className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-left transition-colors ${
+                          isActive ? 'border-brand bg-brand-soft' : 'border-gray-100 bg-white hover:border-gray-200'
+                        }`}
+                      >
+                        <button onClick={() => selectRegion(rIdx)} className="flex min-w-0 flex-1 items-center gap-2">
+                          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${isActive ? 'bg-brand text-white' : 'bg-gray-100 text-sub'}`}>{rIdx + 1}</span>
+                          <span className="truncate text-[13px] font-bold text-ink">{resolveText(savedStyles[styleKeyFor(current.id, region.regionId)] ?? styleForRegion(region.pos, region.size, region.recommendedFont), region.suggestions) || region.korean || '(빈 영역)'}</span>
+                        </button>
+                        <button
+                          onClick={() => deleteRegion(region.regionId)}
+                          title="이 텍스트 영역 삭제"
+                          className="shrink-0 rounded-lg p-1.5 text-sub transition-colors hover:bg-white hover:text-[#EF4444]"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3">
+              <PanelTitle>AI 번역 추천</PanelTitle>
+              <button onClick={regenerateSuggestions} disabled={busy} className="text-xs font-bold text-brand-dark hover:underline disabled:text-sub">다시 추천</button>
+            </div>
             <div className="mt-3 flex flex-col gap-2">
-              {current.suggestions.map((sug, i) => {
+              {activeRegion.suggestions.map((sug, i) => {
                 const active = !usingCustom && style.suggestion === i
                 return (
                   <button
@@ -938,12 +1068,12 @@ export default function Editor() {
           <section className={tabClass('폰트')}>
             <PanelTitle>폰트</PanelTitle>
             {/* AI 폰트 추천 — 원본 글씨체 기반 (API 연동 전 데모) */}
-            {style.font !== current.recommendedFont && (
+            {style.font !== activeRegion.recommendedFont && (
               <button
                 onClick={() =>
                   update({
-                    font: current.recommendedFont,
-                    weight: clampWeight(current.recommendedFont, style.weight),
+                    font: activeRegion.recommendedFont,
+                    weight: clampWeight(activeRegion.recommendedFont, style.weight),
                   })
                 }
                 className="mt-3 flex w-full items-center gap-2 rounded-2xl border-2 border-dashed border-brand/40 bg-brand-soft/60 px-4 py-2.5 text-left transition-colors hover:border-brand"
@@ -955,9 +1085,9 @@ export default function Editor() {
                   </span>
                   <span
                     className="block truncate text-[15px] font-bold text-brand-dark"
-                    style={{ fontFamily: `'${current.recommendedFont}', sans-serif` }}
+                    style={{ fontFamily: `'${activeRegion.recommendedFont}', sans-serif` }}
                   >
-                    {current.recommendedFont}
+                    {activeRegion.recommendedFont}
                   </span>
                 </span>
                 <span className="shrink-0 rounded-lg bg-brand px-2.5 py-1 text-xs font-bold text-white">
@@ -978,7 +1108,7 @@ export default function Editor() {
               {FONT_NAMES.map(f => (
                 <option key={f} value={f} style={{ fontFamily: `'${f}', sans-serif` }}>
                   {f}
-                  {f === current.recommendedFont ? ' ✨ 추천' : ''}
+                  {f === activeRegion.recommendedFont ? ' ✨ 추천' : ''}
                 </option>
               ))}
             </select>
@@ -1264,15 +1394,14 @@ export default function Editor() {
               onChange={e => setExportName(e.target.value)}
               className="mt-3 h-11 w-full rounded-xl border-2 border-gray-100 bg-white px-3 text-[14px] font-semibold outline-none focus:border-brand"
             />
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              {(['PNG', 'GIF', 'ZIP'] as const).map(fmt => {
-                const disabled = fmt === 'GIF' && !gifOk
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              {(['PNG', 'ZIP'] as const).map(fmt => {
+                const disabled = false
                 return (
                   <button
                     key={fmt}
                     onClick={() => setExportFormat(fmt)}
                     disabled={disabled}
-                    title={disabled ? 'GIF 원본을 올렸을 때만 가능해요' : undefined}
                     className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
                       exportFormat === fmt
                         ? 'border-brand bg-brand-soft text-brand-dark'
@@ -1286,11 +1415,6 @@ export default function Editor() {
                 )
               })}
             </div>
-            {!gifOk && (
-              <p className="mt-1.5 text-[11px] font-semibold text-sub">
-                GIF는 움직이는 원본(GIF)을 올렸을 때만 받을 수 있어요.
-              </p>
-            )}
             <Button className="mt-3 w-full" glow onClick={handleExport} disabled={busy}>
               <Download className="h-4 w-4" /> {busy ? '만드는 중…' : '다운로드'}
             </Button>

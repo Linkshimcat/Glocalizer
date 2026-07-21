@@ -1,4 +1,5 @@
 import type { UploadFile } from '../store/uploads'
+import type { ProjectResultAsset, TargetLanguageCode } from '../lib/api/types'
 
 /** OCR/번역 API 연동 전, 시연용 데모 데이터 */
 
@@ -8,12 +9,48 @@ export interface Suggestion {
   best?: boolean
 }
 
-export interface DemoItem extends UploadFile {
+/** 이미지 안의 개별 텍스트 영역 (다중 영역 편집 단위) */
+export interface EditorRegion {
+  regionId: string
+  korean: string
+  suggestions: Suggestion[]
+  recommendedFont: string
+  /** OCR 박스 중심 기반 초기 위치 (캔버스 중앙=0 기준 px) */
+  pos: { x: number; y: number }
+  /** OCR 박스 높이 기반 초기 글자 크기 (px) */
+  size: number
+}
+
+export interface DemoItem {
+  id: string
+  name: string
+  type?: string
+  url?: string
   emoji: string
   korean: string
   suggestions: Suggestion[]
   /** 원본 이미지 글씨체와 어울리는 AI 추천 폰트 (API 연동 전 데모값) */
   recommendedFont: string
+  originalUrl?: string
+  cleanedUrl?: string
+  regionId?: string
+  /** 감지된 모든 텍스트 영역. 데모 데이터엔 없을 수 있어 itemRegions()로 접근한다. */
+  regions?: EditorRegion[]
+}
+
+/** DemoItem의 편집 대상 영역 목록. regions가 없으면 상단 필드로 단일 영역을 만든다(데모 데이터 대응). */
+export function itemRegions(item: DemoItem): EditorRegion[] {
+  if (item.regions && item.regions.length > 0) return item.regions
+  return [
+    {
+      regionId: item.regionId ?? item.id,
+      korean: item.korean,
+      suggestions: item.suggestions,
+      recommendedFont: item.recommendedFont,
+      pos: { x: 0, y: 105 },
+      size: 28,
+    },
+  ]
 }
 
 export const DEMO_ITEMS: DemoItem[] = [
@@ -150,4 +187,60 @@ export function toDemoItems(files: UploadFile[]): DemoItem[] {
     const base = exact ?? DEMO_ITEMS[i % DEMO_ITEMS.length]
     return { ...base, ...f, korean: detected }
   })
+}
+
+const FONT_BY_CATEGORY: Record<string, string> = {
+  bold: 'Anton', comic: 'Bangers', cute: 'Fredoka', handwriting: 'Caveat', minimal: 'Pretendard',
+}
+
+/** 실제 결과 API 응답을 기존 에디터가 소비하는 화면 모델로 변환한다. */
+/** 텍스트 오버레이 초기 배치용 — OCR 박스 중심을 캔버스(약 300px 스팬) 좌표로 매핑 */
+const POSITION_SPAN = 300
+
+function fontForLocalization(localization: { recommendedStyle: unknown } | undefined): string {
+  const category = localization?.recommendedStyle && typeof localization.recommendedStyle === 'object' && 'fontCategory' in localization.recommendedStyle
+    ? String((localization.recommendedStyle as { fontCategory: unknown }).fontCategory) : 'minimal'
+  return FONT_BY_CATEGORY[category] ?? 'Pretendard'
+}
+
+export function toEditorItems(assets: ProjectResultAsset[], language: TargetLanguageCode): DemoItem[] {
+  return assets
+    .filter(asset => asset.status === 'completed' && asset.originalUrl && asset.ocr.primaryRegionId)
+    .map(asset => {
+      const width = asset.width ?? 0
+      const height = asset.height ?? 0
+      const regions: EditorRegion[] = asset.ocr.regions
+        .map(region => {
+          const localization = region.localizations[language]
+          const cx = width ? (region.box.x + region.box.width / 2) / width : 0.5
+          const cy = height ? (region.box.y + region.box.height / 2) / height : 0.5
+          return {
+            regionId: region.id,
+            korean: region.text ?? '',
+            suggestions: localization?.candidates ?? [],
+            recommendedFont: fontForLocalization(localization),
+            pos: { x: Math.round((cx - 0.5) * POSITION_SPAN), y: Math.round((cy - 0.5) * POSITION_SPAN) },
+            size: Math.round(Math.min(56, Math.max(18, height ? (region.box.height / height) * POSITION_SPAN * 0.7 : 28))),
+          }
+        })
+        // 번역 후보가 있는 영역만 편집 대상으로 (실패/빈 영역 제외)
+        .filter(region => region.suggestions.length > 0)
+      const primaryLocalization = asset.localizations[language]
+      return {
+        id: asset.id,
+        name: asset.name,
+        type: asset.type,
+        url: asset.cleanedUrl ?? asset.originalUrl ?? undefined,
+        cleanedUrl: asset.cleanedUrl ?? undefined,
+        originalUrl: asset.originalUrl ?? undefined,
+        emoji: '🖼️',
+        korean: asset.ocr.fullText ?? '',
+        regionId: asset.ocr.primaryRegionId ?? undefined,
+        suggestions: primaryLocalization?.candidates ?? regions[0]?.suggestions ?? [],
+        recommendedFont: fontForLocalization(primaryLocalization),
+        regions,
+      }
+    })
+    // 편집 가능한 영역이 하나도 없는 이미지는 제외
+    .filter(item => (item.regions?.length ?? 0) > 0)
 }

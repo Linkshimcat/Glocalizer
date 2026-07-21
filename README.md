@@ -53,9 +53,11 @@
 git clone [https://github.com/Linkshimcat/Glocalizer.git](https://github.com/Linkshimcat/Glocalizer.git)
 cd Glocalizer
 
-# 2. 패키지 의존성 설치 (Install dependencies)
-npm install
+# 2. 환경변수 설정
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 
-# 3. 개발 서버 실행 (Run development server)
-npm run dev
-
+# 3. 패키지 의존성 설치 및 실행
+cd backend && npm ci && npm run dev
+# 별도 터미널
+cd frontend && npm ci && npm run dev

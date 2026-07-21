@@ -66,6 +66,11 @@ export function hexToRgba(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
+/** OCR 영역의 초기 위치·크기·추천 폰트로 시드한 편집 스타일 */
+export function styleForRegion(pos: { x: number; y: number }, size: number, font: string): Style {
+  return { ...DEFAULT_STYLE, x: pos.x, y: pos.y, size, font, alignH: null, alignV: null }
+}
+
 /** 스타일 기준으로 실제 표시될 텍스트 계산 */
 export function resolveText(
   style: Style,

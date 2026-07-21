@@ -1,9 +1,11 @@
 import { ArrowLeft, Check, Home, Sparkles } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
-import { toDemoItems } from '../data/demo'
+import { toEditorItems } from '../data/demo'
+import { api } from '../lib/api/client'
+import type { ProjectResultsResponse } from '../lib/api/types'
 import { DEFAULT_STYLE, resolveText } from '../lib/style'
 import { useUploads } from '../store/uploads'
 
@@ -21,8 +23,13 @@ function StepIndicator() {
 
 export default function Result() {
   const navigate = useNavigate()
-  const { files, targetLangs, styles } = useUploads()
-  const items = useMemo(() => toDemoItems(files), [files])
+  const { targetLangs, styles, projectSession } = useUploads()
+  const [results, setResults] = useState<ProjectResultsResponse | null>(null)
+  useEffect(() => {
+    if (!projectSession) return
+    void api.getResults(projectSession).then(setResults).catch(() => setResults(null))
+  }, [projectSession])
+  const items = useMemo(() => results ? toEditorItems(results.assets, targetLangs[0]?.code ?? 'en') : [], [results, targetLangs])
 
   const langLabel =
     targetLangs.length > 0
@@ -71,9 +78,9 @@ export default function Result() {
                 <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white">
                   <Check className="h-3 w-3" strokeWidth={3.5} />
                 </span>
-                {item.url ? (
+                {item.cleanedUrl ? (
                   <img
-                    src={item.url}
+                    src={item.cleanedUrl}
                     alt={item.name}
                     className="h-12 w-12 object-contain"
                   />

@@ -30,17 +30,21 @@ function scoreRegion(region: OcrRegion, imageWidth: number, imageHeight: number)
   );
 }
 
+const MIN_CONFIDENCE_FOR_PRIMARY = 0.4;
+
 /**
  * 프런트 에디터가 우선 표시할 대표 텍스트 영역 하나를 고른다.
  * 점수식: 한글포함 40 + confidence*30 + 면적비율*15 + 중심근접도*10 + 하단배치 5
+ * confidence가 MIN_CONFIDENCE_FOR_PRIMARY 미만이면 primary를 지정하지 않는다.
  */
 export function selectPrimaryRegion(regions: OcrRegion[], imageWidth: number, imageHeight: number): OcrRegion[] {
   if (regions.length === 0) return regions;
 
-  let bestIndex = 0;
+  let bestIndex = -1;
   let bestScore = -Infinity;
 
   regions.forEach((region, index) => {
+    if (region.confidence < MIN_CONFIDENCE_FOR_PRIMARY) return;
     const score = scoreRegion(region, imageWidth, imageHeight);
     if (score > bestScore) {
       bestScore = score;

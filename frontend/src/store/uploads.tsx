@@ -1,79 +1,59 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import type { ProjectSession } from '../lib/api/types'
 import type { Style } from '../lib/style'
 
 export interface UploadFile {
   id: string
   name: string
-  /** 업로드된 이미지의 data URL (새로고침에도 유지되도록 저장 가능한 형식) */
-  url?: string
-  /** MIME 타입 (예: image/gif) — 다운로드 형식 제한에 사용 */
-  type?: string
+  type: 'image/png' | 'image/jpeg'
+  size: number
+  file: File
+  url: string
+  assetId?: string
+  uploadStatus: 'pending' | 'uploading' | 'uploaded' | 'failed'
+  errorMessage?: string
 }
 
-export interface Language {
-  code: string
-  flag: string
-  label: string
-}
-
+export interface Language { code: 'en' | 'ja' | 'zh'; flag: string; label: string }
 export const LANGUAGES: Language[] = [
   { code: 'en', flag: '🇺🇸', label: 'English' },
   { code: 'ja', flag: '🇯🇵', label: '日本語' },
   { code: 'zh', flag: '🇨🇳', label: '中文 (简体)' },
 ]
 
-/* ── 세션 유지 (새로고침해도 업로드/편집 내용 보존) ─────────────── */
+const SESSION_KEY = 'glocalizer:project'
+const TARGET_LANGUAGES_KEY = 'glocalizer:target-languages'
 
-const SESSION_PREFIX = 'glocalizer:'
-
-function loadSession<T>(key: string, fallback: T): T {
+function loadProjectSession(): ProjectSession | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_PREFIX + key)
-    return raw ? (JSON.parse(raw) as T) : fallback
-  } catch {
-    return fallback
-  }
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const value = JSON.parse(raw) as ProjectSession
+    return new Date(value.expiresAt).getTime() > Date.now() ? value : null
+  } catch { return null }
 }
 
-function saveSession(key: string, value: unknown) {
+function loadTargetLanguages(): Language[] {
   try {
-    sessionStorage.setItem(SESSION_PREFIX + key, JSON.stringify(value))
-  } catch {
-    // 용량 초과 등 — 저장 실패해도 앱은 계속 동작
-  }
-}
-
-/** File → data URL (새로고침에도 살아남는 문자열) */
-function readAsDataURL(file: File): Promise<string> {
-  return new Promise(resolve => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.readAsDataURL(file)
-  })
+    const saved = JSON.parse(sessionStorage.getItem(TARGET_LANGUAGES_KEY) ?? '[]') as Language[]
+    return saved.filter(language => LANGUAGES.some(supported => supported.code === language.code))
+  } catch { return [] }
 }
 
 interface UploadState {
   files: UploadFile[]
-  /** 현재 번역·편집 대상으로 선택된 파일 ID */
   selectedFileIds: string[]
-  /** 추가된 파일들의 id 목록을 반환 (자동 선택 등에 사용) */
   addFiles: (files: File[]) => string[]
   removeFile: (id: string) => void
   removeFiles: (ids: string[]) => void
   toggleFileSelection: (id: string) => void
   setSelectedFileIds: (ids: string[]) => void
+  replaceFiles: Dispatch<SetStateAction<UploadFile[]>>
   targetLangs: Language[]
   toggleTargetLang: (lang: Language) => void
   setTargetLangs: (langs: Language[]) => void
-  /** 파일별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
+  projectSession: ProjectSession | null
+  setProjectSession: (session: ProjectSession | null) => void
   styles: Record<string, Style>
   saveStyle: (id: string, style: Style) => void
 }
@@ -81,108 +61,47 @@ interface UploadState {
 const UploadContext = createContext<UploadState | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
-  // 초기값을 sessionStorage에서 복원 → 새로고침해도 유지
-  const [files, setFiles] = useState<UploadFile[]>(() => loadSession('files', []))
-  const [selectedFileIds, setSelectedFileIds] = useState<string[]>(() => {
-    const saved = loadSession<string[] | null>('selectedFileIds', null)
-    return saved ?? loadSession<UploadFile[]>('files', []).map(file => file.id)
+  const [files, setFiles] = useState<UploadFile[]>([])
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>([])
+  const [targetLangs, setTargetLangs] = useState<Language[]>(loadTargetLanguages)
+  const [projectSession, setProjectSessionState] = useState<ProjectSession | null>(loadProjectSession)
+  const [styles, setStyles] = useState<Record<string, Style>>(() => {
+    try { return JSON.parse(sessionStorage.getItem('glocalizer:styles') ?? '{}') as Record<string, Style> } catch { return {} }
   })
-  const [targetLangs, setTargetLangs] = useState<Language[]>(() =>
-    loadSession('targetLangs', []),
-  )
-  const [styles, setStyles] = useState<Record<string, Style>>(() =>
-    loadSession('styles', {}),
-  )
 
-  // 상태 변경 시 세션에 저장
-  useEffect(() => saveSession('files', files), [files])
-  useEffect(() => saveSession('selectedFileIds', selectedFileIds), [selectedFileIds])
-  useEffect(() => saveSession('targetLangs', targetLangs), [targetLangs])
-  useEffect(() => saveSession('styles', styles), [styles])
-
-  const saveStyle = useCallback((id: string, style: Style) => {
-    setStyles(prev => ({ ...prev, [id]: style }))
+  useEffect(() => { sessionStorage.setItem('glocalizer:styles', JSON.stringify(styles)) }, [styles])
+  useEffect(() => { sessionStorage.setItem(TARGET_LANGUAGES_KEY, JSON.stringify(targetLangs)) }, [targetLangs])
+  const setProjectSession = useCallback((session: ProjectSession | null) => {
+    setProjectSessionState(session)
+    if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    else sessionStorage.removeItem(SESSION_KEY)
   }, [])
-
   const addFiles = useCallback((incoming: File[]) => {
-    const imgs = incoming.filter(f => f.type.startsWith('image/'))
-    const ids = imgs.map(() => crypto.randomUUID())
-    // data URL 변환 후 순서 유지하며 한 번에 추가
-    Promise.all(imgs.map(readAsDataURL)).then(urls => {
-      setFiles(prev => [
-        ...prev,
-        ...urls.map((url, i) => ({
-          id: ids[i],
-          name: imgs[i].name,
-          type: imgs[i].type,
-          url,
-        })),
-      ])
-    })
-    setSelectedFileIds(prev => [...new Set([...prev, ...ids])])
-    return ids
+    const valid = incoming.filter((file): file is File & { type: 'image/png' | 'image/jpeg' } => file.type === 'image/png' || file.type === 'image/jpeg')
+    const additions = valid.map(file => ({ id: crypto.randomUUID(), name: file.name, type: file.type, size: file.size, file, url: URL.createObjectURL(file), uploadStatus: 'pending' as const }))
+    setFiles(previous => [...previous, ...additions])
+    setSelectedFileIds(previous => [...new Set([...previous, ...additions.map(file => file.id)])])
+    return additions.map(file => file.id)
   }, [])
-
   const removeFiles = useCallback((ids: string[]) => {
-    setFiles(prev => prev.filter(f => !ids.includes(f.id)))
-    setSelectedFileIds(prev => prev.filter(id => !ids.includes(id)))
-    setStyles(prev => {
-      const next = { ...prev }
-      ids.forEach(id => delete next[id])
-      return next
+    setFiles(previous => {
+      previous.filter(file => ids.includes(file.id)).forEach(file => URL.revokeObjectURL(file.url))
+      return previous.filter(file => !ids.includes(file.id))
     })
+    setSelectedFileIds(previous => previous.filter(id => !ids.includes(id)))
   }, [])
-
-  const removeFile = useCallback((id: string) => removeFiles([id]), [removeFiles])
-
-  const toggleFileSelection = useCallback((id: string) => {
-    setSelectedFileIds(prev =>
-      prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id],
-    )
-  }, [])
-
-  const toggleTargetLang = useCallback((lang: Language) => {
-    setTargetLangs(prev =>
-      prev.some(l => l.code === lang.code)
-        ? prev.filter(l => l.code !== lang.code)
-        : [...prev, lang],
-    )
-  }, [])
-
-  const value = useMemo(
-    () => ({
-      files,
-      selectedFileIds,
-      addFiles,
-      removeFile,
-      removeFiles,
-      toggleFileSelection,
-      setSelectedFileIds,
-      targetLangs,
-      toggleTargetLang,
-      setTargetLangs,
-      styles,
-      saveStyle,
-    }),
-    [
-      files,
-      selectedFileIds,
-      addFiles,
-      removeFile,
-      removeFiles,
-      toggleFileSelection,
-      targetLangs,
-      toggleTargetLang,
-      styles,
-      saveStyle,
-    ],
-  )
-
+  const value = useMemo(() => ({
+    files, selectedFileIds, addFiles, removeFile: (id: string) => removeFiles([id]), removeFiles,
+    toggleFileSelection: (id: string) => setSelectedFileIds(previous => previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id]),
+    setSelectedFileIds, replaceFiles: setFiles, targetLangs,
+    toggleTargetLang: (lang: Language) => setTargetLangs(previous => previous.some(value => value.code === lang.code) ? previous.filter(value => value.code !== lang.code) : [...previous, lang]),
+    setTargetLangs, projectSession, setProjectSession, styles, saveStyle: (id: string, style: Style) => setStyles(previous => ({ ...previous, [id]: style })),
+  }), [files, selectedFileIds, addFiles, removeFiles, targetLangs, projectSession, setProjectSession, styles])
   return <UploadContext.Provider value={value}>{children}</UploadContext.Provider>
 }
 
 export function useUploads() {
-  const ctx = useContext(UploadContext)
-  if (!ctx) throw new Error('useUploads must be used within UploadProvider')
-  return ctx
+  const context = useContext(UploadContext)
+  if (!context) throw new Error('useUploads must be used within UploadProvider')
+  return context
 }

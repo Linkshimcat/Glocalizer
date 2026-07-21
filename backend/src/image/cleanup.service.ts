@@ -1,5 +1,5 @@
 import { findAssetsByProjectAndStatus, updateAsset } from '../repositories/asset.repository.js';
-import { findPrimaryRegion } from '../repositories/ocr.repository.js';
+import { findRegionsByAssetId } from '../repositories/ocr.repository.js';
 import { updateProjectStage } from '../repositories/project.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
@@ -17,42 +17,35 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     return { assetId: asset.id, method: 'manual-required', quality: 'low', needsManualCleanup: true };
   }
 
-  const region = await findPrimaryRegion(asset.id);
-  if (!region) {
-    const errorMessage = '대표 OCR 영역을 찾을 수 없어 이미지를 정리할 수 없습니다.';
+  const regions = await findRegionsByAssetId(asset.id);
+  if (regions.length === 0) {
+    const errorMessage = 'OCR 영역을 찾을 수 없어 이미지를 정리할 수 없습니다.';
     await updateAsset(asset.id, { status: 'failed', stage: 'cleaning', errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage });
     return { assetId: asset.id, method: 'manual-required', quality: 'low', needsManualCleanup: true };
   }
 
   try {
-    const buffer = await downloadFromStorage(asset.original_path);
+    let buffer = await downloadFromStorage(asset.original_path);
     if (!buffer) {
       throw new AppError('IMAGE_CLEANUP_FAILED', undefined, '원본 이미지를 스토리지에서 찾을 수 없습니다.');
     }
 
-    const stats = await sampleBorderPixels(buffer, region.bbox, asset.width, asset.height);
-    const method = decideCleanupMethod(stats);
-    const quality = assessCleanupQuality(method, stats);
-
-    if (method === 'manual-required') {
-      await updateAsset(asset.id, {
-        status: 'completed',
-        stage: 'cleaning',
-        progress: 100,
-        cleanupMethod: method,
-        cleanupQuality: quality,
-        needsManualCleanup: true,
-      });
-      return { assetId: asset.id, method, quality, needsManualCleanup: true };
+    // 감지된 모든 영역을 차례로 덮는다. 각 영역의 테두리 색을 그때그때 다시 샘플링하므로
+    // 앞서 덮은 결과가 뒤 영역 판단에 반영된다. 방식/품질은 대표로 마지막 값을 기록한다.
+    let method: CleanupResult['method'] = 'solid-color-fill';
+    let quality: CleanupResult['quality'] = 'good';
+    for (const region of regions) {
+      const stats = await sampleBorderPixels(buffer, region.bbox, asset.width, asset.height);
+      method = decideCleanupMethod(stats);
+      quality = assessCleanupQuality(method, stats);
+      buffer =
+        method === 'transparent-mask'
+          ? await applyTransparentCleanup(buffer, region.bbox, asset.width, asset.height)
+          : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height);
     }
 
-    const cleanedBuffer =
-      method === 'transparent-mask'
-        ? await applyTransparentCleanup(buffer, region.bbox, asset.width, asset.height)
-        : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height);
-
     const cleanedPath = `projects/${asset.project_id}/cleaned/${asset.id}.png`;
-    await uploadToStorage(cleanedPath, cleanedBuffer, 'image/png');
+    await uploadToStorage(cleanedPath, buffer, 'image/png');
 
     await updateAsset(asset.id, {
       status: 'completed',

@@ -1,7 +1,7 @@
 import { env } from '../../config/env.js';
 import { AppError, describeError } from '../../errors/app-error.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../../repositories/asset.repository.js';
-import { findPrimaryRegion, findRegionById } from '../../repositories/ocr.repository.js';
+import { findRegionById, findRegionsByAssetId } from '../../repositories/ocr.repository.js';
 import { findProjectById, updateProjectStage } from '../../repositories/project.repository.js';
 import { findTranslation, incrementRegenerateCount, upsertTranslation } from '../../repositories/translation.repository.js';
 import type { AssetRow } from '../../types/asset.js';
@@ -118,24 +118,23 @@ export async function runTranslationsForAsset(
   targetLanguages: TargetLanguage[],
   options: LocalizationOptions,
 ): Promise<AssetTranslationResult> {
-  const region = await findPrimaryRegion(asset.id);
-  if (!region) {
-    const errorMessage = '대표 OCR 영역을 찾을 수 없어 번역을 진행할 수 없습니다.';
+  const regions = await findRegionsByAssetId(asset.id);
+  if (regions.length === 0) {
+    const errorMessage = 'OCR 영역을 찾을 수 없어 번역을 진행할 수 없습니다.';
     await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage });
     return { assetId: asset.id, status: 'failed', languages: [], errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage };
   }
 
-  // 언어별로 서로 독립적인 호출이라 병렬로 돌린다. 최대 3개 언어라 동시성 제한 없이 그대로 Promise.all.
-  const languages = await Promise.all(
-    targetLanguages.map(async (targetLanguage): Promise<LanguageTranslationResult> => {
-      try {
-        return await localizeRegionForLanguage(region, targetLanguage, options);
-      } catch (err) {
-        const { code: errorCode, message: errorMessage } = describeError(err, 'GLM_TRANSLATION_FAILED', '번역 처리 중 알 수 없는 오류가 발생했습니다.');
-        return { languageCode: targetLanguage, status: 'failed', errorCode, errorMessage };
-      }
-    }),
-  );
+  // 감지된 모든 영역 × 언어를 번역한다. NVIDIA 호출이라 (영역이 많을 수 있으므로) 동시성을 제한한다.
+  const pairs = regions.flatMap((region) => targetLanguages.map((language) => ({ region, language })));
+  const languages = await mapWithConcurrency(pairs, env.AI_CONCURRENCY, async ({ region, language }): Promise<LanguageTranslationResult> => {
+    try {
+      return await localizeRegionForLanguage(region, language, options);
+    } catch (err) {
+      const { code: errorCode, message: errorMessage } = describeError(err, 'GLM_TRANSLATION_FAILED', '번역 처리 중 알 수 없는 오류가 발생했습니다.');
+      return { languageCode: language, status: 'failed', errorCode, errorMessage };
+    }
+  });
 
   const allFailed = languages.length > 0 && languages.every((language) => language.status === 'failed');
   if (allFailed) {

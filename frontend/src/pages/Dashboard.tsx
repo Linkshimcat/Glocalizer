@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import { useToast } from '../components/Toast'
+import { api, ApiError, uploadToSignedUrl } from '../lib/api/client'
 import { LANGUAGES, useUploads } from '../store/uploads'
 
 function StepIndicator() {
@@ -31,38 +32,58 @@ export default function Dashboard() {
     targetLangs,
     toggleTargetLang,
     setTargetLangs,
+    replaceFiles,
+    setProjectSession,
   } = useUploads()
   const [dragging, setDragging] = useState(false)
-  const [progress, setProgress] = useState<number | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAllLangs, setShowAllLangs] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
-  /** 데모용 업로드 진행률 애니메이션 (실제 업로드 API 연동 시 교체) */
-  const runProgress = (count: number) => {
-    if (count === 0) return
-    setProgress(0)
-    let value = 0
-    const timer = setInterval(() => {
-      value += 12 + Math.random() * 18
-      if (value >= 100) {
-        clearInterval(timer)
-        setProgress(100)
-        setTimeout(() => setProgress(null), 600)
-      } else {
-        setProgress(Math.round(value))
-      }
-    }, 90)
-  }
-
   const handleFiles = (incoming: File[]) => {
-    const images = incoming.filter(f => f.type.startsWith('image/'))
+    const images = incoming.filter(file => file.type === 'image/png' || file.type === 'image/jpeg')
     if (images.length < incoming.length) {
-      toast('이미지 파일(PNG · JPG · GIF)만 올릴 수 있어요!')
+      toast('PNG · JPG 파일만 올릴 수 있어요!')
     }
     // 새로 올린 이모티콘은 자동으로 선택됨
     addFiles(images)
-    runProgress(images.length)
+  }
+
+  const startLocalization = async () => {
+    const selected = files.filter(file => selectedFileIds.includes(file.id))
+    if (selected.length === 0 || targetLangs.length === 0) return
+    setIsSubmitting(true)
+    try {
+      const project = await api.createProject({
+        targetLanguages: targetLangs.map(language => language.code),
+        options: { tone: 'cute', audience: 'general', translationStyle: 'natural', highQualityReview: false },
+        files: selected.map(file => ({ clientId: file.id, name: file.name, mimeType: file.type, size: file.size })),
+      })
+      setProjectSession({ projectId: project.projectId, projectToken: project.projectToken, expiresAt: project.expiresAt })
+      const uploadsByClientId = new Map(project.assets.map(asset => [asset.clientId, asset]))
+      replaceFiles(files.map(file => selectedFileIds.includes(file.id) ? { ...file, assetId: uploadsByClientId.get(file.id)?.assetId, uploadStatus: 'uploading' } : file))
+      const uploadedIds: string[] = []
+      for (const file of selected) {
+        const upload = uploadsByClientId.get(file.id)
+        if (!upload) continue
+        try {
+          await uploadToSignedUrl(upload.uploadUrl, file.file)
+          uploadedIds.push(upload.assetId)
+          replaceFiles(current => current.map(value => value.id === file.id ? { ...value, assetId: upload.assetId, uploadStatus: 'uploaded' } : value))
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '업로드에 실패했어요.'
+          replaceFiles(current => current.map(value => value.id === file.id ? { ...value, uploadStatus: 'failed', errorMessage: message } : value))
+        }
+      }
+      const completed = await api.completeUploads({ projectId: project.projectId, projectToken: project.projectToken, expiresAt: project.expiresAt }, uploadedIds)
+      const failed = completed.assets.filter(asset => asset.status !== 'uploaded')
+      if (failed.length > 0 || uploadedIds.length === 0) throw new ApiError(failed[0]?.errorMessage ?? '업로드를 완료하지 못했어요.')
+      await api.startProcessing({ projectId: project.projectId, projectToken: project.projectToken, expiresAt: project.expiresAt })
+      navigate('/editor')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : '처리를 시작하지 못했어요.')
+    } finally { setIsSubmitting(false) }
   }
 
   const onDrop = (e: DragEvent) => {
@@ -101,7 +122,7 @@ export default function Dashboard() {
         <p className="text-sm font-extrabold text-brand-dark">1단계 · 업로드</p>
         <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">이모티콘을 올려주세요</h1>
         <p className="mt-2 text-[16px] font-medium text-sub">
-          PNG, JPG, GIF 파일을 끌어다 놓으면 바로 시작할 수 있어요.
+          PNG, JPG 파일을 끌어다 놓으면 바로 시작할 수 있어요.
         </p>
 
         {/* 드롭존 */}
@@ -128,7 +149,7 @@ export default function Dashboard() {
           <div className="break-keep text-center">
             <p className="text-lg font-bold">파일을 여기에 끌어다 놓으세요</p>
             <p className="mt-1 text-sm font-medium text-sub">
-              <span className="whitespace-nowrap">PNG · JPG · GIF</span>
+              <span className="whitespace-nowrap">PNG · JPG</span>
               <span className="mx-1 hidden sm:inline">·</span>
               <br className="sm:hidden" />
               <span className="whitespace-nowrap">여러 장을 한 번에 올릴 수 있어요</span>
@@ -140,7 +161,7 @@ export default function Dashboard() {
           <input
             ref={inputRef}
             type="file"
-            accept="image/png,image/jpeg,image/gif"
+            accept="image/png,image/jpeg"
             multiple
             className="hidden"
             onChange={e => {
@@ -150,25 +171,7 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* 업로드 진행률 */}
-        {progress !== null && (
-          <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">
-                {progress < 100 ? '올리는 중이에요…' : '업로드 완료!'}
-              </span>
-              <span className="text-sm font-bold text-brand-dark">{progress}%</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
-              <div
-                className="h-full rounded-full bg-brand transition-[width] duration-150"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {hasFiles && progress === null && (
+        {hasFiles && (
           <p className="mt-5 text-sm font-bold text-brand-dark">
             {selectedCount}장을 번역 대상으로 골랐어요.
           </p>
@@ -241,6 +244,7 @@ export default function Dashboard() {
                     <p className="absolute inset-x-0 bottom-0 truncate bg-white/80 px-2 py-1 text-[11px] font-semibold text-[#4E5968]">
                       {file.name}
                     </p>
+                    {file.uploadStatus === 'failed' && <p className="absolute inset-x-1 bottom-6 truncate text-[10px] font-bold text-red-500">{file.errorMessage}</p>}
                   </div>
                 )
               })}
@@ -304,11 +308,11 @@ export default function Dashboard() {
           <Button
             size="lg"
             glow={canStart}
-            disabled={!canStart}
-            onClick={() => navigate('/editor')}
+            onClick={startLocalization}
+            disabled={!canStart || isSubmitting}
             className="min-w-[280px]"
           >
-            {selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
+            {isSubmitting ? '업로드하고 있어요…' : selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
           </Button>
         </div>
         {!canStart && (
@@ -331,11 +335,11 @@ export default function Dashboard() {
         <Button
           size="md"
           glow={canStart}
-          disabled={!canStart}
-          onClick={() => navigate('/editor')}
+          onClick={startLocalization}
+          disabled={!canStart || isSubmitting}
           className="w-full"
         >
-          {selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
+          {isSubmitting ? '업로드하고 있어요…' : selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
         </Button>
         <p className="mt-1.5 text-center text-xs font-medium text-sub">
           {!hasFiles
