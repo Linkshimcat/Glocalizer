@@ -26,7 +26,6 @@ const envSchema = z.object({
   NVIDIA_OCR_API_KEY: z.string().optional(),
   NVIDIA_OCR_BASE_URL: z.string().optional(),
   NVIDIA_OCR_MODEL: z.string().default('nvidia/nemotron-ocr-v2'),
-  OCR_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.75),
   OCR_REVIEW_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
 
   NVIDIA_LLM_BASE_URL: z.string().default('https://integrate.api.nvidia.com/v1'),
@@ -34,6 +33,19 @@ const envSchema = z.object({
   NVIDIA_TRANSLATION_MODEL: z.string().default('z-ai/glm-5.2'),
   NVIDIA_REVIEW_API_KEY: z.string().optional(),
   NVIDIA_REVIEW_MODEL: z.string().default('deepseek-ai/deepseek-v4-pro'),
+  // NVIDIA 무료/프리뷰 티어는 큐 대기로 인해 응답이 5분 넘게 걸리기도 한다(2026-07-21 실측).
+  // 짧게 잡으면 정상적으로 느린 요청까지 죽여버리므로 넉넉하게 잡고, 진짜 멈춘 요청만 잡아낸다.
+  NVIDIA_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(300_000),
+  MAX_TRANSLATION_RETRIES: z.coerce.number().int().positive().default(2),
+  // 프로젝트 안의 이미지 여러 장을 동시에 몇 개까지 처리할지. 너무 높이면 NVIDIA 쪽에 부담을 줄 수 있어 보수적으로 잡는다.
+  AI_CONCURRENCY: z.coerce.number().int().positive().default(2),
+
+  WORKER_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(2000),
+  MAX_REGENERATE_COUNT: z.coerce.number().int().positive().default(3),
+  CLEANUP_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(30 * 60 * 1000),
+
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -42,7 +54,6 @@ if (!parsed.success) {
   const issues = parsed.error.issues
     .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
     .join('\n');
-  // eslint-disable-next-line no-console
   console.error(`Invalid environment configuration:\n${issues}`);
   process.exit(1);
 }

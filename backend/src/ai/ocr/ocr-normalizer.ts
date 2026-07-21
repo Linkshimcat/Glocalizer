@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { env } from '../../config/env.js';
 import { normalizedToPixel, padAndClampBox, polygonToBox } from '../../utils/bbox.js';
 import { containsKorean } from '../../utils/language.js';
 import { classifyConfidence, type OcrRegion } from '../../types/ocr.js';
@@ -46,9 +45,4 @@ function normalizeOne(detection: RawTextDetection, readingOrder: number, imageWi
     readingOrder,
     isPrimary: false,
   };
-}
-
-/** OCR_CONFIDENCE_THRESHOLD 미만은 기본적으로 자동 승인 대상에서 제외한다. */
-export function isAutoUsable(region: OcrRegion): boolean {
-  return region.confidence >= env.OCR_CONFIDENCE_THRESHOLD;
 }

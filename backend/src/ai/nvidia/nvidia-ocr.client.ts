@@ -1,6 +1,7 @@
 import { env } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import { withRetry } from '../../utils/retry.js';
+import { postJsonToNvidia, shouldRetryNvidiaError } from './nvidia-http.js';
 import type { NemotronOcrResponse } from './nvidia.types.js';
 
 export interface OcrImageInput {
@@ -39,34 +40,18 @@ export async function callNemotronOcr(images: OcrImageInput[]): Promise<Nemotron
   }
 
   return withRetry(
-    async () => {
-      const response = await fetch(env.NVIDIA_OCR_BASE_URL!, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          input: images.map((image) => ({ type: 'image_url' as const, url: image.dataUrl })),
-        }),
-      });
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new AppError(
-          'NEMOTRON_OCR_FAILED',
-          { status: response.status, body: body.slice(0, 500) },
-          `Nemotron OCR 요청이 실패했습니다 (status ${response.status}).`,
-        );
-      }
-
-      return (await response.json()) as NemotronOcrResponse;
-    },
+    () =>
+      postJsonToNvidia<NemotronOcrResponse>({
+        url: env.NVIDIA_OCR_BASE_URL!,
+        apiKey,
+        errorCode: 'NEMOTRON_OCR_FAILED',
+        errorLabel: 'Nemotron OCR',
+        body: { input: images.map((image) => ({ type: 'image_url' as const, url: image.dataUrl })) },
+      }),
     {
       attempts: 3,
       delayMs: 500,
-      shouldRetry: (err) => !(err instanceof AppError) || (typeof err.details?.status === 'number' && err.details.status >= 500),
+      shouldRetry: shouldRetryNvidiaError,
     },
   );
 }

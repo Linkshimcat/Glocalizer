@@ -4,6 +4,7 @@ import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { errorMiddleware, notFoundHandler } from './middleware/error.middleware.js';
+import { rateLimitMiddleware } from './middleware/rate-limit.middleware.js';
 import { requestIdMiddleware } from './middleware/request-id.middleware.js';
 import { apiRouter } from './routes/index.js';
 
@@ -25,7 +26,7 @@ export function createApp() {
   app.use(cors({ origin: env.FRONTEND_ORIGIN }));
   app.use(express.json({ limit: '1mb' }));
 
-  app.use('/api/v1', apiRouter);
+  app.use('/api/v1', rateLimitMiddleware, apiRouter);
 
   app.use(notFoundHandler);
   app.use(errorMiddleware);

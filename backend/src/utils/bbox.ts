@@ -54,12 +54,3 @@ export function intersectionOverUnion(a: PixelBox, b: PixelBox): number {
 
   return intersectionArea / unionArea;
 }
-
-/** 두 박스 중심 사이 거리를 대각선 길이로 정규화한 값 (0에 가까울수록 인접). */
-export function normalizedCenterDistance(a: PixelBox, b: PixelBox, imageWidth: number, imageHeight: number): number {
-  const centerA = boxCenter(a);
-  const centerB = boxCenter(b);
-  const diagonal = Math.hypot(imageWidth, imageHeight);
-  if (diagonal === 0) return 0;
-  return Math.hypot(centerA.x - centerB.x, centerA.y - centerB.y) / diagonal;
-}

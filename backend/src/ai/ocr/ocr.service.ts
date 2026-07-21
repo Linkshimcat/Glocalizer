@@ -4,7 +4,9 @@ import { updateProjectStage } from '../../repositories/project.repository.js';
 import { downloadFromStorage } from '../../repositories/storage.repository.js';
 import { prepareImageForOcr } from '../../image/ocr-image-preprocessor.js';
 import type { AssetRow } from '../../types/asset.js';
-import { AppError } from '../../errors/app-error.js';
+import { AppError, describeError } from '../../errors/app-error.js';
+import { env } from '../../config/env.js';
+import { mapWithConcurrency } from '../../utils/concurrency.js';
 import { mergeCloseRegions } from './region-merger.js';
 import { normalizeOcrRegions } from './ocr-normalizer.js';
 import { nemotronOcrProvider } from './nemotron-ocr.provider.js';
@@ -59,8 +61,7 @@ export async function runOcrForAsset(asset: AssetRow): Promise<AssetOcrResult> {
 
     return { assetId: asset.id, status: 'ocr', regionCount: withPrimary.length };
   } catch (err) {
-    const errorCode = err instanceof AppError ? err.code : 'NEMOTRON_OCR_FAILED';
-    const errorMessage = err instanceof AppError ? err.message : 'OCR 처리 중 알 수 없는 오류가 발생했습니다.';
+    const { code: errorCode, message: errorMessage } = describeError(err, 'NEMOTRON_OCR_FAILED', 'OCR 처리 중 알 수 없는 오류가 발생했습니다.');
     await updateAsset(asset.id, { status: 'failed', stage: 'ocr', errorCode, errorMessage });
     return { assetId: asset.id, status: 'failed', regionCount: 0, errorCode, errorMessage };
   }
@@ -69,19 +70,14 @@ export async function runOcrForAsset(asset: AssetRow): Promise<AssetOcrResult> {
 export async function runProjectOcr(projectId: string): Promise<AssetOcrResult[]> {
   const assets = await findAssetsByProjectAndStatus(projectId, ['uploaded']);
 
-  await updateProjectStage(projectId, { status: 'processing', stage: 'ocr', progress: 0 });
+  await updateProjectStage(projectId, { status: 'processing', stage: 'ocr' });
 
-  const results: AssetOcrResult[] = [];
-  for (const asset of assets) {
-    results.push(await runOcrForAsset(asset));
-  }
+  const results = await mapWithConcurrency(assets, env.AI_CONCURRENCY, runOcrForAsset);
 
   const allFailed = results.length > 0 && results.every((result) => result.status === 'failed');
-  await updateProjectStage(projectId, {
-    stage: 'ocr',
-    progress: 100,
-    ...(allFailed ? { status: 'failed', errorCode: 'OCR_TEXT_NOT_FOUND' } : {}),
-  });
+  if (allFailed) {
+    await updateProjectStage(projectId, { stage: 'ocr', status: 'failed', errorCode: 'OCR_TEXT_NOT_FOUND' });
+  }
 
   return results;
 }

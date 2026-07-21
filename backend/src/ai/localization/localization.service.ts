@@ -1,15 +1,16 @@
 import { env } from '../../config/env.js';
-import { AppError } from '../../errors/app-error.js';
+import { AppError, describeError } from '../../errors/app-error.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../../repositories/asset.repository.js';
-import { findPrimaryRegion } from '../../repositories/ocr.repository.js';
+import { findPrimaryRegion, findRegionById } from '../../repositories/ocr.repository.js';
 import { findProjectById, updateProjectStage } from '../../repositories/project.repository.js';
-import { upsertTranslation } from '../../repositories/translation.repository.js';
+import { findTranslation, incrementRegenerateCount, upsertTranslation } from '../../repositories/translation.repository.js';
 import type { AssetRow } from '../../types/asset.js';
 import { MAX_CHARACTERS_BY_LANGUAGE } from '../../types/localization.js';
 import type { LocalizationPromptInput, TargetLanguage, TranslationCandidate, TranslationResult } from '../../types/localization.js';
 import type { LocalizationOptions } from '../../types/project.js';
 import type { OcrRegionRow } from '../../types/ocr.js';
 import type { TranslationReviewResult } from '../../types/review.js';
+import { mapWithConcurrency } from '../../utils/concurrency.js';
 import { GLM_LOCALIZATION_PROMPT_VERSION } from '../prompts/prompt-version.js';
 import { needsDeepSeekReview } from '../review/review-decision.js';
 import { tryReviewTranslation } from '../review/review.service.js';
@@ -43,7 +44,7 @@ export interface AssetTranslationResult {
   errorMessage?: string;
 }
 
-async function localizeRegionForLanguage(
+export async function localizeRegionForLanguage(
   region: OcrRegionRow,
   targetLanguage: TargetLanguage,
   options: LocalizationOptions,
@@ -124,16 +125,17 @@ export async function runTranslationsForAsset(
     return { assetId: asset.id, status: 'failed', languages: [], errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage };
   }
 
-  const languages: LanguageTranslationResult[] = [];
-  for (const targetLanguage of targetLanguages) {
-    try {
-      languages.push(await localizeRegionForLanguage(region, targetLanguage, options));
-    } catch (err) {
-      const errorCode = err instanceof AppError ? err.code : 'GLM_TRANSLATION_FAILED';
-      const errorMessage = err instanceof AppError ? err.message : '번역 처리 중 알 수 없는 오류가 발생했습니다.';
-      languages.push({ languageCode: targetLanguage, status: 'failed', errorCode, errorMessage });
-    }
-  }
+  // 언어별로 서로 독립적인 호출이라 병렬로 돌린다. 최대 3개 언어라 동시성 제한 없이 그대로 Promise.all.
+  const languages = await Promise.all(
+    targetLanguages.map(async (targetLanguage): Promise<LanguageTranslationResult> => {
+      try {
+        return await localizeRegionForLanguage(region, targetLanguage, options);
+      } catch (err) {
+        const { code: errorCode, message: errorMessage } = describeError(err, 'GLM_TRANSLATION_FAILED', '번역 처리 중 알 수 없는 오류가 발생했습니다.');
+        return { languageCode: targetLanguage, status: 'failed', errorCode, errorMessage };
+      }
+    }),
+  );
 
   const allFailed = languages.length > 0 && languages.every((language) => language.status === 'failed');
   if (allFailed) {
@@ -153,21 +155,60 @@ export async function runProjectTranslations(projectId: string): Promise<AssetTr
   }
 
   const assets = await findAssetsByProjectAndStatus(projectId, ['ocr']);
-  await updateProjectStage(projectId, { status: 'processing', stage: 'translating', progress: 0 });
+  await updateProjectStage(projectId, { status: 'processing', stage: 'translating' });
 
-  const results: AssetTranslationResult[] = [];
-  for (const asset of assets) {
-    results.push(
-      await runTranslationsForAsset(asset, project.target_languages, project.localization_options),
+  const results = await mapWithConcurrency(assets, env.AI_CONCURRENCY, (asset) =>
+    runTranslationsForAsset(asset, project.target_languages, project.localization_options),
+  );
+
+  const allFailed = results.length > 0 && results.every((result) => result.status === 'failed');
+  if (allFailed) {
+    await updateProjectStage(projectId, { stage: 'translating', status: 'failed', errorCode: 'GLM_TRANSLATION_FAILED' });
+  }
+
+  return results;
+}
+
+interface RegenerateOverrides {
+  tone?: LocalizationOptions['tone'];
+  translationStyle?: LocalizationOptions['translationStyle'];
+}
+
+export async function regenerateTranslation(
+  projectId: string,
+  assetId: string,
+  regionId: string,
+  targetLanguage: TargetLanguage,
+  overrides: RegenerateOverrides,
+): Promise<LanguageTranslationResult> {
+  const project = await findProjectById(projectId);
+  if (!project) {
+    throw new AppError('PROJECT_NOT_FOUND', { projectId });
+  }
+
+  const region = await findRegionById(regionId);
+  if (!region || region.asset_id !== assetId) {
+    throw new AppError('INVALID_REQUEST', { regionId }, '해당 이미지에 속하지 않는 OCR 영역입니다.');
+  }
+
+  const existing = await findTranslation(regionId, targetLanguage);
+  const currentCount = existing?.regenerate_count ?? 0;
+  if (currentCount >= env.MAX_REGENERATE_COUNT) {
+    throw new AppError(
+      'RATE_LIMITED',
+      { regionId, targetLanguage, limit: env.MAX_REGENERATE_COUNT },
+      `번역 재생성은 최대 ${env.MAX_REGENERATE_COUNT}회까지 가능합니다.`,
     );
   }
 
-  const allFailed = results.length > 0 && results.every((result) => result.status === 'failed');
-  await updateProjectStage(projectId, {
-    stage: 'translating',
-    progress: 100,
-    ...(allFailed ? { status: 'failed', errorCode: 'GLM_TRANSLATION_FAILED' } : {}),
-  });
+  const options: LocalizationOptions = {
+    ...project.localization_options,
+    tone: overrides.tone ?? project.localization_options.tone,
+    translationStyle: overrides.translationStyle ?? project.localization_options.translationStyle,
+  };
 
-  return results;
+  const result = await localizeRegionForLanguage(region, targetLanguage, options);
+  await incrementRegenerateCount(regionId, targetLanguage, currentCount + 1);
+
+  return result;
 }
