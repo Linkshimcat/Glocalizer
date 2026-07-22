@@ -3,7 +3,7 @@ import logoUrl from '../assets/GlocalizerLogo.png'
 
 export default function Logo({ small = false }: { small?: boolean }) {
   return (
-    <Link to="/" className="flex items-center gap-2">
+    <Link to="/" className="inline-flex w-fit items-center gap-2">
       <span
         className={`inline-block overflow-hidden ${small ? 'h-7 w-7' : 'h-9 w-9'}`}
       >
