@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Editor from './pages/Editor'
 import Landing from './pages/Landing'
 import Result from './pages/Result'
+import ServiceIntro from './pages/ServiceIntro'
 import { UploadProvider } from './store/uploads'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
       <UploadProvider>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/service" element={<ServiceIntro />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/editor" element={<Editor />} />
           <Route path="/result" element={<Result />} />

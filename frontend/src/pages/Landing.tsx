@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
+import NavMenu from '../components/NavMenu'
 import { DEMO_ITEMS } from '../data/demo'
 import { LANGUAGES } from '../store/uploads'
 
@@ -31,24 +32,7 @@ export default function Landing() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header
-        center={
-          <nav aria-label="주요 메뉴" className="flex items-center gap-1">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="rounded-xl bg-brand-soft px-3 py-1.5 text-[13px] font-bold text-brand-dark transition-colors hover:bg-brand hover:text-white md:px-4 md:py-2 md:text-sm"
-            >
-              시작하기
-            </button>
-            <button
-              type="button"
-              className="rounded-xl px-3 py-1.5 text-[13px] font-bold text-sub transition-colors hover:bg-surface hover:text-ink md:px-4 md:py-2 md:text-sm"
-            >
-              서비스 소개
-            </button>
-          </nav>
-        }
-      />
+      <Header center={<NavMenu />} />
 
       <main className="mx-auto grid w-full max-w-[1240px] flex-1 items-center gap-10 px-4 py-10 sm:gap-14 sm:px-10 sm:py-14 lg:grid-cols-2 lg:py-20">
         <div>

@@ -4,11 +4,16 @@ import Logo from './Logo'
 interface HeaderProps {
   center?: ReactNode
   right?: ReactNode
+  sticky?: boolean
 }
 
-export default function Header({ center, right }: HeaderProps) {
+export default function Header({ center, right, sticky = false }: HeaderProps) {
   return (
-    <header className="border-b border-gray-100 bg-white">
+    <header
+      className={`border-b border-gray-100 ${
+        sticky ? 'sticky top-0 z-30 bg-white/70 backdrop-blur-md' : 'bg-white'
+      }`}
+    >
       <div
         className={`mx-auto grid max-w-[1200px] grid-cols-[1fr_auto_1fr] items-center px-4 md:h-[72px] md:px-6 ${
           center ? 'min-h-[72px] gap-y-2 py-3 md:py-0' : 'h-[72px]'
