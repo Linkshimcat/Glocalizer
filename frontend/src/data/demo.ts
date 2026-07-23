@@ -145,6 +145,17 @@ const KOREAN_RE = /[가-힣]+/
 export function toDemoItems(files: UploadFile[]): DemoItem[] {
   if (files.length === 0) return DEMO_ITEMS
   return files.map((f, i) => {
+    if (f.analysis) {
+      return {
+        ...f,
+        // 자동 정리본이 있으면 export/미리보기의 base로, 없으면 원본을 쓴다.
+        url: f.analysis.cleanedUrl ?? f.analysis.originalUrl ?? f.url,
+        emoji: '🖼️',
+        korean: f.analysis.korean,
+        suggestions: f.analysis.suggestions,
+        recommendedFont: f.analysis.recommendedFont,
+      }
+    }
     const detected = f.name.replace(/\.[^.]+$/, '').match(KOREAN_RE)?.[0] ?? ''
     const exact = DEMO_ITEMS.find(d => d.korean === detected)
     const base = exact ?? DEMO_ITEMS[i % DEMO_ITEMS.length]

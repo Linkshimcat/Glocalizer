@@ -8,6 +8,20 @@ import {
   type ReactNode,
 } from 'react'
 import type { Style } from '../lib/style'
+import type { NormalizedRect } from '../lib/style'
+import {
+  ApiError,
+  createProject,
+  getProjectResults,
+  getProjectStatus,
+  startProject,
+  uploadToSignedUrl,
+  completeUploads,
+  saveEditorState,
+  reviseOcr,
+  type ProjectResults,
+  type ProjectStatus,
+} from '../lib/api'
 
 export interface UploadFile {
   id: string
@@ -16,6 +30,21 @@ export interface UploadFile {
   url?: string
   /** MIME 타입 (예: image/gif) — 다운로드 형식 제한에 사용 */
   type?: string
+  /** 서버 asset ID — 편집 상태 저장과 결과 연결에 사용 */
+  assetId?: string
+  analysis?: {
+    korean: string
+    suggestions: Array<{ text: string; tone: string; best?: boolean }>
+    recommendedFont: string
+    originalUrl: string | null
+    cleanedUrl: string | null
+    regionId: string | null
+    normalizedBox: NormalizedRect | null
+    cleanupMethod: string | null
+    cleanupQuality: string | null
+    needsManualCleanup: boolean
+    needsManualOcrReview: boolean
+  }
 }
 
 export interface Language {
@@ -76,6 +105,12 @@ interface UploadState {
   /** 파일별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
   styles: Record<string, Style>
   saveStyle: (id: string, style: Style) => void
+  projectStatus: ProjectStatus | null
+  projectResults: ProjectResults | null
+  processingError: string | null
+  startLocalization: () => Promise<void>
+  refreshProject: () => Promise<ProjectStatus | null>
+  reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
 }
 
 const UploadContext = createContext<UploadState | null>(null)
@@ -93,16 +128,31 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const [styles, setStyles] = useState<Record<string, Style>>(() =>
     loadSession('styles', {}),
   )
+  const [projectId, setProjectId] = useState<string | null>(() => loadSession('projectId', null))
+  const [projectToken, setProjectToken] = useState<string | null>(() => loadSession('projectToken', null))
+  const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(() => loadSession('projectStatus', null))
+  const [projectResults, setProjectResults] = useState<ProjectResults | null>(() => loadSession('projectResults', null))
+  const [processingError, setProcessingError] = useState<string | null>(null)
 
   // 상태 변경 시 세션에 저장
   useEffect(() => saveSession('files', files), [files])
   useEffect(() => saveSession('selectedFileIds', selectedFileIds), [selectedFileIds])
   useEffect(() => saveSession('targetLangs', targetLangs), [targetLangs])
   useEffect(() => saveSession('styles', styles), [styles])
+  useEffect(() => saveSession('projectId', projectId), [projectId])
+  useEffect(() => saveSession('projectToken', projectToken), [projectToken])
+  useEffect(() => saveSession('projectStatus', projectStatus), [projectStatus])
+  useEffect(() => saveSession('projectResults', projectResults), [projectResults])
 
   const saveStyle = useCallback((id: string, style: Style) => {
     setStyles(prev => ({ ...prev, [id]: style }))
-  }, [])
+    const file = files.find(candidate => candidate.id === id)
+    const languageCode = targetLangs[0]?.code
+    if (!projectId || !projectToken || !file?.assetId || !file.analysis?.regionId || !languageCode) return
+    void saveEditorState(projectId, projectToken, file.assetId, file.analysis.regionId, languageCode, style).catch(() => {
+      // 로컬 세션에는 이미 저장됐다. 다음 변경 시 서버 저장을 다시 시도한다.
+    })
+  }, [files, projectId, projectToken, targetLangs])
 
   const addFiles = useCallback((incoming: File[]) => {
     const imgs = incoming.filter(f => f.type.startsWith('image/'))
@@ -149,6 +199,83 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const refreshProject = useCallback(async (): Promise<ProjectStatus | null> => {
+    if (!projectId || !projectToken) return null
+    const status = await getProjectStatus(projectId, projectToken)
+    setProjectStatus(status)
+    if (status.status === 'completed') {
+      const results = await getProjectResults(projectId, projectToken)
+      setProjectResults(results)
+      setStyles(previous => {
+        const restored = { ...previous }
+        for (const file of files) {
+          const asset = results.assets.find(result => result.id === file.assetId)
+          const savedStyle = asset?.editorStates[targetLangs[0]?.code ?? 'en']
+          if (savedStyle) restored[file.id] = savedStyle as Style
+        }
+        return restored
+      })
+      setFiles(previous => previous.map(file => {
+        const asset = results.assets.find(result => result.id === file.assetId)
+        if (!asset) return file
+        const localization = asset.localizations[targetLangs[0]?.code ?? 'en']
+        return {
+          ...file,
+          url: asset.originalUrl ?? file.url,
+          analysis: {
+            korean: asset.ocr.fullText ?? '',
+            suggestions: localization?.candidates ?? [],
+            recommendedFont: fontForCategory(localization?.recommendedStyle?.fontCategory),
+            originalUrl: asset.originalUrl,
+            cleanedUrl: asset.cleanedUrl,
+            regionId: asset.ocr.primaryRegionId,
+            normalizedBox: asset.ocr.regions.find(region => region.id === asset.ocr.primaryRegionId)?.normalizedBox ?? null,
+            cleanupMethod: asset.cleanup.method,
+            cleanupQuality: asset.cleanup.quality,
+            needsManualCleanup: asset.cleanup.needsManualCleanup,
+            needsManualOcrReview: asset.needsManualOcrReview,
+          },
+        }
+      }))
+    }
+    return status
+  }, [projectId, projectToken, targetLangs])
+
+  const startLocalization = useCallback(async () => {
+    const selected = files.filter(file => selectedFileIds.includes(file.id))
+    if (selected.length === 0 || targetLangs.length === 0) {
+      throw new ApiError('번역할 이미지와 언어를 선택해주세요.')
+    }
+    setProcessingError(null)
+    try {
+      const uploadFiles = await Promise.all(selected.map(fileToUploadFile))
+      const created = await createProject(uploadFiles, targetLangs.map(language => language.code))
+      const orderedUploads = created.assets.map((asset, index) => ({ asset, file: uploadFiles[index] }))
+      await Promise.all(orderedUploads.map(({ asset, file }) => uploadToSignedUrl(asset.uploadUrl, file)))
+      await completeUploads(created.projectId, created.projectToken, created.assets.map(asset => asset.assetId))
+      await startProject(created.projectId, created.projectToken)
+      setProjectId(created.projectId)
+      setProjectToken(created.projectToken)
+      setProjectStatus({ projectId: created.projectId, status: 'processing', stage: 'validating', progress: 0, message: '이미지를 준비하고 있어요', assets: [] })
+      setProjectResults(null)
+      setFiles(previous => previous.map(file => {
+        const selectedIndex = selected.findIndex(item => item.id === file.id)
+        const asset = created.assets.find(candidate => candidate.clientId === String(selectedIndex))
+        return asset ? { ...file, assetId: asset.assetId } : file
+      }))
+    } catch (error) {
+      setProcessingError(error instanceof Error ? error.message : '업로드를 시작하지 못했어요.')
+      throw error
+    }
+  }, [files, selectedFileIds, targetLangs])
+
+  const reviseAssetOcr = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect) => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
+    await reviseOcr(projectId, projectToken, file.assetId, text, normalizedBox)
+    setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
+  }, [files, projectId, projectToken])
+
   const value = useMemo(
     () => ({
       files,
@@ -163,6 +290,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       setTargetLangs,
       styles,
       saveStyle,
+      projectStatus,
+      projectResults,
+      processingError,
+      startLocalization,
+      refreshProject,
+      reviseOcr: reviseAssetOcr,
     }),
     [
       files,
@@ -175,10 +308,33 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       toggleTargetLang,
       styles,
       saveStyle,
+      projectStatus,
+      projectResults,
+      processingError,
+      startLocalization,
+      refreshProject,
+      reviseAssetOcr,
     ],
   )
 
   return <UploadContext.Provider value={value}>{children}</UploadContext.Provider>
+}
+
+function fontForCategory(category: string | undefined): string {
+  if (category === 'comic') return 'Bangers'
+  if (category === 'cute') return 'Fredoka'
+  if (category === 'handwriting') return 'Gaegu'
+  if (category === 'minimal') return 'Pretendard'
+  return 'Anton'
+}
+
+async function fileToUploadFile(file: UploadFile): Promise<File> {
+  if (!file.url) throw new ApiError(`${file.name} 파일을 다시 선택해주세요.`)
+  const blob = await fetch(file.url).then(response => {
+    if (!response.ok) throw new ApiError(`${file.name} 파일을 읽을 수 없어요.`)
+    return response.blob()
+  })
+  return new File([blob], file.name, { type: file.type ?? blob.type })
 }
 
 export function useUploads() {

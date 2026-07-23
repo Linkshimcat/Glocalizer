@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "description": "사용자가 제공한 30장 이모티콘만 로컬 경로로 등록합니다. 이미지 바이너리는 저장소에 넣지 않습니다.",
+  "items": [
+    { "id": "sample-01", "localPath": "/absolute/path/to/user-image.png", "expectedText": "사용자 검수 문구" }
+  ]
+}

@@ -40,7 +40,7 @@ import {
   renderItemToPng,
   zipItems,
 } from '../lib/exportImage'
-import { DEFAULT_STYLE, hexToRgba, resolveText, type Style } from '../lib/style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, type ManualCleanup, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
 
 const ALIGN_X = { left: -95, center: 0, right: 95 } as const
@@ -55,7 +55,6 @@ const DEMO_LOADING_STEPS = [
   '한글을 찾고 있어요…',
   '자연스러운 표현을 고르고 있어요…',
 ] as const
-const DEMO_LOADING_STEP_MS = 1200
 
 /* ── 작은 UI 헬퍼 ─────────────────────────────────────────────────── */
 
@@ -207,6 +206,9 @@ export default function Editor() {
     targetLangs,
     styles: savedStyles,
     saveStyle,
+    projectStatus,
+    refreshProject,
+    reviseOcr,
   } = useUploads()
 
   // 업로드된 파일이 있으면 그걸 쓰고, 없으면 데모 데이터로 시연
@@ -239,6 +241,7 @@ export default function Editor() {
   const [style, setStyle] = useState<Style>(DEFAULT_STYLE)
   const [past, setPast] = useState<Style[]>([])
   const [future, setFuture] = useState<Style[]>([])
+  const initializedBoxStyleIds = useRef(new Set<string>())
 
   /** 제스처(드래그·슬라이더) 시작 시 한 번만 히스토리에 쌓기 */
   const beginGesture = () => {
@@ -278,11 +281,12 @@ export default function Editor() {
   const [isLoading, setIsLoading] = useState(true)
   const [exportName, setExportName] = useState('glocalizer_export')
   const [exportFormat, setExportFormat] = useState<'PNG' | 'GIF' | 'ZIP'>('ZIP')
+  const [ocrDraft, setOcrDraft] = useState('')
 
   const selectItem = (idx: number) => {
     saveStyle(current.id, style)
     setCurrentIdx(idx)
-    setStyle(savedStyles[items[idx].id] ?? DEFAULT_STYLE)
+    setStyle(savedStyles[items[idx].id] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
     setSelected(true)
@@ -291,19 +295,37 @@ export default function Editor() {
   }
 
   useEffect(() => {
-    const nextStepTimer = window.setTimeout(
-      () => setLoadingStep(1),
-      DEMO_LOADING_STEP_MS,
-    )
-    const finishTimer = window.setTimeout(
-      () => setIsLoading(false),
-      DEMO_LOADING_STEP_MS * DEMO_LOADING_STEPS.length,
-    )
-    return () => {
-      window.clearTimeout(nextStepTimer)
-      window.clearTimeout(finishTimer)
+    if (!projectStatus || projectStatus.status === 'completed') {
+      setIsLoading(false)
+      return
     }
-  }, [])
+    if (projectStatus.status === 'failed') {
+      setIsLoading(false)
+      toast(projectStatus.message || 'AI 처리에 실패했어요. 새 작업으로 다시 시도해주세요.')
+      return
+    }
+
+    setIsLoading(true)
+    const stepIndex = Math.min(
+      DEMO_LOADING_STEPS.length - 1,
+      Math.floor((projectStatus.progress / 100) * DEMO_LOADING_STEPS.length),
+    )
+    setLoadingStep(stepIndex)
+    const timer = window.setInterval(() => {
+      refreshProject().catch(error => {
+        setIsLoading(false)
+        toast(error instanceof Error ? error.message : '처리 상태를 확인하지 못했어요.')
+      })
+    }, 1500)
+    return () => window.clearInterval(timer)
+  }, [projectStatus, refreshProject, toast])
+
+  useEffect(() => {
+    const normalizedBox = current.analysis?.normalizedBox
+    if (!normalizedBox || savedStyles[current.id] || initializedBoxStyleIds.current.has(current.id)) return
+    initializedBoxStyleIds.current.add(current.id)
+    setStyle(styleFromNormalizedBox(normalizedBox))
+  }, [current, savedStyles])
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
     if (currentIdx < items.length - 1) selectItem(currentIdx + 1)
@@ -334,6 +356,7 @@ export default function Editor() {
   /* ── 캔버스 드래그 제스처 (이동 / 크기 / 회전) ───────────────── */
 
   const boxRef = useRef<HTMLDivElement>(null)
+  const cleanupPreviewRef = useRef<HTMLDivElement>(null)
 
   const startGesture = (
     e: ReactPointerEvent,
@@ -389,6 +412,64 @@ export default function Editor() {
 
   const usingCustom = style.customText.trim().length > 0
   const suggestionText = resolveText(style, current.suggestions)
+  const detectedBox = current.analysis?.normalizedBox ?? null
+  const needsManualOcrReview = current.analysis?.needsManualOcrReview ?? false
+  const manualCleanup = style.manualCleanup
+  const cleanupBox = manualCleanup?.rect ?? detectedBox
+  const updateManualCleanup = (patch: Partial<ManualCleanup>) => {
+    const fallbackRect = detectedBox ?? { x: 0.25, y: 0.25, width: 0.5, height: 0.2 }
+    update({ manualCleanup: { mode: 'transparent', rect: fallbackRect, ...manualCleanup, ...patch } })
+  }
+  const updateManualRect = (patch: Partial<ManualCleanup['rect']>) => {
+    const fallbackRect = detectedBox ?? { x: 0.25, y: 0.25, width: 0.5, height: 0.2 }
+    const base = manualCleanup?.rect ?? fallbackRect
+    const next = { ...base, ...patch }
+    const x = Math.min(0.99, Math.max(0, next.x))
+    const y = Math.min(0.99, Math.max(0, next.y))
+    updateManualCleanup({
+      rect: {
+        x,
+        y,
+        width: Math.min(1 - x, Math.max(0.01, next.width)),
+        height: Math.min(1 - y, Math.max(0.01, next.height)),
+      },
+    })
+  }
+  const startManualCleanupGesture = (event: ReactPointerEvent, mode: 'move' | 'resize') => {
+    if (!manualCleanup) return
+    event.preventDefault()
+    event.stopPropagation()
+    const container = cleanupPreviewRef.current?.getBoundingClientRect()
+    if (!container) return
+    beginGesture()
+    const origin = manualCleanup.rect
+    const startX = event.clientX
+    const startY = event.clientY
+    const updateRectLive = (rect: ManualCleanup['rect']) => {
+      setStyle(previous => ({ ...previous, manualCleanup: { ...manualCleanup, rect } }))
+    }
+    const onMove = (moveEvent: PointerEvent) => {
+      const deltaX = (moveEvent.clientX - startX) / container.width
+      const deltaY = (moveEvent.clientY - startY) / container.height
+      if (mode === 'move') {
+        const x = Math.min(1 - origin.width, Math.max(0, origin.x + deltaX))
+        const y = Math.min(1 - origin.height, Math.max(0, origin.y + deltaY))
+        updateRectLive({ ...origin, x, y })
+      } else {
+        updateRectLive({
+          ...origin,
+          width: Math.min(1 - origin.x, Math.max(0.01, origin.width + deltaX)),
+          height: Math.min(1 - origin.y, Math.max(0.01, origin.height + deltaY)),
+        })
+      }
+    }
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
   const gifOk = isGif(current)
   const canvasZoomStyle = {
     transform: `scale(${zoom / 100})`,
@@ -410,6 +491,8 @@ export default function Editor() {
       )
       markCurrentDone()
       navigate('/result')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'PNG 다운로드에 실패했어요.')
     } finally {
       setBusy(false)
     }
@@ -426,6 +509,8 @@ export default function Editor() {
       )
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
       navigate('/result')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'ZIP 다운로드에 실패했어요.')
     } finally {
       setBusy(false)
     }
@@ -453,6 +538,8 @@ export default function Editor() {
       }
       markCurrentDone()
       navigate('/result')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : '다운로드에 실패했어요.')
     } finally {
       setBusy(false)
     }
@@ -763,15 +850,16 @@ export default function Editor() {
                 <div className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
                   {current.url ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
-                      <img src={current.url} alt={current.name} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
+                      <img src={current.analysis?.originalUrl ?? current.url} alt={current.name} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
                     </div>
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {current.korean && (
-                    <span className="absolute left-1/2 top-6 -translate-x-1/2 rounded-md border-2 border-dashed border-sub/70 px-3 py-1 text-sm font-bold text-ink">
-                      {current.korean}
-                    </span>
+                  {detectedBox && (
+                    <span
+                      className="pointer-events-none absolute border-2 border-dashed border-brand bg-brand-soft/20"
+                      style={{ left: `${detectedBox.x * 100}%`, top: `${detectedBox.y * 100}%`, width: `${detectedBox.width * 100}%`, height: `${detectedBox.height * 100}%` }}
+                    />
                   )}
                 </div>
               </div>
@@ -784,8 +872,29 @@ export default function Editor() {
             <article className={`${mobileCanvasTab === '미리보기' ? 'block' : 'hidden'} lg:block`}>
               <p className="mb-2 text-center text-sm font-extrabold text-ink">변환 미리보기</p>
               <div className="checkerboard mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl sm:h-[340px] sm:w-[340px]">
-                <div onPointerDown={() => setSelected(false)} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
-                  <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
+                <div ref={cleanupPreviewRef} onPointerDown={() => setSelected(false)} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
+                  {current.url ? (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
+                      <img src={current.url} alt={`${current.name} 변환 미리보기`} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
+                    </div>
+                  ) : (
+                    <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
+                  )}
+                  {cleanupBox && manualCleanup && (
+                    <span
+                      onPointerDown={event => startManualCleanupGesture(event, 'move')}
+                      className={`absolute cursor-move border-2 border-brand ${manualCleanup.mode === 'transparent' ? 'checkerboard' : ''}`}
+                      style={{
+                        left: `${cleanupBox.x * 100}%`,
+                        top: `${cleanupBox.y * 100}%`,
+                        width: `${cleanupBox.width * 100}%`,
+                        height: `${cleanupBox.height * 100}%`,
+                        backgroundColor: manualCleanup.mode === 'solid' ? manualCleanup.color ?? '#FFFFFF' : undefined,
+                      }}
+                    >
+                      <span onPointerDown={event => startManualCleanupGesture(event, 'resize')} className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-brand bg-white" />
+                    </span>
+                  )}
                   <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -50%) translate(${style.x}px, ${style.y}px) rotate(${style.rotation}deg)` }}>
                     {preview || !selected ? (
                       <span onPointerDown={preview ? undefined : e => { e.stopPropagation(); setSelected(true) }} className={`whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`} style={overlayTextStyle}>{suggestionText}</span>
@@ -803,7 +912,9 @@ export default function Editor() {
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
                 {current.url
-                  ? '데모 미리보기예요. 실제 배경 복원은 API 연결 후 처리돼요.'
+                  ? current.analysis?.needsManualCleanup
+                    ? '복잡한 배경은 수동 보정이 필요할 수 있어요.'
+                    : 'AI가 정리한 이미지 위에 번역을 합성해요.'
                   : '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요'}
               </p>
             </article>
@@ -883,6 +994,12 @@ export default function Editor() {
 
           {/* ── 번역 탭 ── */}
           <section className={tabClass('번역')}>
+            <div className={`mb-4 rounded-xl border p-3 ${needsManualOcrReview ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-surface'}`}>
+              <p className="text-xs font-extrabold">인식 문구 수정 {needsManualOcrReview && <span className="text-amber-700">· 확인 필요</span>}</p>
+              <p className="mt-1 text-[11px] text-sub">문구 또는 감지 영역을 확인한 뒤 저장하면 이 이미지 하나만 다시 번역·정리합니다.</p>
+              <input value={ocrDraft || current.korean} onChange={event => setOcrDraft(event.target.value)} className="mt-2 h-9 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold outline-none focus:border-brand" />
+              <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || current.korean, detectedBox).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || current.korean).trim()} className="mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">인식 문구 저장 후 재처리</button>
+            </div>
             <PanelTitle>AI 번역 추천</PanelTitle>
             <div className="mt-3 flex flex-col gap-2">
               {current.suggestions.map((sug, i) => {
@@ -1254,6 +1371,44 @@ export default function Editor() {
                 </button>
               ))}
             </div>
+          </section>
+
+          <section className={tabClass('스타일')}>
+            <div className="flex items-center justify-between">
+              <PanelTitle>원문 지우기</PanelTitle>
+              <Toggle
+                on={Boolean(manualCleanup)}
+                onToggle={() => manualCleanup ? update({ manualCleanup: undefined }) : updateManualCleanup({})}
+              />
+            </div>
+            <p className="mt-2 text-xs font-semibold text-sub">
+              {current.analysis?.needsManualCleanup ? '자동 정리가 어려운 배경이에요. 지울 영역을 직접 보정해주세요.' : '자동 정리 결과가 어색할 때만 직접 보정해주세요.'}
+            </p>
+            {manualCleanup && (
+              <div className="mt-3 flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {(['transparent', 'solid'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => updateManualCleanup({ mode })}
+                      className={`h-10 rounded-xl border-2 text-sm font-bold ${manualCleanup.mode === mode ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-100 text-sub'}`}
+                    >
+                      {mode === 'transparent' ? '투명 처리' : '배경색 채우기'}
+                    </button>
+                  ))}
+                </div>
+                {manualCleanup.mode === 'solid' && (
+                  <label className="flex items-center justify-between text-xs font-bold text-sub">
+                    배경색
+                    <input type="color" value={manualCleanup.color ?? '#FFFFFF'} onChange={event => updateManualCleanup({ color: event.target.value })} />
+                  </label>
+                )}
+                <RangeRow label="가로 위치" min={0} max={100} value={Math.round(manualCleanup.rect.x * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ x: value / 100 })} />
+                <RangeRow label="세로 위치" min={0} max={100} value={Math.round(manualCleanup.rect.y * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ y: value / 100 })} />
+                <RangeRow label="가로 크기" min={1} max={100} value={Math.round(manualCleanup.rect.width * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ width: value / 100 })} />
+                <RangeRow label="세로 크기" min={1} max={100} value={Math.round(manualCleanup.rect.height * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ height: value / 100 })} />
+              </div>
+            )}
           </section>
 
           {/* ── 내보내기 (모바일에선 항상 표시) ── */}

@@ -28,7 +28,7 @@ vi.mock('../../src/config/supabase.js', () => ({
   supabase: {
     storage: {
       from: () => ({
-        createSignedUploadUrl: vi.fn().mockResolvedValue({ data: { token: 'signed-token' }, error: null }),
+        createSignedUploadUrl: vi.fn().mockResolvedValue({ data: { signedUrl: '/object/upload/sign/glocalizer-private/test.png?token=signed-token' }, error: null }),
       }),
     },
   },
@@ -82,7 +82,7 @@ describe('POST /api/v1/projects', () => {
     expect(res.status).toBe(400);
   });
 
-  it('유효한 요청은 201과 함께 projectId/uploadToken을 반환한다', async () => {
+  it('유효한 요청은 201과 함께 projectId/signed upload URL을 반환한다', async () => {
     vi.mocked(projectRepo.insertProject).mockResolvedValue(fakeProject());
     vi.mocked(assetRepo.insertAssets).mockResolvedValue([]);
 
@@ -97,7 +97,7 @@ describe('POST /api/v1/projects', () => {
     expect(res.status).toBe(201);
     expect(res.body.projectId).toBe(PROJECT_ID);
     expect(res.body.assets).toHaveLength(1);
-    expect(res.body.assets[0].uploadToken).toBe('signed-token');
+    expect(res.body.assets[0].uploadUrl).toBe('https://test.supabase.co/storage/v1/object/upload/sign/glocalizer-private/test.png?token=signed-token');
     expect(res.body.projectToken).toBeTruthy();
   });
 });

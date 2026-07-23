@@ -1,5 +1,18 @@
 import { COLORS, FONT_NAMES } from '../data/demo'
 
+export interface NormalizedRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface ManualCleanup {
+  mode: 'transparent' | 'solid'
+  rect: NormalizedRect
+  color?: string
+}
+
 /** 에디터 편집 스타일 (undo/redo · 내보내기 단위) */
 export interface Style {
   suggestion: number
@@ -32,6 +45,21 @@ export interface Style {
   alignV: 'top' | 'middle' | 'bottom' | null
   /** 원본 이미지 크기 배율 (%, 100 = 캔버스에 꽉 차게) */
   imageScale: number
+  /** 원문을 수동으로 가릴 때 쓰는 원본 이미지 기준(0~1) 사각형 */
+  manualCleanup?: ManualCleanup
+}
+
+/** OCR bbox를 기존 340px 에디터 좌표로 옮긴 기본 텍스트 스타일 */
+export function styleFromNormalizedBox(box: NormalizedRect): Style {
+  const editorSize = 340
+  return {
+    ...DEFAULT_STYLE,
+    x: Math.round((box.x + box.width / 2 - 0.5) * editorSize),
+    y: Math.round((box.y + box.height / 2 - 0.5) * editorSize),
+    size: Math.max(12, Math.min(96, Math.round(box.height * editorSize * 0.82))),
+    alignH: null,
+    alignV: null,
+  }
 }
 
 export const DEFAULT_STYLE: Style = {

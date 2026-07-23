@@ -4,9 +4,9 @@ import { env } from '../config/env.js';
 export const targetLanguageSchema = z.enum(['en', 'ja', 'zh']);
 
 const localizationOptionsSchema = z.object({
-  tone: z.enum(['cute', 'funny', 'energetic', 'serious', 'sarcastic']).default('cute'),
-  audience: z.enum(['general', 'teen', 'business']).default('general'),
-  translationStyle: z.enum(['natural', 'trendy', 'literal']).default('natural'),
+  tone: z.enum(['cute', 'funny', 'energetic', 'serious', 'sarcastic']).default('funny'),
+  audience: z.enum(['general', 'teen', 'business']).default('teen'),
+  translationStyle: z.enum(['natural', 'trendy', 'literal']).default('trendy'),
   highQualityReview: z.boolean().default(false),
 });
 
@@ -24,9 +24,9 @@ const uploadFileSchema = z.object({
 export const createProjectSchema = z.object({
   targetLanguages: z.array(targetLanguageSchema).min(1).max(3),
   options: localizationOptionsSchema.default(() => ({
-    tone: 'cute' as const,
-    audience: 'general' as const,
-    translationStyle: 'natural' as const,
+    tone: 'funny' as const,
+    audience: 'teen' as const,
+    translationStyle: 'trendy' as const,
     highQualityReview: false,
   })),
   files: z

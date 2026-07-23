@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: glocalizer-api
+    runtime: docker
+    rootDir: backend
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: PROJECT_TOKEN_SECRET
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false

@@ -6,6 +6,7 @@ import { findProjectById } from '../repositories/project.repository.js';
 const STAGE_MESSAGES: Record<string, string> = {
   validating: '이미지를 확인하고 있어요',
   preprocessing: '이미지를 준비하고 있어요',
+  recognizing: '이미지 속 한글을 찾고 있어요',
   ocr: '이미지 속 한글을 찾고 있어요',
   translating: '현지 표현으로 번역하고 있어요',
   reviewing: '번역이 자연스러운지 확인하고 있어요',
@@ -58,7 +59,9 @@ export async function getProjectStatus(projectId: string): Promise<ProjectStatus
     status: project.status,
     stage: project.stage,
     progress: project.progress,
-    message: (project.stage && STAGE_MESSAGES[project.stage]) || '',
+    message: project.status === 'failed'
+      ? project.error_message ?? '처리에 실패했습니다. 이미지별 오류를 확인해주세요.'
+      : (project.stage && STAGE_MESSAGES[project.stage]) || '',
     assets: assets.map((asset) => ({
       assetId: asset.id,
       status: asset.status,

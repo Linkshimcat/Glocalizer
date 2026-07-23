@@ -31,6 +31,11 @@ vi.mock('../../src/repositories/translation.repository.js', () => ({
   incrementRegenerateCount: vi.fn(),
 }));
 
+vi.mock('../../src/repositories/editor-state.repository.js', () => ({
+  upsertEditorState: vi.fn(),
+  findEditorStatesByAssetId: vi.fn(),
+}));
+
 vi.mock('../../src/repositories/storage.repository.js', () => ({
   downloadFromStorage: vi.fn(),
   uploadToStorage: vi.fn(),
@@ -43,6 +48,7 @@ const projectRepo = await import('../../src/repositories/project.repository.js')
 const assetRepo = await import('../../src/repositories/asset.repository.js');
 const ocrRepo = await import('../../src/repositories/ocr.repository.js');
 const translationRepo = await import('../../src/repositories/translation.repository.js');
+const editorStateRepo = await import('../../src/repositories/editor-state.repository.js');
 const storageRepo = await import('../../src/repositories/storage.repository.js');
 const { hashProjectToken } = await import('../../src/utils/hash.js');
 
@@ -120,6 +126,7 @@ describe('GET /api/v1/projects/:projectId/results', () => {
     ] as never);
 
     vi.mocked(storageRepo.createSignedUrl).mockResolvedValue('https://signed.example/url');
+    vi.mocked(editorStateRepo.findEditorStatesByAssetId).mockResolvedValue([]);
 
     const res = await request(app).get(`/api/v1/projects/${PROJECT_ID}/results`).set('X-Project-Token', TOKEN);
 

@@ -8,6 +8,22 @@ interface UpsertEditorStateInput {
   style: Record<string, unknown>;
 }
 
+export interface EditorStateRow {
+  asset_id: string;
+  ocr_region_id: string;
+  language_code: string;
+  style: Record<string, unknown>;
+}
+
+export async function findEditorStatesByAssetId(assetId: string): Promise<EditorStateRow[]> {
+  const result = await supabase
+    .from('editor_states')
+    .select('asset_id, ocr_region_id, language_code, style')
+    .eq('asset_id', assetId);
+  if (result.error) throw result.error;
+  return (result.data ?? []) as EditorStateRow[];
+}
+
 export async function upsertEditorState(input: UpsertEditorStateInput): Promise<void> {
   const result = await supabase.from('editor_states').upsert(
     {

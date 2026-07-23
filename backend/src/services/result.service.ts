@@ -4,6 +4,7 @@ import { findRegionsByAssetId } from '../repositories/ocr.repository.js';
 import { createSignedUrl } from '../repositories/storage.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import { findTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
+import { findEditorStatesByAssetId } from '../repositories/editor-state.repository.js';
 import type { AssetRow } from '../types/asset.js';
 
 async function buildAssetResult(asset: AssetRow) {
@@ -21,9 +22,10 @@ async function buildAssetResult(asset: AssetRow) {
     }
   }
 
-  const [originalUrl, cleanedUrl] = await Promise.all([
+  const [originalUrl, cleanedUrl, editorStates] = await Promise.all([
     asset.original_path ? createSignedUrl(asset.original_path) : Promise.resolve(null),
     asset.cleaned_path ? createSignedUrl(asset.cleaned_path) : Promise.resolve(null),
+    findEditorStatesByAssetId(asset.id),
   ]);
 
   return {
@@ -43,6 +45,10 @@ async function buildAssetResult(asset: AssetRow) {
         text: region.detected_text,
         confidence: region.confidence,
         box: region.bbox,
+        normalizedBox: region.normalized_bbox,
+        source: region.source,
+        agreementScore: region.agreement_score,
+        needsManualReview: region.needs_manual_review,
       })),
     },
     localizations,
@@ -51,6 +57,8 @@ async function buildAssetResult(asset: AssetRow) {
       quality: asset.cleanup_quality,
       needsManualCleanup: asset.needs_manual_cleanup,
     },
+    needsManualOcrReview: primaryRegion?.needs_manual_review ?? false,
+    editorStates: Object.fromEntries(editorStates.map((state) => [state.language_code, state.style])),
     ...(asset.error_code ? { errorCode: asset.error_code, errorMessage: asset.error_message } : {}),
   };
 }

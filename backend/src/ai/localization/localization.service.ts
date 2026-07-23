@@ -6,27 +6,14 @@ import { findProjectById, updateProjectStage } from '../../repositories/project.
 import { findTranslation, incrementRegenerateCount, upsertTranslation } from '../../repositories/translation.repository.js';
 import type { AssetRow } from '../../types/asset.js';
 import { MAX_CHARACTERS_BY_LANGUAGE } from '../../types/localization.js';
-import type { LocalizationPromptInput, TargetLanguage, TranslationCandidate, TranslationResult } from '../../types/localization.js';
+import type { TargetLanguage } from '../../types/localization.js';
 import type { LocalizationOptions } from '../../types/project.js';
 import type { OcrRegionRow } from '../../types/ocr.js';
-import type { TranslationReviewResult } from '../../types/review.js';
 import { mapWithConcurrency } from '../../utils/concurrency.js';
-import { GLM_LOCALIZATION_PROMPT_VERSION } from '../prompts/prompt-version.js';
-import { needsDeepSeekReview } from '../review/review-decision.js';
-import { tryReviewTranslation } from '../review/review.service.js';
-import { glmLocalizationProvider } from './glm-localization.provider.js';
+import { LOCALIZATION_PROMPT_VERSION } from '../prompts/prompt-version.js';
+import { getTranslationProvider } from '../../translation/translation-provider.js';
 import { validateTranslationResult } from './localization-validator.js';
-
-export function applyReviewResult(candidates: TranslationCandidate[], review: TranslationReviewResult): TranslationCandidate[] {
-  const bestIndex = review.bestCandidateIndex >= 0 && review.bestCandidateIndex < candidates.length ? review.bestCandidateIndex : 0;
-  const replacementByIndex = new Map(review.replacements?.map((replacement) => [replacement.index, replacement.text]) ?? []);
-
-  return candidates.map((candidate, index) => ({
-    ...candidate,
-    text: replacementByIndex.get(index) ?? candidate.text,
-    best: index === bestIndex,
-  }));
-}
+import type { LocalizationBatchInput } from './localization-provider.types.js';
 
 export interface LanguageTranslationResult {
   languageCode: TargetLanguage;
@@ -44,73 +31,76 @@ export interface AssetTranslationResult {
   errorMessage?: string;
 }
 
-export async function localizeRegionForLanguage(
+function buildLocalizationInput(
   region: OcrRegionRow,
-  targetLanguage: TargetLanguage,
+  targetLanguages: TargetLanguage[],
   options: LocalizationOptions,
-): Promise<LanguageTranslationResult> {
-  const input: LocalizationPromptInput = {
+): LocalizationBatchInput {
+  return {
     sourceText: region.detected_text,
     sourceLanguage: 'ko',
-    targetLanguage,
+    targetLanguages,
     context: {
       contentType: 'emoticon',
       tone: options.tone,
       audience: options.audience,
       translationStyle: options.translationStyle,
     },
-    constraints: {
-      maxCharacters: MAX_CHARACTERS_BY_LANGUAGE[targetLanguage],
-      textBoxWidth: region.bbox.width,
-      textBoxHeight: region.bbox.height,
-    },
+    constraintsByLanguage: Object.fromEntries(
+      targetLanguages.map((languageCode) => [
+        languageCode,
+        {
+          maxCharacters: MAX_CHARACTERS_BY_LANGUAGE[languageCode],
+          textBoxWidth: region.bbox.width,
+          textBoxHeight: region.bbox.height,
+        },
+      ]),
+    ) as LocalizationBatchInput['constraintsByLanguage'],
   };
+}
 
-  const result: TranslationResult = await glmLocalizationProvider.localize(input);
-  const validation = validateTranslationResult(result);
+export async function localizeRegionForLanguages(
+  region: OcrRegionRow,
+  targetLanguages: TargetLanguage[],
+  options: LocalizationOptions,
+): Promise<LanguageTranslationResult[]> {
+  try {
+    const provider = getTranslationProvider();
+    const results = await provider.localizeBatch(buildLocalizationInput(region, targetLanguages, options));
 
-  const shouldReview = needsDeepSeekReview({
-    ocrConfidence: region.confidence,
-    validation,
-    highQualityMode: options.highQualityReview,
-  });
+    return Promise.all(
+      targetLanguages.map(async (languageCode): Promise<LanguageTranslationResult> => {
+        const result = results.get(languageCode);
+        if (!result) {
+          throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode }, '번역 provider가 요청 언어를 반환하지 않았습니다.');
+        }
 
-  let finalCandidates: TranslationCandidate[] = result.candidates;
-  let reviewResult: TranslationReviewResult | null = null;
+        const validation = validateTranslationResult(result);
+        if (!validation.valid) {
+          throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode, reasons: validation.reasons }, '번역 결과가 검증을 통과하지 못했습니다.');
+        }
 
-  if (shouldReview) {
-    reviewResult = await tryReviewTranslation({
-      sourceText: region.detected_text,
-      targetLanguage,
-      candidates: result.candidates.map((candidate) => ({ text: candidate.text, tone: candidate.tone, meaning: candidate.meaning })),
-      requirements: {
-        maxCharacters: MAX_CHARACTERS_BY_LANGUAGE[targetLanguage],
-        contentType: 'emoticon',
-        desiredTone: options.tone,
-      },
-    });
+        await upsertTranslation({
+          ocrRegionId: region.id,
+          languageCode,
+          generationCandidates: result.candidates,
+          finalCandidates: result.candidates,
+          recommendedStyle: result.recommendedStyle,
+          generationModel: provider.model,
+          promptVersion: LOCALIZATION_PROMPT_VERSION,
+        });
 
-    if (reviewResult) {
-      finalCandidates = applyReviewResult(result.candidates, reviewResult);
-    }
+        return { languageCode, status: 'translated', needsReview: validation.needsReview };
+      }),
+    );
+  } catch (error) {
+    const { code: errorCode, message: errorMessage } = describeError(
+      error,
+      'TRANSLATION_PROVIDER_FAILED',
+      '번역 처리 중 알 수 없는 오류가 발생했습니다.',
+    );
+    return targetLanguages.map((languageCode) => ({ languageCode, status: 'failed', errorCode, errorMessage }));
   }
-
-  await upsertTranslation({
-    ocrRegionId: region.id,
-    languageCode: targetLanguage,
-    glmCandidates: result.candidates,
-    finalCandidates,
-    recommendedStyle: result.recommendedStyle,
-    generationModel: env.NVIDIA_TRANSLATION_MODEL,
-    ...(reviewResult ? { reviewModel: env.NVIDIA_REVIEW_MODEL, reviewResult } : {}),
-    promptVersion: GLM_LOCALIZATION_PROMPT_VERSION,
-  });
-
-  // 검수가 실제로 통과했다면 needsReview를 내려도 되지만, 검수를 안 했거나(shouldReview=false) 실패했다면
-  // 로컬 검증 결과를 그대로 신호로 남긴다.
-  const finalNeedsReview = reviewResult ? !reviewResult.approved : validation.needsReview;
-
-  return { languageCode: targetLanguage, status: 'translated', needsReview: finalNeedsReview };
 }
 
 export async function runTranslationsForAsset(
@@ -125,23 +115,12 @@ export async function runTranslationsForAsset(
     return { assetId: asset.id, status: 'failed', languages: [], errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage };
   }
 
-  // 언어별로 서로 독립적인 호출이라 병렬로 돌린다. 최대 3개 언어라 동시성 제한 없이 그대로 Promise.all.
-  const languages = await Promise.all(
-    targetLanguages.map(async (targetLanguage): Promise<LanguageTranslationResult> => {
-      try {
-        return await localizeRegionForLanguage(region, targetLanguage, options);
-      } catch (err) {
-        const { code: errorCode, message: errorMessage } = describeError(err, 'GLM_TRANSLATION_FAILED', '번역 처리 중 알 수 없는 오류가 발생했습니다.');
-        return { languageCode: targetLanguage, status: 'failed', errorCode, errorMessage };
-      }
-    }),
-  );
-
+  const languages = await localizeRegionForLanguages(region, targetLanguages, options);
   const allFailed = languages.length > 0 && languages.every((language) => language.status === 'failed');
   if (allFailed) {
-    const errorMessage = '모든 언어의 번역이 실패했습니다.';
-    await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'GLM_TRANSLATION_FAILED', errorMessage });
-    return { assetId: asset.id, status: 'failed', languages, errorCode: 'GLM_TRANSLATION_FAILED', errorMessage };
+    const errorMessage = languages.find((language) => language.errorMessage)?.errorMessage ?? '모든 언어의 번역이 실패했습니다.';
+    await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage });
+    return { assetId: asset.id, status: 'failed', languages, errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage };
   }
 
   await updateAsset(asset.id, { status: 'translating', stage: 'translating', progress: 100 });
@@ -150,22 +129,17 @@ export async function runTranslationsForAsset(
 
 export async function runProjectTranslations(projectId: string): Promise<AssetTranslationResult[]> {
   const project = await findProjectById(projectId);
-  if (!project) {
-    throw new AppError('PROJECT_NOT_FOUND', { projectId });
-  }
+  if (!project) throw new AppError('PROJECT_NOT_FOUND', { projectId });
 
   const assets = await findAssetsByProjectAndStatus(projectId, ['ocr']);
   await updateProjectStage(projectId, { status: 'processing', stage: 'translating' });
-
   const results = await mapWithConcurrency(assets, env.AI_CONCURRENCY, (asset) =>
     runTranslationsForAsset(asset, project.target_languages, project.localization_options),
   );
 
-  const allFailed = results.length > 0 && results.every((result) => result.status === 'failed');
-  if (allFailed) {
-    await updateProjectStage(projectId, { stage: 'translating', status: 'failed', errorCode: 'GLM_TRANSLATION_FAILED' });
+  if (results.length > 0 && results.every((result) => result.status === 'failed')) {
+    await updateProjectStage(projectId, { stage: 'translating', status: 'failed', errorCode: 'TRANSLATION_PROVIDER_FAILED' });
   }
-
   return results;
 }
 
@@ -182,9 +156,7 @@ export async function regenerateTranslation(
   overrides: RegenerateOverrides,
 ): Promise<LanguageTranslationResult> {
   const project = await findProjectById(projectId);
-  if (!project) {
-    throw new AppError('PROJECT_NOT_FOUND', { projectId });
-  }
+  if (!project) throw new AppError('PROJECT_NOT_FOUND', { projectId });
 
   const region = await findRegionById(regionId);
   if (!region || region.asset_id !== assetId) {
@@ -194,11 +166,7 @@ export async function regenerateTranslation(
   const existing = await findTranslation(regionId, targetLanguage);
   const currentCount = existing?.regenerate_count ?? 0;
   if (currentCount >= env.MAX_REGENERATE_COUNT) {
-    throw new AppError(
-      'RATE_LIMITED',
-      { regionId, targetLanguage, limit: env.MAX_REGENERATE_COUNT },
-      `번역 재생성은 최대 ${env.MAX_REGENERATE_COUNT}회까지 가능합니다.`,
-    );
+    throw new AppError('RATE_LIMITED', { regionId, targetLanguage, limit: env.MAX_REGENERATE_COUNT }, `번역 재생성은 최대 ${env.MAX_REGENERATE_COUNT}회까지 가능합니다.`);
   }
 
   const options: LocalizationOptions = {
@@ -206,9 +174,11 @@ export async function regenerateTranslation(
     tone: overrides.tone ?? project.localization_options.tone,
     translationStyle: overrides.translationStyle ?? project.localization_options.translationStyle,
   };
+  const [result] = await localizeRegionForLanguages(region, [targetLanguage], options);
+  if (result.status === 'failed') {
+    throw new AppError('TRANSLATION_PROVIDER_FAILED', undefined, result.errorMessage);
+  }
 
-  const result = await localizeRegionForLanguage(region, targetLanguage, options);
   await incrementRegenerateCount(regionId, targetLanguage, currentCount + 1);
-
   return result;
 }

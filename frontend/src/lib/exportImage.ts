@@ -7,9 +7,36 @@ const CANVAS_SIZE = 512
 const EDITOR_SIZE = 340
 const SCALE = CANVAS_SIZE / EDITOR_SIZE
 
+interface DrawnImageFrame {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function applyManualCleanup(ctx: CanvasRenderingContext2D, style: Style, frame: DrawnImageFrame) {
+  const cleanup = style.manualCleanup
+  if (!cleanup) return
+  const x = frame.x + cleanup.rect.x * frame.width
+  const y = frame.y + cleanup.rect.y * frame.height
+  const width = cleanup.rect.width * frame.width
+  const height = cleanup.rect.height * frame.height
+  ctx.save()
+  if (cleanup.mode === 'transparent') {
+    ctx.globalCompositeOperation = 'destination-out'
+    ctx.fillRect(x, y, width, height)
+  } else {
+    ctx.fillStyle = cleanup.color ?? '#FFFFFF'
+    ctx.fillRect(x, y, width, height)
+  }
+  ctx.restore()
+}
+
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    // Supabase signed URL도 CORS 허용 시 export 가능한 Canvas로 불러온다.
+    img.crossOrigin = 'anonymous'
     img.onload = () => resolve(img)
     img.onerror = () => reject(new Error(`이미지를 불러오지 못했어요: ${url}`))
     img.src = url
@@ -38,7 +65,14 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
     const contain = Math.min(box / img.width, box / img.height) * imageScale
     const w = img.width * contain
     const h = img.height * contain
-    ctx.drawImage(img, (CANVAS_SIZE - w) / 2, (CANVAS_SIZE - h) / 2, w, h)
+    const frame = { x: (CANVAS_SIZE - w) / 2, y: (CANVAS_SIZE - h) / 2, width: w, height: h }
+    ctx.drawImage(img, frame.x, frame.y, frame.width, frame.height)
+    applyManualCleanup(ctx, style, frame)
+    try {
+      ctx.getImageData(0, 0, 1, 1)
+    } catch {
+      throw new Error('이미지 보안 설정 때문에 PNG를 만들 수 없어요. Storage CORS 설정을 확인해주세요.')
+    }
   } else {
     ctx.font = `${Math.round(120 * SCALE * imageScale)}px sans-serif`
     ctx.textAlign = 'center'

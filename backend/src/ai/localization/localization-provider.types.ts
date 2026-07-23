@@ -1,5 +1,10 @@
-import type { LocalizationPromptInput, TranslationResult } from '../../types/localization.js';
+import type { LocalizationPromptInput, TargetLanguage, TranslationResult } from '../../types/localization.js';
+
+export interface LocalizationBatchInput extends Omit<LocalizationPromptInput, 'targetLanguage' | 'constraints'> {
+  targetLanguages: TargetLanguage[];
+  constraintsByLanguage: Partial<Record<TargetLanguage, LocalizationPromptInput['constraints']>>;
+}
 
 export interface LocalizationProvider {
-  localize(input: LocalizationPromptInput): Promise<TranslationResult>;
+  localizeBatch(input: LocalizationBatchInput): Promise<Map<TargetLanguage, TranslationResult>>;
 }

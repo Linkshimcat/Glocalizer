@@ -16,8 +16,7 @@ const MIME_EXTENSIONS: Record<string, string> = {
 interface CreatedAsset {
   assetId: string;
   clientId: string;
-  uploadPath: string;
-  uploadToken: string;
+  uploadUrl: string;
 }
 
 interface CreateProjectResult {
@@ -69,11 +68,14 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
       throw new AppError('INTERNAL_ERROR', { cause: error?.message }, '업로드 URL 생성에 실패했습니다.');
     }
 
+    const uploadUrl = data.signedUrl.startsWith('http')
+      ? data.signedUrl
+      : `${env.SUPABASE_URL}/storage/v1${data.signedUrl}`;
+
     assets.push({
       assetId: asset.id,
       clientId: asset.clientId,
-      uploadPath: asset.originalPath,
-      uploadToken: data.token,
+      uploadUrl,
     });
   }
 

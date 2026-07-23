@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { regenerateHandler, saveEditorStateHandler } from '../controllers/editor.controller.js';
+import { regenerateHandler, saveEditorStateHandler, updateOcrHandler } from '../controllers/editor.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
-import { assetParamsSchema, regenerateSchema, saveEditorStateSchema } from '../schemas/editor-state.schema.js';
+import { assetParamsSchema, regenerateSchema, saveEditorStateSchema, updateOcrSchema } from '../schemas/editor-state.schema.js';
 import { asyncHandler } from '../utils/async-handler.js';
 
 export const editorRouter = Router();
@@ -21,4 +21,12 @@ editorRouter.post(
   projectAuthMiddleware,
   validate(regenerateSchema, 'body'),
   asyncHandler(regenerateHandler),
+);
+
+editorRouter.patch(
+  '/projects/:projectId/assets/:assetId/ocr',
+  validate(assetParamsSchema, 'params'),
+  projectAuthMiddleware,
+  validate(updateOcrSchema, 'body'),
+  asyncHandler(updateOcrHandler),
 );

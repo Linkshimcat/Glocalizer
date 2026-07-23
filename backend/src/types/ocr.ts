@@ -15,6 +15,9 @@ export interface OcrRegion {
   containsKorean: boolean;
   readingOrder: number;
   isPrimary: boolean;
+  source: 'paddle-consensus' | 'vision-fallback';
+  agreementScore: number;
+  needsManualReview: boolean;
 }
 
 export function classifyConfidence(confidence: number): ConfidenceTier {
@@ -36,5 +39,8 @@ export interface OcrRegionRow {
   contains_korean: boolean;
   is_primary: boolean;
   reading_order: number;
+  source: 'paddle-consensus' | 'vision-fallback';
+  agreement_score: number;
+  needs_manual_review: boolean;
   created_at: string;
 }

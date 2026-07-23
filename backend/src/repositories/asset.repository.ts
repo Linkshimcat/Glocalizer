@@ -46,16 +46,16 @@ export async function findAssetsByProjectAndStatus(projectId: string, statuses: 
   return unwrapList<AssetRow>(result, '이미지 조회에 실패했습니다.');
 }
 
-interface AssetUpdate {
+export interface AssetUpdate {
   status: AssetStatus;
   stage?: string | null;
   progress?: number;
   width?: number;
   height?: number;
   hasAlpha?: boolean;
-  cleanedPath?: string;
-  cleanupMethod?: string;
-  cleanupQuality?: string;
+  cleanedPath?: string | null;
+  cleanupMethod?: string | null;
+  cleanupQuality?: string | null;
   needsManualCleanup?: boolean;
   errorCode?: string;
   errorMessage?: string;

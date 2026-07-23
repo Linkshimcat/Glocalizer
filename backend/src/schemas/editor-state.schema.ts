@@ -29,6 +29,18 @@ const editorStyleSchema = z
     x: z.number().optional(),
     y: z.number().optional(),
     imageScale: z.number().optional(),
+    manualCleanup: z
+      .object({
+        mode: z.enum(['transparent', 'solid']),
+        rect: z.object({
+          x: z.number().min(0).max(1),
+          y: z.number().min(0).max(1),
+          width: z.number().min(0).max(1),
+          height: z.number().min(0).max(1),
+        }),
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      })
+      .optional(),
   })
   .passthrough();
 
@@ -43,4 +55,12 @@ export const regenerateSchema = z.object({
   languageCode: targetLanguageSchema,
   tone: z.enum(['cute', 'funny', 'energetic', 'serious', 'sarcastic']).optional(),
   translationStyle: z.enum(['natural', 'trendy', 'literal']).optional(),
+});
+
+export const updateOcrSchema = z.object({
+  text: z.string().trim().min(1).max(200),
+  normalizedBox: z.object({
+    x: z.number().min(0).max(1), y: z.number().min(0).max(1),
+    width: z.number().positive().max(1), height: z.number().positive().max(1),
+  }).refine((box) => box.x + box.width <= 1 && box.y + box.height <= 1, 'normalizedBox must be within image bounds'),
 });

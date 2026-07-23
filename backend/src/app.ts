@@ -10,11 +10,16 @@ import { apiRouter } from './routes/index.js';
 
 export function createApp() {
   const app = express();
+  const allowedOrigins = new Set([env.FRONTEND_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173']);
 
   app.use(requestIdMiddleware);
   app.use(
     pinoHttp({
       logger,
+      redact: {
+        paths: ['req.headers.x-project-token', 'req.headers.authorization'],
+        censor: '[REDACTED]',
+      },
       genReqId: (req) => (req as express.Request).id,
       customLogLevel: (_req, res, err) => {
         if (err || res.statusCode >= 500) return 'error';
@@ -23,7 +28,18 @@ export function createApp() {
       },
     }),
   );
-  app.use(cors({ origin: env.FRONTEND_ORIGIN }));
+  app.use(
+    cors({
+      origin(origin, callback) {
+        // 브라우저가 아닌 health check 등 origin 없는 요청도 허용한다.
+        if (!origin || allowedOrigins.has(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(new Error('허용되지 않은 frontend origin입니다.'));
+      },
+    }),
+  );
   app.use(express.json({ limit: '1mb' }));
 
   app.use('/api/v1', rateLimitMiddleware, apiRouter);

@@ -28,11 +28,10 @@
 #### 🔄 데이터 및 서비스 흐름 (Data & Service Flow)
 
 * **Client (Frontend)**: 한국어 이모티콘 이미지 업로드 및 캐릭터 성격 설정 -> 실시간 AI 파이프라인 진행 상태 확인 -> 최적의 현지 밈(Meme) 대사가 합성된 결과물 미리보기 후 다운로드
-* **Server (Backend)**: 클라이언트가 업로드한 이미지 버퍼 처리 및 Supabase 프로젝트 데이터 연동 -> 다중 비동기 AI 파이프라인(OCR, LLM, Inpainting) 제어 및 API 오케스트레이션 수행
+* **Server (Backend)**: 클라이언트가 업로드한 이미지 버퍼 처리 및 Supabase 프로젝트 데이터 연동 -> 비동기 OCR·번역·원문 제거 파이프라인 제어
 * **AI Pipeline**:
-  * **NVIDIA Nemotron OCR v2 Multilingual**을 활용해 다국어/한국어 대사 영역의 정확한 텍스트 및 위치 좌표 검출
-  * **GLM 5.2**를 구동하여 한국어 특유의 밈과 인터넷 드립을 현지 정서에 맞춘 트렌디한 초월 번역 대사로 변환
-  * **DeepSeek V4 Pro**가 번역된 슬랭의 타당성을 2차 검증하고, 이미지 배경 복원 가이드를 보조하며 최종 폰트 렌더링 레이아웃 계산
+  * **PaddleOCR**로 한글 대사 영역의 텍스트·좌표·신뢰도를 검출
+  * **Groq LLM**이 언어별 밈형 번역 후보 3개와 최적 후보·권장 스타일을 생성
 * **Database (Supabase)**: 오리지널 이미지 및 번역 가공된 결과 이미지 파일의 스토리지 주소 저장 -> 프로젝트 이력 및 사용자의 이모티콘 편집 프리셋 데이터 실시간 관리
 
 <h3>사용 스택</h3> <hr>
@@ -53,9 +52,19 @@
 git clone [https://github.com/Linkshimcat/Glocalizer.git](https://github.com/Linkshimcat/Glocalizer.git)
 cd Glocalizer
 
-# 2. 패키지 의존성 설치 (Install dependencies)
-npm install
+# 2. 환경변수 설정
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 
-# 3. 개발 서버 실행 (Run development server)
+# 3. OCR/번역/Supabase 환경변수 입력
+# backend/.env에 GROQ_API_KEY와 Supabase 값을 입력합니다.
+# 선택적으로 GEMINI_API_KEY를 넣으면 PaddleOCR 합의가 낮을 때만 Vision OCR 재판정을 사용합니다.
+# PaddleOCR는 backend/python/requirements.txt의 Python 의존성을 설치해야 합니다.
+
+# 4. 패키지 의존성 설치 및 DB 확인
+cd backend && npm ci && python3 -m pip install --user -r python/requirements.txt
+npm run db:check
+npm run db:migrate
 npm run dev
-
+# 별도 터미널
+cd frontend && npm ci && npm run dev

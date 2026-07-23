@@ -5,10 +5,12 @@ import { downloadFromStorage, uploadToStorage } from '../repositories/storage.re
 import type { AssetRow } from '../types/asset.js';
 import type { CleanupResult } from '../types/cleanup.js';
 import { AppError, describeError } from '../errors/app-error.js';
+import { env } from '../config/env.js';
 import { sampleBorderPixels } from './background-sampler.js';
 import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
 import { applySolidColorCleanup } from './solid-color-cleanup.js';
 import { applyTransparentCleanup } from './transparent-cleanup.js';
+import { mapWithConcurrency } from '../utils/concurrency.js';
 
 export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult & { assetId: string }> {
   if (!asset.original_path || !asset.width || !asset.height) {
@@ -21,6 +23,10 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
   if (!region) {
     const errorMessage = '대표 OCR 영역을 찾을 수 없어 이미지를 정리할 수 없습니다.';
     await updateAsset(asset.id, { status: 'failed', stage: 'cleaning', errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage });
+    return { assetId: asset.id, method: 'manual-required', quality: 'low', needsManualCleanup: true };
+  }
+  if (region.needs_manual_review) {
+    await updateAsset(asset.id, { status: 'completed', stage: 'ocr-review', progress: 100, cleanupMethod: 'manual-required', cleanupQuality: 'low', needsManualCleanup: true });
     return { assetId: asset.id, method: 'manual-required', quality: 'low', needsManualCleanup: true };
   }
 
@@ -76,8 +82,7 @@ export async function runProjectCleanup(projectId: string): Promise<Array<Cleanu
   const assets = await findAssetsByProjectAndStatus(projectId, ['translating']);
   await updateProjectStage(projectId, { status: 'processing', stage: 'cleaning' });
 
-  // NVIDIA 호출 없이 Sharp 연산 + Storage I/O뿐이라 동시성 제한 없이 전부 병렬로 돌린다.
-  const results = await Promise.all(assets.map((asset) => runCleanupForAsset(asset)));
+  const results = await mapWithConcurrency(assets, env.CLEANUP_CONCURRENCY, runCleanupForAsset);
 
   return results;
 }
