@@ -22,7 +22,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/python ./python
+# python 스크립트는 컴파일 대상이 아니라 build 스테이지에 없으므로 저장소에서 직접 복사
+COPY python ./python
 
 EXPOSE 3000
 CMD ["node", "dist/index.js"]
