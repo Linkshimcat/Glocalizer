@@ -1,8 +1,6 @@
 import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
-import { generateFeatheredEraseMask } from './mask-generator.js';
-
-const FEATHER_PX = 4;
+import { generateTextEraseMask, type FeatherMask } from './mask-generator.js';
 
 /** box 영역을 fillColor로 채우되, mask 값(0=완전 채움, 255=원본 유지)으로 경계를 선형 블렌딩해 부드럽게 만든다. */
 export async function applySolidColorCleanup(
@@ -11,8 +9,9 @@ export async function applySolidColorCleanup(
   fillColor: { r: number; g: number; b: number },
   imageWidth: number,
   imageHeight: number,
+  existingMask?: FeatherMask,
 ): Promise<Buffer> {
-  const mask = await generateFeatheredEraseMask(box, imageWidth, imageHeight, FEATHER_PX);
+  const mask = existingMask ?? await generateTextEraseMask(buffer, box, imageWidth, imageHeight, { mode: 'solid', backgroundColor: fillColor });
 
   const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const channels = info.channels;

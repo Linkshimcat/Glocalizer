@@ -3,7 +3,7 @@ import { assessCleanupQuality, decideCleanupMethod } from '../../src/image/clean
 import type { BorderStats } from '../../src/image/background-sampler.js';
 
 function stats(overrides: Partial<BorderStats>): BorderStats {
-  return { meanAlpha: 255, medianColor: { r: 255, g: 255, b: 255 }, colorStdDev: 0, sampledPixelCount: 100, ...overrides };
+  return { meanAlpha: 255, medianColor: { r: 255, g: 255, b: 255 }, colorStdDev: 0, sampledPixelCount: 100, dominantColorRatio: 0, ...overrides };
 }
 
 describe('decideCleanupMethod', () => {
@@ -17,6 +17,10 @@ describe('decideCleanupMethod', () => {
 
   it('불투명하고 색 편차가 크면 manual-required', () => {
     expect(decideCleanupMethod(stats({ meanAlpha: 255, colorStdDev: 80 }))).toBe('manual-required');
+  });
+
+  it('말풍선처럼 내부 지배 색상이 뚜렷하면 테두리 편차가 있어도 단색 채우기를 쓴다', () => {
+    expect(decideCleanupMethod(stats({ colorStdDev: 80, dominantColorRatio: 0.7 }))).toBe('solid-color-fill');
   });
 });
 

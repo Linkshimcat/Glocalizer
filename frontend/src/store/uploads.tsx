@@ -34,8 +34,10 @@ export interface UploadFile {
   assetId?: string
   analysis?: {
     korean: string
-    suggestions: Array<{ text: string; tone: string; best?: boolean }>
-    recommendedFont: string
+    localizations: Record<string, LocalizedAnalysis>
+    /** 다국어 state 도입 전 sessionStorage 데이터 호환용 */
+    suggestions?: Array<{ text: string; tone: string; best?: boolean }>
+    recommendedFont?: string
     originalUrl: string | null
     cleanedUrl: string | null
     regionId: string | null
@@ -46,6 +48,13 @@ export interface UploadFile {
     needsManualOcrReview: boolean
   }
 }
+
+export interface LocalizedAnalysis {
+  suggestions: Array<{ text: string; tone: string; best?: boolean }>
+  recommendedFont: string
+}
+
+export type StylesByLanguage = Record<string, Record<string, Style>>
 
 export interface Language {
   code: string
@@ -80,6 +89,14 @@ function saveSession(key: string, value: unknown) {
   }
 }
 
+function loadStyles(): StylesByLanguage {
+  const stored = loadSession<Record<string, Style | Record<string, Style>>>('styles', {})
+  return Object.fromEntries(Object.entries(stored).map(([assetId, value]) => {
+    if ('suggestion' in value) return [assetId, { en: value }]
+    return [assetId, value]
+  }))
+}
+
 /** File → data URL (새로고침에도 살아남는 문자열) */
 function readAsDataURL(file: File): Promise<string> {
   return new Promise(resolve => {
@@ -102,9 +119,9 @@ interface UploadState {
   targetLangs: Language[]
   toggleTargetLang: (lang: Language) => void
   setTargetLangs: (langs: Language[]) => void
-  /** 파일별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
-  styles: Record<string, Style>
-  saveStyle: (id: string, style: Style) => void
+  /** 파일·언어별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
+  styles: StylesByLanguage
+  saveStyle: (id: string, languageCode: string, style: Style) => void
   projectStatus: ProjectStatus | null
   projectResults: ProjectResults | null
   processingError: string | null
@@ -125,9 +142,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const [targetLangs, setTargetLangs] = useState<Language[]>(() =>
     loadSession('targetLangs', []),
   )
-  const [styles, setStyles] = useState<Record<string, Style>>(() =>
-    loadSession('styles', {}),
-  )
+  const [styles, setStyles] = useState<StylesByLanguage>(loadStyles)
   const [projectId, setProjectId] = useState<string | null>(() => loadSession('projectId', null))
   const [projectToken, setProjectToken] = useState<string | null>(() => loadSession('projectToken', null))
   const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(() => loadSession('projectStatus', null))
@@ -144,15 +159,14 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveSession('projectStatus', projectStatus), [projectStatus])
   useEffect(() => saveSession('projectResults', projectResults), [projectResults])
 
-  const saveStyle = useCallback((id: string, style: Style) => {
-    setStyles(prev => ({ ...prev, [id]: style }))
+  const saveStyle = useCallback((id: string, languageCode: string, style: Style) => {
+    setStyles(prev => ({ ...prev, [id]: { ...prev[id], [languageCode]: style } }))
     const file = files.find(candidate => candidate.id === id)
-    const languageCode = targetLangs[0]?.code
     if (!projectId || !projectToken || !file?.assetId || !file.analysis?.regionId || !languageCode) return
     void saveEditorState(projectId, projectToken, file.assetId, file.analysis.regionId, languageCode, style).catch(() => {
       // 로컬 세션에는 이미 저장됐다. 다음 변경 시 서버 저장을 다시 시도한다.
     })
-  }, [files, projectId, projectToken, targetLangs])
+  }, [files, projectId, projectToken])
 
   const addFiles = useCallback((incoming: File[]) => {
     const imgs = incoming.filter(f => f.type.startsWith('image/'))
@@ -210,22 +224,30 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         const restored = { ...previous }
         for (const file of files) {
           const asset = results.assets.find(result => result.id === file.assetId)
-          const savedStyle = asset?.editorStates[targetLangs[0]?.code ?? 'en']
-          if (savedStyle) restored[file.id] = savedStyle as Style
+          for (const language of targetLangs) {
+            const savedStyle = asset?.editorStates[language.code]
+            if (savedStyle) restored[file.id] = { ...restored[file.id], [language.code]: savedStyle as Style }
+          }
         }
         return restored
       })
       setFiles(previous => previous.map(file => {
         const asset = results.assets.find(result => result.id === file.assetId)
         if (!asset) return file
-        const localization = asset.localizations[targetLangs[0]?.code ?? 'en']
         return {
           ...file,
-          url: asset.originalUrl ?? file.url,
+          // Editor의 변환 미리보기와 PNG export는 cleanup 결과를 base image로 사용해야 한다.
+          // originalUrl은 좌측 원본 비교 화면에서 analysis.originalUrl로 별도 유지한다.
+          url: asset.cleanedUrl ?? asset.originalUrl ?? file.url,
           analysis: {
             korean: asset.ocr.fullText ?? '',
-            suggestions: localization?.candidates ?? [],
-            recommendedFont: fontForCategory(localization?.recommendedStyle?.fontCategory),
+            localizations: Object.fromEntries(targetLangs.map(language => {
+              const localization = asset.localizations[language.code]
+              return [language.code, {
+                suggestions: localization?.candidates ?? [],
+                recommendedFont: fontForLanguage(language.code, fontForCategory(localization?.recommendedStyle?.fontCategory)),
+              }]
+            })),
             originalUrl: asset.originalUrl,
             cleanedUrl: asset.cleanedUrl,
             regionId: asset.ocr.primaryRegionId,
@@ -239,7 +261,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       }))
     }
     return status
-  }, [projectId, projectToken, targetLangs])
+  }, [files, projectId, projectToken, targetLangs])
 
   const startLocalization = useCallback(async () => {
     const selected = files.filter(file => selectedFileIds.includes(file.id))
@@ -326,6 +348,12 @@ function fontForCategory(category: string | undefined): string {
   if (category === 'handwriting') return 'Gaegu'
   if (category === 'minimal') return 'Pretendard'
   return 'Anton'
+}
+
+function fontForLanguage(languageCode: string, suggestedFont: string): string {
+  if (languageCode === 'ja') return 'Noto Sans JP'
+  if (languageCode === 'zh') return 'Noto Sans SC'
+  return suggestedFont
 }
 
 async function fileToUploadFile(file: UploadFile): Promise<File> {

@@ -6,11 +6,12 @@ const TRANSPARENT_ALPHA_GOOD_THRESHOLD = 8;
 
 const SOLID_STDDEV_GOOD = 14;
 const SOLID_STDDEV_ACCEPTABLE = 30;
+const DOMINANT_COLOR_SOLID_THRESHOLD = 0.58;
 
 /** 테두리 통계만 보고 자동 복원이 가능한 방식을 고른다. 배경이 복잡하면 manual-required로 보낸다. */
 export function decideCleanupMethod(stats: BorderStats): CleanupMethod {
   if (stats.meanAlpha < TRANSPARENT_ALPHA_MEAN_THRESHOLD) return 'transparent-mask';
-  if (stats.colorStdDev <= SOLID_STDDEV_ACCEPTABLE) return 'solid-color-fill';
+  if (stats.colorStdDev <= SOLID_STDDEV_ACCEPTABLE || stats.dominantColorRatio >= DOMINANT_COLOR_SOLID_THRESHOLD) return 'solid-color-fill';
   return 'manual-required';
 }
 

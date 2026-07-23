@@ -1,5 +1,5 @@
 import JSZip from 'jszip'
-import { isGif, type DemoItem } from '../data/demo'
+import type { DemoItem } from '../data/demo'
 import { DEFAULT_STYLE, hexToRgba, resolveText, type Style } from './style'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 512px 캔버스로 합성 */
@@ -12,6 +12,25 @@ interface DrawnImageFrame {
   y: number
   width: number
   height: number
+}
+
+function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number) {
+  if (!style.backgroundOn || !text) return
+  const metrics = ctx.measureText(text)
+  const padding = style.backgroundPadding * SCALE
+  const width = metrics.width + padding * 2
+  const height = fontPx + padding * 2
+  const x = -width / 2
+  const y = -height / 2
+  const radius = Math.min(style.backgroundRadius * SCALE, height / 2, width / 2)
+  ctx.fillStyle = hexToRgba(style.backgroundColor, style.backgroundOpacity / 100)
+  ctx.beginPath()
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, width, height, radius)
+  } else {
+    ctx.rect(x, y, width, height)
+  }
+  ctx.fill()
 }
 
 function applyManualCleanup(ctx: CanvasRenderingContext2D, style: Style, frame: DrawnImageFrame) {
@@ -100,6 +119,7 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
   ctx.font = fontSpec
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
+  drawTextBackground(ctx, text, style, fontPx)
   if (style.shadowOn) {
     ctx.shadowColor = hexToRgba(style.shadowColor, style.shadowOpacity / 100)
     ctx.shadowBlur = style.shadowBlur * SCALE
@@ -144,19 +164,16 @@ export function exportFileName(name: string, lang: string, ext: string) {
   return `${baseName(name)}_${lang}.${ext}`
 }
 
-/** 전체 이모티콘을 합성 PNG(+GIF 원본)로 묶은 ZIP 생성 */
-export async function zipItems(
-  items: DemoItem[],
-  styles: Record<string, Style>,
-  lang: string,
+/** Dashboard에서 선택한 언어별 편집 결과를 한 ZIP으로 생성한다. */
+export async function zipLocalizedItems(
+  itemsByLanguage: Array<{ languageCode: string; items: DemoItem[] }>,
+  styles: Record<string, Record<string, Style>>,
 ): Promise<Blob> {
   const zip = new JSZip()
-  for (const item of items) {
-    const style = styles[item.id] ?? DEFAULT_STYLE
-    zip.file(exportFileName(item.name, lang, 'png'), await renderItemToPng(item, style))
-    if (isGif(item) && item.url) {
-      const original = await fetch(item.url).then(r => r.blob())
-      zip.file(`${baseName(item.name)}_original.gif`, original)
+  for (const { languageCode, items } of itemsByLanguage) {
+    for (const item of items) {
+      const style = styles[item.id]?.[languageCode] ?? DEFAULT_STYLE
+      zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style))
     }
   }
   return zip.generateAsync({ type: 'blob' })

@@ -28,6 +28,7 @@ try:
 except Exception as error:  # bridge must keep responding even when Python deps are absent
     OCR = None
     LOAD_ERROR = str(error)
+    print(f"PaddleOCR load failed: executable={sys.executable}; user_site={getattr(__import__('site'), 'getusersitepackages')()}; error={LOAD_ERROR}", file=sys.stderr, flush=True)
 
 
 def recognize(image_base64):

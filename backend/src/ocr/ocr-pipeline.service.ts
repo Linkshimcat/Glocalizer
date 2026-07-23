@@ -1,17 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 import { AppError, describeError } from '../errors/app-error.js';
-import { prepareOcrVariants } from '../image/vision-image-preprocessor.js';
+import { prepareOcrFallbackVariants, preparePrimaryOcrImage } from '../image/vision-image-preprocessor.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../repositories/asset.repository.js';
 import { replaceOcrRegions } from '../repositories/ocr.repository.js';
 import { downloadFromStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
 import { classifyConfidence, type OcrRegion } from '../types/ocr.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
-import { getOcrProvider } from './ocr-provider.js';
+import { getOcrProvider, getShadowOcrProvider } from './ocr-provider.js';
 import type { RecognizedRegion } from './ocr-provider.types.js';
+import { measureShadowOcr } from './ocr-shadow.service.js';
+import { selectOcrVariantCount } from './ocr-variant-selection.js';
 import { mergeAdjacentKoreanRegions } from './merge-recognized-regions.js';
-import { selectConsensusRegion } from './ocr-consensus.service.js';
+import { selectConsensusRegions } from './ocr-consensus.service.js';
+import { shouldRunFallbackVariants, shouldUseVisionFallback } from './ocr-quality.js';
 import { requestVisionOcr } from './vision-fallback.service.js';
 
 function containsKorean(text: string): boolean {
@@ -57,23 +60,75 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
     await updateAsset(asset.id, { status: 'preprocessing', stage: 'recognizing', progress: 20 });
     const source = await downloadFromStorage(asset.original_path);
     if (!source) throw new AppError('OCR_PROVIDER_FAILED', { assetId: asset.id }, '스토리지에서 원본 이미지를 찾지 못했습니다.');
-    const variants = await prepareOcrVariants(source, env.OCR_IMAGE_MAX_DIMENSION);
-    const results = await Promise.all(variants.map(async (variant) => mergeAdjacentKoreanRegions(await getOcrProvider().recognize(variant.content))));
-    const consensus = selectConsensusRegion(results);
-    if (!consensus) throw new AppError('OCR_TEXT_NOT_FOUND');
+    const primaryVariant = await preparePrimaryOcrImage(source, env.OCR_IMAGE_MAX_DIMENSION);
+    const variants = [primaryVariant];
+    const provider = getOcrProvider();
+    const shadowProvider = getShadowOcrProvider();
+    if (shadowProvider && shadowProvider.name !== provider.name) {
+      void measureShadowOcr(shadowProvider, asset.id, [primaryVariant.content]);
+    }
+    const results = [mergeAdjacentKoreanRegions(await provider.recognize(primaryVariant.content))];
+    if (shouldRunFallbackVariants(results[0])) {
+      const fallbackVariants = await prepareOcrFallbackVariants(source, env.OCR_IMAGE_MAX_DIMENSION);
+      // 한국어가 전혀 없을 때는 모든 fallback을 시도하지만, 불완전 문구는 빠른 두 변형만
+      // 추가해 일반 이미지의 처리 시간을 불필요하게 늘리지 않는다.
+      const fallbackCount = results[0].some((region) => containsKorean(region.text))
+        ? Math.min(2, selectOcrVariantCount(provider, fallbackVariants.length))
+        : selectOcrVariantCount(provider, fallbackVariants.length);
+      for (const variant of fallbackVariants.slice(0, fallbackCount)) {
+        variants.push(variant);
+        const recognized = mergeAdjacentKoreanRegions(await provider.recognize(variant.content));
+        results.push(recognized);
+        if (!results[0].some((region) => containsKorean(region.text)) && recognized.some((region) => containsKorean(region.text))) break;
+      }
+    }
+    const consensusRegions = selectConsensusRegions(results, { allowSingleVariantAutoApprove: provider.name === 'openvino-npu' });
+    const consensus = consensusRegions[0] ?? null;
     let selected = consensus;
-    let sourceName: OcrRegion['source'] = selected.source;
-    let agreementScore = selected.agreementScore;
-    let needsManualReview = selected.needsManualReview;
-    if (needsManualReview) {
-      const vision = await requestVisionOcr(variants[0].content, selected);
+    let sourceName: OcrRegion['source'] = 'paddle-consensus';
+    let agreementScore = consensus?.agreementScore ?? 0;
+    let needsManualReview = consensus?.needsManualReview ?? true;
+    if (shouldUseVisionFallback(selected, results[0], needsManualReview)) {
+      const vision = await requestVisionOcr(variants[0].content, selected ?? undefined);
       if (vision !== null && vision.confidence >= 0.8 && containsKorean(vision.text)) {
         selected = { ...vision, agreementScore: vision.confidence, source: 'paddle-consensus', needsManualReview: false };
         sourceName = 'vision-fallback'; agreementScore = vision.confidence; needsManualReview = false;
       }
     }
+    if (!selected) throw new AppError('OCR_TEXT_NOT_FOUND');
     if (!containsKorean(selected.text)) throw new AppError('OCR_KOREAN_NOT_FOUND');
-    const regions = [regionFromRecognition(asset, selected, 0, true, variants[0].width, variants[0].height, { source: sourceName, agreementScore, needsManualReview })];
+    const storedCandidates = [
+      {
+        region: selected,
+        source: sourceName,
+        agreementScore,
+        needsManualReview,
+        isPrimary: true,
+      },
+      ...consensusRegions
+        .filter((region) => region !== selected)
+        .map((region) => ({
+          region,
+          source: 'paddle-consensus' as const,
+          agreementScore: region.agreementScore,
+          needsManualReview: region.needsManualReview,
+          isPrimary: false,
+        })),
+    ].sort((left, right) => {
+      const leftTop = Math.min(...left.region.polygon.map((point) => point.y));
+      const rightTop = Math.min(...right.region.polygon.map((point) => point.y));
+      if (leftTop !== rightTop) return leftTop - rightTop;
+      return Math.min(...left.region.polygon.map((point) => point.x)) - Math.min(...right.region.polygon.map((point) => point.x));
+    });
+    const regions = storedCandidates.map((candidate, index) => regionFromRecognition(
+      asset,
+      candidate.region,
+      index,
+      candidate.isPrimary,
+      variants[0].width,
+      variants[0].height,
+      { source: candidate.source, agreementScore: candidate.agreementScore, needsManualReview: candidate.needsManualReview },
+    ));
     await replaceOcrRegions(asset.id, regions);
     await updateAsset(asset.id, { status: 'ocr', stage: needsManualReview ? 'ocr-review' : 'recognizing', progress: 55 });
   } catch (error) {

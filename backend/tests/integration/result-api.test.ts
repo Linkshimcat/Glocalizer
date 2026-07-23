@@ -115,6 +115,13 @@ describe('GET /api/v1/projects/:projectId/results', () => {
         bbox: { x: 10, y: 10, width: 100, height: 50 },
         is_primary: true,
       },
+      {
+        id: 'b7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d',
+        detected_text: '진짜좋아',
+        confidence: 0.88,
+        bbox: { x: 120, y: 10, width: 100, height: 50 },
+        is_primary: false,
+      },
     ] as never);
 
     vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValue([
@@ -133,6 +140,8 @@ describe('GET /api/v1/projects/:projectId/results', () => {
     expect(res.status).toBe(200);
     expect(res.body.assets[0].ocr.fullText).toBe('완전좋아');
     expect(res.body.assets[0].ocr.primaryRegionId).toBe(REGION_ID);
+    expect(res.body.assets[0].ocr.regions).toHaveLength(2);
+    expect(res.body.assets[0].ocr.regions.map((region: { text: string }) => region.text)).toEqual(['완전좋아', '진짜좋아']);
     expect(res.body.assets[0].localizations.en.candidates[0].text).toBe('Loving it!');
     expect(res.body.assets[0].cleanup).toEqual({ method: 'transparent-mask', quality: 'good', needsManualCleanup: false });
     expect(res.body.assets[0].originalUrl).toBe('https://signed.example/url');

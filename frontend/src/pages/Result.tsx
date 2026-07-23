@@ -1,5 +1,4 @@
 import { ArrowLeft, Check, Home, Sparkles } from 'lucide-react'
-import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
@@ -22,7 +21,7 @@ function StepIndicator() {
 export default function Result() {
   const navigate = useNavigate()
   const { files, targetLangs, styles } = useUploads()
-  const items = useMemo(() => toDemoItems(files), [files])
+  const languages = targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
 
   const langLabel =
     targetLangs.length > 0
@@ -52,7 +51,7 @@ export default function Result() {
               현지화가 끝났어요!
             </h1>
             <p className="mt-2 text-[16px] font-medium text-[#4E5968]">
-              이모티콘 {items.length}장이 {langLabel}(으)로 번역완료.
+              이모티콘이 {langLabel}(으)로 번역완료.
               <br />
               다운로드가 시작됐는지 확인해보세요.
             </p>
@@ -62,38 +61,25 @@ export default function Result() {
         {/* 결과 미리보기 */}
         <section className="mt-12">
           <h2 className="text-lg font-bold">번역 결과 미리보기</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-            {items.map(item => (
-              <div
-                key={item.id}
-                className="relative flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white px-3 py-5"
-              >
-                <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white">
-                  <Check className="h-3 w-3" strokeWidth={3.5} />
-                </span>
-                {item.url ? (
-                  <img
-                    src={item.url}
-                    alt={item.name}
-                    className="h-12 w-12 object-contain"
-                  />
-                ) : (
-                  <span className="text-4xl">{item.emoji}</span>
-                )}
-                {item.korean ? (
-                  <span className="rounded-md bg-[#FFF9DB] px-2 py-0.5 text-[11px] font-bold text-[#92400E] line-through">
-                    {item.korean}
-                  </span>
-                ) : (
-                  <span className="rounded-md bg-surface px-2 py-0.5 text-[11px] font-bold text-sub">
-                    텍스트 없음
-                  </span>
-                )}
-                <span className="rounded-md bg-brand-soft px-2 py-0.5 text-center text-[11px] font-bold text-brand-dark">
-                  {resolveText(styles[item.id] ?? DEFAULT_STYLE, item.suggestions)}
-                </span>
-              </div>
-            ))}
+          <div className="mt-4 space-y-7">
+            {languages.map(language => {
+              const items = toDemoItems(files, language.code)
+              return (
+                <section key={language.code}>
+                  <h3 className="text-sm font-extrabold">{language.flag} {language.label}</h3>
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+                    {items.map(item => (
+                      <div key={item.id} className="relative flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white px-3 py-5">
+                        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white"><Check className="h-3 w-3" strokeWidth={3.5} /></span>
+                        {item.url ? <img src={item.url} alt={item.name} className="h-12 w-12 object-contain" /> : <span className="text-4xl">{item.emoji}</span>}
+                        <span className="rounded-md bg-[#FFF9DB] px-2 py-0.5 text-[11px] font-bold text-[#92400E] line-through">{item.korean || '텍스트 없음'}</span>
+                        <span className="rounded-md bg-brand-soft px-2 py-0.5 text-center text-[11px] font-bold text-brand-dark">{resolveText(styles[item.id]?.[language.code] ?? DEFAULT_STYLE, item.suggestions)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         </section>
 

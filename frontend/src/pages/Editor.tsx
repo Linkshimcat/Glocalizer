@@ -38,7 +38,7 @@ import {
   downloadBlob,
   exportFileName,
   renderItemToPng,
-  zipItems,
+  zipLocalizedItems,
 } from '../lib/exportImage'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, type ManualCleanup, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
@@ -211,6 +211,16 @@ export default function Editor() {
     reviseOcr,
   } = useUploads()
 
+  const availableLanguages = useMemo(
+    () => targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }],
+    [targetLangs],
+  )
+  const [activeLanguageCode, setActiveLanguageCode] = useState(availableLanguages[0].code)
+  const activeLanguage = availableLanguages.find(language => language.code === activeLanguageCode) ?? availableLanguages[0]
+  useEffect(() => {
+    if (!availableLanguages.some(language => language.code === activeLanguageCode)) setActiveLanguageCode(availableLanguages[0].code)
+  }, [activeLanguageCode, availableLanguages])
+
   // 업로드된 파일이 있으면 그걸 쓰고, 없으면 데모 데이터로 시연
   const [removedDemoIds, setRemovedDemoIds] = useState<string[]>([])
   const selectedFiles = useMemo(
@@ -219,8 +229,8 @@ export default function Editor() {
   )
   const editorFiles = files.length > 0 && selectedFiles.length > 0 ? selectedFiles : files
   const items = useMemo(
-    () => toDemoItems(editorFiles).filter(item => !removedDemoIds.includes(item.id)),
-    [editorFiles, removedDemoIds],
+    () => toDemoItems(editorFiles, activeLanguage.code).filter(item => !removedDemoIds.includes(item.id)),
+    [editorFiles, removedDemoIds, activeLanguage.code],
   )
 
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -284,9 +294,9 @@ export default function Editor() {
   const [ocrDraft, setOcrDraft] = useState('')
 
   const selectItem = (idx: number) => {
-    saveStyle(current.id, style)
+    saveStyle(current.id, activeLanguage.code, style)
     setCurrentIdx(idx)
-    setStyle(savedStyles[items[idx].id] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox) : DEFAULT_STYLE))
+    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
     setSelected(true)
@@ -322,10 +332,11 @@ export default function Editor() {
 
   useEffect(() => {
     const normalizedBox = current.analysis?.normalizedBox
-    if (!normalizedBox || savedStyles[current.id] || initializedBoxStyleIds.current.has(current.id)) return
-    initializedBoxStyleIds.current.add(current.id)
+    const styleKey = `${current.id}:${activeLanguage.code}`
+    if (!normalizedBox || savedStyles[current.id]?.[activeLanguage.code] || initializedBoxStyleIds.current.has(styleKey)) return
+    initializedBoxStyleIds.current.add(styleKey)
     setStyle(styleFromNormalizedBox(normalizedBox))
-  }, [current, savedStyles])
+  }, [activeLanguage.code, current, savedStyles])
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
     if (currentIdx < items.length - 1) selectItem(currentIdx + 1)
@@ -479,12 +490,21 @@ export default function Editor() {
   /* ── 다운로드 ─────────────────────────────────────────────────── */
 
   const [busy, setBusy] = useState(false)
-  const langCode = targetLangs[0]?.code ?? 'en'
+  const langCode = activeLanguage.code
+
+  const selectLanguage = (languageCode: string) => {
+    if (languageCode === activeLanguage.code) return
+    saveStyle(current.id, activeLanguage.code, style)
+    setActiveLanguageCode(languageCode)
+    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? styleFromNormalizedBox(current.analysis.normalizedBox) : DEFAULT_STYLE))
+    setPast([])
+    setFuture([])
+  }
 
   const downloadCurrentPng = async () => {
     setBusy(true)
     try {
-      saveStyle(current.id, style)
+      saveStyle(current.id, langCode, style)
       downloadBlob(
         await renderItemToPng(current, style),
         exportFileName(current.name, langCode, 'png'),
@@ -501,10 +521,13 @@ export default function Editor() {
   const downloadAllZip = async () => {
     setBusy(true)
     try {
-      saveStyle(current.id, style)
-      const stylesMap = { ...savedStyles, [current.id]: style }
+      saveStyle(current.id, langCode, style)
+      const stylesMap = { ...savedStyles, [current.id]: { ...savedStyles[current.id], [langCode]: style } }
       downloadBlob(
-        await zipItems(items, stylesMap, langCode),
+        await zipLocalizedItems(
+          availableLanguages.map(language => ({ languageCode: language.code, items: toDemoItems(editorFiles, language.code).filter(item => !removedDemoIds.includes(item.id)) })),
+          stylesMap,
+        ),
         `${exportName.trim() || 'glocalizer_export'}.zip`,
       )
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
@@ -523,7 +546,7 @@ export default function Editor() {
     }
     setBusy(true)
     try {
-      saveStyle(current.id, style)
+      saveStyle(current.id, langCode, style)
       if (exportFormat === 'PNG') {
         downloadBlob(
           await renderItemToPng(current, style),
@@ -553,6 +576,12 @@ export default function Editor() {
     WebkitTextStroke: style.strokeOn
       ? `${style.strokeWidth}px ${style.strokeColor}`
       : undefined,
+    backgroundColor: style.backgroundOn
+      ? hexToRgba(style.backgroundColor, style.backgroundOpacity / 100)
+      : undefined,
+    padding: style.backgroundOn ? `${style.backgroundPadding}px` : undefined,
+    borderRadius: style.backgroundOn ? `${style.backgroundRadius}px` : undefined,
+    lineHeight: 1,
     textShadow: style.shadowOn
       ? `${style.shadowX}px ${style.shadowY}px ${style.shadowBlur}px ${hexToRgba(style.shadowColor, style.shadowOpacity / 100)}`
       : undefined,
@@ -642,6 +671,21 @@ export default function Editor() {
     <div className="flex min-h-screen flex-col bg-white lg:h-screen">
       {/* 상단 바 */}
       <div className="border-b border-gray-100">
+        {availableLanguages.length > 1 && (
+          <div className="flex gap-1 overflow-x-auto border-b border-gray-100 px-3 py-2 lg:px-6">
+            {availableLanguages.map(language => (
+              <button
+                key={language.code}
+                onClick={() => selectLanguage(language.code)}
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-extrabold transition-colors ${
+                  language.code === activeLanguage.code ? 'bg-brand text-white' : 'bg-surface text-sub hover:bg-brand-soft hover:text-brand-dark'
+                }`}
+              >
+                {language.flag} {language.label}
+              </button>
+            ))}
+          </div>
+        )}
         {/* ── 모바일 상단 바 (2줄) ── */}
         <div className="lg:hidden">
           {/* 1줄: 뒤로가기 + 파일명 + 저장 */}
@@ -677,8 +721,7 @@ export default function Editor() {
           {targetLangs.length > 0 && (
             <div className="px-3 pt-1.5">
               <span className="block truncate rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-brand-dark">
-                {targetLangs.map(l => l.flag).join(' ')}{' '}
-                {targetLangs.map(l => l.label).join(' · ')}로 번역 중
+                {activeLanguage.flag} {activeLanguage.label} 편집 중
               </span>
             </div>
           )}
@@ -699,8 +742,7 @@ export default function Editor() {
           <span className="text-sm font-semibold text-sub">{current.name}</span>
           {targetLangs.length > 0 && (
             <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">
-              {targetLangs.map(l => l.flag).join(' ')}{' '}
-              {targetLangs.map(l => l.label).join(' · ')}로 번역 중
+              {activeLanguage.flag} {activeLanguage.label} 편집 중
             </span>
           )}
           <div className="flex-1" />
@@ -1169,6 +1211,54 @@ export default function Editor() {
                 onPick={c => update({ color: c })}
               />
             </div>
+          </section>
+
+          <section className={tabClass('스타일')}>
+            <div className="flex items-center justify-between">
+              <PanelTitle>글자 배경</PanelTitle>
+              <Toggle
+                on={style.backgroundOn}
+                onToggle={() => update({ backgroundOn: !style.backgroundOn })}
+              />
+            </div>
+            {style.backgroundOn && (
+              <div className="mt-3 flex flex-col gap-3">
+                <ColorRow
+                  value={style.backgroundColor}
+                  presets={['#FFFFFF', '#191F28', '#22C55E', '#FDE047']}
+                  onBegin={beginGesture}
+                  onLive={c => live({ backgroundColor: c })}
+                  onPick={c => update({ backgroundColor: c })}
+                />
+                <RangeRow
+                  label="불투명도"
+                  min={0}
+                  max={100}
+                  value={style.backgroundOpacity}
+                  suffix="%"
+                  onBegin={beginGesture}
+                  onLive={v => live({ backgroundOpacity: v })}
+                />
+                <RangeRow
+                  label="여백"
+                  min={0}
+                  max={24}
+                  value={style.backgroundPadding}
+                  suffix="px"
+                  onBegin={beginGesture}
+                  onLive={v => live({ backgroundPadding: v })}
+                />
+                <RangeRow
+                  label="모서리"
+                  min={0}
+                  max={32}
+                  value={style.backgroundRadius}
+                  suffix="px"
+                  onBegin={beginGesture}
+                  onLive={v => live({ backgroundRadius: v })}
+                />
+              </div>
+            )}
           </section>
 
           <section className={tabClass('스타일')}>

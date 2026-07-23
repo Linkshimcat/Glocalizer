@@ -1,8 +1,6 @@
 import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
-import { generateFeatheredEraseMask } from './mask-generator.js';
-
-const FEATHER_PX = 4;
+import { generateTextEraseMask, type FeatherMask } from './mask-generator.js';
 
 /** box 영역의 알파를 0으로 만들되(feather 처리), RGB는 그대로 둔다. */
 export async function applyTransparentCleanup(
@@ -10,8 +8,9 @@ export async function applyTransparentCleanup(
   box: PixelBox,
   imageWidth: number,
   imageHeight: number,
+  existingMask?: FeatherMask,
 ): Promise<Buffer> {
-  const mask = await generateFeatheredEraseMask(box, imageWidth, imageHeight, FEATHER_PX);
+  const mask = existingMask ?? await generateTextEraseMask(buffer, box, imageWidth, imageHeight, { mode: 'transparent' });
 
   const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const channels = info.channels;

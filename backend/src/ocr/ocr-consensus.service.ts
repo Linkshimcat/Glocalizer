@@ -42,30 +42,62 @@ function koreanValidity(text: string): number {
   return valid / compact.length;
 }
 
+function containsKorean(text: string): boolean {
+  return /[\uAC00-\uD7A3]/.test(text);
+}
+
 interface Candidate { variant: number; region: RecognizedRegion; }
 
-export function selectConsensusRegion(variantResults: RecognizedRegion[][]): ConsensusRegion | null {
+interface RankedCandidateGroup {
+  representative: Candidate;
+  distinctVariants: number;
+  textAgreement: number;
+  score: number;
+}
+
+interface ConsensusOptions {
+  allowSingleVariantAutoApprove?: boolean;
+}
+
+function rankCandidateGroups(variantResults: RecognizedRegion[][], options: ConsensusOptions): RankedCandidateGroup[] {
   const candidates = variantResults.flatMap((regions, variant) => regions.map((region) => ({ variant, region: { ...region, text: region.text.trim() } }))).filter((candidate) => candidate.region.text);
-  if (!candidates.length) return null;
+  if (!candidates.length) return [];
   const groups: Candidate[][] = [];
   for (const candidate of candidates) {
     const group = groups.find((entries) => entries.some((entry) => iou(entry.region, candidate.region) >= 0.35 && editSimilarity(entry.region.text, candidate.region.text) >= 0.5));
     if (group) group.push(candidate); else groups.push([candidate]);
   }
-  const ranked = groups.map((entries) => {
+  return groups.map((entries) => {
     const representative = [...entries].sort((a, b) => b.region.confidence - a.region.confidence)[0];
     const distinctVariants = new Set(entries.map((entry) => entry.variant)).size;
     const agreement = distinctVariants / variantResults.length;
-    const textAgreement = entries.length > 1 ? entries.reduce((total, entry) => total + editSimilarity(representative.region.text, entry.region.text), 0) / entries.length : 0;
-    const score = representative.region.confidence * 0.55 + (agreement * textAgreement) * 0.30 + koreanValidity(representative.region.text) * 0.15;
+    const textAgreement = entries.length > 1
+      ? entries.reduce((total, entry) => total + editSimilarity(representative.region.text, entry.region.text), 0) / entries.length
+      : options.allowSingleVariantAutoApprove && variantResults.length === 1 ? 1 : 0;
+    const koreanBonus = containsKorean(representative.region.text) ? 0.12 : 0;
+    const score = representative.region.confidence * 0.50 + (agreement * textAgreement) * 0.25 + koreanValidity(representative.region.text) * 0.13 + koreanBonus;
     return { representative, distinctVariants, textAgreement, score };
-  }).sort((a, b) => b.score - a.score);
-  const best = ranked[0];
+  }).sort((left, right) => right.score - left.score);
+}
+
+function toConsensusRegion(group: RankedCandidateGroup, variantCount: number, options: ConsensusOptions): ConsensusRegion {
+  const trustedSingleVariant = options.allowSingleVariantAutoApprove && variantCount === 1 && group.representative.region.confidence >= OCR_AUTO_APPROVE_SCORE;
   return {
-    ...best.representative.region,
-    confidence: Math.min(1, Math.max(0, best.representative.region.confidence)),
-    agreementScore: Math.min(1, Math.max(0, best.score)),
+    ...group.representative.region,
+    confidence: Math.min(1, Math.max(0, group.representative.region.confidence)),
+    agreementScore: Math.min(1, Math.max(0, group.score)),
     source: 'paddle-consensus',
-    needsManualReview: !(best.score >= OCR_AUTO_APPROVE_SCORE && best.distinctVariants >= MIN_AGREEING_VARIANTS && best.textAgreement >= 0.85),
+    needsManualReview: !(group.score >= OCR_AUTO_APPROVE_SCORE && ((group.distinctVariants >= MIN_AGREEING_VARIANTS && group.textAgreement >= 0.85) || trustedSingleVariant)),
   };
+}
+
+/** 중복 variant 후보를 합쳐, 이미지에서 찾은 모든 유효 OCR 문구를 반환한다. */
+export function selectConsensusRegions(variantResults: RecognizedRegion[][], options: ConsensusOptions = {}): ConsensusRegion[] {
+  return rankCandidateGroups(variantResults, options)
+    .filter((group) => containsKorean(group.representative.region.text))
+    .map((group) => toConsensusRegion(group, variantResults.length, options));
+}
+
+export function selectConsensusRegion(variantResults: RecognizedRegion[][], options: ConsensusOptions = {}): ConsensusRegion | null {
+  return selectConsensusRegions(variantResults, options)[0] ?? null;
 }

@@ -23,7 +23,10 @@ vi.mock('../../src/repositories/job.repository.js', () => ({
   claimNextQueuedJob: vi.fn(),
   markJobCompleted: vi.fn(),
   markJobFailedOrRequeue: vi.fn(),
+  markJobFailed: vi.fn(),
 }));
+
+vi.mock('../../src/workers/job-runner.js', () => ({ processClaimedJob: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
 const projectRepo = await import('../../src/repositories/project.repository.js');
@@ -82,12 +85,12 @@ describe('POST /api/v1/projects/:projectId/process', () => {
   it('업로드된 이미지가 있으면 202와 함께 job을 생성한다', async () => {
     vi.mocked(jobRepo.findActiveJobForProject).mockResolvedValue(null);
     vi.mocked(assetRepo.findAssetsByProjectId).mockResolvedValue([{ status: 'uploaded' }] as never);
-    vi.mocked(jobRepo.insertJob).mockResolvedValue({ id: 'job-1', status: 'queued' } as never);
+    vi.mocked(jobRepo.insertJob).mockResolvedValue({ id: 'job-1', status: 'running' } as never);
 
     const res = await request(app).post(`/api/v1/projects/${PROJECT_ID}/process`).set('X-Project-Token', TOKEN);
 
     expect(res.status).toBe(202);
-    expect(res.body).toEqual({ jobId: 'job-1', status: 'queued' });
+    expect(res.body).toEqual({ jobId: 'job-1', status: 'running' });
   });
 });
 

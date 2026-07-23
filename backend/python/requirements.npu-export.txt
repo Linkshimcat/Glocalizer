@@ -1,0 +1,2 @@
+# Optional export tool, used only to create local OpenVINO benchmark artifacts.
+paddle2onnx>=2.0.0

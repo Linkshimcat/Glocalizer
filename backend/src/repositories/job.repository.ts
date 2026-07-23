@@ -3,7 +3,16 @@ import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/d
 import type { JobRow } from '../types/job.js';
 
 export async function insertJob(projectId: string): Promise<JobRow> {
-  const result = await supabase.from('jobs').insert({ project_id: projectId }).select().single();
+  const now = new Date().toISOString();
+  // 작업 생성 시 바로 이 backend instance가 소유한다. 동일 Supabase를 보는 구버전
+  // worker가 queued job을 가로채 다른 provider로 처리하는 것을 막는다.
+  const result = await supabase.from('jobs').insert({
+    project_id: projectId,
+    status: 'running',
+    attempts: 1,
+    locked_at: now,
+    started_at: now,
+  }).select().single();
   return unwrapRow<JobRow>(result, '작업을 생성하지 못했습니다.');
 }
 
@@ -45,6 +54,14 @@ export async function markJobCompleted(jobId: string): Promise<void> {
     .eq('id', jobId);
 
   unwrapVoid(result, '작업 완료 처리에 실패했습니다.');
+}
+
+export async function markJobFailed(jobId: string, errorCode: string, errorMessage: string): Promise<void> {
+  const result = await supabase
+    .from('jobs')
+    .update({ status: 'failed', error_code: errorCode, error_message: errorMessage, completed_at: new Date().toISOString() })
+    .eq('id', jobId);
+  unwrapVoid(result, '작업 실패 상태를 저장하지 못했습니다.');
 }
 
 /** attempts < max_attempts면 재시도를 위해 다시 큐에 넣고, 아니면 최종 실패로 마감한다. */

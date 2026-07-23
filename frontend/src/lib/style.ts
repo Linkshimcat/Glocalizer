@@ -28,6 +28,12 @@ export interface Style {
   strokeOn: boolean
   strokeWidth: number
   strokeColor: string
+  /** 번역 글자 뒤에 깔리는 배경 패널 */
+  backgroundOn: boolean
+  backgroundColor: string
+  backgroundOpacity: number
+  backgroundPadding: number
+  backgroundRadius: number
   shadowOn: boolean
   shadowColor: string
   shadowBlur: number
@@ -74,6 +80,11 @@ export const DEFAULT_STYLE: Style = {
   strokeOn: false,
   strokeWidth: 2,
   strokeColor: '#FFFFFF',
+  backgroundOn: false,
+  backgroundColor: '#FFFFFF',
+  backgroundOpacity: 85,
+  backgroundPadding: 6,
+  backgroundRadius: 8,
   shadowOn: false,
   shadowColor: '#000000',
   shadowBlur: 10,

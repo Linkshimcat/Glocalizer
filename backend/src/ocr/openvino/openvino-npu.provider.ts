@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from '../../config/env.js';
-import { logger } from '../../config/logger.js';
 import { AppError } from '../../errors/app-error.js';
 import type { OcrProvider, RecognizedRegion } from '../ocr-provider.types.js';
+import { toWindowsPath } from './windows-path.js';
 
 interface BridgeResponse {
   id: string;
@@ -19,37 +19,28 @@ interface PendingRequest {
   timeout: NodeJS.Timeout;
 }
 
-class PaddleBridge {
+class OpenVinoNpuBridge {
   private child: ChildProcessWithoutNullStreams | null = null;
   private buffer = '';
-  private diagnostics = '';
   private readonly pending = new Map<string, PendingRequest>();
 
   private get scriptPath(): string {
     const currentDirectory = dirname(fileURLToPath(import.meta.url));
-    return resolve(currentDirectory, '../../../python/ocr_bridge.py');
+    return resolve(currentDirectory, '../../../python/windows_openvino_ocr.py');
   }
 
-  private get backendDirectory(): string {
+  private get modelPath(): string {
     const currentDirectory = dirname(fileURLToPath(import.meta.url));
-    return resolve(currentDirectory, '../../..');
+    return resolve(currentDirectory, '../../../training/ocr/openvino');
   }
 
   private start(): ChildProcessWithoutNullStreams {
     if (this.child && !this.child.killed) return this.child;
-    // npm --prefix로 실행하면 Node의 cwd가 repository root가 될 수 있다. Python user-site와
-    // Paddle 모델 캐시를 개발/배포에서 동일하게 찾도록 backend 경로를 명시적으로 고정한다.
-    const child = spawn(env.OCR_PYTHON_EXECUTABLE, [this.scriptPath], {
-      cwd: this.backendDirectory,
-      env: { ...process.env, PYTHONNOUSERSITE: '0' },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const child = spawn('cmd.exe', ['/c', env.OCR_WINDOWS_PYTHON, '-3', toWindowsPath(this.scriptPath), '--model-dir', toWindowsPath(this.modelPath), '--jsonl'], { stdio: ['pipe', 'pipe', 'pipe'] });
     child.stdout.on('data', (chunk: Buffer) => this.consume(chunk.toString()));
-    child.stderr.on('data', (chunk: Buffer) => {
-      this.diagnostics = `${this.diagnostics}${chunk.toString()}`.slice(-2_000);
-    });
-    child.once('exit', () => this.failPending('OCR bridge가 종료되었습니다. PaddleOCR 설치 상태를 확인해주세요.'));
-    child.once('error', () => this.failPending('OCR bridge를 시작하지 못했습니다. OCR_PYTHON_EXECUTABLE 설정을 확인해주세요.'));
+    child.stderr.on('data', () => undefined);
+    child.once('exit', () => this.failPending('Windows NPU OCR bridge가 종료되었습니다. OpenVINO 및 Intel AI Boost 상태를 확인해주세요.'));
+    child.once('error', () => this.failPending('Windows NPU OCR bridge를 시작하지 못했습니다. Windows Python과 OpenVINO 상태를 확인해주세요.'));
     this.child = child;
     return child;
   }
@@ -66,15 +57,10 @@ class PaddleBridge {
         if (!pending) continue;
         clearTimeout(pending.timeout);
         this.pending.delete(response.id);
-        if (response.error) {
-          if (response.error.code === 'PADDLE_UNAVAILABLE') {
-            logger.warn({ provider: 'paddle', diagnostics: this.diagnostics || undefined }, 'PaddleOCR bridge를 불러오지 못했습니다.');
-            this.child?.kill();
-          }
-          pending.reject(new AppError('OCR_PROVIDER_FAILED', { provider: 'paddle', bridgeCode: response.error.code }, response.error.message));
-        } else pending.resolve(response.regions ?? []);
+        if (response.error) pending.reject(new AppError('OCR_PROVIDER_FAILED', { provider: 'openvino-npu', bridgeCode: response.error.code }, response.error.message));
+        else pending.resolve(response.regions ?? []);
       } catch {
-        // stdout에 섞인 외부 라이브러리 로그는 무시한다. bridge는 JSONL만 출력해야 한다.
+        // Windows OpenVINO 라이브러리의 진단 출력은 JSONL 프로토콜에서 제외한다.
       }
     }
   }
@@ -82,7 +68,7 @@ class PaddleBridge {
   private failPending(message: string): void {
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timeout);
-      pending.reject(new AppError('OCR_PROVIDER_UNAVAILABLE', { provider: 'paddle' }, message));
+      pending.reject(new AppError('OCR_PROVIDER_UNAVAILABLE', { provider: 'openvino-npu' }, message));
     }
     this.pending.clear();
     this.child = null;
@@ -94,7 +80,7 @@ class PaddleBridge {
     return new Promise((resolveRequest, rejectRequest) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
-        rejectRequest(new AppError('OCR_PROVIDER_FAILED', { provider: 'paddle', timeoutMs: env.OCR_TIMEOUT_MS }, 'PaddleOCR 처리 시간이 초과되었습니다.'));
+        rejectRequest(new AppError('OCR_PROVIDER_FAILED', { provider: 'openvino-npu', timeoutMs: env.OCR_TIMEOUT_MS }, 'Windows NPU OCR 처리 시간이 초과되었습니다.'));
       }, env.OCR_TIMEOUT_MS);
       this.pending.set(id, { resolve: resolveRequest, reject: rejectRequest, timeout });
       child.stdin.write(`${JSON.stringify({ id, imageBase64: image.toString('base64') })}\n`);
@@ -102,10 +88,10 @@ class PaddleBridge {
   }
 }
 
-const bridge = new PaddleBridge();
+const bridge = new OpenVinoNpuBridge();
 
-export const paddleOcrProvider: OcrProvider = {
-  name: 'paddle',
+export const openVinoNpuProvider: OcrProvider = {
+  name: 'openvino-npu',
   recognize(image) {
     return bridge.recognize(image);
   },

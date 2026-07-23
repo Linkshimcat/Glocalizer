@@ -15,7 +15,7 @@ const STAGE_MESSAGES: Record<string, string> = {
   completed: '현지화가 완료됐어요',
 };
 
-export async function createProcessingJob(projectId: string): Promise<{ jobId: string; status: string }> {
+export async function createProcessingJob(projectId: string): Promise<{ jobId: string; status: string; job: import('../types/job.js').JobRow }> {
   const activeJob = await findActiveJobForProject(projectId);
   if (activeJob) {
     throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id });
@@ -28,7 +28,7 @@ export async function createProcessingJob(projectId: string): Promise<{ jobId: s
   }
 
   const job = await insertJob(projectId);
-  return { jobId: job.id, status: job.status };
+  return { jobId: job.id, status: job.status, job };
 }
 
 export interface ProjectStatusResponse {

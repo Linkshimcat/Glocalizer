@@ -10,6 +10,8 @@ import { sampleBorderPixels } from './background-sampler.js';
 import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
 import { applySolidColorCleanup } from './solid-color-cleanup.js';
 import { applyTransparentCleanup } from './transparent-cleanup.js';
+import { generateTextEraseMask } from './mask-generator.js';
+import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
 
 export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult & { assetId: string }> {
@@ -40,22 +42,44 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     const method = decideCleanupMethod(stats);
     const quality = assessCleanupQuality(method, stats);
 
-    if (method === 'manual-required') {
+    // 불확실한 단색 추정으로 캐릭터·말풍선까지 지우는 것보다 editor의 수동 보정이 안전하다.
+    if (method === 'manual-required' || quality === 'low') {
       await updateAsset(asset.id, {
         status: 'completed',
         stage: 'cleaning',
         progress: 100,
-        cleanupMethod: method,
+        cleanupMethod: 'manual-required',
         cleanupQuality: quality,
         needsManualCleanup: true,
       });
-      return { assetId: asset.id, method, quality, needsManualCleanup: true };
+      return { assetId: asset.id, method: 'manual-required', quality, needsManualCleanup: true };
+    }
+
+    const mask = await generateTextEraseMask(
+      buffer,
+      region.bbox,
+      asset.width,
+      asset.height,
+      method === 'transparent-mask'
+        ? { mode: 'transparent' }
+        : { mode: 'solid', backgroundColor: stats.medianColor },
+    );
+    if (!isMaskCoverageSafe(measureMaskCoverage(mask))) {
+      await updateAsset(asset.id, {
+        status: 'completed',
+        stage: 'cleaning',
+        progress: 100,
+        cleanupMethod: 'manual-required',
+        cleanupQuality: 'low',
+        needsManualCleanup: true,
+      });
+      return { assetId: asset.id, method: 'manual-required', quality: 'low', needsManualCleanup: true };
     }
 
     const cleanedBuffer =
       method === 'transparent-mask'
-        ? await applyTransparentCleanup(buffer, region.bbox, asset.width, asset.height)
-        : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height);
+        ? await applyTransparentCleanup(buffer, region.bbox, asset.width, asset.height, mask)
+        : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height, mask);
 
     const cleanedPath = `projects/${asset.project_id}/cleaned/${asset.id}.png`;
     await uploadToStorage(cleanedPath, cleanedBuffer, 'image/png');

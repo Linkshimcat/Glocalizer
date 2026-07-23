@@ -1,0 +1,4 @@
+# User-provided images and their ground truth must stay local unless their license allows publication.
+manifest.local.json
+images/
+reports/

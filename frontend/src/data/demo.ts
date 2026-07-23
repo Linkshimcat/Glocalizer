@@ -109,6 +109,15 @@ export const FONTS: FontDef[] = [
       { label: 'Black', value: 900 },
     ],
   },
+  {
+    name: 'Noto Sans SC',
+    weights: [
+      { label: 'Regular', value: 400 },
+      { label: 'Medium', value: 500 },
+      { label: 'Bold', value: 700 },
+      { label: 'Black', value: 900 },
+    ],
+  },
 ]
 
 export const FONT_NAMES = FONTS.map(f => f.name)
@@ -142,23 +151,30 @@ const KOREAN_RE = /[가-힣]+/
  * OCR 연동 전 데모 감지 규칙: 파일명에 한글이 있으면 그걸 "감지된 텍스트"로,
  * 없으면 감지 실패(korean = '') 처리 — 에디터에서 경고 토스트가 뜬다.
  */
-export function toDemoItems(files: UploadFile[]): DemoItem[] {
-  if (files.length === 0) return DEMO_ITEMS
+function demoSuggestions(item: DemoItem, languageCode: string): Suggestion[] {
+  if (languageCode === 'ja') return item.suggestions.map((suggestion, index) => ({ ...suggestion, text: index === 0 ? '最高！' : index === 1 ? 'いいね！' : 'すごい！' }))
+  if (languageCode === 'zh') return item.suggestions.map((suggestion, index) => ({ ...suggestion, text: index === 0 ? '太棒了！' : index === 1 ? '绝了！' : '好厉害！' }))
+  return item.suggestions
+}
+
+export function toDemoItems(files: UploadFile[], languageCode = 'en'): DemoItem[] {
+  if (files.length === 0) return DEMO_ITEMS.map(item => ({ ...item, suggestions: demoSuggestions(item, languageCode), recommendedFont: languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : item.recommendedFont }))
   return files.map((f, i) => {
     if (f.analysis) {
+      const localized = f.analysis.localizations?.[languageCode]
       return {
         ...f,
         // 자동 정리본이 있으면 export/미리보기의 base로, 없으면 원본을 쓴다.
         url: f.analysis.cleanedUrl ?? f.analysis.originalUrl ?? f.url,
         emoji: '🖼️',
         korean: f.analysis.korean,
-        suggestions: f.analysis.suggestions,
-        recommendedFont: f.analysis.recommendedFont,
+        suggestions: localized?.suggestions ?? f.analysis.suggestions ?? [],
+        recommendedFont: localized?.recommendedFont ?? f.analysis.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : 'Pretendard'),
       }
     }
     const detected = f.name.replace(/\.[^.]+$/, '').match(KOREAN_RE)?.[0] ?? ''
     const exact = DEMO_ITEMS.find(d => d.korean === detected)
     const base = exact ?? DEMO_ITEMS[i % DEMO_ITEMS.length]
-    return { ...base, ...f, korean: detected }
+    return { ...base, ...f, korean: detected, suggestions: demoSuggestions(base, languageCode) }
   })
 }
