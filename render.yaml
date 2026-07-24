@@ -21,3 +21,13 @@ services:
         generateValue: true
       - key: GROQ_API_KEY
         sync: false
+      # Render Starter 플랜(RAM 512MB)에서 PaddleOCR가 메모리를 초과해
+      # 인스턴스가 강제 종료되던 문제 대응 — 동시 처리와 입력 해상도를 낮춘다.
+      - key: AI_CONCURRENCY
+        value: 1
+      - key: CLEANUP_CONCURRENCY
+        value: 1
+      - key: OCR_IMAGE_MAX_DIMENSION
+        value: 960
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=320
