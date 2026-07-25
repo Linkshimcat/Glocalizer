@@ -42,8 +42,11 @@ export async function runLocalizationPipeline(projectId: string): Promise<Pipeli
     stage: 'completed',
     progress: 100,
     ...(finalStatus === 'failed'
-      ? { errorMessage: firstFailure?.error_message ?? '모든 이미지 처리에 실패했습니다. 이미지별 오류를 확인해주세요.' }
-      : {}),
+      ? {
+        errorCode: firstFailure?.error_code ?? 'INTERNAL_ERROR',
+        errorMessage: firstFailure?.error_message ?? '모든 이미지 처리에 실패했습니다. 이미지별 오류를 확인해주세요.',
+      }
+      : { errorCode: null, errorMessage: null }),
   });
 
   return { projectId, status: finalStatus, completedAssetCount, failedAssetCount };

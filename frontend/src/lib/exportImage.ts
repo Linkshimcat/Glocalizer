@@ -40,7 +40,12 @@ function applyManualCleanup(ctx: CanvasRenderingContext2D, style: Style, frame: 
   const y = frame.y + cleanup.rect.y * frame.height
   const width = cleanup.rect.width * frame.width
   const height = cleanup.rect.height * frame.height
+  const radius = Math.min(width / 2, height / 2, Math.max(0, cleanup.radius ?? 0) * Math.min(width, height))
   ctx.save()
+  ctx.beginPath()
+  if (radius > 0 && typeof ctx.roundRect === 'function') ctx.roundRect(x, y, width, height, radius)
+  else ctx.rect(x, y, width, height)
+  ctx.clip()
   if (cleanup.mode === 'transparent') {
     ctx.globalCompositeOperation = 'destination-out'
     ctx.fillRect(x, y, width, height)

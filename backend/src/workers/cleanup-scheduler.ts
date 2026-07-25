@@ -5,6 +5,7 @@ import { runExpiredProjectsCleanup } from './cleanup-expired.job.js';
 let intervalHandle: NodeJS.Timeout | null = null;
 
 export function startExpiredProjectsSweep(): void {
+  if (intervalHandle) return;
   const sweep = async () => {
     try {
       const deletedCount = await runExpiredProjectsCleanup();
@@ -22,4 +23,5 @@ export function startExpiredProjectsSweep(): void {
 
 export function stopExpiredProjectsSweep(): void {
   if (intervalHandle) clearInterval(intervalHandle);
+  intervalHandle = null;
 }

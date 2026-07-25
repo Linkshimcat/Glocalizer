@@ -45,26 +45,38 @@
 
 <h3>실행방법</h3> <hr>
 
-> ⚠️ **추후 상세한 설치 환경 및 API 설정 방법이 업데이트될 예정입니다.**
-
 ```bash
-# 1. 저장소 복제 (Clone the repository)
-git clone [https://github.com/Linkshimcat/Glocalizer.git](https://github.com/Linkshimcat/Glocalizer.git)
+# 1. 저장소 복제
+git clone https://github.com/Linkshimcat/Glocalizer.git
 cd Glocalizer
 
 # 2. 환경변수 설정
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 
-# 3. OCR/번역/Supabase 환경변수 입력
-# backend/.env에 GROQ_API_KEY와 Supabase 값을 입력합니다.
-# 선택적으로 GEMINI_API_KEY를 넣으면 PaddleOCR 합의가 낮을 때만 Vision OCR 재판정을 사용합니다.
-# PaddleOCR는 backend/python/requirements.txt의 Python 의존성을 설치해야 합니다.
+# 3. Backend 의존성 및 PaddleOCR 설치
+cd backend
+npm ci
+python3 -m pip install --user -r python/requirements.txt
 
-# 4. 패키지 의존성 설치 및 DB 확인
-cd backend && npm ci && python3 -m pip install --user -r python/requirements.txt
+# 4. backend/.env에 Supabase, GROQ_API_KEY, PROJECT_TOKEN_SECRET을 입력한 뒤 연결 확인
 npm run db:check
+
+# 5. migration 적용 (DATABASE_URL은 Supabase Dashboard → Connect → Session Pooler URI 사용)
+# direct DB 주소는 WSL/IPv6 환경에서 ENETUNREACH가 날 수 있습니다.
 npm run db:migrate
 npm run dev
-# 별도 터미널
+
+# 6. 별도 터미널에서 Frontend 실행
 cd frontend && npm ci && npm run dev
+```
+
+### 배포 전 확인
+
+- `DATABASE_URL`에는 Supabase **Session Pooler** 연결 URI를 사용합니다. 이 프로젝트는 Singapore pooler를 사용하며, Dashboard의 Connect 화면에서 복사한 URI를 그대로 입력합니다. 이 값은 migration 실행에만 필요하며 browser 환경변수에 넣지 않습니다.
+- `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, `PROJECT_TOKEN_SECRET`은 backend/Render 환경변수에만 넣습니다. `VITE_` 접두사로 노출하면 안 됩니다.
+- Supabase Storage bucket은 private으로 유지하고, Storage CORS에 실제 frontend 도메인을 허용합니다.
+- 배포 전에 `npm run db:migrate`, `npm run db:check`, `npm test`, `npm run build`를 실행합니다. 현재 job migration은 `012_enforce_one_active_job_per_project.sql`까지입니다.
+- frontend 배포 환경에서는 `VITE_API_BASE_URL=https://<backend-domain>/api/v1`을 설정하고 backend의 `FRONTEND_ORIGIN`에는 실제 frontend 주소를 설정합니다.
+- Render는 `DATABASE_URL`이 설정된 경우 deploy 직전에 `npm run db:migrate:production`을 실행합니다. `012_enforce_one_active_job_per_project.sql`까지 적용된 뒤 readiness endpoint가 DB·Storage를 확인합니다.
+- 배포 뒤 실제 PNG/JPG 한 장으로 전체 흐름을 확인하려면 `SMOKE_IMAGE_PATH=/absolute/path/sample.jpg npm run smoke:e2e`를 실행합니다. 언어 조합은 `SMOKE_TARGET_LANGUAGES=en,ja,zh`로 검증할 수 있습니다. 이 스크립트는 임시 프로젝트를 완료 후 삭제하며 API token을 출력하지 않습니다.

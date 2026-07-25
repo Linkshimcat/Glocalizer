@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import { logger } from '../../config/logger.js';
 import { AppError, describeError } from '../../errors/app-error.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../../repositories/asset.repository.js';
 import { findPrimaryRegion, findRegionById } from '../../repositories/ocr.repository.js';
@@ -119,6 +120,8 @@ export async function runTranslationsForAsset(
   const allFailed = languages.length > 0 && languages.every((language) => language.status === 'failed');
   if (allFailed) {
     const errorMessage = languages.find((language) => language.errorMessage)?.errorMessage ?? '모든 언어의 번역이 실패했습니다.';
+    const errorCode = languages.find((language) => language.errorCode)?.errorCode ?? 'TRANSLATION_PROVIDER_FAILED';
+    logger.warn({ assetId: asset.id, projectId: asset.project_id, errorCode, languageCodes: targetLanguages }, 'Asset 번역 실패');
     await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage });
     return { assetId: asset.id, status: 'failed', languages, errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage };
   }

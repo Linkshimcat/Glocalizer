@@ -22,7 +22,11 @@ const uploadFileSchema = z.object({
 });
 
 export const createProjectSchema = z.object({
-  targetLanguages: z.array(targetLanguageSchema).min(1).max(3),
+  targetLanguages: z.array(targetLanguageSchema).min(1).max(3).superRefine((languages, context) => {
+    if (new Set(languages).size !== languages.length) {
+      context.addIssue({ code: 'custom', message: 'targetLanguages에는 중복된 언어를 포함할 수 없습니다.' });
+    }
+  }),
   options: localizationOptionsSchema.default(() => ({
     tone: 'funny' as const,
     audience: 'teen' as const,

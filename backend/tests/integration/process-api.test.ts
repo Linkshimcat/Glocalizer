@@ -24,14 +24,19 @@ vi.mock('../../src/repositories/job.repository.js', () => ({
   markJobCompleted: vi.fn(),
   markJobFailedOrRequeue: vi.fn(),
   markJobFailed: vi.fn(),
+  requeueStaleRunningJobs: vi.fn(),
+  touchJobLease: vi.fn(),
 }));
 
 vi.mock('../../src/workers/job-runner.js', () => ({ processClaimedJob: vi.fn() }));
+vi.mock('../../src/services/asset-retry.service.js', () => ({ retryFailedAsset: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
 const projectRepo = await import('../../src/repositories/project.repository.js');
 const assetRepo = await import('../../src/repositories/asset.repository.js');
 const jobRepo = await import('../../src/repositories/job.repository.js');
+const retryService = await import('../../src/services/asset-retry.service.js');
+const jobRunner = await import('../../src/workers/job-runner.js');
 const { hashProjectToken } = await import('../../src/utils/hash.js');
 
 const app = createApp();
@@ -113,9 +118,43 @@ describe('GET /api/v1/projects/:projectId/status', () => {
     expect(res.body.assets[1]).toMatchObject({ assetId: 'asset-2', status: 'failed', errorCode: 'OCR_TEXT_NOT_FOUND' });
   });
 
+  it('실패한 프로젝트의 대표 오류 code를 반환한다', async () => {
+    vi.mocked(projectRepo.findProjectById).mockResolvedValue(
+      fakeProject({ status: 'failed', stage: 'completed', progress: 100, error_code: 'TRANSLATION_PROVIDER_FAILED', error_message: '번역 provider 오류' }) as never,
+    );
+    vi.mocked(assetRepo.findAssetsByProjectId).mockResolvedValue([]);
+
+    const res = await request(app).get(`/api/v1/projects/${PROJECT_ID}/status`).set('X-Project-Token', TOKEN);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ status: 'failed', errorCode: 'TRANSLATION_PROVIDER_FAILED', message: '번역 provider 오류' });
+  });
+
   it('존재하지 않는 프로젝트는 404를 반환한다', async () => {
     vi.mocked(projectRepo.findProjectById).mockResolvedValue(null);
     const res = await request(app).get(`/api/v1/projects/${PROJECT_ID}/status`).set('X-Project-Token', TOKEN);
     expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /api/v1/projects/:projectId/assets/:assetId/retry', () => {
+  const assetId = 'f6a7b8c9-d0e1-4f5a-8b9c-2d3e4f5a6b7c';
+
+  it('project token이 없으면 재처리를 거부한다', async () => {
+    const response = await request(app).post(`/api/v1/projects/${PROJECT_ID}/assets/${assetId}/retry`);
+    expect(response.status).toBe(401);
+  });
+
+  it('실패 asset을 새 job으로 재처리한다', async () => {
+    vi.mocked(retryService.retryFailedAsset).mockResolvedValue({ jobId: 'retry-job-1', status: 'running', job: { id: 'retry-job-1' } } as never);
+
+    const response = await request(app)
+      .post(`/api/v1/projects/${PROJECT_ID}/assets/${assetId}/retry`)
+      .set('X-Project-Token', TOKEN);
+
+    expect(response.status).toBe(202);
+    expect(response.body).toEqual({ jobId: 'retry-job-1', status: 'running' });
+    expect(retryService.retryFailedAsset).toHaveBeenCalledWith(PROJECT_ID, assetId);
+    expect(jobRunner.processClaimedJob).toHaveBeenCalledWith({ id: 'retry-job-1' });
   });
 });

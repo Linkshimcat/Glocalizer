@@ -23,6 +23,8 @@ html {
 
 body {
   @apply bg-white text-ink antialiased;
+  letter-spacing: -0.02em;
+  line-height: 1.5;
 }
 
 /* 에디터 캔버스 투명 배경 표시용 체커보드 */

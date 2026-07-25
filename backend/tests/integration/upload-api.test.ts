@@ -101,6 +101,18 @@ describe('POST /api/v1/projects/:projectId/uploads/complete', () => {
     expect(res.status).toBe(400);
   });
 
+  it('assetIds에 중복 ID가 있으면 400을 반환한다', async () => {
+    vi.mocked(projectRepo.findProjectById).mockResolvedValue(fakeProject() as never);
+
+    const res = await request(app)
+      .post(`/api/v1/projects/${PROJECT_ID}/uploads/complete`)
+      .set('X-Project-Token', TOKEN)
+      .send({ assetIds: [ASSET_ID, ASSET_ID] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_REQUEST');
+  });
+
   it('프로젝트에 속하지 않는 assetId는 실패로 표시된다 (200, 개별 실패)', async () => {
     vi.mocked(assetRepo.findAssetsByIds).mockResolvedValue([]);
 

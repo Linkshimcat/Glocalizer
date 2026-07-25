@@ -25,11 +25,14 @@ function buildPrompt(input: LocalizationBatchInput): string {
 }
 
 function isRetryable(error: unknown): boolean {
-  // 모델 출력 형식은 같은 요청을 다시 시도했을 때 정상화되는 경우가 많다.
-  if (error instanceof AppError && error.code === 'TRANSLATION_PROVIDER_FAILED') return true;
-  return error instanceof AppError && typeof error.details?.status === 'number'
-    ? error.details.status === 429 || error.details.status >= 500
-    : !(error instanceof AppError);
+  if (!(error instanceof AppError)) return true;
+  if (error.code !== 'TRANSLATION_PROVIDER_FAILED') return false;
+
+  const status = error.details?.status;
+  // 401/403/404 같은 영구 provider 설정 오류는 즉시 사용자에게 전달한다. JSON 형식 오류나
+  // timeout처럼 HTTP status가 없는 실패는 같은 요청의 재시도로 정상화되는 경우가 있다.
+  if (typeof status !== 'number') return true;
+  return status === 429 || status >= 500;
 }
 
 export const groqTranslationProvider: TranslationProvider = {

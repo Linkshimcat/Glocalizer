@@ -10,6 +10,7 @@ import { sampleBorderPixels } from './background-sampler.js';
 import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
 import { applySolidColorCleanup } from './solid-color-cleanup.js';
 import { applyTransparentCleanup } from './transparent-cleanup.js';
+import { applyDirectionalInpaint } from './directional-inpaint.js';
 import { generateTextEraseMask } from './mask-generator.js';
 import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
@@ -79,7 +80,9 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     const cleanedBuffer =
       method === 'transparent-mask'
         ? await applyTransparentCleanup(buffer, region.bbox, asset.width, asset.height, mask)
-        : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height, mask);
+        : method === 'directional-inpaint'
+          ? await applyDirectionalInpaint(buffer, region.bbox, asset.width, asset.height, mask)
+          : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height, mask);
 
     const cleanedPath = `projects/${asset.project_id}/cleaned/${asset.id}.png`;
     await uploadToStorage(cleanedPath, cleanedBuffer, 'image/png');

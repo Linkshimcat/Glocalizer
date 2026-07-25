@@ -6,13 +6,19 @@ import { logger } from './config/logger.js';
 import { errorMiddleware, notFoundHandler } from './middleware/error.middleware.js';
 import { rateLimitMiddleware } from './middleware/rate-limit.middleware.js';
 import { requestIdMiddleware } from './middleware/request-id.middleware.js';
+import { securityHeadersMiddleware } from './middleware/security-headers.middleware.js';
 import { apiRouter } from './routes/index.js';
 
 export function createApp() {
   const app = express();
   const allowedOrigins = new Set([env.FRONTEND_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173']);
 
+  app.disable('x-powered-by');
+  // Render 등 reverse proxy 뒤에서 실제 client IP 기준으로 rate limit을 적용한다.
+  app.set('trust proxy', env.NODE_ENV === 'production' ? 1 : false);
+
   app.use(requestIdMiddleware);
+  app.use(securityHeadersMiddleware);
   app.use(
     pinoHttp({
       logger,

@@ -1,7 +1,6 @@
-import { runTranslationsForAsset } from '../ai/localization/localization.service.js';
-import { runCleanupForAsset } from '../image/cleanup.service.js';
 import { AppError } from '../errors/app-error.js';
 import { findAssetsByIds, updateAsset } from '../repositories/asset.repository.js';
+import { findActiveJobForProject } from '../repositories/job.repository.js';
 import { updatePrimaryRegion } from '../repositories/ocr.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import { deleteTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
@@ -51,6 +50,11 @@ async function refineCorrectedBox(asset: { original_path: string | null }, text:
 }
 
 export async function reviseOcrAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox): Promise<void> {
+  const activeJob = await findActiveJobForProject(projectId);
+  if (activeJob) {
+    throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id }, '처리 중인 작업이 끝난 뒤 OCR 문구를 수정해주세요.');
+  }
+
   const [project, asset] = await Promise.all([findProjectById(projectId), findAssetsByIds(projectId, [assetId])]);
   if (!project) throw new AppError('PROJECT_NOT_FOUND', { projectId });
   const target = asset[0];
@@ -62,10 +66,4 @@ export async function reviseOcrAndReprocess(projectId: string, assetId: string, 
   await deleteTranslationsByOcrRegionId(region.id);
   if (target.cleaned_path) await removeFromStorage([target.cleaned_path]);
   await updateAsset(assetId, { status: 'ocr', stage: 'ocr-corrected', progress: 55, cleanedPath: null, cleanupMethod: null, cleanupQuality: null, needsManualCleanup: false });
-  const refreshed = (await findAssetsByIds(projectId, [assetId]))[0];
-  if (!refreshed) throw new AppError('INVALID_REQUEST', { assetId }, '이미지 상태를 새로고침하지 못했습니다.');
-  const translation = await runTranslationsForAsset(refreshed, project.target_languages, project.localization_options);
-  if (translation.status === 'failed') return;
-  const cleanupAsset = (await findAssetsByIds(projectId, [assetId]))[0];
-  if (cleanupAsset) await runCleanupForAsset(cleanupAsset);
 }

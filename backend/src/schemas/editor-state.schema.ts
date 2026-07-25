@@ -44,6 +44,7 @@ const editorStyleSchema = z
           height: z.number().min(0).max(1),
         }),
         color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        radius: z.number().min(0).max(0.5).optional(),
       })
       .optional(),
   })

@@ -3,7 +3,7 @@ import { AppError } from '../errors/app-error.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import type { ProjectRow } from '../types/project.js';
 import { requireParam } from '../utils/request-params.js';
-import { hashProjectToken } from '../utils/hash.js';
+import { verifyProjectToken } from '../utils/hash.js';
 
 const PROJECT_TOKEN_HEADER = 'x-project-token';
 
@@ -23,7 +23,7 @@ export async function projectAuthMiddleware(req: Request, _res: Response, next: 
     if (project.status === 'expired' || new Date(project.expires_at).getTime() < Date.now()) {
       throw new AppError('PROJECT_NOT_FOUND', { projectId }, '만료된 프로젝트입니다.');
     }
-    if (hashProjectToken(token) !== project.access_token_hash) {
+    if (!verifyProjectToken(token, project.access_token_hash)) {
       throw new AppError('INVALID_PROJECT_TOKEN', { projectId });
     }
 

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
-const envSchema = z.object({
+export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   FRONTEND_ORIGIN: z.string().default('http://localhost:5173'),
@@ -10,6 +10,9 @@ const envSchema = z.object({
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   SUPABASE_STORAGE_BUCKET: z.string().default('glocalizer-private'),
+  // backend runtime은 Supabase REST를 사용한다. 이 값은 numbered migration runner에서만 사용하며
+  // WSL에서는 Supabase Session Pooler URI를 권장한다.
+  DATABASE_URL: z.string().url().optional(),
 
   PROJECT_EXPIRY_HOURS: z.coerce.number().int().positive().default(24),
   MAX_FILES_PER_PROJECT: z.coerce.number().int().positive().default(20),
@@ -40,11 +43,16 @@ const envSchema = z.object({
   GROQ_VISION_MODEL: z.string().default('qwen/qwen3.6-27b'),
   VISION_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
 
-  AI_MAX_RETRIES: z.coerce.number().int().positive().default(1),
-  AI_CONCURRENCY: z.coerce.number().int().positive().default(4),
+  AI_MAX_RETRIES: z.coerce.number().int().min(1).max(5).default(3),
+  AI_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
   CLEANUP_CONCURRENCY: z.coerce.number().int().positive().default(4),
 
   WORKER_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(2000),
+  JOB_STALE_AFTER_MS: z.coerce.number().int().positive().default(5 * 60 * 1000),
+  JOB_HEARTBEAT_INTERVAL_MS: z.coerce.number().int().positive().default(20_000),
+  JOB_RECOVERY_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(30_000),
+  WORKER_ID: z.string().optional(),
+  SHUTDOWN_GRACE_MS: z.coerce.number().int().positive().default(25_000),
   MAX_REGENERATE_COUNT: z.coerce.number().int().positive().default(3),
   CLEANUP_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(30 * 60 * 1000),
 

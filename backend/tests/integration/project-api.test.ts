@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 
+const createSignedUploadUrl = vi.hoisted(() => vi.fn());
+
 vi.mock('../../src/repositories/project.repository.js', () => ({
   insertProject: vi.fn(),
   findProjectById: vi.fn(),
@@ -28,7 +30,7 @@ vi.mock('../../src/config/supabase.js', () => ({
   supabase: {
     storage: {
       from: () => ({
-        createSignedUploadUrl: vi.fn().mockResolvedValue({ data: { signedUrl: '/object/upload/sign/glocalizer-private/test.png?token=signed-token' }, error: null }),
+        createSignedUploadUrl,
       }),
     },
   },
@@ -66,6 +68,7 @@ function fakeProject(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  createSignedUploadUrl.mockResolvedValue({ data: { signedUrl: '/object/upload/sign/glocalizer-private/test.png?token=signed-token' }, error: null });
 });
 
 describe('POST /api/v1/projects', () => {
@@ -80,6 +83,15 @@ describe('POST /api/v1/projects', () => {
       .post('/api/v1/projects')
       .send({ targetLanguages: ['fr'], files: [{ clientId: 'f1', name: 'a.png', mimeType: 'image/png', size: 1000 }] });
     expect(res.status).toBe(400);
+  });
+
+  it('targetLanguages에 중복 언어가 있으면 400을 반환한다', async () => {
+    const res = await request(app)
+      .post('/api/v1/projects')
+      .send({ targetLanguages: ['en', 'en'], files: [{ clientId: 'f1', name: 'a.png', mimeType: 'image/png', size: 1000 }] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_REQUEST');
   });
 
   it('유효한 요청은 201과 함께 projectId/signed upload URL을 반환한다', async () => {
@@ -99,6 +111,22 @@ describe('POST /api/v1/projects', () => {
     expect(res.body.assets).toHaveLength(1);
     expect(res.body.assets[0].uploadUrl).toBe('https://test.supabase.co/storage/v1/object/upload/sign/glocalizer-private/test.png?token=signed-token');
     expect(res.body.projectToken).toBeTruthy();
+  });
+
+  it('signed upload URL 생성이 실패하면 응답 전 생성된 project를 정리한다', async () => {
+    vi.mocked(projectRepo.insertProject).mockResolvedValue(fakeProject());
+    vi.mocked(assetRepo.insertAssets).mockResolvedValue([]);
+    createSignedUploadUrl.mockResolvedValue({ data: null, error: { message: 'storage unavailable' } });
+
+    const res = await request(app)
+      .post('/api/v1/projects')
+      .send({
+        targetLanguages: ['en'],
+        files: [{ clientId: 'f1', name: 'emoji.png', mimeType: 'image/png', size: 12345 }],
+      });
+
+    expect(res.status).toBe(500);
+    expect(projectRepo.deleteProjectRow).toHaveBeenCalledWith(PROJECT_ID);
   });
 });
 
