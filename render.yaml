@@ -29,3 +29,12 @@ services:
         generateValue: true
       - key: GROQ_API_KEY
         sync: false
+      # Render Starter 플랜(512MB)에서 PaddleOCR의 메모리 급증을 제한한다.
+      - key: AI_CONCURRENCY
+        value: 1
+      - key: CLEANUP_CONCURRENCY
+        value: 1
+      - key: OCR_IMAGE_MAX_DIMENSION
+        value: 960
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=320
