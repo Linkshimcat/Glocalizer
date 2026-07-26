@@ -2,13 +2,10 @@ services:
   - type: web
     name: glocalizer-api
     runtime: docker
-    rootDir: .
+    rootDir: backend
     region: singapore
-    dockerfilePath: backend/Dockerfile
-    dockerContext: .
     numInstances: 1
     healthCheckPath: /api/v1/health/ready
-    preDeployCommand: npm run db:migrate:production
     envVars:
       - key: NODE_ENV
         value: production
@@ -22,7 +19,6 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      # Supabase Dashboard → Connect → Session Pooler의 전체 URI를 넣습니다.
       - key: DATABASE_URL
         sync: false
       - key: PROJECT_TOKEN_SECRET
