@@ -39,6 +39,7 @@ docs/이모티콘모음/
 
 # PaddleOCR 로컬 Python 환경 (머신마다 별도 venv 필요 — 커밋 대상 아님)
 backend/python/.venv/
+backend/.venv/
 backend/python/__pycache__/
 **/__pycache__/
 *.pyc

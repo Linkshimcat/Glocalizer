@@ -30,6 +30,7 @@ export interface AssetRow {
   cleanup_method: string | null;
   cleanup_quality: string | null;
   needs_manual_cleanup: boolean;
+  text_color: { r: number; g: number; b: number } | null;
   error_code: string | null;
   error_message: string | null;
   created_at: string;

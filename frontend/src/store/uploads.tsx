@@ -46,6 +46,8 @@ export interface UploadFile {
     cleanupQuality: string | null
     needsManualCleanup: boolean
     needsManualOcrReview: boolean
+    /** 원본에서 감지한 글자색 {r,g,b} — 번역 텍스트 기본 색. 감지 실패 시 null */
+    textColor: { r: number; g: number; b: number } | null
   }
 }
 
@@ -258,6 +260,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             cleanupQuality: asset.cleanup.quality,
             needsManualCleanup: asset.cleanup.needsManualCleanup,
             needsManualOcrReview: asset.needsManualOcrReview,
+            textColor: asset.cleanup.textColor,
           },
         }
       }))

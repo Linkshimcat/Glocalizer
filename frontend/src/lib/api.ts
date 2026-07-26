@@ -27,7 +27,7 @@ export interface ApiAssetResult {
   cleanedUrl: string | null
   ocr: { fullText: string | null; primaryRegionId: string | null; regions: ApiRegion[] }
   localizations: Record<string, { candidates: ApiCandidate[]; recommendedStyle: { fontCategory?: string } | null }>
-  cleanup: { method: string | null; quality: string | null; needsManualCleanup: boolean }
+  cleanup: { method: string | null; quality: string | null; needsManualCleanup: boolean; textColor: { r: number; g: number; b: number } | null }
   needsManualOcrReview: boolean
   editorStates: Record<string, object>
   errorCode?: string

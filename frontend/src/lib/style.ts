@@ -58,10 +58,12 @@ export interface Style {
 }
 
 /** OCR bbox를 기존 340px 에디터 좌표로 옮긴 기본 텍스트 스타일 */
-export function styleFromNormalizedBox(box: NormalizedRect): Style {
+export function styleFromNormalizedBox(box: NormalizedRect, textColor?: { r: number; g: number; b: number } | null): Style {
   const editorSize = 340
   return {
     ...DEFAULT_STYLE,
+    // 원본에서 감지한 글자색이 있으면 번역 텍스트 기본 색으로 사용한다.
+    ...(textColor ? { color: rgbToHex(textColor.r, textColor.g, textColor.b) } : {}),
     x: Math.round((box.x + box.width / 2 - 0.5) * editorSize),
     y: Math.round((box.y + box.height / 2 - 0.5) * editorSize),
     size: Math.max(12, Math.min(96, Math.round(box.height * editorSize * 0.82))),
@@ -98,6 +100,11 @@ export const DEFAULT_STYLE: Style = {
   alignH: null,
   alignV: 'bottom',
   imageScale: 100,
+}
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  const channel = (value: number) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0')
+  return `#${channel(r)}${channel(g)}${channel(b)}`
 }
 
 export function hexToRgba(hex: string, alpha: number) {

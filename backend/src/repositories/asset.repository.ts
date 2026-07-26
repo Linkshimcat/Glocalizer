@@ -57,6 +57,7 @@ export interface AssetUpdate {
   cleanupMethod?: string | null;
   cleanupQuality?: string | null;
   needsManualCleanup?: boolean;
+  textColor?: { r: number; g: number; b: number } | null;
   errorCode?: string;
   errorMessage?: string;
 }
@@ -75,6 +76,7 @@ export async function updateAsset(assetId: string, patch: AssetUpdate): Promise<
       ...(patch.cleanupMethod !== undefined ? { cleanup_method: patch.cleanupMethod } : {}),
       ...(patch.cleanupQuality !== undefined ? { cleanup_quality: patch.cleanupQuality } : {}),
       ...(patch.needsManualCleanup !== undefined ? { needs_manual_cleanup: patch.needsManualCleanup } : {}),
+      ...(patch.textColor !== undefined ? { text_color: patch.textColor } : {}),
       error_code: patch.errorCode ?? null,
       error_message: patch.errorMessage ?? null,
       updated_at: new Date().toISOString(),

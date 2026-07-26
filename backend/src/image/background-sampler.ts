@@ -133,3 +133,52 @@ export async function sampleBorderPixels(
     coarseDominantColorRatio: interiorCount > 0 ? coarseDominantCount / interiorCount : 0,
   };
 }
+
+export interface TextColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
+/**
+ * OCR 영역 내부에서 배경색과 충분히 다른 픽셀(=글자 획)을 모아 대표 글자색을 추정한다.
+ * 번역 텍스트를 원본과 같은 색으로 렌더링하는 데 쓴다. 글자 픽셀이 너무 적으면 null.
+ */
+export async function sampleTextColor(
+  buffer: Buffer,
+  box: PixelBox,
+  imageWidth: number,
+  imageHeight: number,
+  background: { r: number; g: number; b: number },
+): Promise<TextColor | null> {
+  const interior = clampRect({ left: box.x, top: box.y, width: box.width, height: box.height }, imageWidth, imageHeight);
+  if (!interior) return null;
+
+  const { data } = await sharp(buffer).ensureAlpha().extract(interior).raw().toBuffer({ resolveWithObject: true });
+  // 배경색에서 먼 픽셀만 글자 후보로 삼고, 16단계 양자화 버킷의 dominant를 글자색으로 본다.
+  // 안티에일리어싱 경계의 중간색이 평균을 흐리지 않도록 median 대신 dominant 방식을 쓴다.
+  const MIN_COLOR_DISTANCE = 60;
+  const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+  for (let index = 0; index < data.length; index += 4) {
+    if (data[index + 3] < 24) continue;
+    const dr = data[index] - background.r;
+    const dg = data[index + 1] - background.g;
+    const db = data[index + 2] - background.b;
+    if (Math.sqrt(dr * dr + dg * dg + db * db) < MIN_COLOR_DISTANCE) continue;
+    const key = `${data[index] >> 4}:${data[index + 1] >> 4}:${data[index + 2] >> 4}`;
+    const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+    bucket.count += 1;
+    bucket.r += data[index];
+    bucket.g += data[index + 1];
+    bucket.b += data[index + 2];
+    buckets.set(key, bucket);
+  }
+
+  const dominant = [...buckets.values()].sort((left, right) => right.count - left.count)[0];
+  if (!dominant || dominant.count < 12) return null;
+  return {
+    r: Math.round(dominant.r / dominant.count),
+    g: Math.round(dominant.g / dominant.count),
+    b: Math.round(dominant.b / dominant.count),
+  };
+}

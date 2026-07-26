@@ -297,7 +297,7 @@ export default function Editor() {
   const selectItem = (idx: number) => {
     saveStyle(current.id, activeLanguage.code, style)
     setCurrentIdx(idx)
-    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox) : DEFAULT_STYLE))
+    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox, items[idx].analysis.textColor) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
     setSelected(true)
@@ -497,7 +497,7 @@ export default function Editor() {
     if (languageCode === activeLanguage.code) return
     saveStyle(current.id, activeLanguage.code, style)
     setActiveLanguageCode(languageCode)
-    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? styleFromNormalizedBox(current.analysis.normalizedBox) : DEFAULT_STYLE))
+    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? styleFromNormalizedBox(current.analysis.normalizedBox, current.analysis.textColor) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
   }

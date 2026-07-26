@@ -56,6 +56,7 @@ async function buildAssetResult(asset: AssetRow) {
       method: asset.cleanup_method,
       quality: asset.cleanup_quality,
       needsManualCleanup: asset.needs_manual_cleanup,
+      textColor: asset.text_color,
     },
     needsManualOcrReview: primaryRegion?.needs_manual_review ?? false,
     editorStates: Object.fromEntries(editorStates.map((state) => [state.language_code, state.style])),

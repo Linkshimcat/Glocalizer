@@ -6,7 +6,7 @@ import type { AssetRow } from '../types/asset.js';
 import type { CleanupResult } from '../types/cleanup.js';
 import { AppError, describeError } from '../errors/app-error.js';
 import { env } from '../config/env.js';
-import { sampleBorderPixels } from './background-sampler.js';
+import { sampleBorderPixels, sampleTextColor } from './background-sampler.js';
 import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
 import { applySolidColorCleanup } from './solid-color-cleanup.js';
 import { applyTransparentCleanup } from './transparent-cleanup.js';
@@ -40,6 +40,8 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     }
 
     const stats = await sampleBorderPixels(buffer, region.bbox, asset.width, asset.height);
+    // 배경색을 기준으로 원본 글자색을 추정해 번역 텍스트 기본 색으로 쓴다(감지 실패 시 null).
+    const textColor = await sampleTextColor(buffer, region.bbox, asset.width, asset.height, stats.medianColor);
     const method = decideCleanupMethod(stats);
     const quality = assessCleanupQuality(method, stats);
 
@@ -52,6 +54,7 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         cleanupMethod: 'manual-required',
         cleanupQuality: quality,
         needsManualCleanup: true,
+        textColor,
       });
       return { assetId: asset.id, method: 'manual-required', quality, needsManualCleanup: true };
     }
@@ -73,6 +76,7 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         cleanupMethod: 'manual-required',
         cleanupQuality: 'low',
         needsManualCleanup: true,
+        textColor,
       });
       return { assetId: asset.id, method: 'manual-required', quality: 'low', needsManualCleanup: true };
     }
@@ -95,6 +99,7 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
       cleanupMethod: method,
       cleanupQuality: quality,
       needsManualCleanup: false,
+      textColor,
     });
 
     return { assetId: asset.id, method, quality, needsManualCleanup: false, cleanedImagePath: cleanedPath };
