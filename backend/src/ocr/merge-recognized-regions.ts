@@ -31,7 +31,10 @@ function belongsToSameLine(previous: RecognizedRegion, next: RecognizedRegion): 
   const minimumHeight = Math.max(1, Math.min(left.height, right.height));
   const gap = right.left - left.right;
   const maximumGap = Math.max(12, Math.max(left.height, right.height) * 0.8);
-  return verticalOverlap / minimumHeight >= 0.55 && gap >= -2 && gap <= maximumGap;
+  // 같은 줄 한글은 OCR 박스가 서로 살짝 겹칠 수 있다("왕"|"피"처럼 붙은 글자). 겹침(음수
+  // gap)을 작은 글자 폭의 절반까지 허용해, 인접 조각이 갈라져 하나만 마스킹되는 것을 막는다.
+  const minimumGap = -Math.min(left.width, right.width) * 0.5;
+  return verticalOverlap / minimumHeight >= 0.55 && gap >= minimumGap && gap <= maximumGap;
 }
 
 function mergeGroup(group: RecognizedRegion[]): RecognizedRegion {

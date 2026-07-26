@@ -20,6 +20,17 @@ describe('mergeAdjacentKoreanRegions', () => {
     expect(merged[0].text).toBe('아자스');
   });
 
+  it('가로로 살짝 겹치는 같은 줄 한글 조각도 합친다 ("왕"|"피"처럼 붙은 글자)', () => {
+    // 실제 "왕 피곤" OCR에서 나온 좌표(960px 기준): "왕"과 "피" 박스가 6px 겹쳐 있었다.
+    const merged = mergeAdjacentKoreanRegions([
+      region('왕', 197, 261, 407, 484),
+      region('피', 401, 286, 587, 444),
+    ]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].text).toBe('왕피');
+  });
+
   it('줄이 다르거나 간격이 먼 문구는 합치지 않는다', () => {
     const merged = mergeAdjacentKoreanRegions([
       region('킹', 10, 10, 30, 30),
