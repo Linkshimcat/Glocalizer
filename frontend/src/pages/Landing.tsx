@@ -6,11 +6,13 @@ import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { DEMO_ITEMS } from '../data/demo'
 import { LANGUAGES } from '../store/uploads'
+import { useSiteLang } from '../i18n/LanguageContext'
 
 const shortCode = (code: string) => code.toUpperCase()
 
 export default function Landing() {
   const navigate = useNavigate()
+  const { t } = useSiteLang()
   const [cycleIdx, setCycleIdx] = useState(0)
   const [fading, setFading] = useState(false)
 
@@ -36,26 +38,26 @@ export default function Landing() {
 
       <main className="mx-auto grid w-full max-w-[1240px] flex-1 items-center gap-10 px-4 py-10 sm:gap-14 sm:px-10 sm:py-14 lg:grid-cols-2 lg:py-20">
         <div>
-          <p className="text-sm font-extrabold tracking-wide text-brand-dark">Glocalizer</p>
+          <p className="text-sm font-extrabold tracking-wide text-brand-dark">{t.heroBrandTag}</p>
           <h1 className="mt-3 text-[42px] leading-[1.12] font-extrabold tracking-tight sm:text-5xl md:text-[60px]">
-            한국 밈을
+            {t.heroLine1}
             <br />
-            <span className="text-brand">전 세계 언어로</span>
+            <span className="text-brand">{t.heroLine2}</span>
           </h1>
           <p className="mt-5 max-w-[420px] text-[15px] font-medium text-sub sm:mt-6 sm:text-[17px]">
-            이모티콘 속 한글을 자연스러운 현지 표현으로 바꿔드려요.
+            {t.heroDesc}
           </p>
           <Button size="lg" onClick={() => navigate('/dashboard')} className="mt-7 w-full sm:mt-8 sm:w-auto">
-            무료로 시작하기
+            {t.heroCta}
           </Button>
 
         </div>
 
         <section className="overflow-hidden rounded-[24px] bg-[#FAFBFC] p-4 sm:rounded-[32px] sm:p-10">
           <div className="mb-6 text-center sm:mb-8">
-            <p className="text-sm font-extrabold text-brand-dark">Before → After</p>
+            <p className="text-sm font-extrabold text-brand-dark">{t.beforeAfter}</p>
             <h2 className="mt-1 text-2xl font-extrabold text-ink">
-              한글 밈이 현지 표현이 돼요
+              {t.cardTitle}
             </h2>
           </div>
           <div
@@ -64,7 +66,7 @@ export default function Landing() {
             }`}
           >
             <div className="rounded-2xl bg-white p-4 text-center sm:rounded-3xl sm:p-7">
-              <p className="text-xs font-bold text-sub">Before · 원본</p>
+              <p className="text-xs font-bold text-sub">{t.beforeLabel}</p>
               <span className="mt-4 block text-5xl sm:mt-6 sm:text-6xl">{cycleItem.emoji}</span>
               <span className="mt-4 inline-flex rounded-lg border-2 border-dashed border-sub/60 px-3 py-1 text-base font-extrabold text-ink sm:mt-5 sm:text-lg">
                 {cycleItem.korean}
@@ -74,7 +76,7 @@ export default function Landing() {
               ⇒
             </span>
             <div className="checkerboard rounded-2xl p-4 text-center sm:rounded-3xl sm:p-7">
-              <p className="text-xs font-bold text-sub">After · 변환</p>
+              <p className="text-xs font-bold text-sub">{t.afterLabel}</p>
               <span className="mt-4 block text-5xl sm:mt-6 sm:text-6xl">{cycleItem.emoji}</span>
               <span className="mt-4 inline-flex rounded-lg bg-white/90 px-3 py-1 text-base font-extrabold text-ink sm:mt-5 sm:text-lg">
                 {translatedText}
@@ -83,7 +85,7 @@ export default function Landing() {
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-3">
             <p className="text-center text-sm font-bold text-sub">
-              <span className="text-brand-dark">{LANGUAGES.length}개 언어</span>로 바로 바꿔보세요
+              <span className="text-brand-dark">{LANGUAGES.length}{t.langCountUnit}</span>{t.langCountSuffix}
             </p>
             <div className="flex items-center gap-2 text-lg" aria-label="지원 언어">
               {LANGUAGES.map(lang => (

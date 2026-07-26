@@ -5,15 +5,17 @@ import Button from '../components/Button'
 import Header from '../components/Header'
 import { useToast } from '../components/Toast'
 import { LANGUAGES, useUploads } from '../store/uploads'
+import { useSiteLang } from '../i18n/LanguageContext'
 
 function StepIndicator() {
+  const { t } = useSiteLang()
   return (
     <div className="flex items-center gap-2 text-xs font-semibold text-sub md:text-sm">
-      <span className="text-brand-dark">1 업로드</span>
+      <span className="text-brand-dark">1 {t.stepUpload}</span>
       <span className="hidden sm:inline">›</span>
-      <span className="hidden sm:inline">2 편집</span>
+      <span className="hidden sm:inline">2 {t.stepEdit}</span>
       <span className="hidden sm:inline">›</span>
-      <span className="hidden sm:inline">3 다운로드</span>
+      <span className="hidden sm:inline">3 {t.stepDownload}</span>
     </div>
   )
 }
@@ -38,11 +40,12 @@ export default function Dashboard() {
   const [showAllLangs, setShowAllLangs] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
+  const { t } = useSiteLang()
 
   const handleFiles = (incoming: File[]) => {
     const images = incoming.filter(f => f.type === 'image/png' || f.type === 'image/jpeg')
     if (images.length < incoming.length) {
-      toast('현재 처리 가능한 형식은 PNG · JPG예요. GIF는 다음 단계에서 지원해요.')
+      toast(t.dashToastFormat)
     }
     // 새로 올린 이모티콘은 자동으로 선택됨
     addFiles(images)
@@ -56,7 +59,7 @@ export default function Dashboard() {
       navigate('/editor')
     } catch (error) {
       setProgress(null)
-      toast(error instanceof Error ? error.message : '업로드를 시작하지 못했어요.')
+      toast(error instanceof Error ? error.message : t.dashToastStartFail)
     }
   }
 
@@ -90,13 +93,13 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header right={<StepIndicator />} />
+      <Header right={<StepIndicator />} sticky />
 
       <main className="mx-auto max-w-[880px] px-4 pb-32 pt-10 sm:px-6 sm:py-16 lg:pb-16">
-        <p className="text-sm font-extrabold text-brand-dark">1단계 · 업로드</p>
-        <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">이모티콘을 올려주세요</h1>
+        <p className="text-sm font-extrabold text-brand-dark">{t.dashStep1}</p>
+        <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">{t.dashTitle}</h1>
         <p className="mt-2 text-[16px] font-medium text-sub">
-          PNG, JPG 파일을 끌어다 놓으면 바로 시작할 수 있어요.
+          {t.dashSubtitle}
         </p>
 
         {/* 드롭존 */}
@@ -121,16 +124,16 @@ export default function Dashboard() {
             <Upload className="h-7 w-7 text-brand-dark" strokeWidth={2.5} />
           </span>
           <div className="break-keep text-center">
-            <p className="text-lg font-bold">파일을 여기에 끌어다 놓으세요</p>
+            <p className="text-lg font-bold">{t.dashDropTitle}</p>
             <p className="mt-1 text-sm font-medium text-sub">
               <span className="whitespace-nowrap">PNG · JPG</span>
               <span className="mx-1 hidden sm:inline">·</span>
               <br className="sm:hidden" />
-              <span className="whitespace-nowrap">여러 장을 한 번에 올릴 수 있어요</span>
+              <span className="whitespace-nowrap">{t.dashDropMulti}</span>
             </p>
           </div>
           <Button size="sm" onClick={e => e.stopPropagation()} className="pointer-events-none">
-            파일 선택
+            {t.dashSelectFile}
           </Button>
           <input
             ref={inputRef}
@@ -150,7 +153,7 @@ export default function Dashboard() {
           <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold">
-                {progress < 100 ? '올리는 중이에요…' : '업로드 완료!'}
+                {progress < 100 ? t.dashUploading : t.dashUploadDone}
               </span>
               <span className="text-sm font-bold text-brand-dark">{progress}%</span>
             </div>
@@ -165,7 +168,7 @@ export default function Dashboard() {
 
         {hasFiles && progress === null && (
           <p className="mt-5 text-sm font-bold text-brand-dark">
-            {selectedCount}장을 번역 대상으로 골랐어요.
+            {t.dashSelectedCount.replace('{n}', String(selectedCount))}
           </p>
         )}
 
@@ -174,14 +177,14 @@ export default function Dashboard() {
           <section className="mt-12">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">
-                번역할 이모티콘 <span className="text-brand-dark">{selectedCount}</span>장
+                {t.dashListTitlePre}<span className="text-brand-dark">{selectedCount}</span>{t.dashListTitlePost}
               </h2>
               <div className="flex items-center gap-3 text-sm font-semibold">
                 <button
                   onClick={toggleSelectAll}
                   className="text-brand-dark hover:underline"
                 >
-                  {allSelected ? '선택 해제' : '전체 선택'}
+                  {allSelected ? t.dashDeselectAll : t.dashSelectAll}
                 </button>
                 {selectedCount > 0 && (
                   <>
@@ -190,7 +193,7 @@ export default function Dashboard() {
                       onClick={deleteSelected}
                       className="text-[#EF4444] hover:underline"
                     >
-                      선택 삭제 ({selectedCount})
+                      {t.dashDeleteSelected} ({selectedCount})
                     </button>
                   </>
                 )}
@@ -247,9 +250,9 @@ export default function Dashboard() {
         <section className={`mt-12 transition-opacity ${hasFiles ? 'opacity-100' : 'pointer-events-none opacity-40'}`}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
-              <h2 className="text-lg font-bold">번역할 언어를 골라주세요</h2>
+              <h2 className="text-lg font-bold">{t.dashLangTitle}</h2>
               <span className="hidden text-sm font-semibold text-sub sm:inline">
-                여러 개도 좋아요
+                {t.dashLangHint}
               </span>
             </div>
             <button
@@ -257,7 +260,7 @@ export default function Dashboard() {
               disabled={!hasFiles}
               className="shrink-0 text-sm font-semibold text-brand-dark hover:underline"
             >
-              {allLangsSelected ? '전체 해제' : '전체 선택'}
+              {allLangsSelected ? t.dashDeselectAll : t.dashSelectAll}
             </button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -288,7 +291,7 @@ export default function Dashboard() {
                 onClick={() => setShowAllLangs(v => !v)}
                 className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 px-4 py-4 text-[15px] font-bold text-sub transition-colors hover:border-brand/50 hover:text-brand-dark"
               >
-                {showAllLangs ? '접기' : `+ ${LANGUAGES.length - 7}개 더보기`}
+                {showAllLangs ? t.dashCollapse : t.dashMore.replace('{n}', String(LANGUAGES.length - 7))}
               </button>
             )}
           </div>
@@ -303,21 +306,21 @@ export default function Dashboard() {
             onClick={beginLocalization}
             className="min-w-[280px]"
           >
-            {selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
+            {selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}
           </Button>
         </div>
         {!canStart && (
           <p className="mt-4 hidden text-center text-sm font-medium text-sub lg:block">
             {!hasFiles
-              ? '이모티콘을 먼저 올려주세요.'
+              ? t.dashHintNoFile
               : selectedCount === 0
-                ? '번역할 이모티콘을 골라주세요.'
-                : '번역할 언어를 골라주세요.'}
+                ? t.dashHintNoSelect
+                : t.dashHintNoLang}
           </p>
         )}
         {canStart && (
           <p className="mt-4 hidden text-center text-sm font-medium text-sub lg:block">
-            편집 화면에서 번역 문구와 폰트를 다듬을 수 있어요.
+            {t.dashHintReady}
           </p>
         )}
       </main>
@@ -330,16 +333,16 @@ export default function Dashboard() {
           onClick={beginLocalization}
           className="w-full"
         >
-          {selectedCount > 0 ? `${selectedCount}장 번역 시작하기 →` : '번역 시작하기 →'}
+          {selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}
         </Button>
         <p className="mt-1.5 text-center text-xs font-medium text-sub">
           {!hasFiles
-            ? '이모티콘을 먼저 올려주세요.'
+            ? t.dashHintNoFile
             : selectedCount === 0
-              ? '번역할 이모티콘을 골라주세요.'
+              ? t.dashHintNoSelect
               : targetLangs.length === 0
-                ? '번역할 언어를 골라주세요.'
-                : '편집 화면에서 문구와 폰트를 다듬을 수 있어요.'}
+                ? t.dashHintNoLang
+                : t.dashHintReady}
         </p>
       </div>
     </div>

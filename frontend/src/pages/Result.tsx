@@ -5,21 +5,24 @@ import Header from '../components/Header'
 import { toDemoItems } from '../data/demo'
 import { DEFAULT_STYLE, resolveText } from '../lib/style'
 import { useUploads } from '../store/uploads'
+import { useSiteLang } from '../i18n/LanguageContext'
 
 function StepIndicator() {
+  const { t } = useSiteLang()
   return (
     <div className="hidden items-center gap-2 text-sm font-semibold text-sub md:flex">
-      <span>1 업로드</span>
+      <span>1 {t.stepUpload}</span>
       <span>›</span>
-      <span>2 편집</span>
+      <span>2 {t.stepEdit}</span>
       <span>›</span>
-      <span className="text-brand-dark">3 다운로드</span>
+      <span className="text-brand-dark">3 {t.stepDownload}</span>
     </div>
   )
 }
 
 export default function Result() {
   const navigate = useNavigate()
+  const { t } = useSiteLang()
   const { files, targetLangs, styles } = useUploads()
   const languages = targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
 
@@ -30,7 +33,7 @@ export default function Result() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header right={<StepIndicator />} />
+      <Header right={<StepIndicator />} sticky />
 
       <main className="mx-auto max-w-[880px] px-6 py-16">
         {/* 완료 히어로 */}
@@ -48,19 +51,19 @@ export default function Result() {
           </span>
           <div>
             <h1 className="text-[32px] font-extrabold tracking-tight">
-              현지화가 끝났어요!
+              {t.resultDone}
             </h1>
             <p className="mt-2 text-[16px] font-medium text-[#4E5968]">
-              이모티콘이 {langLabel}(으)로 번역완료.
+              {t.resultDesc1.replace('{lang}', langLabel)}
               <br />
-              다운로드가 시작됐는지 확인해보세요.
+              {t.resultDesc2}
             </p>
           </div>
         </div>
 
         {/* 결과 미리보기 */}
         <section className="mt-12">
-          <h2 className="text-lg font-bold">번역 결과 미리보기</h2>
+          <h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2>
           <div className="mt-4 space-y-7">
             {languages.map(language => {
               const items = toDemoItems(files, language.code)
@@ -72,7 +75,7 @@ export default function Result() {
                       <div key={item.id} className="relative flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white px-3 py-5">
                         <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white"><Check className="h-3 w-3" strokeWidth={3.5} /></span>
                         {item.url ? <img src={item.url} alt={item.name} className="h-12 w-12 object-contain" /> : <span className="text-4xl">{item.emoji}</span>}
-                        <span className="rounded-md bg-[#FFF9DB] px-2 py-0.5 text-[11px] font-bold text-[#92400E] line-through">{item.korean || '텍스트 없음'}</span>
+                        <span className="rounded-md bg-[#FFF9DB] px-2 py-0.5 text-[11px] font-bold text-[#92400E] line-through">{item.korean || t.resultNoText}</span>
                         <span className="rounded-md bg-brand-soft px-2 py-0.5 text-center text-[11px] font-bold text-brand-dark">{resolveText(styles[item.id]?.[language.code] ?? DEFAULT_STYLE, item.suggestions)}</span>
                       </div>
                     ))}
@@ -90,21 +93,21 @@ export default function Result() {
             onClick={() => navigate('/editor')}
             className="min-h-14 flex-1 md:min-h-0"
           >
-            <ArrowLeft className="h-4 w-4" /> 에디터로 돌아가기
+            <ArrowLeft className="h-4 w-4" /> {t.resultBackEditor}
           </Button>
           <Button
             variant="secondary"
             onClick={() => navigate('/')}
             className="min-h-14 flex-1 md:min-h-0"
           >
-            <Home className="h-4 w-4" /> 메인으로
+            <Home className="h-4 w-4" /> {t.resultToMain}
           </Button>
           <Button
             onClick={() => navigate('/dashboard')}
             className="min-h-14 flex-1 md:min-h-0"
             glow
           >
-            <Sparkles className="h-4 w-4" /> 새로 시작하기
+            <Sparkles className="h-4 w-4" /> {t.resultRestart}
           </Button>
         </div>
       </main>
