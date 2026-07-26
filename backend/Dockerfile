@@ -17,7 +17,7 @@ RUN npm ci --omit=dev
 
 COPY python/requirements.txt ./python/requirements.txt
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-pip libgomp1 \
+  && apt-get install -y --no-install-recommends python3 python3-pip libgomp1 libgl1 libglib2.0-0 \
   && python3 -m pip install --no-cache-dir --break-system-packages -r python/requirements.txt \
   && rm -rf /var/lib/apt/lists/*
 
