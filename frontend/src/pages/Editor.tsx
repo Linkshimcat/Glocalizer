@@ -237,15 +237,7 @@ export default function Editor() {
   const current = items[Math.min(currentIdx, items.length - 1)]
   const [doneIds, setDoneIds] = useState<string[]>([])
 
-  // 텍스트 감지 실패 시 경고 토스트 (이모티콘당 1회)
   const toast = useToast()
-  const warnedIdRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (!current.korean && warnedIdRef.current !== current.id) {
-      warnedIdRef.current = current.id
-      toast('현재 이모티콘에서 텍스트를 감지하지 못했어요!')
-    }
-  }, [current.id, current.korean, toast])
 
   // AI 자동 배경 정리가 안 된 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도 알려준다.
   const manualCleanupWarnedIdRef = useRef<string | null>(null)
