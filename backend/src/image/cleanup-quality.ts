@@ -6,7 +6,6 @@ const TRANSPARENT_ALPHA_GOOD_THRESHOLD = 8;
 
 const SOLID_STDDEV_GOOD = 14;
 const SOLID_STDDEV_ACCEPTABLE = 30;
-const DIRECTIONAL_INPAINT_STDDEV_ACCEPTABLE = 52;
 const DOMINANT_COLOR_SOLID_THRESHOLD = 0.58;
 const COARSE_DOMINANT_COLOR_SOLID_THRESHOLD = 0.72;
 const COARSE_DOMINANT_COLOR_MAX_STDDEV = 55;
@@ -19,8 +18,10 @@ export function decideCleanupMethod(stats: BorderStats): CleanupMethod {
     || stats.dominantColorRatio >= DOMINANT_COLOR_SOLID_THRESHOLD
     || (stats.coarseDominantColorRatio >= COARSE_DOMINANT_COLOR_SOLID_THRESHOLD && stats.colorStdDev <= COARSE_DOMINANT_COLOR_MAX_STDDEV)
   ) return 'solid-color-fill';
-  if (stats.colorStdDev <= DIRECTIONAL_INPAINT_STDDEV_ACCEPTABLE) return 'directional-inpaint';
-  return 'manual-required';
+  // 배경이 복잡해도 곧장 포기(manual-required)하지 않고 cv2 인페인팅을 시도한다.
+  // "글자가 그대로 남는 것"이 "살짝 뭉개지는 것"보다 나쁜 실패라는 팀 합의에 따라 자동
+  // 복원 범위를 넓힌다. 마스크가 비정상이면 cleanup.service의 coverage 안전장치가 fallback.
+  return 'directional-inpaint';
 }
 
 export function assessCleanupQuality(method: CleanupMethod, stats: BorderStats): CleanupQuality {

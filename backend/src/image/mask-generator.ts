@@ -47,36 +47,6 @@ function dilate(input: Uint8Array, width: number, height: number, radius: number
   return output;
 }
 
-/** ROI 경계에 붙은 성분은 말풍선 테두리·캐릭터선일 가능성이 높아 보존한다. */
-function splitBoundaryComponents(input: Uint8Array, width: number, height: number, roi: PixelBox): { text: Uint8Array; boundary: Uint8Array } {
-  const text = new Uint8Array(input.length);
-  const boundary = new Uint8Array(input.length);
-  const visited = new Uint8Array(input.length);
-  const left = Math.max(0, Math.floor(roi.x)); const top = Math.max(0, Math.floor(roi.y));
-  const right = Math.min(width - 1, Math.ceil(roi.x + roi.width) - 1); const bottom = Math.min(height - 1, Math.ceil(roi.y + roi.height) - 1);
-  for (let y = top; y <= bottom; y += 1) for (let x = left; x <= right; x += 1) {
-    const start = y * width + x;
-    if (input[start] === 0 || visited[start]) continue;
-    const queue = [start]; const component: number[] = []; let touchesBoundary = false;
-    visited[start] = 1;
-    while (queue.length) {
-      const current = queue.pop();
-      if (current === undefined) continue;
-      component.push(current);
-      const currentX = current % width; const currentY = Math.floor(current / width);
-      if (currentX === left || currentX === right || currentY === top || currentY === bottom) touchesBoundary = true;
-      for (let offsetY = -1; offsetY <= 1; offsetY += 1) for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
-        const nextX = currentX + offsetX; const nextY = currentY + offsetY;
-        if (nextX < left || nextX > right || nextY < top || nextY > bottom) continue;
-        const next = nextY * width + nextX;
-        if (input[next] > 0 && !visited[next]) { visited[next] = 1; queue.push(next); }
-      }
-    }
-    for (const pixel of component) (touchesBoundary ? boundary : text)[pixel] = 255;
-  }
-  return { text, boundary };
-}
-
 /**
  * OCR bbox 안에서 배경과 다른 실제 글자 픽셀만 골라 erase mask를 만든다.
  * 0=지움, 255=유지라는 기존 FeatherMask 계약을 유지한다.
@@ -88,8 +58,10 @@ export async function generateTextEraseMask(
   imageHeight: number,
   options: TextMaskOptions,
 ): Promise<FeatherMask> {
-  // padding을 과도하게 넓히면 말풍선 테두리가 ROI 내부로 들어와 글자로 오인될 수 있다.
-  const padding = Math.max(2, Math.min(8, Math.ceil(Math.min(box.width, box.height) * 0.12)));
+  // 글자가 ROI 경계에 닿으면 splitBoundaryComponents가 말풍선 테두리로 오인해 보존해버려
+  // 글자 대부분이 안 지워진다. padding을 넉넉히 줘 글자를 ROI 안쪽에 두되, 상한을 두어
+  // 말풍선 테두리까지 ROI로 끌어들이지는 않는다.
+  const padding = Math.max(6, Math.min(28, Math.ceil(Math.min(box.width, box.height) * 0.3)));
   const roi = padAndClampBox(box, padding, imageWidth, imageHeight);
   const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const foreground = new Uint8Array(imageWidth * imageHeight);
@@ -107,18 +79,19 @@ export async function generateTextEraseMask(
     }
   }
 
-  const components = options.mode === 'solid' ? splitBoundaryComponents(foreground, imageWidth, imageHeight, roi) : null;
-  const textOnly = components?.text ?? foreground;
+  // OCR bbox 안의 글자 픽셀 전체를 지운다. 예전에는 ROI 경계에 닿는 성분을 말풍선
+  // 테두리로 간주해 보존(splitBoundaryComponents)했으나, bbox에 딱 맞는 글자와 받침이
+  // 경계에 닿아 함께 보존되며 대부분의 글자가 지워지지 않는 버그가 있었다. 말풍선/캐릭터
+  // 선은 애초에 bbox 밖이라 ROI에 들지 않으므로 그 분기를 제거한다.
   const dilationRadius = Math.max(1, Math.min(3, Math.round(Math.min(box.width, box.height) / 48)));
-  const expanded = dilate(textOnly, imageWidth, imageHeight, dilationRadius, roi);
-  if (components) for (let index = 0; index < expanded.length; index += 1) if (components.boundary[index] > 0) expanded[index] = 0;
+  const expanded = dilate(foreground, imageWidth, imageHeight, dilationRadius, roi);
   const { data: blurred, info: blurInfo } = await sharp(Buffer.from(expanded), { raw: { width: imageWidth, height: imageHeight, channels: 1 } })
     .blur(1.2)
     .raw()
     .toBuffer({ resolveWithObject: true });
   const mask = new Uint8Array(imageWidth * imageHeight);
   for (let index = 0; index < mask.length; index += 1) {
-    mask[index] = components?.boundary[index] ? 255 : 255 - blurred[index * blurInfo.channels];
+    mask[index] = 255 - blurred[index * blurInfo.channels];
   }
   return { data: mask, width: imageWidth, height: imageHeight, roi };
 }

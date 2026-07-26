@@ -23,8 +23,10 @@ describe('decideCleanupMethod', () => {
     expect(decideCleanupMethod(stats({ meanAlpha: 255, colorStdDev: 5 }))).toBe('solid-color-fill');
   });
 
-  it('불투명하고 색 편차가 크면 manual-required', () => {
-    expect(decideCleanupMethod(stats({ meanAlpha: 255, colorStdDev: 80 }))).toBe('manual-required');
+  it('불투명하고 색 편차가 커도 포기하지 않고 인페인팅을 시도한다', () => {
+    // 예전에는 manual-required로 포기했으나, "글자가 남는 것"이 "살짝 뭉개지는 것"보다
+    // 나쁜 실패라는 판단에 따라 복잡한 배경도 directional-inpaint로 자동 복원을 시도한다.
+    expect(decideCleanupMethod(stats({ meanAlpha: 255, colorStdDev: 80 }))).toBe('directional-inpaint');
   });
 
   it('말풍선처럼 내부 지배 색상이 뚜렷하면 테두리 편차가 있어도 단색 채우기를 쓴다', () => {
