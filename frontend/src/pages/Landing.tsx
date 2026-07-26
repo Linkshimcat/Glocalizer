@@ -32,7 +32,7 @@ export default function Landing() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header center={<NavMenu />} />
+      <Header center={<NavMenu />} sticky />
 
       <main className="mx-auto grid w-full max-w-[1240px] flex-1 items-center gap-10 px-4 py-10 sm:gap-14 sm:px-10 sm:py-14 lg:grid-cols-2 lg:py-20">
         <div>

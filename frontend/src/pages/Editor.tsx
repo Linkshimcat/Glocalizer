@@ -31,7 +31,6 @@ import {
   FONT_NAMES,
   clampWeight,
   fontWeights,
-  isGif,
   toDemoItems,
 } from '../data/demo'
 import {
@@ -291,7 +290,7 @@ export default function Editor() {
   const [loadingStep, setLoadingStep] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [exportName, setExportName] = useState('glocalizer_export')
-  const [exportFormat, setExportFormat] = useState<'PNG' | 'GIF' | 'ZIP'>('ZIP')
+  const [exportFormat, setExportFormat] = useState<'PNG' | 'ZIP'>('ZIP')
   const [ocrDraft, setOcrDraft] = useState('')
 
   const selectItem = (idx: number) => {
@@ -302,7 +301,6 @@ export default function Editor() {
     setFuture([])
     setSelected(true)
     setZoom(DEFAULT_ZOOM)
-    if (!isGif(items[idx])) setExportFormat(f => (f === 'GIF' ? 'ZIP' : f))
   }
 
   useEffect(() => {
@@ -482,7 +480,6 @@ export default function Editor() {
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
-  const gifOk = isGif(current)
   const canvasZoomStyle = {
     transform: `scale(${zoom / 100})`,
     transformOrigin: 'center center',
@@ -548,18 +545,10 @@ export default function Editor() {
     setBusy(true)
     try {
       saveStyle(current.id, langCode, style)
-      if (exportFormat === 'PNG') {
-        downloadBlob(
-          await renderItemToPng(current, style),
-          exportFileName(current.name, langCode, 'png'),
-        )
-      } else if (current.url) {
-        // GIF: 원본 애니메이션 파일 그대로 저장 (프레임별 텍스트 합성은 백엔드 연동 시)
-        downloadBlob(
-          await fetch(current.url).then(r => r.blob()),
-          exportFileName(current.name, langCode, 'gif'),
-        )
-      }
+      downloadBlob(
+        await renderItemToPng(current, style),
+        exportFileName(current.name, langCode, 'png'),
+      )
       markCurrentDone()
       navigate('/result')
     } catch (error) {
@@ -1532,33 +1521,21 @@ export default function Editor() {
               onChange={e => setExportName(e.target.value)}
               className="mt-3 h-11 w-full rounded-xl border-2 border-gray-100 bg-white px-3 text-[14px] font-semibold outline-none focus:border-brand"
             />
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              {(['PNG', 'GIF', 'ZIP'] as const).map(fmt => {
-                const disabled = fmt === 'GIF' && !gifOk
-                return (
-                  <button
-                    key={fmt}
-                    onClick={() => setExportFormat(fmt)}
-                    disabled={disabled}
-                    title={disabled ? 'GIF 원본을 올렸을 때만 가능해요' : undefined}
-                    className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
-                      exportFormat === fmt
-                        ? 'border-brand bg-brand-soft text-brand-dark'
-                        : disabled
-                          ? 'cursor-not-allowed border-gray-100 bg-surface text-gray-300'
-                          : 'border-gray-100 bg-white text-sub hover:border-gray-200'
-                    }`}
-                  >
-                    {fmt}
-                  </button>
-                )
-              })}
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              {(['PNG', 'ZIP'] as const).map(fmt => (
+                <button
+                  key={fmt}
+                  onClick={() => setExportFormat(fmt)}
+                  className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                    exportFormat === fmt
+                      ? 'border-brand bg-brand-soft text-brand-dark'
+                      : 'border-gray-100 bg-white text-sub hover:border-gray-200'
+                  }`}
+                >
+                  {fmt}
+                </button>
+              ))}
             </div>
-            {!gifOk && (
-              <p className="mt-1.5 text-[11px] font-semibold text-sub">
-                GIF는 움직이는 원본(GIF)을 올렸을 때만 받을 수 있어요.
-              </p>
-            )}
             <Button className="mt-3 w-full" glow onClick={handleExport} disabled={busy}>
               <Download className="h-4 w-4" /> {busy ? '만드는 중…' : '다운로드'}
             </Button>
