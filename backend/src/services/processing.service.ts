@@ -2,6 +2,7 @@ import { AppError } from '../errors/app-error.js';
 import { findAssetsByProjectId } from '../repositories/asset.repository.js';
 import { findActiveJobForProject, insertJob } from '../repositories/job.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
+import type { AssetStatus } from '../types/asset.js';
 
 const STAGE_MESSAGES: Record<string, string> = {
   validating: '이미지를 확인하고 있어요',
@@ -15,15 +16,18 @@ const STAGE_MESSAGES: Record<string, string> = {
   completed: '현지화가 완료됐어요',
 };
 
-export async function createProcessingJob(projectId: string): Promise<{ jobId: string; status: string; job: import('../types/job.js').JobRow }> {
+export async function createProcessingJob(
+  projectId: string,
+  processableStatuses: AssetStatus[] = ['uploaded'],
+): Promise<{ jobId: string; status: string; job: import('../types/job.js').JobRow }> {
   const activeJob = await findActiveJobForProject(projectId);
   if (activeJob) {
     throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id });
   }
 
   const assets = await findAssetsByProjectId(projectId);
-  const uploadedCount = assets.filter((asset) => asset.status === 'uploaded').length;
-  if (uploadedCount === 0) {
+  const processableCount = assets.filter((asset) => processableStatuses.includes(asset.status)).length;
+  if (processableCount === 0) {
     throw new AppError('UPLOAD_NOT_COMPLETED', { projectId }, '처리할 이미지가 없습니다. 먼저 업로드를 완료해주세요.');
   }
 
@@ -37,6 +41,7 @@ export interface ProjectStatusResponse {
   stage: string | null;
   progress: number;
   message: string;
+  errorCode?: string;
   assets: Array<{
     assetId: string;
     status: string;
@@ -62,6 +67,7 @@ export async function getProjectStatus(projectId: string): Promise<ProjectStatus
     message: project.status === 'failed'
       ? project.error_message ?? '처리에 실패했습니다. 이미지별 오류를 확인해주세요.'
       : (project.stage && STAGE_MESSAGES[project.stage]) || '',
+    ...(project.error_code ? { errorCode: project.error_code } : {}),
     assets: assets.map((asset) => ({
       assetId: asset.id,
       status: asset.status,

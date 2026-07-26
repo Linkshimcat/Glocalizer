@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import Dashboard from './pages/Dashboard'
 import Editor from './pages/Editor'
@@ -10,17 +11,19 @@ import { UploadProvider } from './store/uploads'
 function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-      <UploadProvider>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/service" element={<ServiceIntro />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/editor" element={<Editor />} />
-          <Route path="/result" element={<Result />} />
-        </Routes>
-      </UploadProvider>
-      </ToastProvider>
+      <AppErrorBoundary>
+        <ToastProvider>
+          <UploadProvider>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/service" element={<ServiceIntro />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/editor" element={<Editor />} />
+              <Route path="/result" element={<Result />} />
+            </Routes>
+          </UploadProvider>
+        </ToastProvider>
+      </AppErrorBoundary>
     </BrowserRouter>
   )
 }

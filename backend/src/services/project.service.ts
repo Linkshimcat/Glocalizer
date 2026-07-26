@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
 import { findAssetsByProjectId, insertAssets } from '../repositories/asset.repository.js';
@@ -29,62 +30,77 @@ interface CreateProjectResult {
 export async function createProject(input: CreateProjectInput): Promise<CreateProjectResult> {
   const projectToken = generateProjectToken();
   const expiresAt = new Date(Date.now() + env.PROJECT_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+  let projectId: string | null = null;
 
-  const project = await insertProject({
-    accessTokenHash: hashProjectToken(projectToken),
-    targetLanguages: input.targetLanguages,
-    localizationOptions: input.options,
-    expiresAt,
-  });
+  try {
+    const project = await insertProject({
+      accessTokenHash: hashProjectToken(projectToken),
+      targetLanguages: input.targetLanguages,
+      localizationOptions: input.options,
+      expiresAt,
+    });
+    projectId = project.id;
 
-  const plannedAssets = input.files.map((file) => ({
-    id: randomUUID(),
-    clientId: file.clientId,
-    originalName: file.name,
-    mimeType: file.mimeType,
-    byteSize: file.size,
-    originalPath: `projects/${project.id}/original/${randomUUID()}.${MIME_EXTENSIONS[file.mimeType]}`,
-  }));
+    const plannedAssets = input.files.map((file) => ({
+      id: randomUUID(),
+      clientId: file.clientId,
+      originalName: file.name,
+      mimeType: file.mimeType,
+      byteSize: file.size,
+      originalPath: `projects/${project.id}/original/${randomUUID()}.${MIME_EXTENSIONS[file.mimeType]}`,
+    }));
 
-  await insertAssets(
-    plannedAssets.map((asset) => ({
-      id: asset.id,
-      projectId: project.id,
-      clientId: asset.clientId,
-      originalName: asset.originalName,
-      mimeType: asset.mimeType,
-      byteSize: asset.byteSize,
-      originalPath: asset.originalPath,
-    })),
-  );
+    await insertAssets(
+      plannedAssets.map((asset) => ({
+        id: asset.id,
+        projectId: project.id,
+        clientId: asset.clientId,
+        originalName: asset.originalName,
+        mimeType: asset.mimeType,
+        byteSize: asset.byteSize,
+        originalPath: asset.originalPath,
+      })),
+    );
 
-  const assets: CreatedAsset[] = [];
-  for (const asset of plannedAssets) {
-    const { data, error } = await supabase.storage
-      .from(env.SUPABASE_STORAGE_BUCKET)
-      .createSignedUploadUrl(asset.originalPath);
+    const assets: CreatedAsset[] = [];
+    for (const asset of plannedAssets) {
+      const { data, error } = await supabase.storage
+        .from(env.SUPABASE_STORAGE_BUCKET)
+        .createSignedUploadUrl(asset.originalPath);
 
-    if (error || !data) {
-      throw new AppError('INTERNAL_ERROR', { cause: error?.message }, '업로드 URL 생성에 실패했습니다.');
+      if (error || !data) {
+        throw new AppError('INTERNAL_ERROR', { cause: error?.message }, '업로드 URL 생성에 실패했습니다.');
+      }
+
+      const uploadUrl = data.signedUrl.startsWith('http')
+        ? data.signedUrl
+        : `${env.SUPABASE_URL}/storage/v1${data.signedUrl}`;
+
+      assets.push({
+        assetId: asset.id,
+        clientId: asset.clientId,
+        uploadUrl,
+      });
     }
 
-    const uploadUrl = data.signedUrl.startsWith('http')
-      ? data.signedUrl
-      : `${env.SUPABASE_URL}/storage/v1${data.signedUrl}`;
-
-    assets.push({
-      assetId: asset.id,
-      clientId: asset.clientId,
-      uploadUrl,
-    });
+    return {
+      projectId: project.id,
+      projectToken,
+      expiresAt,
+      assets,
+    };
+  } catch (error) {
+    // Signed URL은 응답이 성공한 뒤에만 브라우저가 받는다. 응답 전 실패에서는 파일이 업로드될 수
+    // 없으므로 FK cascade로 project와 계획된 asset 행만 정리하면 된다.
+    if (projectId) {
+      try {
+        await deleteProjectRow(projectId);
+      } catch (cleanupError) {
+        logger.error({ err: cleanupError, projectId }, '프로젝트 생성 실패 후 DB 정리 실패');
+      }
+    }
+    throw error;
   }
-
-  return {
-    projectId: project.id,
-    projectToken,
-    expiresAt,
-    assets,
-  };
 }
 
 /** DB 삭제는 FK cascade로 assets/ocr_regions/translations/jobs/editor_states까지 함께 지워지지만, Storage 파일은 별도로 지워야 한다. */

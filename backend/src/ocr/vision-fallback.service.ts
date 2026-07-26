@@ -81,7 +81,15 @@ async function requestGeminiVisionOcr(image: Buffer, candidate?: RecognizedRegio
 }
 
 export async function requestVisionOcr(image: Buffer, candidate?: RecognizedRegion, options?: VisionOcrOptions): Promise<VisionFallbackResult | null> {
-  return env.VISION_PROVIDER === 'gemini'
-    ? requestGeminiVisionOcr(image, candidate, options)
-    : requestGroqVisionOcr(image, candidate, options);
+  try {
+    return env.VISION_PROVIDER === 'gemini'
+      ? await requestGeminiVisionOcr(image, candidate, options)
+      : await requestGroqVisionOcr(image, candidate, options);
+  } catch (error) {
+    // Vision은 PaddleOCR의 불확실한 결과를 보완하는 선택적 단계다. 여기서의 timeout이나
+    // 네트워크 오류가 이미 확보한 OCR 후보까지 실패 처리하게 해서는 안 된다.
+    const reason = error instanceof Error ? error.name : 'unknown';
+    logger.warn({ provider: env.VISION_PROVIDER, reason }, 'Vision OCR fallback 호출 중 오류가 발생해 기존 OCR 후보를 유지합니다.');
+    return null;
+  }
 }

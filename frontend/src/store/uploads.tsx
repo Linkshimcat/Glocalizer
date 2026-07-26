@@ -217,7 +217,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     if (!projectId || !projectToken) return null
     const status = await getProjectStatus(projectId, projectToken)
     setProjectStatus(status)
-    if (status.status === 'completed') {
+    // 부분 실패·전체 실패여도 실제 OCR 결과와 오류 상태를 복원해야 Editor가 데모 문구로
+    // 대체하지 않고 사용자의 OCR 수정·수동 cleanup을 이어갈 수 있다.
+    if (status.status === 'completed' || status.status === 'failed') {
       const results = await getProjectResults(projectId, projectToken)
       setProjectResults(results)
       setStyles(previous => {

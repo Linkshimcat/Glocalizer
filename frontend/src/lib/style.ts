@@ -11,6 +11,8 @@ export interface ManualCleanup {
   mode: 'transparent' | 'solid'
   rect: NormalizedRect
   color?: string
+  /** 지울 영역의 짧은 변 대비 모서리 둥글기 (0~0.5) */
+  radius?: number
 }
 
 /** 에디터 편집 스타일 (undo/redo · 내보내기 단위) */

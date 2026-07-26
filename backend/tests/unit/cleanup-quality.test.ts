@@ -3,7 +3,15 @@ import { assessCleanupQuality, decideCleanupMethod } from '../../src/image/clean
 import type { BorderStats } from '../../src/image/background-sampler.js';
 
 function stats(overrides: Partial<BorderStats>): BorderStats {
-  return { meanAlpha: 255, medianColor: { r: 255, g: 255, b: 255 }, colorStdDev: 0, sampledPixelCount: 100, dominantColorRatio: 0, ...overrides };
+  return {
+    meanAlpha: 255,
+    medianColor: { r: 255, g: 255, b: 255 },
+    colorStdDev: 0,
+    sampledPixelCount: 100,
+    dominantColorRatio: 0,
+    coarseDominantColorRatio: 0,
+    ...overrides,
+  };
 }
 
 describe('decideCleanupMethod', () => {
@@ -21,6 +29,16 @@ describe('decideCleanupMethod', () => {
 
   it('말풍선처럼 내부 지배 색상이 뚜렷하면 테두리 편차가 있어도 단색 채우기를 쓴다', () => {
     expect(decideCleanupMethod(stats({ colorStdDev: 80, dominantColorRatio: 0.7 }))).toBe('solid-color-fill');
+  });
+
+  it('중간 질감 배경에는 주변 픽셀 보간을 사용한다', () => {
+    expect(decideCleanupMethod(stats({ colorStdDev: 42, dominantColorRatio: 0.2 }))).toBe('directional-inpaint');
+  });
+
+  it('JPEG 노이즈가 있어도 넓은 단색 패널이 우세하면 단색 채우기를 쓴다', () => {
+    const panel = stats({ colorStdDev: 43, dominantColorRatio: 0.34, coarseDominantColorRatio: 0.78 });
+    expect(decideCleanupMethod(panel)).toBe('solid-color-fill');
+    expect(assessCleanupQuality('solid-color-fill', panel)).toBe('acceptable');
   });
 });
 

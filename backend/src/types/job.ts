@@ -9,6 +9,8 @@ export interface JobRow {
   attempts: number;
   max_attempts: number;
   locked_at: string | null;
+  worker_id: string | null;
+  heartbeat_at: string | null;
   started_at: string | null;
   completed_at: string | null;
   error_code: string | null;

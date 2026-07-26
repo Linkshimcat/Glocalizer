@@ -931,6 +931,7 @@ export default function Editor() {
                         top: `${cleanupBox.y * 100}%`,
                         width: `${cleanupBox.width * 100}%`,
                         height: `${cleanupBox.height * 100}%`,
+                        borderRadius: `${Math.max(0, manualCleanup.radius ?? 0) * 100}%`,
                         backgroundColor: manualCleanup.mode === 'solid' ? manualCleanup.color ?? '#FFFFFF' : undefined,
                       }}
                     >
@@ -1493,6 +1494,7 @@ export default function Editor() {
                     <input type="color" value={manualCleanup.color ?? '#FFFFFF'} onChange={event => updateManualCleanup({ color: event.target.value })} />
                   </label>
                 )}
+                <RangeRow label="모서리 둥글기" min={0} max={50} value={Math.round((manualCleanup.radius ?? 0) * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualCleanup({ radius: value / 100 })} />
                 <RangeRow label="가로 위치" min={0} max={100} value={Math.round(manualCleanup.rect.x * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ x: value / 100 })} />
                 <RangeRow label="세로 위치" min={0} max={100} value={Math.round(manualCleanup.rect.y * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ y: value / 100 })} />
                 <RangeRow label="가로 크기" min={1} max={100} value={Math.round(manualCleanup.rect.width * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ width: value / 100 })} />

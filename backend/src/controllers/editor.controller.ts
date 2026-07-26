@@ -3,7 +3,9 @@ import { regenerateTranslation } from '../ai/localization/localization.service.j
 import { requireProject } from '../middleware/project-auth.middleware.js';
 import { saveEditorState } from '../services/editor-state.service.js';
 import { reviseOcrAndReprocess } from '../services/ocr-review.service.js';
+import { createProcessingJob } from '../services/processing.service.js';
 import { requireParam } from '../utils/request-params.js';
+import { processClaimedJob } from '../workers/job-runner.js';
 
 export async function saveEditorStateHandler(req: Request, res: Response) {
   const { languageCode, regionId, style } = req.body;
@@ -24,5 +26,7 @@ export async function updateOcrHandler(req: Request, res: Response) {
   const projectId = requireProject(req).id;
   const assetId = requireParam(req, 'assetId');
   await reviseOcrAndReprocess(projectId, assetId, req.body.text, req.body.normalizedBox);
-  res.status(202).json({ assetId, status: 'reprocessing' });
+  const job = await createProcessingJob(projectId, ['ocr']);
+  res.status(202).json({ assetId, status: 'reprocessing', jobId: job.jobId });
+  void processClaimedJob(job.job);
 }

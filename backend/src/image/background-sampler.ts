@@ -10,6 +10,8 @@ export interface BorderStats {
   sampledPixelCount: number;
   /** OCR 영역 내부에서 가장 많이 나타나는 양자화 색상 비율. 말풍선 같은 단색 면 판별에 쓴다. */
   dominantColorRatio: number;
+  /** JPEG 노이즈를 흡수한 32단계 양자화 지배 비율. 넓은 말풍선·단색 패널 보조 판별용이다. */
+  coarseDominantColorRatio: number;
 }
 
 interface Rect {
@@ -86,7 +88,14 @@ export async function sampleBorderPixels(
   const meanAlpha = alphas.length > 0 ? alphas.reduce((sum, a) => sum + a, 0) / alphas.length : 255;
 
   if (reds.length === 0) {
-    return { meanAlpha, medianColor: { r: 0, g: 0, b: 0 }, colorStdDev: 0, sampledPixelCount: alphas.length, dominantColorRatio: 0 };
+    return {
+      meanAlpha,
+      medianColor: { r: 0, g: 0, b: 0 },
+      colorStdDev: 0,
+      sampledPixelCount: alphas.length,
+      dominantColorRatio: 0,
+      coarseDominantColorRatio: 0,
+    };
   }
 
   const meanR = reds.reduce((sum, v) => sum + v, 0) / reds.length;
@@ -97,6 +106,7 @@ export async function sampleBorderPixels(
 
   const interior = clampRect({ left: box.x, top: box.y, width: box.width, height: box.height }, imageWidth, imageHeight);
   const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+  const coarseBuckets = new Map<string, number>();
   if (interior) {
     const { data } = await sharp(buffer).ensureAlpha().extract(interior).raw().toBuffer({ resolveWithObject: true });
     for (let index = 0; index < data.length; index += 4) {
@@ -105,10 +115,13 @@ export async function sampleBorderPixels(
       const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
       bucket.count += 1; bucket.r += data[index]; bucket.g += data[index + 1]; bucket.b += data[index + 2];
       buckets.set(key, bucket);
+      const coarseKey = `${Math.floor(data[index] / 32)}:${Math.floor(data[index + 1] / 32)}:${Math.floor(data[index + 2] / 32)}`;
+      coarseBuckets.set(coarseKey, (coarseBuckets.get(coarseKey) ?? 0) + 1);
     }
   }
   const dominant = [...buckets.values()].sort((left, right) => right.count - left.count)[0];
   const interiorCount = [...buckets.values()].reduce((total, bucket) => total + bucket.count, 0);
+  const coarseDominantCount = Math.max(0, ...coarseBuckets.values());
   const dominantColor = dominant ? { r: Math.round(dominant.r / dominant.count), g: Math.round(dominant.g / dominant.count), b: Math.round(dominant.b / dominant.count) } : null;
 
   return {
@@ -117,5 +130,6 @@ export async function sampleBorderPixels(
     colorStdDev,
     sampledPixelCount: alphas.length,
     dominantColorRatio: dominant && interiorCount > 0 ? dominant.count / interiorCount : 0,
+    coarseDominantColorRatio: interiorCount > 0 ? coarseDominantCount / interiorCount : 0,
   };
 }

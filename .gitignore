@@ -30,3 +30,9 @@ dist-ssr
 */.env
 */.env.local
 
+# Local OCR benchmark inputs and regenerable acceleration artifacts
+backend/benchmarks/ocr/images/
+backend/benchmarks/ocr/manifest.local.json
+backend/training/ocr/generated/
+backend/training/ocr/openvino/
+docs/이모티콘모음/

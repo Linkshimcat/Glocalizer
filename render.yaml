@@ -2,8 +2,13 @@ services:
   - type: web
     name: glocalizer-api
     runtime: docker
-    rootDir: backend
-    healthCheckPath: /api/v1/health
+    rootDir: .
+    region: singapore
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    numInstances: 1
+    healthCheckPath: /api/v1/health/ready
+    preDeployCommand: npm run db:migrate:production
     envVars:
       - key: NODE_ENV
         value: production
@@ -17,12 +22,14 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # Supabase Dashboard → Connect → Session Pooler의 전체 URI를 넣습니다.
+      - key: DATABASE_URL
+        sync: false
       - key: PROJECT_TOKEN_SECRET
         generateValue: true
       - key: GROQ_API_KEY
         sync: false
-      # Render Starter 플랜(RAM 512MB)에서 PaddleOCR가 메모리를 초과해
-      # 인스턴스가 강제 종료되던 문제 대응 — 동시 처리와 입력 해상도를 낮춘다.
+      # Render Starter 플랜(512MB)에서 PaddleOCR의 메모리 급증을 제한한다.
       - key: AI_CONCURRENCY
         value: 1
       - key: CLEANUP_CONCURRENCY
