@@ -91,7 +91,15 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
     if (shouldUseVisionFallback(selected, results[0], needsManualReview)) {
       const vision = await requestVisionOcr(variants[0].content, selected ?? undefined);
       if (vision !== null && vision.confidence >= 0.8 && containsKorean(vision.text)) {
-        selected = { ...vision, agreementScore: vision.confidence, source: 'paddle-consensus', needsManualReview: false };
+        // Vision 모델은 글자 판독(짧은 한글 오독 보정)엔 강하지만, 프롬프트로 요청한 자체
+        // polygon 좌표 추정은 신뢰할 수 없다는 걸 실측으로 확인했다 — "대박" 같은 2~3글자
+        // 문구(shouldUseVisionFallback이 항상 vision을 타게 하는 케이스)에서 vision이 내놓은
+        // polygon이 실제 글자와 겹치지 않는 빈 영역을 가리켜, cleanup 단계의 mask coverage가
+        // 0%로 나와 자동 배경 정리가 항상 manual-required로 떨어지는 문제로 이어졌다.
+        // PaddleOCR 후보가 이미 한글을 포함해 위치를 찾아둔 상태라면, 검출 전용 모델의 위치
+        // 추정치를 그대로 쓰고 텍스트 내용만 vision으로 교체한다.
+        const polygon = selected && containsKorean(selected.text) ? selected.polygon : vision.polygon;
+        selected = { ...vision, polygon, agreementScore: vision.confidence, source: 'paddle-consensus', needsManualReview: false };
         sourceName = 'vision-fallback'; agreementScore = vision.confidence; needsManualReview = false;
       }
     }

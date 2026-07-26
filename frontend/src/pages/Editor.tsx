@@ -247,6 +247,15 @@ export default function Editor() {
     }
   }, [current.id, current.korean, toast])
 
+  // AI 자동 배경 정리가 안 된 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도 알려준다.
+  const manualCleanupWarnedIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (current.analysis?.needsManualCleanup && manualCleanupWarnedIdRef.current !== current.id) {
+      manualCleanupWarnedIdRef.current = current.id
+      toast('배경이 복잡해서 자동으로 못 지웠어요. "스타일" 탭의 "원문 지우기" 도구로 직접 지워주세요.')
+    }
+  }, [current.id, current.analysis?.needsManualCleanup, toast])
+
   // 스타일 + undo/redo 히스토리
   const [style, setStyle] = useState<Style>(DEFAULT_STYLE)
   const [past, setPast] = useState<Style[]>([])
@@ -667,6 +676,38 @@ export default function Editor() {
     </button>
   )
 
+  // 인식·번역이 끝나기 전에는 에디터 화면(상단 바·언어 탭·파일 목록·설정 패널 등)을 전혀
+  // 그리지 않고 로딩 화면만 보여준다 — 전에는 로딩 오버레이가 캔버스 영역에만 떠서 나머지
+  // UI가 먼저 다 보이는 문제가 있었다.
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-white px-6 text-center">
+        <Logo small />
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft">
+          <LoaderCircle className="h-7 w-7 animate-spin text-brand-dark" />
+        </span>
+        <div>
+          <p className="text-xl font-extrabold">{DEMO_LOADING_STEPS[loadingStep]}</p>
+          <p className="mt-2 text-sm font-medium text-sub">
+            AI 서버 상황에 따라 최대 몇 분 정도 걸릴 수 있어요
+          </p>
+        </div>
+        <div className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-surface">
+          <div
+            className="h-full rounded-full bg-brand transition-[width] duration-500"
+            style={{ width: `${Math.max(4, projectStatus?.progress ?? 0)}%` }}
+          />
+        </div>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-sm font-semibold text-sub hover:underline"
+        >
+          취소하고 대시보드로 돌아가기
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-white lg:h-screen">
       {/* 상단 바 */}
@@ -962,18 +1003,6 @@ export default function Editor() {
               </p>
             </article>
           </div>
-
-          {isLoading && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface/90 px-6">
-              <div className="flex w-full max-w-xs flex-col items-center rounded-3xl bg-white px-7 py-8 text-center shadow-[0_12px_32px_rgba(0,0,0,0.08)]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft">
-                  <LoaderCircle className="h-6 w-6 animate-spin text-brand-dark" />
-                </span>
-                <p className="mt-4 text-lg font-extrabold">{DEMO_LOADING_STEPS[loadingStep]}</p>
-                <p className="mt-1 text-sm font-medium text-sub">잠시만 기다려주세요</p>
-              </div>
-            </div>
-          )}
 
           {/* 이전 / 다음 (모바일 오버레이) */}
           <div className="absolute bottom-14 left-4 flex gap-2 lg:hidden">
