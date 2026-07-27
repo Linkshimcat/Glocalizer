@@ -81,10 +81,11 @@ interface ColorRowProps {
   onBegin: () => void
   onLive: (color: string) => void
   onPick: (color: string) => void
+  pickColorTitle: string
 }
 
 /** 프리셋 스와치 + 스펙트럼 커스텀 피커 */
-function ColorRow({ value, presets, onBegin, onLive, onPick }: ColorRowProps) {
+function ColorRow({ value, presets, onBegin, onLive, onPick, pickColorTitle }: ColorRowProps) {
   const isCustom = !presets.includes(value)
   return (
     <div className="flex flex-wrap gap-2">
@@ -104,7 +105,7 @@ function ColorRow({ value, presets, onBegin, onLive, onPick }: ColorRowProps) {
         />
       ))}
       <label
-        title={e.pickColor}
+        title={pickColorTitle}
         onPointerDown={onBegin}
         className={`relative h-8 w-8 cursor-pointer rounded-full border-2 ${
           isCustom
@@ -1217,6 +1218,7 @@ export default function Editor() {
             <div className="mt-3">
               <ColorRow
                 value={style.color}
+                pickColorTitle={e.pickColor}
                 presets={COLORS}
                 onBegin={beginGesture}
                 onLive={c => live({ color: c })}
@@ -1237,6 +1239,7 @@ export default function Editor() {
               <div className="mt-3 flex flex-col gap-3">
                 <ColorRow
                   value={style.backgroundColor}
+                  pickColorTitle={e.pickColor}
                   presets={['#FFFFFF', '#191F28', '#22C55E', '#FDE047']}
                   onBegin={beginGesture}
                   onLive={c => live({ backgroundColor: c })}
@@ -1294,6 +1297,7 @@ export default function Editor() {
                 />
                 <ColorRow
                   value={style.strokeColor}
+                  pickColorTitle={e.pickColor}
                   presets={['#FFFFFF', '#191F28', '#22C55E']}
                   onBegin={beginGesture}
                   onLive={c => live({ strokeColor: c })}
@@ -1315,6 +1319,7 @@ export default function Editor() {
               <div className="mt-3 flex flex-col gap-3">
                 <ColorRow
                   value={style.shadowColor}
+                  pickColorTitle={e.pickColor}
                   presets={['#000000', '#191F28', '#22C55E']}
                   onBegin={beginGesture}
                   onLive={c => live({ shadowColor: c })}
