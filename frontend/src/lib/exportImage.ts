@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import type { DemoItem } from '../data/demo'
-import { DEFAULT_STYLE, hexToRgba, resolveText, type Style } from './style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, type Style } from './style'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 512px 캔버스로 합성 */
 const CANVAS_SIZE = 512
@@ -54,6 +54,49 @@ function applyManualCleanup(ctx: CanvasRenderingContext2D, style: Style, frame: 
     ctx.fillRect(x, y, width, height)
   }
   ctx.restore()
+}
+
+/** maxWidth를 넘는 텍스트를 단어 단위로 줄바꿈한다(긴 문장 대응). */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length === 0) return []
+  const lines: string[] = []
+  let current = words[0]
+  for (const word of words.slice(1)) {
+    const candidate = `${current} ${word}`
+    if (ctx.measureText(candidate).width <= maxWidth) current = candidate
+    else { lines.push(current); current = word }
+  }
+  lines.push(current)
+  return lines
+}
+
+/** 대표 외 영역들의 번역을 각 위치에 자동 배치해 그린다(MVP). */
+async function drawSecondaryOverlays(ctx: CanvasRenderingContext2D, item: DemoItem) {
+  if (!item.secondaryOverlays?.length) return
+  const textColor = item.analysis?.textColor ?? null
+  for (const overlay of item.secondaryOverlays) {
+    const style = styleFromNormalizedBox(overlay.normalizedBox, textColor)
+    const fontPx = Math.round(style.size * SCALE)
+    const fontSpec = `800 ${fontPx}px '${item.recommendedFont}', sans-serif`
+    try {
+      await document.fonts.load(fontSpec, overlay.text)
+    } catch {
+      // 폰트 로드 실패 시 폴백 폰트로 진행
+    }
+    ctx.save()
+    ctx.font = fontSpec
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = style.color
+    ctx.translate(CANVAS_SIZE / 2 + style.x * SCALE, CANVAS_SIZE / 2 + style.y * SCALE)
+    const maxWidth = Math.max(fontPx * 3, overlay.normalizedBox.width * CANVAS_SIZE)
+    const lines = wrapText(ctx, overlay.text, maxWidth)
+    const lineHeight = fontPx * 1.15
+    const startY = -((lines.length - 1) * lineHeight) / 2
+    lines.forEach((line, index) => ctx.fillText(line, 0, startY + index * lineHeight))
+    ctx.restore()
+  }
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -140,6 +183,9 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
   ctx.fillStyle = style.color
   ctx.fillText(text, 0, 0)
   ctx.restore()
+
+  // 대표 외 영역들의 번역을 자동 배치(MVP)
+  await drawSecondaryOverlays(ctx, item)
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(

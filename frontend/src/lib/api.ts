@@ -14,6 +14,9 @@ export interface ApiRegion {
   source: 'paddle-consensus' | 'vision-fallback'
   agreementScore: number
   needsManualReview: boolean
+  containsKorean?: boolean
+  isPrimary?: boolean
+  localizations?: Record<string, { candidates: ApiCandidate[]; recommendedStyle: { fontCategory?: string } | null }>
 }
 
 export interface ApiAssetResult {

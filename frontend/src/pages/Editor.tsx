@@ -967,6 +967,19 @@ export default function Editor() {
                       <span onPointerDown={event => startManualCleanupGesture(event, 'resize')} className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-brand bg-white" />
                     </span>
                   )}
+                  {/* 대표 외 영역들의 번역 자동 배치(MVP): 위치 고정, 편집 불가 */}
+                  {current.secondaryOverlays?.map(ov => {
+                    const s = styleFromNormalizedBox(ov.normalizedBox, current.analysis?.textColor)
+                    return (
+                      <div
+                        key={ov.id}
+                        className="pointer-events-none absolute left-1/2 top-1/2 text-center"
+                        style={{ transform: `translate(-50%, -50%) translate(${s.x}px, ${s.y}px)`, width: `${Math.max(ov.normalizedBox.width * 340, s.size * 3)}px` }}
+                      >
+                        <span style={{ fontSize: s.size, color: s.color, fontFamily: `'${current.recommendedFont}', sans-serif`, fontWeight: 800, lineHeight: 1.15, display: 'inline-block', wordBreak: 'keep-all' }}>{ov.text}</span>
+                      </div>
+                    )
+                  })}
                   <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -50%) translate(${style.x}px, ${style.y}px) rotate(${style.rotation}deg)` }}>
                     {preview || !selected ? (
                       <span onPointerDown={preview ? undefined : e => { e.stopPropagation(); setSelected(true) }} className={`whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`} style={overlayTextStyle}>{suggestionText}</span>
