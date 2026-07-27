@@ -926,7 +926,7 @@ export default function Editor() {
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {detectedBox && (
+                  {detectedBox && !preview && (
                     <span
                       className="pointer-events-none absolute border-2 border-dashed border-brand bg-brand-soft/20"
                       style={{ left: `${detectedBox.x * 100}%`, top: `${detectedBox.y * 100}%`, width: `${detectedBox.width * 100}%`, height: `${detectedBox.height * 100}%` }}
