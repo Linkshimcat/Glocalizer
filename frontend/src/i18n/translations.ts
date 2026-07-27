@@ -62,6 +62,17 @@ export interface Dict {
   dashHintReady: string
   dashToastFormat: string
   dashToastStartFail: string
+  // 로딩(처리 중) 화면 + 에디터 토스트
+  loadingStep1: string
+  loadingStep2: string
+  loadingSub: string
+  loadingCancel: string
+  toastCleanupManual: string
+  toastAiFailed: string
+  toastStatusFail: string
+  toastPngFail: string
+  toastZipFail: string
+  toastDownloadFail: string
 }
 
 export const translations: Record<SiteLang, Dict> = {
@@ -116,6 +127,16 @@ export const translations: Record<SiteLang, Dict> = {
     dashHintReady: '편집 화면에서 번역 문구와 폰트를 다듬을 수 있어요.',
     dashToastFormat: 'PNG · JPG 이미지만 올릴 수 있어요.',
     dashToastStartFail: '업로드를 시작하지 못했어요.',
+    loadingStep1: '한글을 찾고 있어요…',
+    loadingStep2: '자연스러운 표현을 고르고 있어요…',
+    loadingSub: 'AI 서버 상황에 따라 최대 몇 분 정도 걸릴 수 있어요',
+    loadingCancel: '취소하고 대시보드로 돌아가기',
+    toastCleanupManual: '배경이 복잡해서 자동으로 못 지웠어요. "스타일" 탭의 "원문 지우기" 도구로 직접 지워주세요.',
+    toastAiFailed: 'AI 처리에 실패했어요. 새 작업으로 다시 시도해주세요.',
+    toastStatusFail: '처리 상태를 확인하지 못했어요.',
+    toastPngFail: 'PNG 다운로드에 실패했어요.',
+    toastZipFail: 'ZIP 다운로드에 실패했어요.',
+    toastDownloadFail: '다운로드에 실패했어요.',
   },
   en: {
     navStart: 'Start',
@@ -168,6 +189,16 @@ export const translations: Record<SiteLang, Dict> = {
     dashHintReady: 'You can refine text and fonts in the editor.',
     dashToastFormat: 'Only PNG · JPG images are supported.',
     dashToastStartFail: 'Could not start the upload.',
+    loadingStep1: 'Finding the Korean text…',
+    loadingStep2: 'Choosing natural expressions…',
+    loadingSub: 'Depending on AI server load, this can take up to a few minutes',
+    loadingCancel: 'Cancel and return to dashboard',
+    toastCleanupManual: 'The background is too complex to erase automatically. Use the "Erase original" tool in the "Style" tab.',
+    toastAiFailed: 'AI processing failed. Please try again with a new project.',
+    toastStatusFail: 'Could not check the processing status.',
+    toastPngFail: 'PNG download failed.',
+    toastZipFail: 'ZIP download failed.',
+    toastDownloadFail: 'Download failed.',
   },
   ja: {
     navStart: 'はじめる',
@@ -220,6 +251,16 @@ export const translations: Record<SiteLang, Dict> = {
     dashHintReady: 'エディターで文言とフォントを調整できます。',
     dashToastFormat: 'PNG・JPG画像のみアップロードできます。',
     dashToastStartFail: 'アップロードを開始できませんでした。',
+    loadingStep1: '韓国語を探しています…',
+    loadingStep2: '自然な表現を選んでいます…',
+    loadingSub: 'AIサーバーの状況により、最大数分ほどかかることがあります',
+    loadingCancel: 'キャンセルしてダッシュボードに戻る',
+    toastCleanupManual: '背景が複雑で自動で消せませんでした。「スタイル」タブの「原文消去」ツールで直接消してください。',
+    toastAiFailed: 'AI処理に失敗しました。新しい作業でもう一度お試しください。',
+    toastStatusFail: '処理状況を確認できませんでした。',
+    toastPngFail: 'PNGのダウンロードに失敗しました。',
+    toastZipFail: 'ZIPのダウンロードに失敗しました。',
+    toastDownloadFail: 'ダウンロードに失敗しました。',
   },
   zh: {
     navStart: '开始',
@@ -272,5 +313,15 @@ export const translations: Record<SiteLang, Dict> = {
     dashHintReady: '可在编辑器中调整文字和字体。',
     dashToastFormat: '仅支持 PNG · JPG 图片。',
     dashToastStartFail: '无法开始上传。',
+    loadingStep1: '正在寻找韩文…',
+    loadingStep2: '正在挑选自然的表达…',
+    loadingSub: '视 AI 服务器情况，最多可能需要几分钟',
+    loadingCancel: '取消并返回仪表板',
+    toastCleanupManual: '背景较复杂，无法自动擦除。请用“样式”标签的“擦除原文”工具手动擦除。',
+    toastAiFailed: 'AI 处理失败。请用新任务重试。',
+    toastStatusFail: '无法确认处理状态。',
+    toastPngFail: 'PNG 下载失败。',
+    toastZipFail: 'ZIP 下载失败。',
+    toastDownloadFail: '下载失败。',
   },
 }

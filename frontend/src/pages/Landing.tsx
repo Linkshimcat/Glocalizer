@@ -5,10 +5,9 @@ import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { DEMO_ITEMS } from '../data/demo'
+import countryBadges from '../assets/GCFrontendUI/country.png'
 import { LANGUAGES } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
-
-const shortCode = (code: string) => code.toUpperCase()
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -87,13 +86,7 @@ export default function Landing() {
             <p className="text-center text-sm font-bold text-sub">
               <span className="text-brand-dark">{LANGUAGES.length}{t.langCountUnit}</span>{t.langCountSuffix}
             </p>
-            <div className="flex items-center gap-2 text-lg" aria-label="지원 언어">
-              {LANGUAGES.map(lang => (
-                <span key={lang.code} title={`${lang.label} (${shortCode(lang.code)})`}>
-                  {lang.flag}
-                </span>
-              ))}
-            </div>
+            <img src={countryBadges} alt="EN · JP · ZH" className="h-11 w-auto" aria-label="지원 언어: 영어 · 일본어 · 중국어" />
           </div>
         </section>
       </main>

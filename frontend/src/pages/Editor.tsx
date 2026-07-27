@@ -41,6 +41,7 @@ import {
 } from '../lib/exportImage'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, type ManualCleanup, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
+import { useSiteLang } from '../i18n/LanguageContext'
 
 const ALIGN_X = { left: -95, center: 0, right: 95 } as const
 const ALIGN_Y = { top: -105, middle: 0, bottom: 105 } as const
@@ -50,10 +51,7 @@ const DEFAULT_ZOOM = 100
 type MobileTab = '번역' | '폰트' | '스타일'
 type MobileCanvasTab = '원본' | '미리보기'
 
-const DEMO_LOADING_STEPS = [
-  '한글을 찾고 있어요…',
-  '자연스러운 표현을 고르고 있어요…',
-] as const
+const LOADING_STEP_COUNT = 2
 
 /* ── 작은 UI 헬퍼 ─────────────────────────────────────────────────── */
 
@@ -237,13 +235,14 @@ export default function Editor() {
   const [doneIds, setDoneIds] = useState<string[]>([])
 
   const toast = useToast()
+  const { t } = useSiteLang()
 
   // AI 자동 배경 정리가 안 된 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도 알려준다.
   const manualCleanupWarnedIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (current.analysis?.needsManualCleanup && manualCleanupWarnedIdRef.current !== current.id) {
       manualCleanupWarnedIdRef.current = current.id
-      toast('배경이 복잡해서 자동으로 못 지웠어요. "스타일" 탭의 "원문 지우기" 도구로 직접 지워주세요.')
+      toast(t.toastCleanupManual)
     }
   }, [current.id, current.analysis?.needsManualCleanup, toast])
 
@@ -310,20 +309,20 @@ export default function Editor() {
     }
     if (projectStatus.status === 'failed') {
       setIsLoading(false)
-      toast(projectStatus.message || 'AI 처리에 실패했어요. 새 작업으로 다시 시도해주세요.')
+      toast(projectStatus.message || t.toastAiFailed)
       return
     }
 
     setIsLoading(true)
     const stepIndex = Math.min(
-      DEMO_LOADING_STEPS.length - 1,
-      Math.floor((projectStatus.progress / 100) * DEMO_LOADING_STEPS.length),
+      LOADING_STEP_COUNT - 1,
+      Math.floor((projectStatus.progress / 100) * LOADING_STEP_COUNT),
     )
     setLoadingStep(stepIndex)
     const timer = window.setInterval(() => {
       refreshProject().catch(error => {
         setIsLoading(false)
-        toast(error instanceof Error ? error.message : '처리 상태를 확인하지 못했어요.')
+        toast(error instanceof Error ? error.message : t.toastStatusFail)
       })
     }, 1500)
     return () => window.clearInterval(timer)
@@ -510,7 +509,7 @@ export default function Editor() {
       markCurrentDone()
       navigate('/result')
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'PNG 다운로드에 실패했어요.')
+      toast(error instanceof Error ? error.message : t.toastPngFail)
     } finally {
       setBusy(false)
     }
@@ -531,7 +530,7 @@ export default function Editor() {
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
       navigate('/result')
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'ZIP 다운로드에 실패했어요.')
+      toast(error instanceof Error ? error.message : t.toastZipFail)
     } finally {
       setBusy(false)
     }
@@ -552,7 +551,7 @@ export default function Editor() {
       markCurrentDone()
       navigate('/result')
     } catch (error) {
-      toast(error instanceof Error ? error.message : '다운로드에 실패했어요.')
+      toast(error instanceof Error ? error.message : t.toastDownloadFail)
     } finally {
       setBusy(false)
     }
@@ -668,9 +667,9 @@ export default function Editor() {
           <LoaderCircle className="h-7 w-7 animate-spin text-brand-dark" />
         </span>
         <div>
-          <p className="text-xl font-extrabold">{DEMO_LOADING_STEPS[loadingStep]}</p>
+          <p className="text-xl font-extrabold">{[t.loadingStep1, t.loadingStep2][loadingStep]}</p>
           <p className="mt-2 text-sm font-medium text-sub">
-            AI 서버 상황에 따라 최대 몇 분 정도 걸릴 수 있어요
+            {t.loadingSub}
           </p>
         </div>
         <div className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-surface">
@@ -683,7 +682,7 @@ export default function Editor() {
           onClick={() => navigate('/dashboard')}
           className="text-sm font-semibold text-sub hover:underline"
         >
-          취소하고 대시보드로 돌아가기
+          {t.loadingCancel}
         </button>
       </div>
     )

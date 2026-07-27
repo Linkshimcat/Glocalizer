@@ -6,6 +6,12 @@ import Header from '../components/Header'
 import { useToast } from '../components/Toast'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
+import usFlag from '../assets/GCFrontendUI/Group 1.png'
+import jpFlag from '../assets/GCFrontendUI/Japan (JP).png'
+import cnFlag from '../assets/GCFrontendUI/China (CN).png'
+
+// OS(특히 Windows)마다 국기 이모지 렌더가 달라서, 통일된 이미지 아이콘을 쓴다.
+const FLAG_IMG: Record<string, string> = { en: usFlag, ja: jpFlag, zh: cnFlag }
 
 function StepIndicator() {
   const { t } = useSiteLang()
@@ -277,7 +283,11 @@ export default function Dashboard() {
                       : 'border-gray-100 bg-white hover:border-gray-200'
                   }`}
                 >
-                  <span className="text-2xl">{lang.flag}</span>
+                  {FLAG_IMG[lang.code] ? (
+                    <img src={FLAG_IMG[lang.code]} alt="" className="h-5 w-auto rounded-sm" />
+                  ) : (
+                    <span className="text-2xl">{lang.flag}</span>
+                  )}
                   <span className="flex-1 text-[15px] font-bold">{lang.label}</span>
                   {selected && (
                     <Check className="h-5 w-5 text-brand-dark" strokeWidth={3} />
