@@ -1,5 +1,6 @@
-import { ArrowLeft, Check, Home, Sparkles } from 'lucide-react'
+import { ArrowLeft, Check, Home } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import sparkleDownload from '../assets/GCFrontendUI/SparkleDownload.svg'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import { toDemoItems } from '../data/demo'
@@ -109,7 +110,7 @@ export default function Result() {
             className="min-h-14 flex-1 md:min-h-0"
             glow
           >
-            <Sparkles className="h-4 w-4" /> {t.resultRestart}
+            <img src={sparkleDownload} alt="" aria-hidden className="h-4 w-4" /> {t.resultRestart}
           </Button>
         </div>
       </main>
