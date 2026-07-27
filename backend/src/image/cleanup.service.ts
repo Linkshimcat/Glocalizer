@@ -1,5 +1,5 @@
 import { findAssetsByProjectAndStatus, updateAsset } from '../repositories/asset.repository.js';
-import { findPrimaryRegion } from '../repositories/ocr.repository.js';
+import { findPrimaryRegion, findRegionsByAssetId } from '../repositories/ocr.repository.js';
 import { updateProjectStage } from '../repositories/project.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
@@ -14,6 +14,49 @@ import { applyDirectionalInpaint } from './directional-inpaint.js';
 import { generateTextEraseMask } from './mask-generator.js';
 import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
+
+// 대표 영역 외에 감지된 다른 한글 영역(여러 텍스트 블록·긴 문장의 나머지 줄)도 함께 지운다.
+// 각 영역을 독립적으로 판단해, 안전한 것만 버퍼에 순차 적용하고 위험한 것은 그대로 둔다.
+async function eraseAdditionalRegions(
+  buffer: Buffer,
+  assetId: string,
+  primaryRegionId: string,
+  width: number,
+  height: number,
+): Promise<Buffer> {
+  const regions = await findRegionsByAssetId(assetId);
+  let merged = buffer;
+  for (const region of regions) {
+    if (region.id === primaryRegionId) continue;
+    if (region.needs_manual_review) continue;
+    if (!region.contains_korean) continue;
+    if (!region.detected_text || !region.detected_text.trim()) continue;
+
+    const stats = await sampleBorderPixels(merged, region.bbox, width, height);
+    const method = decideCleanupMethod(stats);
+    const quality = assessCleanupQuality(method, stats);
+    if (method === 'manual-required' || quality === 'low') continue;
+
+    const mask = await generateTextEraseMask(
+      merged,
+      region.bbox,
+      width,
+      height,
+      method === 'transparent-mask'
+        ? { mode: 'transparent' }
+        : { mode: 'solid', backgroundColor: stats.medianColor },
+    );
+    if (!isMaskCoverageSafe(measureMaskCoverage(mask))) continue;
+
+    merged =
+      method === 'transparent-mask'
+        ? await applyTransparentCleanup(merged, region.bbox, width, height, mask)
+        : method === 'directional-inpaint'
+          ? await applyDirectionalInpaint(merged, region.bbox, width, height, mask)
+          : await applySolidColorCleanup(merged, region.bbox, stats.medianColor, width, height, mask);
+  }
+  return merged;
+}
 
 export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult & { assetId: string }> {
   if (!asset.original_path || !asset.width || !asset.height) {
@@ -88,8 +131,11 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
           ? await applyDirectionalInpaint(buffer, region.bbox, asset.width, asset.height, mask)
           : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height, mask);
 
+    // 대표 영역 외 다른 한글 영역도 안전하면 함께 지운다(여러 블록·긴 문장 대응).
+    const mergedBuffer = await eraseAdditionalRegions(cleanedBuffer, asset.id, region.id, asset.width, asset.height);
+
     const cleanedPath = `projects/${asset.project_id}/cleaned/${asset.id}.png`;
-    await uploadToStorage(cleanedPath, cleanedBuffer, 'image/png');
+    await uploadToStorage(cleanedPath, mergedBuffer, 'image/png');
 
     await updateAsset(asset.id, {
       status: 'completed',
