@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Home, Sparkles } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import { toDemoItems } from '../data/demo'
@@ -24,6 +24,8 @@ export default function Result() {
   const navigate = useNavigate()
   const { t } = useSiteLang()
   const { files, targetLangs, styles } = useUploads()
+  // 업로드 없이 직접 접근하면 데모 데이터가 뜨므로 대시보드로 돌려보낸다.
+  if (files.length === 0) return <Navigate to="/dashboard" replace />
   const languages = targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
 
   const langLabel =

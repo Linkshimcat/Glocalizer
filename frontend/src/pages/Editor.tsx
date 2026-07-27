@@ -240,6 +240,11 @@ export default function Editor() {
   const { t, lang } = useSiteLang()
   const e = editorDict[lang]
 
+  // 업로드 없이 직접 접근하면 데모 데이터가 뜨므로 대시보드로 돌려보낸다.
+  useEffect(() => {
+    if (files.length === 0) navigate('/dashboard', { replace: true })
+  }, [files.length, navigate])
+
   // AI 자동 배경 정리가 안 된 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도 알려준다.
   const manualCleanupWarnedIdRef = useRef<string | null>(null)
   useEffect(() => {
