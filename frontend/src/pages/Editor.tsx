@@ -951,7 +951,7 @@ export default function Editor() {
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {cleanupBox && manualCleanup && (
+                  {cleanupBox && manualCleanup && !preview && (
                     <span
                       onPointerDown={event => startManualCleanupGesture(event, 'move')}
                       className={`absolute cursor-move border-2 border-brand ${manualCleanup.mode === 'transparent' ? 'checkerboard' : ''}`}
