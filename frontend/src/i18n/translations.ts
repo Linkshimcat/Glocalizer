@@ -73,6 +73,10 @@ export interface Dict {
   toastPngFail: string
   toastZipFail: string
   toastDownloadFail: string
+  // 404 페이지
+  nfTitle: string
+  nfDesc: string
+  nfHome: string
 }
 
 export const translations: Record<SiteLang, Dict> = {
@@ -137,6 +141,9 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG 다운로드에 실패했어요.',
     toastZipFail: 'ZIP 다운로드에 실패했어요.',
     toastDownloadFail: '다운로드에 실패했어요.',
+    nfTitle: '페이지를 찾을 수 없어요',
+    nfDesc: '주소가 바뀌었거나 없는 페이지예요.',
+    nfHome: '홈으로 돌아가기',
   },
   en: {
     navStart: 'Start',
@@ -199,6 +206,9 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG download failed.',
     toastZipFail: 'ZIP download failed.',
     toastDownloadFail: 'Download failed.',
+    nfTitle: 'Page not found',
+    nfDesc: 'The page may have moved or no longer exists.',
+    nfHome: 'Back to home',
   },
   ja: {
     navStart: 'はじめる',
@@ -261,6 +271,9 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNGのダウンロードに失敗しました。',
     toastZipFail: 'ZIPのダウンロードに失敗しました。',
     toastDownloadFail: 'ダウンロードに失敗しました。',
+    nfTitle: 'ページが見つかりません',
+    nfDesc: 'アドレスが変わったか、存在しないページです。',
+    nfHome: 'ホームに戻る',
   },
   zh: {
     navStart: '开始',
@@ -323,5 +336,8 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG 下载失败。',
     toastZipFail: 'ZIP 下载失败。',
     toastDownloadFail: '下载失败。',
+    nfTitle: '找不到页面',
+    nfDesc: '地址可能已更改，或该页面不存在。',
+    nfHome: '返回首页',
   },
 }

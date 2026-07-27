@@ -5,6 +5,7 @@ import { SiteLangProvider } from './i18n/LanguageContext'
 import Dashboard from './pages/Dashboard'
 import Editor from './pages/Editor'
 import Landing from './pages/Landing'
+import NotFound from './pages/NotFound'
 import Result from './pages/Result'
 import ServiceIntro from './pages/ServiceIntro'
 import { UploadProvider } from './store/uploads'
@@ -22,6 +23,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/editor" element={<Editor />} />
               <Route path="/result" element={<Result />} />
+              <Route path="*" element={<NotFound />} />
               </Routes>
             </UploadProvider>
           </SiteLangProvider>
