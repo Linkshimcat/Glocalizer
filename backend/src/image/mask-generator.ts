@@ -48,6 +48,63 @@ function dilate(input: Uint8Array, width: number, height: number, radius: number
 }
 
 /**
+ * ROI 안 foreground(255)를 8-이웃 연결성분으로 묶어, OCR bbox 내부에 한 픽셀이라도
+ * 걸치는 성분만 남기고 나머지(박스와 분리된 캐릭터/말풍선)는 0으로 지운다. in-place.
+ */
+function keepComponentsTouchingBox(
+  foreground: Uint8Array,
+  width: number,
+  height: number,
+  roi: PixelBox,
+  box: PixelBox,
+): void {
+  const left = Math.max(0, Math.floor(roi.x));
+  const top = Math.max(0, Math.floor(roi.y));
+  const right = Math.min(width, Math.ceil(roi.x + roi.width));
+  const bottom = Math.min(height, Math.ceil(roi.y + roi.height));
+  const boxLeft = box.x;
+  const boxRight = box.x + box.width;
+  const boxTop = box.y;
+  const boxBottom = box.y + box.height;
+  const visited = new Uint8Array(width * height);
+  const stack: number[] = [];
+  for (let y = top; y < bottom; y += 1) {
+    for (let x = left; x < right; x += 1) {
+      const start = y * width + x;
+      if (foreground[start] !== 255 || visited[start] === 1) continue;
+      stack.length = 0;
+      stack.push(start);
+      visited[start] = 1;
+      const component: number[] = [];
+      let touchesBox = false;
+      while (stack.length > 0) {
+        const pixel = stack.pop() as number;
+        component.push(pixel);
+        const px = pixel % width;
+        const py = (pixel - px) / width;
+        if (px >= boxLeft && px < boxRight && py >= boxTop && py < boxBottom) touchesBox = true;
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = px + dx;
+            const ny = py + dy;
+            if (nx < left || nx >= right || ny < top || ny >= bottom) continue;
+            const nIdx = ny * width + nx;
+            if (foreground[nIdx] === 255 && visited[nIdx] === 0) {
+              visited[nIdx] = 1;
+              stack.push(nIdx);
+            }
+          }
+        }
+      }
+      if (!touchesBox) {
+        for (const pixel of component) foreground[pixel] = 0;
+      }
+    }
+  }
+}
+
+/**
  * OCR bbox 안에서 배경과 다른 실제 글자 픽셀만 골라 erase mask를 만든다.
  * 0=지움, 255=유지라는 기존 FeatherMask 계약을 유지한다.
  */
@@ -58,10 +115,11 @@ export async function generateTextEraseMask(
   imageHeight: number,
   options: TextMaskOptions,
 ): Promise<FeatherMask> {
-  // 글자는 OCR bbox 안에 있으므로 padding은 글자 안티에일리어싱 가장자리와 dilate 여유만
-  // 확보하면 충분하다. padding이 크면 bbox에 인접한 캐릭터/말풍선까지 ROI로 끌어들여
-  // 함께 지워지므로(캐릭터 가림), 작은 상한으로 제한한다.
-  const padding = Math.max(4, Math.min(10, Math.ceil(Math.min(box.width, box.height) * 0.12)));
+  // padding은 넉넉히 준다: OCR bbox가 첫/끝 글자·장식의 가장자리를 살짝 잘라내는 경우가
+  // 많아, 박스 밖으로 삐져나간 글자 조각까지 ROI에 포함해야 잔여가 안 남는다. 대신 큰
+  // padding이 옆 캐릭터를 함께 지우지 않도록, 아래에서 "박스 안 글자에 연결된 성분"만
+  // 남기는 연결성분 필터로 분리된 캐릭터/말풍선은 보존한다.
+  const padding = Math.max(8, Math.min(48, Math.ceil(Math.min(box.width, box.height) * 0.3)));
   const roi = padAndClampBox(box, padding, imageWidth, imageHeight);
   const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const foreground = new Uint8Array(imageWidth * imageHeight);
@@ -79,10 +137,11 @@ export async function generateTextEraseMask(
     }
   }
 
-  // OCR bbox 안의 글자 픽셀 전체를 지운다. 예전에는 ROI 경계에 닿는 성분을 말풍선
-  // 테두리로 간주해 보존(splitBoundaryComponents)했으나, bbox에 딱 맞는 글자와 받침이
-  // 경계에 닿아 함께 보존되며 대부분의 글자가 지워지지 않는 버그가 있었다. 말풍선/캐릭터
-  // 선은 애초에 bbox 밖이라 ROI에 들지 않으므로 그 분기를 제거한다.
+  // 연결성분 필터: ROI 안 foreground를 성분으로 묶고, OCR bbox 내부에 걸치는 성분만 남긴다.
+  // → 박스 안 글자에 연결된 조각(첫/끝 글자의 삐져나간 부분, 장식 등)은 지우고, 박스와
+  //   떨어진 캐릭터·말풍선 선은 보존한다. 넓은 padding을 안전하게 쓸 수 있게 하는 핵심.
+  keepComponentsTouchingBox(foreground, imageWidth, imageHeight, roi, box);
+
   const dilationRadius = Math.max(1, Math.min(3, Math.round(Math.min(box.width, box.height) / 48)));
   const expanded = dilate(foreground, imageWidth, imageHeight, dilationRadius, roi);
   const { data: blurred, info: blurInfo } = await sharp(Buffer.from(expanded), { raw: { width: imageWidth, height: imageHeight, channels: 1 } })

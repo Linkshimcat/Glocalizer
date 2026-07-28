@@ -27,13 +27,15 @@ describe('generateTextEraseMask', () => {
     expect(mask.data[1 * width + 1]).toBeGreaterThan(240);
   });
 
-  it('preserves a dark component connected to the OCR region boundary, such as a speech-bubble outline', async () => {
+  it('preserves a component disconnected from the OCR box, such as a speech-bubble outline', async () => {
     const raw = pixelBuffer([255, 255, 255, 255], [255, 255, 255, 255]);
-    for (let x = 6; x < 14; x += 1) raw.set([0, 0, 0, 255], (6 * width + x) * 4);
+    // OCR box(y 8~12)와 떨어진 가로선(y2) = 말풍선 테두리. 박스 글자와 연결되지 않았다.
+    for (let x = 6; x < 14; x += 1) raw.set([0, 0, 0, 255], (2 * width + x) * 4);
     for (let y = 8; y < 12; y += 1) for (let x = 9; x < 11; x += 1) raw.set([0, 0, 0, 255], (y * width + x) * 4);
     const buffer = await sharp(raw, { raw: { width, height, channels: 4 } }).png().toBuffer();
     const mask = await generateTextEraseMask(buffer, { x: 8, y: 8, width: 4, height: 4 }, width, height, { mode: 'solid', backgroundColor: { r: 255, g: 255, b: 255 } });
-    expect(mask.data[6 * width + 10]).toBeGreaterThan(240);
+    // 박스와 분리된 성분은 연결성분 필터가 보존한다.
+    expect(mask.data[2 * width + 10]).toBeGreaterThan(240);
     expect(mask.data[10 * width + 10]).toBeLessThan(40);
   });
 });
