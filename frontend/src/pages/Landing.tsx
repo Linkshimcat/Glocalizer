@@ -9,9 +9,16 @@ import countryBadges from '../assets/GCFrontendUI/country.png'
 import { LANGUAGES } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 
+// 히어로 목업의 After 문구 — 사이트 언어별 자연스러운 밈 번역(ko UI는 영어 예시).
+const HERO_TRANSLATIONS: Record<string, Record<string, string>> = {
+  '열공': { ko: 'Grinding 🔥', en: 'Grinding 🔥', ja: '勉強モード🔥', zh: '学习中🔥' },
+  '대박': { ko: 'No way! 😱', en: 'No way! 😱', ja: 'やばい！😱', zh: '太棒了！😱' },
+  '인정': { ko: 'Fr 💯', en: 'Fr 💯', ja: 'それな💯', zh: '确实💯' },
+}
+
 export default function Landing() {
   const navigate = useNavigate()
-  const { t } = useSiteLang()
+  const { t, lang } = useSiteLang()
   const [cycleIdx, setCycleIdx] = useState(0)
   const [fading, setFading] = useState(false)
 
@@ -28,6 +35,7 @@ export default function Landing() {
 
   const cycleItem = DEMO_ITEMS[cycleIdx]
   const translatedText =
+    HERO_TRANSLATIONS[cycleItem.korean]?.[lang] ??
     cycleItem.suggestions.find(suggestion => suggestion.best)?.text ??
     cycleItem.suggestions[0].text
 
