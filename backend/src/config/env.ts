@@ -42,6 +42,9 @@ export const envSchema = z.object({
   VISION_PROVIDER: z.enum(['groq', 'gemini']).default('groq'),
   GROQ_VISION_MODEL: z.string().default('qwen/qwen3.6-27b'),
   VISION_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
+  // 원본 글자 이미지를 분석해 번역 폰트를 원본과 비슷하게 고르는 기능. 번역과 병렬로 도는
+  // 별도 Vision 호출이 하나 더 붙는 거라, 문제가 생기면 재배포 없이 바로 끌 수 있게 플래그로 뺐다.
+  ENABLE_FONT_STYLE_ANALYSIS: z.string().default('true').transform((v) => v === 'true'),
 
   AI_MAX_RETRIES: z.coerce.number().int().min(1).max(5).default(3),
   AI_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),

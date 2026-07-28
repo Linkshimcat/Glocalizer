@@ -40,6 +40,7 @@ async function buildAssetResult(asset: AssetRow) {
     ocr: {
       fullText: primaryRegion?.detected_text ?? null,
       primaryRegionId: primaryRegion?.id ?? null,
+      fontStyle: primaryRegion?.font_style ?? null,
       regions: regions.map((region) => ({
         id: region.id,
         text: region.detected_text,

@@ -1,6 +1,7 @@
 import { runProjectTranslations } from '../ai/localization/localization.service.js';
 import { runProjectCleanup } from '../image/cleanup.service.js';
 import { runOcrPipeline } from '../ocr/ocr-pipeline.service.js';
+import { runProjectFontStyleAnalysis } from '../ocr/font-style-pipeline.service.js';
 import { findAssetsByProjectId } from '../repositories/asset.repository.js';
 import { updateProjectStage } from '../repositories/project.repository.js';
 
@@ -24,7 +25,9 @@ export async function runLocalizationPipeline(projectId: string): Promise<Pipeli
   await runOcrPipeline(projectId);
 
   await updateProjectStage(projectId, { stage: 'translating', progress: 60 });
-  await runProjectTranslations(projectId);
+  // 원본 글자 시각 특성 분석은 번역과 서로 다른 데이터를 다루고 의존관계가 없어 병렬로 돌린다
+  // (지연시간을 추가하지 않기 위함 — 실패해도 soft-fail이라 번역 결과에 영향 없음).
+  await Promise.all([runProjectTranslations(projectId), runProjectFontStyleAnalysis(projectId)]);
 
   await updateProjectStage(projectId, { stage: 'cleaning', progress: 80 });
   await runProjectCleanup(projectId);
