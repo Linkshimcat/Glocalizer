@@ -2,7 +2,7 @@ import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { AppError, describeError } from '../../errors/app-error.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../../repositories/asset.repository.js';
-import { findPrimaryRegion, findRegionById, findRegionsByAssetId } from '../../repositories/ocr.repository.js';
+import { findPrimaryRegion, findRegionById } from '../../repositories/ocr.repository.js';
 import { findProjectById, updateProjectStage } from '../../repositories/project.repository.js';
 import { findTranslation, incrementRegenerateCount, upsertTranslation } from '../../repositories/translation.repository.js';
 import type { AssetRow } from '../../types/asset.js';
@@ -124,16 +124,6 @@ export async function runTranslationsForAsset(
     logger.warn({ assetId: asset.id, projectId: asset.project_id, errorCode, languageCodes: targetLanguages }, 'Asset 번역 실패');
     await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage });
     return { assetId: asset.id, status: 'failed', languages, errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage };
-  }
-
-  // 대표 영역 외 다른 한글 영역(여러 블록·긴 문장의 나머지 줄)도 번역한다. 개별 실패는 무시한다.
-  const allRegions = await findRegionsByAssetId(asset.id);
-  for (const extra of allRegions) {
-    if (extra.id === region.id) continue;
-    if (extra.needs_manual_review) continue;
-    if (!extra.contains_korean) continue;
-    if (!extra.detected_text || !extra.detected_text.trim()) continue;
-    await localizeRegionForLanguages(extra, targetLanguages, options);
   }
 
   await updateAsset(asset.id, { status: 'translating', stage: 'translating', progress: 100 });
