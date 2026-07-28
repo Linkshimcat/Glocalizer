@@ -58,15 +58,24 @@ export interface Style {
 }
 
 /** OCR bbox를 기존 340px 에디터 좌표로 옮긴 기본 텍스트 스타일 */
-export function styleFromNormalizedBox(box: NormalizedRect, textColor?: { r: number; g: number; b: number } | null): Style {
+export function styleFromNormalizedBox(box: NormalizedRect, textColor?: { r: number; g: number; b: number } | null, text?: string): Style {
   const editorSize = 340
+  const heightSize = box.height * editorSize * 0.82
+  let size = heightSize
+  const trimmed = text?.trim()
+  if (trimmed) {
+    // 번역 문구가 box 너비를 넘어 잘리지 않도록 폭 기준으로도 제한한다.
+    // 문자폭 ≈ 0.6 * fontSize로 추정하고, 좌우 여백을 위해 0.95를 곱한다.
+    const widthSize = (box.width * editorSize * 0.95) / (trimmed.length * 0.6)
+    size = Math.min(heightSize, widthSize)
+  }
   return {
     ...DEFAULT_STYLE,
     // 원본에서 감지한 글자색이 있으면 번역 텍스트 기본 색으로 사용한다.
     ...(textColor ? { color: rgbToHex(textColor.r, textColor.g, textColor.b) } : {}),
     x: Math.round((box.x + box.width / 2 - 0.5) * editorSize),
     y: Math.round((box.y + box.height / 2 - 0.5) * editorSize),
-    size: Math.max(12, Math.min(96, Math.round(box.height * editorSize * 0.82))),
+    size: Math.max(12, Math.min(96, Math.round(size))),
     alignH: null,
     alignV: null,
   }

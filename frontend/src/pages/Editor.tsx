@@ -44,6 +44,11 @@ import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { editorDict } from '../i18n/editor'
 
+/** 자동 크기 맞춤에 쓸 대표(best) 번역 문구 */
+function bestSuggestionText(suggestions?: Array<{ text: string; best?: boolean }>): string {
+  return suggestions?.find(s => s.best)?.text ?? suggestions?.[0]?.text ?? ''
+}
+
 const ALIGN_X = { left: -95, center: 0, right: 95 } as const
 const ALIGN_Y = { top: -105, middle: 0, bottom: 105 } as const
 const ZOOMS = [50, 100, 200]
@@ -303,7 +308,7 @@ export default function Editor() {
   const selectItem = (idx: number) => {
     saveStyle(current.id, activeLanguage.code, style)
     setCurrentIdx(idx)
-    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox, items[idx].analysis.textColor) : DEFAULT_STYLE))
+    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox, items[idx].analysis.textColor, bestSuggestionText(items[idx].suggestions)) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
     setSelected(true)
@@ -342,7 +347,7 @@ export default function Editor() {
     if (!normalizedBox || savedStyles[current.id]?.[activeLanguage.code] || initializedBoxStyleIds.current.has(styleKey)) return
     initializedBoxStyleIds.current.add(styleKey)
     // 감지된 원본 글자색(textColor)을 번역 텍스트 기본 색으로 함께 적용한다.
-    setStyle(styleFromNormalizedBox(normalizedBox, current.analysis?.textColor))
+    setStyle(styleFromNormalizedBox(normalizedBox, current.analysis?.textColor, bestSuggestionText(current.suggestions)))
   }, [activeLanguage.code, current, savedStyles])
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
@@ -502,7 +507,7 @@ export default function Editor() {
     if (languageCode === activeLanguage.code) return
     saveStyle(current.id, activeLanguage.code, style)
     setActiveLanguageCode(languageCode)
-    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? styleFromNormalizedBox(current.analysis.normalizedBox, current.analysis.textColor) : DEFAULT_STYLE))
+    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? styleFromNormalizedBox(current.analysis.normalizedBox, current.analysis.textColor, bestSuggestionText(current.analysis?.localizations?.[languageCode]?.suggestions)) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
   }
