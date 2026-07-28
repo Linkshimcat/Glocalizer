@@ -341,7 +341,8 @@ export default function Editor() {
     const styleKey = `${current.id}:${activeLanguage.code}`
     if (!normalizedBox || savedStyles[current.id]?.[activeLanguage.code] || initializedBoxStyleIds.current.has(styleKey)) return
     initializedBoxStyleIds.current.add(styleKey)
-    setStyle(styleFromNormalizedBox(normalizedBox))
+    // 감지된 원본 글자색(textColor)을 번역 텍스트 기본 색으로 함께 적용한다.
+    setStyle(styleFromNormalizedBox(normalizedBox, current.analysis?.textColor))
   }, [activeLanguage.code, current, savedStyles])
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
