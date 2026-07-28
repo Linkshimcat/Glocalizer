@@ -58,10 +58,10 @@ export async function generateTextEraseMask(
   imageHeight: number,
   options: TextMaskOptions,
 ): Promise<FeatherMask> {
-  // 글자가 ROI 경계에 닿으면 splitBoundaryComponents가 말풍선 테두리로 오인해 보존해버려
-  // 글자 대부분이 안 지워진다. padding을 넉넉히 줘 글자를 ROI 안쪽에 두되, 상한을 두어
-  // 말풍선 테두리까지 ROI로 끌어들이지는 않는다.
-  const padding = Math.max(6, Math.min(28, Math.ceil(Math.min(box.width, box.height) * 0.3)));
+  // 글자는 OCR bbox 안에 있으므로 padding은 글자 안티에일리어싱 가장자리와 dilate 여유만
+  // 확보하면 충분하다. padding이 크면 bbox에 인접한 캐릭터/말풍선까지 ROI로 끌어들여
+  // 함께 지워지므로(캐릭터 가림), 작은 상한으로 제한한다.
+  const padding = Math.max(4, Math.min(10, Math.ceil(Math.min(box.width, box.height) * 0.12)));
   const roi = padAndClampBox(box, padding, imageWidth, imageHeight);
   const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const foreground = new Uint8Array(imageWidth * imageHeight);
