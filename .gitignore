@@ -43,3 +43,6 @@ backend/.venv/
 backend/python/__pycache__/
 **/__pycache__/
 *.pyc
+
+# Claude Code 로컬 설정 (머신별 권한 허용목록 등 — 커밋 대상 아님)
+.claude/
