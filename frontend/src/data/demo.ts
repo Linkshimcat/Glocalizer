@@ -83,11 +83,28 @@ const REG_BOLD: FontWeight[] = [
   { label: 'Regular', value: 400 },
   { label: 'Bold', value: 700 },
 ]
+// 통통 둥근 디스플레이(이모티콘 친화) — 다양한 굵기 지원
+const ROUNDED_BALOO: FontWeight[] = [
+  { label: 'Regular', value: 400 },
+  { label: 'Medium', value: 500 },
+  { label: 'SemiBold', value: 600 },
+  { label: 'Bold', value: 700 },
+  { label: 'ExtraBold', value: 800 },
+]
+const REG_MED_BOLD_BLACK: FontWeight[] = [
+  { label: 'Regular', value: 400 },
+  { label: 'Medium', value: 500 },
+  { label: 'Bold', value: 700 },
+  { label: 'Black', value: 900 },
+]
 // 단일 굵기(디스플레이) 폰트 — 굵기 조절 불가
 const SINGLE: FontWeight[] = [{ label: 'Regular', value: 400 }]
 
 export const FONTS: FontDef[] = [
   { name: 'Pretendard', weights: FULL },
+  { name: 'Baloo 2', weights: ROUNDED_BALOO },
+  { name: 'Gothic A1', weights: REG_MED_BOLD_BLACK },
+  { name: 'Comic Neue', weights: REG_BOLD },
   { name: 'Bangers', weights: SINGLE },
   { name: 'Luckiest Guy', weights: SINGLE },
   { name: 'Anton', weights: SINGLE },

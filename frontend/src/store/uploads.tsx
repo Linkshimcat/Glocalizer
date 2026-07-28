@@ -351,8 +351,9 @@ function fontForCategory(category: string | undefined): string {
   if (category === 'comic') return 'Bangers'
   if (category === 'cute') return 'Fredoka'
   if (category === 'handwriting') return 'Gaegu'
-  if (category === 'minimal') return 'Pretendard'
-  return 'Anton'
+  if (category === 'minimal') return 'Gothic A1'
+  // 기본값: 통통 둥근 이모티콘 친화 폰트(다중 굵기 지원 → 굵기 조절 가능).
+  return 'Baloo 2'
 }
 
 function fontForLanguage(languageCode: string, suggestedFont: string): string {
