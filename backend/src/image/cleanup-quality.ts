@@ -36,6 +36,8 @@ export function assessCleanupQuality(method: CleanupMethod, stats: BorderStats):
   // solid-color-fill
   if (stats.colorStdDev <= SOLID_STDDEV_GOOD) return 'good';
   if (stats.colorStdDev <= SOLID_STDDEV_ACCEPTABLE) return 'acceptable';
-  if (stats.coarseDominantColorRatio >= COARSE_DOMINANT_COLOR_SOLID_THRESHOLD && stats.colorStdDev <= COARSE_DOMINANT_COLOR_MAX_STDDEV) return 'acceptable';
+  // 지배색이 확실하면(예: 검은 배경) stddev가 높아도 이는 '고대비 글자' 때문이지
+  // '복잡한 배경'이 아니다. 이런 solid 배경은 채우기가 오히려 쉬우므로 자동 처리한다.
+  if (stats.coarseDominantColorRatio >= COARSE_DOMINANT_COLOR_SOLID_THRESHOLD) return 'acceptable';
   return 'low';
 }
