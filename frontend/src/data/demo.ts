@@ -1,5 +1,4 @@
 import type { UploadFile } from '../store/uploads'
-import type { NormalizedRect } from '../lib/style'
 
 /** OCR/번역 API 연동 전, 시연용 데모 데이터 */
 
@@ -15,8 +14,6 @@ export interface DemoItem extends UploadFile {
   suggestions: Suggestion[]
   /** 원본 이미지 글씨체와 어울리는 AI 추천 폰트 (API 연동 전 데모값) */
   recommendedFont: string
-  /** 대표 외 영역의 번역을 위치에 맞춰 자동 배치(MVP). 현재 언어 기준 best 후보. */
-  secondaryOverlays?: Array<{ id: string; normalizedBox: NormalizedRect; text: string }>
 }
 
 export const DEMO_ITEMS: DemoItem[] = [
@@ -173,13 +170,6 @@ export function toDemoItems(files: UploadFile[], languageCode = 'en'): DemoItem[
         korean: f.analysis.korean,
         suggestions: localized?.suggestions ?? f.analysis.suggestions ?? [],
         recommendedFont: localized?.recommendedFont ?? f.analysis.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : 'Pretendard'),
-        secondaryOverlays: (f.analysis.secondaryRegions ?? [])
-          .map(region => {
-            const candidates = region.suggestions[languageCode] ?? []
-            const best = candidates.find(candidate => candidate.best) ?? candidates[0]
-            return best ? { id: region.id, normalizedBox: region.normalizedBox, text: best.text } : null
-          })
-          .filter((overlay): overlay is { id: string; normalizedBox: NormalizedRect; text: string } => overlay !== null),
       }
     }
     const detected = f.name.replace(/\.[^.]+$/, '').match(KOREAN_RE)?.[0] ?? ''

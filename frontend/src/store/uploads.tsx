@@ -42,12 +42,6 @@ export interface UploadFile {
     cleanedUrl: string | null
     regionId: string | null
     normalizedBox: NormalizedRect | null
-    /** 대표 외 한글 영역들(여러 블록·긴 문장). MVP: 자동 배치용(각 언어 best 후보). */
-    secondaryRegions?: Array<{
-      id: string
-      normalizedBox: NormalizedRect
-      suggestions: Record<string, Array<{ text: string; tone: string; best?: boolean }>>
-    }>
     cleanupMethod: string | null
     cleanupQuality: string | null
     needsManualCleanup: boolean
@@ -262,18 +256,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             cleanedUrl: asset.cleanedUrl,
             regionId: asset.ocr.primaryRegionId,
             normalizedBox: asset.ocr.regions.find(region => region.id === asset.ocr.primaryRegionId)?.normalizedBox ?? null,
-            // 대표가 아니면서 한글·위치가 있는 영역을 자동 배치 대상으로 모은다.
-            secondaryRegions: asset.ocr.regions
-              .filter(region => region.id !== asset.ocr.primaryRegionId && region.containsKorean !== false && region.normalizedBox)
-              .map(region => ({
-                id: region.id,
-                normalizedBox: region.normalizedBox as NormalizedRect,
-                suggestions: Object.fromEntries(targetLangs.map(language => [
-                  language.code,
-                  region.localizations?.[language.code]?.candidates ?? [],
-                ])),
-              }))
-              .filter(region => Object.values(region.suggestions).some(list => list.length > 0)),
             cleanupMethod: asset.cleanup.method,
             cleanupQuality: asset.cleanup.quality,
             needsManualCleanup: asset.cleanup.needsManualCleanup,
