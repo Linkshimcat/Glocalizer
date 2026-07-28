@@ -61,6 +61,14 @@ function initialStyleFor(
   return { ...base, font: recommendedFont, weight: clampWeight(recommendedFont, base.weight) }
 }
 
+// 단일 굵기 폰트에도 사용자가 굵기를 커스텀할 수 있게 하는 표준 굵기(미지원 굵기는 브라우저 합성 볼드).
+const CUSTOM_WEIGHTS = [
+  { label: 'Regular', value: 400 },
+  { label: 'Medium', value: 500 },
+  { label: 'Bold', value: 700 },
+  { label: 'Black', value: 900 },
+] as const
+
 const ALIGN_X = { left: -95, center: 0, right: 95 } as const
 const ALIGN_Y = { top: -105, middle: 0, bottom: 105 } as const
 const ZOOMS = [50, 100, 200]
@@ -1182,14 +1190,10 @@ export default function Editor() {
           <section className={tabClass('폰트')}>
             <PanelTitle>{e.weight}</PanelTitle>
             {(() => {
-              const weights = fontWeights(style.font)
-              if (weights.length <= 1) {
-                return (
-                  <p className="mt-3 rounded-xl bg-surface px-4 py-3 text-xs font-semibold text-sub">
-                    {e.oneWeightOnly}
-                  </p>
-                )
-              }
+              const nativeWeights = fontWeights(style.font)
+              // 폰트가 다중 굵기를 지원하면 그 값을, 단일 굵기면 표준 굵기(합성 볼드)를 노출해
+              // 어떤 폰트든 사용자가 굵기를 조절할 수 있게 한다.
+              const weights = nativeWeights.length > 1 ? nativeWeights : CUSTOM_WEIGHTS
               const cols = weights.length === 2 ? 'grid-cols-2' : 'grid-cols-4'
               return (
                 <div className={`mt-3 grid gap-1.5 ${cols}`}>
