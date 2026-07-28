@@ -39,7 +39,7 @@ import {
   renderItemToPng,
   zipLocalizedItems,
 } from '../lib/exportImage'
-import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, type ManualCleanup, type Style } from '../lib/style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { editorDict } from '../i18n/editor'
@@ -47,6 +47,18 @@ import { editorDict } from '../i18n/editor'
 /** 자동 크기 맞춤에 쓸 대표(best) 번역 문구 */
 function bestSuggestionText(suggestions?: Array<{ text: string; best?: boolean }>): string {
   return suggestions?.find(s => s.best)?.text ?? suggestions?.[0]?.text ?? ''
+}
+
+/** 감지 box로 초기 스타일을 만들되, AI 추천 폰트를 자동 적용(굵기는 폰트가 지원하는 값으로 보정). */
+function initialStyleFor(
+  box: NormalizedRect,
+  textColor: { r: number; g: number; b: number } | null | undefined,
+  suggestions?: Array<{ text: string; best?: boolean }>,
+  recommendedFont?: string,
+): Style {
+  const base = styleFromNormalizedBox(box, textColor, bestSuggestionText(suggestions))
+  if (!recommendedFont) return base
+  return { ...base, font: recommendedFont, weight: clampWeight(recommendedFont, base.weight) }
 }
 
 const ALIGN_X = { left: -95, center: 0, right: 95 } as const
@@ -308,7 +320,7 @@ export default function Editor() {
   const selectItem = (idx: number) => {
     saveStyle(current.id, activeLanguage.code, style)
     setCurrentIdx(idx)
-    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? styleFromNormalizedBox(items[idx].analysis.normalizedBox, items[idx].analysis.textColor, bestSuggestionText(items[idx].suggestions)) : DEFAULT_STYLE))
+    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? initialStyleFor(items[idx].analysis.normalizedBox, items[idx].analysis.textColor, items[idx].suggestions, items[idx].recommendedFont) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
     setSelected(true)
@@ -347,7 +359,7 @@ export default function Editor() {
     if (!normalizedBox || savedStyles[current.id]?.[activeLanguage.code] || initializedBoxStyleIds.current.has(styleKey)) return
     initializedBoxStyleIds.current.add(styleKey)
     // 감지된 원본 글자색(textColor)을 번역 텍스트 기본 색으로 함께 적용한다.
-    setStyle(styleFromNormalizedBox(normalizedBox, current.analysis?.textColor, bestSuggestionText(current.suggestions)))
+    setStyle(initialStyleFor(normalizedBox, current.analysis?.textColor, current.suggestions, current.recommendedFont))
   }, [activeLanguage.code, current, savedStyles])
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
@@ -507,7 +519,7 @@ export default function Editor() {
     if (languageCode === activeLanguage.code) return
     saveStyle(current.id, activeLanguage.code, style)
     setActiveLanguageCode(languageCode)
-    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? styleFromNormalizedBox(current.analysis.normalizedBox, current.analysis.textColor, bestSuggestionText(current.analysis?.localizations?.[languageCode]?.suggestions)) : DEFAULT_STYLE))
+    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? initialStyleFor(current.analysis.normalizedBox, current.analysis.textColor, current.analysis?.localizations?.[languageCode]?.suggestions, current.analysis?.localizations?.[languageCode]?.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : undefined)) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
   }
