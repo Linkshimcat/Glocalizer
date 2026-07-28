@@ -2,6 +2,14 @@ import type { PixelBox } from '../utils/bbox.js';
 
 export type ConfidenceTier = 'auto-approved' | 'caution' | 'needs-review' | 'likely-failed';
 
+/** 원본 글자 이미지를 Vision 모델로 분석한 시각적 특성. 번역 텍스트 폰트를 원본과 유사하게 고르는 데 쓴다. */
+export interface FontStyle {
+  weight: 'thin' | 'regular' | 'bold' | 'black';
+  roundness: 'sharp' | 'neutral' | 'round';
+  handwritten: boolean;
+  formality: 'playful' | 'neutral' | 'formal';
+}
+
 export interface OcrRegion {
   id: string;
   text: string;
@@ -18,6 +26,7 @@ export interface OcrRegion {
   source: 'paddle-consensus' | 'vision-fallback';
   agreementScore: number;
   needsManualReview: boolean;
+  fontStyle?: FontStyle | null;
 }
 
 export function classifyConfidence(confidence: number): ConfidenceTier {
@@ -42,5 +51,6 @@ export interface OcrRegionRow {
   source: 'paddle-consensus' | 'vision-fallback';
   agreement_score: number;
   needs_manual_review: boolean;
+  font_style: FontStyle | null;
   created_at: string;
 }

@@ -16,6 +16,13 @@ export interface ApiRegion {
   needsManualReview: boolean
 }
 
+export interface ApiFontStyle {
+  weight: 'thin' | 'regular' | 'bold' | 'black'
+  roundness: 'sharp' | 'neutral' | 'round'
+  handwritten: boolean
+  formality: 'playful' | 'neutral' | 'formal'
+}
+
 export interface ApiAssetResult {
   id: string
   name: string
@@ -25,7 +32,7 @@ export interface ApiAssetResult {
   status: string
   originalUrl: string | null
   cleanedUrl: string | null
-  ocr: { fullText: string | null; primaryRegionId: string | null; regions: ApiRegion[] }
+  ocr: { fullText: string | null; primaryRegionId: string | null; fontStyle: ApiFontStyle | null; regions: ApiRegion[] }
   localizations: Record<string, { candidates: ApiCandidate[]; recommendedStyle: { fontCategory?: string } | null }>
   cleanup: { method: string | null; quality: string | null; needsManualCleanup: boolean; textColor: { r: number; g: number; b: number } | null }
   needsManualOcrReview: boolean

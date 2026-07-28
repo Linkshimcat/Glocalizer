@@ -60,10 +60,26 @@ export interface FontWeight {
   value: number
 }
 
+/**
+ * 폰트의 시각적 특성 태그 — 백엔드 font-style-vision.service.ts가 원본 글자 이미지를 분석해
+ * 내놓는 스키마와 동일한 축을 쓴다. 원본 분석 결과와 이 태그를 비교해 가장 비슷한 폰트를
+ * 고르는 유사도 매칭에 쓰인다(3단계). weight는 폰트가 지원하는 굵기 중 "이 폰트다운" 대표
+ * 굵기일 뿐, 실제 적용 굵기는 매칭 후 별도로 fontWeights()에서 가장 가까운 값으로 고른다 —
+ * 폰트 굵기 슬라이더가 이미 있어서 굳이 폰트 선택 단계에서까지 굵기로 걸러낼 필요는 없다.
+ */
+export interface FontStyleTag {
+  weight: 'thin' | 'regular' | 'bold' | 'black'
+  roundness: 'sharp' | 'neutral' | 'round'
+  handwritten: boolean
+  formality: 'playful' | 'neutral' | 'formal'
+}
+
 export interface FontDef {
   name: string
   /** 이 폰트가 실제로 지원(로드)하는 굵기 목록 */
   weights: FontWeight[]
+  /** 유사도 매칭용 시각적 특성. 언어 강제 폰트(Noto Sans JP/SC)는 매칭 대상이 아니라 생략. */
+  style?: FontStyleTag
 }
 
 // 굵기 프리셋
@@ -101,22 +117,22 @@ const REG_MED_BOLD_BLACK: FontWeight[] = [
 const SINGLE: FontWeight[] = [{ label: 'Regular', value: 400 }]
 
 export const FONTS: FontDef[] = [
-  { name: 'Pretendard', weights: FULL },
-  { name: 'Baloo 2', weights: ROUNDED_BALOO },
-  { name: 'Gothic A1', weights: REG_MED_BOLD_BLACK },
-  { name: 'Comic Neue', weights: REG_BOLD },
-  { name: 'Bangers', weights: SINGLE },
-  { name: 'Luckiest Guy', weights: SINGLE },
-  { name: 'Anton', weights: SINGLE },
-  { name: 'Fredoka', weights: REG_MED_SEMI_BOLD },
-  { name: 'Poppins', weights: REG_MED_SEMI_BOLD },
-  { name: 'Caveat', weights: REG_BOLD },
-  { name: 'Lobster', weights: SINGLE },
-  { name: 'Jua', weights: SINGLE },
-  { name: 'Do Hyeon', weights: SINGLE },
-  { name: 'Black Han Sans', weights: SINGLE },
-  { name: 'Gaegu', weights: REG_BOLD },
-  { name: 'Nanum Pen Script', weights: SINGLE },
+  { name: 'Pretendard', weights: FULL, style: { weight: 'regular', roundness: 'neutral', handwritten: false, formality: 'neutral' } },
+  { name: 'Baloo 2', weights: ROUNDED_BALOO, style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' } },
+  { name: 'Gothic A1', weights: REG_MED_BOLD_BLACK, style: { weight: 'regular', roundness: 'sharp', handwritten: false, formality: 'neutral' } },
+  { name: 'Comic Neue', weights: REG_BOLD, style: { weight: 'regular', roundness: 'round', handwritten: false, formality: 'playful' } },
+  { name: 'Bangers', weights: SINGLE, style: { weight: 'black', roundness: 'round', handwritten: false, formality: 'playful' } },
+  { name: 'Luckiest Guy', weights: SINGLE, style: { weight: 'black', roundness: 'round', handwritten: false, formality: 'playful' } },
+  { name: 'Anton', weights: SINGLE, style: { weight: 'black', roundness: 'sharp', handwritten: false, formality: 'neutral' } },
+  { name: 'Fredoka', weights: REG_MED_SEMI_BOLD, style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' } },
+  { name: 'Poppins', weights: REG_MED_SEMI_BOLD, style: { weight: 'regular', roundness: 'neutral', handwritten: false, formality: 'neutral' } },
+  { name: 'Caveat', weights: REG_BOLD, style: { weight: 'regular', roundness: 'round', handwritten: true, formality: 'playful' } },
+  { name: 'Lobster', weights: SINGLE, style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' } },
+  { name: 'Jua', weights: SINGLE, style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' } },
+  { name: 'Do Hyeon', weights: SINGLE, style: { weight: 'black', roundness: 'neutral', handwritten: false, formality: 'neutral' } },
+  { name: 'Black Han Sans', weights: SINGLE, style: { weight: 'black', roundness: 'sharp', handwritten: false, formality: 'neutral' } },
+  { name: 'Gaegu', weights: REG_BOLD, style: { weight: 'regular', roundness: 'round', handwritten: true, formality: 'playful' } },
+  { name: 'Nanum Pen Script', weights: SINGLE, style: { weight: 'thin', roundness: 'round', handwritten: true, formality: 'playful' } },
   {
     name: 'Noto Sans JP',
     weights: [
@@ -138,6 +154,31 @@ export const FONTS: FontDef[] = [
 ]
 
 export const FONT_NAMES = FONTS.map(f => f.name)
+
+const WEIGHT_ORDER: Record<FontStyleTag['weight'], number> = { thin: 0, regular: 1, bold: 2, black: 3 }
+const ROUNDNESS_ORDER: Record<FontStyleTag['roundness'], number> = { sharp: 0, neutral: 1, round: 2 }
+const FORMALITY_ORDER: Record<FontStyleTag['formality'], number> = { playful: 0, neutral: 1, formal: 2 }
+
+/**
+ * 두 스타일 태그 사이의 "다른 정도"를 계산한다. roundness·formality·handwritten은 폰트를 바꾸지
+ * 않으면 못 고치는 특성이라 비중을 크게 두고, weight는 폰트 선택 후 별도 굵기 슬라이더로
+ * 조절 가능해서 절반만 반영한다.
+ */
+function styleDistance(a: FontStyleTag, b: FontStyleTag): number {
+  const weightDiff = Math.abs(WEIGHT_ORDER[a.weight] - WEIGHT_ORDER[b.weight]) * 0.5
+  const roundnessDiff = Math.abs(ROUNDNESS_ORDER[a.roundness] - ROUNDNESS_ORDER[b.roundness])
+  const formalityDiff = Math.abs(FORMALITY_ORDER[a.formality] - FORMALITY_ORDER[b.formality])
+  const handwrittenDiff = a.handwritten === b.handwritten ? 0 : 1.5
+  return weightDiff + roundnessDiff + formalityDiff + handwrittenDiff
+}
+
+/** 원본 글자의 시각적 특성과 가장 비슷한 폰트를 폰트 라이브러리에서 찾는다(최근접 매칭). */
+export function pickFontByStyle(original: FontStyleTag): string {
+  const candidates = FONTS.filter((font): font is FontDef & { style: FontStyleTag } => Boolean(font.style))
+  return candidates.reduce((best, candidate) => (
+    styleDistance(original, candidate.style) < styleDistance(original, best.style) ? candidate : best
+  ), candidates[0]).name
+}
 
 /** 폰트가 지원하는 굵기 목록 */
 export function fontWeights(name: string): FontWeight[] {

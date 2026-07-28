@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/ai/localization/localization.service.js', () => ({ runProjectTranslations: vi.fn() }));
 vi.mock('../../src/image/cleanup.service.js', () => ({ runProjectCleanup: vi.fn() }));
 vi.mock('../../src/ocr/ocr-pipeline.service.js', () => ({ runOcrPipeline: vi.fn() }));
+vi.mock('../../src/ocr/font-style-pipeline.service.js', () => ({ runProjectFontStyleAnalysis: vi.fn() }));
 vi.mock('../../src/repositories/asset.repository.js', () => ({ findAssetsByProjectId: vi.fn() }));
 vi.mock('../../src/repositories/project.repository.js', () => ({ updateProjectStage: vi.fn() }));
 

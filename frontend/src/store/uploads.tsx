@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
+import { pickFontByStyle } from '../data/demo'
 import {
   ApiError,
   createProject,
@@ -247,9 +248,14 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             korean: asset.ocr.fullText ?? '',
             localizations: Object.fromEntries(targetLangs.map(language => {
               const localization = asset.localizations[language.code]
+              // 원본 글자 시각 분석(font-style-vision.service.ts)이 있으면 그걸로 유사 폰트를
+              // 찾고, 실패했을 때만 번역 LLM이 텍스트 뉘앙스로 찍은 카테고리로 대체한다.
+              const suggestedFont = asset.ocr.fontStyle
+                ? pickFontByStyle(asset.ocr.fontStyle)
+                : fontForCategory(localization?.recommendedStyle?.fontCategory)
               return [language.code, {
                 suggestions: localization?.candidates ?? [],
-                recommendedFont: fontForLanguage(language.code, fontForCategory(localization?.recommendedStyle?.fontCategory)),
+                recommendedFont: fontForLanguage(language.code, suggestedFont),
               }]
             })),
             originalUrl: asset.originalUrl,

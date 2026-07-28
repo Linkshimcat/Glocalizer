@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase.js';
 import { unwrapList, unwrapNullableRow, unwrapVoid } from '../utils/db-result.js';
-import type { OcrRegion, OcrRegionRow } from '../types/ocr.js';
+import type { FontStyle, OcrRegion, OcrRegionRow } from '../types/ocr.js';
 
 export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): Promise<void> {
   const deleteResult = await supabase.from('ocr_regions').delete().eq('asset_id', assetId);
@@ -65,4 +65,15 @@ export async function updatePrimaryRegion(assetId: string, input: { text: string
     result = await supabase.from('ocr_regions').update(legacyPayload).eq('asset_id', assetId).eq('is_primary', true).select().maybeSingle();
   }
   return unwrapNullableRow<OcrRegionRow>(result, '수정한 OCR 문구를 저장하지 못했습니다.');
+}
+
+/**
+ * 원본 글자 시각 특성 분석(font-style-vision.service.ts) 결과를 저장한다. OCR 단계가 끝난
+ * 뒤 번역과 병렬로 실행되는 별도 단계라 replaceOcrRegions와 분리했다. migration 014 적용 전
+ * 환경에서도 이 호출 하나 실패로 파이프라인이 막히지 않도록 조용히 무시한다.
+ */
+export async function updateRegionFontStyle(regionId: string, fontStyle: FontStyle): Promise<void> {
+  const result = await supabase.from('ocr_regions').update({ font_style: fontStyle }).eq('id', regionId);
+  if (result.error?.message.includes('font_style')) return;
+  unwrapVoid(result, '원본 글자 스타일 분석 결과를 저장하지 못했습니다.');
 }
