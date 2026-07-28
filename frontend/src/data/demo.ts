@@ -127,12 +127,15 @@ export const FONTS: FontDef[] = [
   { name: 'Fredoka', weights: REG_MED_SEMI_BOLD, style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' } },
   { name: 'Poppins', weights: REG_MED_SEMI_BOLD, style: { weight: 'regular', roundness: 'neutral', handwritten: false, formality: 'neutral' } },
   { name: 'Caveat', weights: REG_BOLD, style: { weight: 'regular', roundness: 'round', handwritten: true, formality: 'playful' } },
-  { name: 'Lobster', weights: SINGLE, style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' } },
+  // Lobster는 필기체 사인펜 스타일에서 파생된 스크립트 서체라 둥근 산세리프(Baloo 2 등)보다는 손글씨 계열에 가깝다
+  { name: 'Lobster', weights: SINGLE, style: { weight: 'bold', roundness: 'round', handwritten: true, formality: 'playful' } },
   { name: 'Jua', weights: SINGLE, style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' } },
   { name: 'Do Hyeon', weights: SINGLE, style: { weight: 'black', roundness: 'neutral', handwritten: false, formality: 'neutral' } },
   { name: 'Black Han Sans', weights: SINGLE, style: { weight: 'black', roundness: 'sharp', handwritten: false, formality: 'neutral' } },
   { name: 'Gaegu', weights: REG_BOLD, style: { weight: 'regular', roundness: 'round', handwritten: true, formality: 'playful' } },
   { name: 'Nanum Pen Script', weights: SINGLE, style: { weight: 'thin', roundness: 'round', handwritten: true, formality: 'playful' } },
+  // formality: 'formal' 태그를 가진 폰트가 하나도 없어 격식체 원문은 항상 neutral 폰트로 대체 매칭되던 공백을 메운다
+  { name: 'Noto Sans KR', weights: REG_MED_BOLD_BLACK, style: { weight: 'regular', roundness: 'neutral', handwritten: false, formality: 'formal' } },
   {
     name: 'Noto Sans JP',
     weights: [
@@ -172,12 +175,35 @@ function styleDistance(a: FontStyleTag, b: FontStyleTag): number {
   return weightDiff + roundnessDiff + formalityDiff + handwrittenDiff
 }
 
-/** 원본 글자의 시각적 특성과 가장 비슷한 폰트를 폰트 라이브러리에서 찾는다(최근접 매칭). */
-export function pickFontByStyle(original: FontStyleTag): string {
+/** 문자열을 32bit 정수 해시로 변환 — 동점 폰트 중 하나를 asset별로 고르게 분산시키는 데 쓴다 */
+function hashString(value: string): number {
+  let hash = 0
+  for (let i = 0; i < value.length; i++) hash = (Math.imul(hash, 31) + value.charCodeAt(i)) >>> 0
+  return hash
+}
+
+/**
+ * 원본 글자의 시각적 특성과 가장 비슷한 폰트를 폰트 라이브러리에서 찾는다(최근접 매칭).
+ * 4개 범주형 축만으로는 여러 폰트가 정확히 동점(예: Bangers/Luckiest Guy)이 나는 경우가 흔한데,
+ * 동점일 때 항상 배열 순서상 앞선 폰트만 고르면 뒤쪽 폰트는 추천에 영원히 뽑히지 못한다.
+ * seed(보통 asset id)가 있으면 동점 후보 중 하나를 seed 기반으로 고르게 분산시켜 뽑는다 —
+ * 같은 이미지는 항상 같은 폰트로(재현 가능), 다른 이미지끼리는 골고루 갈리도록.
+ */
+export function pickFontByStyle(original: FontStyleTag, seed?: string): string {
   const candidates = FONTS.filter((font): font is FontDef & { style: FontStyleTag } => Boolean(font.style))
-  return candidates.reduce((best, candidate) => (
-    styleDistance(original, candidate.style) < styleDistance(original, best.style) ? candidate : best
-  ), candidates[0]).name
+  let bestDistance = Infinity
+  let tied: (FontDef & { style: FontStyleTag })[] = []
+  for (const candidate of candidates) {
+    const distance = styleDistance(original, candidate.style)
+    if (distance < bestDistance - 1e-9) {
+      bestDistance = distance
+      tied = [candidate]
+    } else if (Math.abs(distance - bestDistance) < 1e-9) {
+      tied.push(candidate)
+    }
+  }
+  if (tied.length === 1 || !seed) return tied[0].name
+  return tied[hashString(seed) % tied.length].name
 }
 
 /** 폰트가 지원하는 굵기 목록 */
