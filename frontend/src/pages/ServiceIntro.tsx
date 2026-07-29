@@ -1,4 +1,4 @@
-import { ArrowLeft, Upload } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import aboutKR from '../assets/ServicePageLending/about-KR.png'
@@ -9,7 +9,7 @@ import iconCrop from '../assets/ServicePageLending/iconsax-crop.svg'
 import iconFireworks from '../assets/ServicePageLending/iconsax-fireworks3.svg'
 import iconImportArrow from '../assets/ServicePageLending/iconsax-import-arrow.svg'
 import iconYoutube from '../assets/ServicePageLending/iconsax-youtube.png'
-import Button from '../components/Button'
+import introduceVideo from '../IntroduceVideo.mp4'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
@@ -139,45 +139,17 @@ export default function ServiceIntro() {
           <img src={iconYoutube} alt="" aria-hidden className="h-7 w-7" />
         </h2>
 
-        <div className="mx-auto mt-10 max-w-[600px] rounded-[28px] border-2 border-gray-200 p-7 sm:p-9">
-          <p className="text-sm font-extrabold text-brand-dark">{s.demoStep}</p>
-          <h3 className="mt-1.5 text-2xl font-extrabold tracking-tight sm:text-[28px]">{s.demoTitle}</h3>
-          <p className="mt-1.5 text-base font-medium text-sub">
-            {s.demoDesc}
-          </p>
-
-          <div className="mt-7 flex flex-col items-center gap-3 rounded-2xl bg-[#FAFBFC] px-6 py-10">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft">
-              <Upload className="h-6 w-6 text-brand-dark" strokeWidth={2.5} />
-            </span>
-            <p className="text-center text-base font-bold">{s.demoDropTitle}</p>
-            <p className="text-center text-sm font-medium text-sub">
-              {s.demoDropSub}
-            </p>
-            <Button size="sm" className="pointer-events-none">
-              {s.demoSelectFile}
-            </Button>
-          </div>
-
-          <div className="mt-7 flex items-center justify-between">
-            <p className="text-base font-bold">{s.demoLangTitle}</p>
-            <span className="text-sm font-semibold text-brand-dark">{s.demoSelectAll}</span>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {['🇺🇸 English', '🇯🇵 日本語', '🇨🇳 中文(简体)'].map(label => (
-              <span
-                key={label}
-                className="rounded-xl border-2 border-gray-100 px-3 py-1.5 text-sm font-bold"
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-
-          <Button className="pointer-events-none mt-7 w-full" disabled>
-            {s.demoStart}
-          </Button>
-          <p className="mt-2 text-center text-sm font-medium text-sub">{s.demoHint}</p>
+        {/* 플랫폼 사용 방법 소개 영상 — corner radius는 버튼(rounded-2xl)과 동일 */}
+        <div className="mx-auto mt-10 max-w-[600px] overflow-hidden rounded-2xl border-2 border-gray-200">
+          <video
+            src={introduceVideo}
+            className="w-full"
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
         </div>
       </section>
 
