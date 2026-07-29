@@ -16,7 +16,7 @@ export interface TextMaskOptions {
   backgroundColor?: { r: number; g: number; b: number };
 }
 
-const MIN_COLOR_DISTANCE = 18;
+const MIN_COLOR_DISTANCE = 12;
 
 function colorDistance(red: number, green: number, blue: number, background: { r: number; g: number; b: number }): number {
   return Math.hypot(red - background.r, green - background.g, blue - background.b);
@@ -142,7 +142,9 @@ export async function generateTextEraseMask(
   //   떨어진 캐릭터·말풍선 선은 보존한다. 넓은 padding을 안전하게 쓸 수 있게 하는 핵심.
   keepComponentsTouchingBox(foreground, imageWidth, imageHeight, roi, box);
 
-  const dilationRadius = Math.max(1, Math.min(3, Math.round(Math.min(box.width, box.height) / 48)));
+  // 안티에일리어싱 헤일로(잔상)까지 덮도록 dilation을 조금 더 준다. 분리된 캐릭터는 위의
+  // 연결성분 필터가 이미 제거했으므로 확대해도 캐릭터를 갉아먹지 않는다.
+  const dilationRadius = Math.max(3, Math.min(7, Math.round(Math.min(box.width, box.height) / 24)));
   const expanded = dilate(foreground, imageWidth, imageHeight, dilationRadius, roi);
   const { data: blurred, info: blurInfo } = await sharp(Buffer.from(expanded), { raw: { width: imageWidth, height: imageHeight, channels: 1 } })
     .blur(1.2)
