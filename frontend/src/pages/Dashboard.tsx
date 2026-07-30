@@ -6,9 +6,9 @@ import Header from '../components/Header'
 import { useToast } from '../components/Toast'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
-import usFlag from '../assets/GCFrontendUI/Group 1.png'
-import jpFlag from '../assets/GCFrontendUI/Japan (JP).png'
-import cnFlag from '../assets/GCFrontendUI/China (CN).png'
+import usFlag from '../assets/GCFrontendUI/Group 1.svg'
+import jpFlag from '../assets/GCFrontendUI/Japan (JP).svg'
+import cnFlag from '../assets/GCFrontendUI/China (CN).svg'
 
 // OS(특히 Windows)마다 국기 이모지 렌더가 달라서, 통일된 이미지 아이콘을 쓴다.
 const FLAG_IMG: Record<string, string> = { en: usFlag, ja: jpFlag, zh: cnFlag }

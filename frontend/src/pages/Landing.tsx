@@ -5,7 +5,7 @@ import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { DEMO_ITEMS } from '../data/demo'
-import countryBadges from '../assets/GCFrontendUI/country.png'
+import countryBadges from '../assets/GCFrontendUI/country.svg'
 import { LANGUAGES } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 
