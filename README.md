@@ -1,82 +1,217 @@
-# NAVER OGQ PROJECT 
+# **NAVER OGQ PROJECT**
 
-<h2>Glocalizer</h2>
+### [Glocalizer]
 
-> **Global + Localizer = 가장 로컬적인 것을 가장 글로벌하게 만들어주는 도구**
->
-> K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 성장함에 따라, 국내 1인 창작자들의 해외 플랫폼 진출 수요와 마켓 성장 기회가 그 어느 때보다 확대되고 있는 사회적 흐름에 발맞추어 개발된 AI 기반 이모티콘 로컬라이징 솔루션입니다.
+Global + Localizer = 가장 로컬적인 것을 가장 글로벌하게 만들어주는 도구
 
-<h3>문제정의</h3> <hr>
+#### **[배경]**
 
-#### 1. 문화적 번역의 장벽
-* **찰진 대사의 소실**: 한국어 이모티콘의 핵심은 특유의 위트와 찰진 대사이지만, 기존 기계 번역기를 사용하면 딱딱하고 어색하게 직역되어 본래의 맛과 감성이 현저히 떨어집니다.
-* **현지 트렌드 반영의 한계**: 해외 마켓의 실시간 유행어나 슬랭에 맞춰 자연스럽게 번역하기엔 개인이 수집하고 가공할 수 있는 정보가 턱없이 부족하다는 것이 큰 문제입니다.
+K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 성장함에 따라, 국내 1인 창작자들의 해외 플랫폼 진출 수요와 마켓 성장 기회가 그 어느 때보다 확대되고 있는 사회적 흐름
 
-#### 2. 번거로운 그래픽 수정 작업
-* **지루한 그래픽 노가다**: 글씨를 외국어로 바꾸려면 원래 이모티콘 이미지에서 한국어 텍스트 영역을 일일이 지우고, 비어버린 배경을 포토샵으로 직접 복원한 뒤, 새로운 텍스트를 얹어야 합니다.
-* **소규모 창작자의 진입 장벽**: 전문 디자이너가 없는 1인 작가나 소규모 팀에게 이러한 이모티콘 레이어 수정 작업은 엄청난 시간 낭비이자 글로벌 시장 진입을 주저하게 만드는 거대한 장벽입니다.
+#### **[문제점]**
+
+**문화적 번역의 장벽**: 한국어 이모티콘의 핵심은 찰진 대사이지만, 이를 기존 번역기로 직역하면 딱딱하고 어색한 표현이 되어 이모티콘 특유의 맛과 감성이 현저히 떨어짐. 해외 마켓에 맞춘 유행이나 슬랭으로 번역하기엔 정보가 턱없이 부족하다는 것이 큰 문제임.
+
+**번거로운 그래픽 수정 작업**: 글씨를 외국어로 바꾸려면 원래 이모티콘 이미지에서 한국어를 지우고, 비어버린 배경을 일일이 포토샵으로 메꾼 뒤, 새로운 글씨를 얹어야 하므로 디자이너가 없는 1인 작가나 소규모 팀에게는 이모티콘 레이어를 수정하는 작업은 시간 낭비이자 진입 장벽임.
 
 ---
 
-#### 💡 해결 방안 (Glocalizer의 가치)
-* **원클릭 배경 복원 및 텍스트 분리**: 사용자가 이미지를 업로드하고 클릭 한 번만 하면, AI가 이미지 속 글자의 위치를 정확히 탐지하고 글자 뒤에 가려져 있던 캐릭터나 배경을 자연스럽게 복원하여 채워 넣습니다.
-* **초월 번역**: 타겟 국가의 최신 인터넷 밈, 신조어, 유행어를 학습한 LLM을 활용해 한국어 원문의 미묘한 뉘앙스를 현지 청소년들이 실제로 사용하는 가장 찰진 표현으로 치환합니다.
-* **자동 폰트 합성 및 렌더링**: 현지 이모티콘 마켓에서 선호되는 귀엽고 개성 있는 무료 폰트를 매칭하고, 원본 이미지의 구도와 조화를 이루도록 텍스트를 자연스럽게 얹어 최종 완성본을 제공합니다.
+#### **[해결 방안 (**Glocalizer**의 가치)]**
 
-<h3>아키텍쳐</h3> <hr>
+본 프로덕트는 사용자가 이모티콘 이미지를 업로드하고 클릭 한 번만 하면, 이모티콘 이미지 속 한국어 글자의 위치를 정확히 찾아내고, 해당 글자 영역을 단순히 지우는 것에 그치지 않고, 글자 뒤에 가려져 있던 캐릭터나 배경을 AI가 예측하여 자연스럽게 채워 넣음. 대상 국가의 최신 인터넷 밈, 신조어, 유행어를 학습한 LLM을 활용해, 한국어 원문의 뉘앙스를 현지 청소년들이 진짜 쓰는 찰진 표현으로 자연스럽게 치환함. 현지에서 이모티콘에 자주 쓰이는 귀엽고 개성 있는 무료 폰트들을 매칭하고, 원본의 구도에 맞게 텍스트를 얹어 최종 완성본을 제공함.
 
-#### 🔄 데이터 및 서비스 흐름 (Data & Service Flow)
+---
 
-* **Client (Frontend)**: 한국어 이모티콘 이미지 업로드 및 캐릭터 성격 설정 -> 실시간 AI 파이프라인 진행 상태 확인 -> 최적의 현지 밈(Meme) 대사가 합성된 결과물 미리보기 후 다운로드
-* **Server (Backend)**: 클라이언트가 업로드한 이미지 버퍼 처리 및 Supabase 프로젝트 데이터 연동 -> 비동기 OCR·번역·원문 제거 파이프라인 제어
-* **AI Pipeline**:
-  * **PaddleOCR**로 한글 대사 영역의 텍스트·좌표·신뢰도를 검출
-  * **Groq LLM**이 언어별 밈형 번역 후보 3개와 최적 후보·권장 스타일을 생성
-* **Database (Supabase)**: 오리지널 이미지 및 번역 가공된 결과 이미지 파일의 스토리지 주소 저장 -> 프로젝트 이력 및 사용자의 이모티콘 편집 프리셋 데이터 실시간 관리
+#### **[시스템 아키텍처]**
 
-<h3>사용 스택</h3> <hr>
-
-| 분류 | 기술 스택 |
-| :--- | :--- |
-| **Backend** | Node.js (v22+) , TypeScript, Express.js, supabase |
-| **Frontend** | React + Vite + TypeScript + TailWind CSS |
-| **Design** | Figma / Claude Design |
-| **IDE / Tool** | VS Code, Claude Code CLI, Vercel, GitHub |
-
-<h3>실행방법</h3> <hr>
-
-```bash
-# 1. 저장소 복제
-git clone https://github.com/Linkshimcat/Glocalizer.git
-cd Glocalizer
-
-# 2. 환경변수 설정
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-
-# 3. Backend 의존성 및 PaddleOCR 설치
-cd backend
-npm ci
-python3 -m pip install --user -r python/requirements.txt
-
-# 4. backend/.env에 Supabase, GROQ_API_KEY, PROJECT_TOKEN_SECRET을 입력한 뒤 연결 확인
-npm run db:check
-
-# 5. migration 적용 (DATABASE_URL은 Supabase Dashboard → Connect → Session Pooler URI 사용)
-# direct DB 주소는 WSL/IPv6 환경에서 ENETUNREACH가 날 수 있습니다.
-npm run db:migrate
-npm run dev
-
-# 6. 별도 터미널에서 Frontend 실행
-cd frontend && npm ci && npm run dev
+```
+[사용자 브라우저]
+   │  이미지 업로드(최대 20장), 대상 언어 선택
+   ▼
+[Frontend: React SPA @ Vercel]
+   │  REST 호출 (project 생성 → Storage 서명 URL로 직접 업로드 → 업로드 완료 통보 → 처리 시작)
+   ▼
+[Backend: Express API @ Render]
+   │  1) POST /projects            → project/asset row 생성, Supabase Storage 서명 업로드 URL 발급
+   │  2) 클라이언트가 Storage에 원본 이미지 직접 PUT (백엔드 경유 없음)
+   │  3) POST /uploads/complete    → 업로드 검증
+   │  4) POST /process             → job 테이블에 "process-project" job 등록 후 즉시 202 응답
+   ▼
+[Job Worker (같은 Node 프로세스 내 polling loop)]
+   │  WORKER_POLL_INTERVAL_MS 주기로 job 테이블 polling, lease/heartbeat로 중복 실행 방지
+   │  job 하나당 runLocalizationPipeline(projectId) 실행
+   ▼
+[Localization Pipeline] — 프로젝트 단위, 애셋별 부분 실패 허용
+   1. OCR 단계
+      원본 이미지 → PaddleOCR(Python, JSONL 영속 브릿지) 다중 변형 인식
+      → selectConsensusRegions로 IoU+텍스트 유사도 합의
+      → 합의도 낮음 + 한글 3자 이하 등 조건이면 Vision(Groq/Gemini) 폴백으로 재판정
+   2. 번역 + 폰트 스타일 분석 (병렬, 서로 독립)
+      - 번역: Groq(Llama 3.3 70B)로 원문 뉘앙스 반영한 다국어 번역 후보 생성
+      - 폰트 스타일 분석: Vision 모델이 원본 글자 크롭만 보고 굵기/둥글기/손글씨여부/격식 태깅 (soft-fail)
+   3. 이미지 정리(cleanup) 단계
+      OCR 영역을 Sharp로 크롭→블러→합성 (배경 재구성 없이 항상 성공)
+   4. 결과 저장 → project/asset 상태를 completed로 갱신
+   ▼
+[Supabase: PostgreSQL + Storage]
+   원본/정리본 이미지는 private Storage 버킷, 메타데이터(OCR 영역·번역 후보·폰트 스타일·에디터 상태)는 Postgres
+   ▼
+[Frontend: 결과 조회 → AI 에디터]
+   GET /results로 조립된 결과(원문/번역 후보/추천 폰트/정리본 URL) 수신
+   → 클라이언트에서 cleanedUrl 위에 번역 텍스트를 CSS 오버레이로 얹어 실시간 편집(폰트·굵기·색·위치)
+   → PNG export는 Canvas로 동일 로직 재합성, 여러 장은 JSZip으로 일괄 다운로드
 ```
 
-### 배포 전 확인
+핵심 설계 포인트: 번역/OCR/클린업 각 단계가 애셋 단위로 독립 실패하고, 무거운 Python 작업(OCR)은 별도 프로세스로 격리, Job 테이블 기반 polling worker라 별도 큐 인프라(Redis/SQS 등) 없이 동작함.
 
-- `DATABASE_URL`에는 Supabase **Session Pooler** 연결 URI를 사용합니다. 이 프로젝트는 Singapore pooler를 사용하며, Dashboard의 Connect 화면에서 복사한 URI를 그대로 입력합니다. 이 값은 migration 실행에만 필요하며 browser 환경변수에 넣지 않습니다.
-- `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, `PROJECT_TOKEN_SECRET`은 backend/Render 환경변수에만 넣습니다. `VITE_` 접두사로 노출하면 안 됩니다.
-- Supabase Storage bucket은 private으로 유지하고, Storage CORS에 실제 frontend 도메인을 허용합니다.
-- 배포 전에 `npm run db:migrate`, `npm run db:check`, `npm test`, `npm run build`를 실행합니다. 현재 job migration은 `012_enforce_one_active_job_per_project.sql`까지입니다.
-- frontend 배포 환경에서는 `VITE_API_BASE_URL=https://<backend-domain>/api/v1`을 설정하고 backend의 `FRONTEND_ORIGIN`에는 실제 frontend 주소를 설정합니다.
-- Render는 `DATABASE_URL`이 설정된 경우 deploy 직전에 `npm run db:migrate:production`을 실행합니다. `012_enforce_one_active_job_per_project.sql`까지 적용된 뒤 readiness endpoint가 DB·Storage를 확인합니다.
-- 배포 뒤 실제 PNG/JPG 한 장으로 전체 흐름을 확인하려면 `SMOKE_IMAGE_PATH=/absolute/path/sample.jpg npm run smoke:e2e`를 실행합니다. 언어 조합은 `SMOKE_TARGET_LANGUAGES=en,ja,zh`로 검증할 수 있습니다. 이 스크립트는 임시 프로젝트를 완료 후 삭제하며 API token을 출력하지 않습니다.
+---
+
+#### **[사용 스택]**
+
+| **분류** | **기술 스택** |
+| --- | --- |
+| Backend | Node.js (v22+) , TypeScript, Express 5, supabase |
+| Frontend | React 19, Vite, TypeScript, TailWind CSS |
+| Design | Figma, Claude Design |
+
+---
+
+#### **[실행 방법]**
+
+```bash
+# 0. 사전 준비
+#    - Node.js 20+, Python 3.12(PaddlePaddle이 3.14 미지원)
+#    - Supabase 프로젝트(Postgres + Storage), Groq API 키 (선택: Gemini API 키)
+
+# 1. 백엔드
+cd backend
+cp .env.example .env        # SUPABASE_*, DATABASE_URL, GROQ_API_KEY 등 채우기
+python3 -m venv python/.venv
+python/.venv/bin/pip install -r python/requirements.txt
+# .env의 OCR_PYTHON_EXECUTABLE을 python/.venv/bin/python3 절대경로로 지정
+npm install
+npm run db:migrate          # supabase/migrations 순서대로 적용
+npm run dev                 # http://localhost:3000, tsx watch
+
+# 2. 프론트엔드
+cd frontend
+npm install
+npm run dev                 # http://localhost:5173, VITE_API_BASE_URL로 백엔드 지정
+
+# 3. 테스트
+cd backend && npm test      # vitest
+cd frontend && npx tsc --noEmit && npm run build
+
+# 배포는 각각 GitHub 연동 자동배포: backend → Render(Docker), frontend → Vercel
+```
+
+---
+
+#### **[AI 사용 내역]**
+
+Claude, ChatGPT, Gemini, GLM
+
+---
+
+#### **[라이선스]**
+
+Apache License 2.0
+
+---
+
+#### **하단 명시**
+
+#### **[사용한 AI 모델]**
+
+한국어 텍스트 인식 모델(PaddleOCR PP-OCRv5 Korean), 텍스트 분석 및 번역 모델(Grop Llama 3.3 70B / LLM), 보조 분석 모델(Vision Language Model / Multimodal LLM)
+
+---
+
+#### **[오픈소스 패키지]**
+
+**Backend — 서버/인프라**
+
+| 패키지 | 용도 |
+| --- | --- |
+| express | HTTP API 서버 프레임워크 |
+| cors | 프론트엔드 origin 허용(CORS) 미들웨어 |
+| express-rate-limit | API 요청 속도 제한 |
+| zod | 요청 바디·환경변수 스키마 검증 |
+| pino / pino-http / pino-pretty | 구조화 로깅(JSON) 및 개발용 포맷터 |
+| dotenv | .env 환경변수 로드 |
+
+**Backend — 데이터**
+
+| 패키지 | 용도 |
+| --- | --- |
+| @supabase/supabase-js | Supabase Storage(서명 URL 발급/업로드) 클라이언트 |
+| pg | 마이그레이션 실행 등 Postgres 직접 연결(node-postgres) |
+
+**Backend — 이미지/OCR**
+
+| 패키지 | 용도 |
+| --- | --- |
+| sharp | 이미지 크롭·리사이즈·블러·합성 전 과정(libvips 기반, 고성능) |
+| paddleocr / paddlepaddle | 한글 포함 다국어 OCR 엔진 (Python) |
+| pillow, numpy | Python 측 이미지 배열 처리(OCR 전처리용) |
+
+**Backend — 테스트**
+
+| 패키지 | 용도 |
+| --- | --- |
+| vitest | 단위/통합 테스트 러너 |
+| supertest | Express 앱에 대한 HTTP 통합 테스트 |
+
+**Frontend — 프레임워크**
+
+| 패키지 | 용도 |
+| --- | --- |
+| react / react-dom | UI 라이브러리 |
+| react-router-dom | 클라이언트 라우팅(대시보드/에디터 등 페이지 전환) |
+| vite | 개발 서버·번들러 |
+| typescript | 정적 타입 검사 |
+
+**Frontend — UI/스타일**
+
+| 패키지 | 용도 |
+| --- | --- |
+| tailwindcss / @tailwindcss/vite | 유틸리티 CSS 프레임워크 |
+| lucide-react | 아이콘 세트 |
+
+**Frontend — 기능**
+
+| 패키지 | 용도 |
+| --- | --- |
+| jszip | 여러 번역 결과 PNG를 ZIP으로 묶어 일괄 다운로드 |
+
+**Frontend — 품질**
+
+| 패키지 | 용도 |
+| --- | --- |
+| oxlint | 고속 Rust 기반 린터 |
+
+**공통**
+
+| 패키지 | 용도 |
+| --- | --- |
+| tsx | 백엔드 dev 서버(TypeScript 즉시 실행/watch) |
+
+---
+
+#### [외부 자문(교사/현직자)]
+
+1. 사용자 접근성
+낮은 기술 진입장벽: 글로벌 진출을 원하는 1인 창작자 대다수가 전문 그래픽 소프트웨어를 다루기 어려운데, '클릭 한 번'으로 텍스트를 지우고 해외 언어를 입히도록 만든 것은 사용자의 기술 진입장벽을 획기적으로 낮춘 훌륭한 설계임.
+프론트엔드 최적화: 번역된 밈을 클라이언트 단에서 ZIP 파일 압축 및 다운로드하도록 처리하여 서비스 응답 속도와 서버 유지비용측면에서 좋은 선택을 함.
+2. 사용성과 정확도의 딜레마 극복
+OCR 오인식 및 오역을 막고자 사용자에게 '검수 및 확인 단계'를 강제 화면 전환으로 추가하면 피로감을 줄 수 있음. 별도 단계 추가 없이 번역 결과 화면에서 인식된 텍스트를 바로 수정하고 재처리할 수 있는 UI를 구현함으로써 작업 속도와 번역 정확도를 모두 잡은 훌륭한 설계임.
+3. 원본 글자 노출 및 덮어씌우기 한계와 UX 솔루션
+4. 현상 및 기술적 한계
+글자 겹침 현상: 말풍선, 예능 자막 등 배경이 복잡하거나 그라데이션이 들어간 경우, 원본 한글 텍스트가 완벽히 삭제되지 않은 상태에서 번역 텍스트가 상단에 겹쳐 출력되는 가독성 저하 및 글자 겹침 문제가 발생함.
+    
+    기술적 딜레마: 무거운 AI 이미지 복원 모델을 사용하면 빠른 응답성이 저해되고, 단순 단색 박스로 가릴 경우 주변 이미지와 겉도는 부자연스러움이 발생함.
+    
+5. 기술 자문 및 UX 개선 방향
+블러 마스킹 처리 후 번역 오버레이: 원본 텍스트를 강제로 지우는 대신 OCR이 인식한 영역만큼 강한 블러 처리를 적용하는 기법 제안. 원본 글자의 글자 형태를 뭉개어 알아 볼 수 없게 만든 뒤, 그 위에 번역 텍스트를 진하게 렌더링해 가독성 확보가능.
+    
+    말풍선/스티커 템블릿 및 수동 오버레이 UI 도입: 배경 복원이 어려운 복잡한 밈 이미지를 고려해, 사용자가 직접 문제를 해결할 수 있는 직관적인 수동 제어 UX 제안. 말풍선 스티커 추가 또는 이미지 업로드 기능을 도입하여, 깨끗한 말풍선/자막 바(혹은 사용자가 만든 템플릿)를 원본 글자 위에 직접 붙여 가린 후 번역문을 작성할 수 있도록 보완함.
