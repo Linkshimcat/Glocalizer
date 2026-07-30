@@ -49,7 +49,9 @@ function bestSuggestionText(suggestions?: Array<{ text: string; best?: boolean }
   return suggestions?.find(s => s.best)?.text ?? suggestions?.[0]?.text ?? ''
 }
 
-/** 감지 box로 초기 스타일을 만들되, AI 추천 폰트를 자동 적용(굵기는 폰트가 지원하는 값으로 보정). */
+/** 감지 box로 초기 스타일을 만들되, AI 추천 폰트를 자동 적용한다.
+ * 이제 원문을 지우는 대신 블러 처리하므로, 굵기는 블러 배경 위에서도 잘 읽히도록
+ * 폰트가 지원하는 가장 굵은 값을 기본으로 쓴다(기존처럼 800에 맞춰 clamp하지 않음). */
 function initialStyleFor(
   box: NormalizedRect,
   textColor: { r: number; g: number; b: number } | null | undefined,
@@ -58,7 +60,8 @@ function initialStyleFor(
 ): Style {
   const base = styleFromNormalizedBox(box, textColor, bestSuggestionText(suggestions))
   if (!recommendedFont) return base
-  return { ...base, font: recommendedFont, weight: clampWeight(recommendedFont, base.weight) }
+  const boldest = Math.max(...fontWeights(recommendedFont).map(w => w.value))
+  return { ...base, font: recommendedFont, weight: boldest }
 }
 
 // 단일 굵기 폰트에도 사용자가 굵기를 커스텀할 수 있게 하는 표준 굵기(미지원 굵기는 브라우저 합성 볼드).

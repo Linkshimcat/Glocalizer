@@ -2,6 +2,3 @@ paddleocr>=3.0.0,<4.0.0
 paddlepaddle>=3.0.0,<4.0.0
 pillow>=10.0.0
 numpy>=1.26.0
-# paddleocr의 부수 의존성으로 이미 들어오지만, cv2.inpaint(inpaint_bridge.py)에 직접
-# 필요해서 버전이 바뀌어도 사라지지 않도록 명시적으로 고정한다.
-opencv-contrib-python>=4.9.0,<5.0.0
