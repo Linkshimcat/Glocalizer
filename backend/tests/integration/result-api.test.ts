@@ -99,7 +99,7 @@ describe('GET /api/v1/projects/:projectId/results', () => {
         status: 'completed',
         original_path: 'projects/x/original/a.png',
         cleaned_path: 'projects/x/cleaned/a.png',
-        cleanup_method: 'blur',
+        cleanup_method: 'transparent-mask',
         cleanup_quality: 'good',
         needs_manual_cleanup: false,
         error_code: null,
@@ -143,7 +143,7 @@ describe('GET /api/v1/projects/:projectId/results', () => {
     expect(res.body.assets[0].ocr.regions).toHaveLength(2);
     expect(res.body.assets[0].ocr.regions.map((region: { text: string }) => region.text)).toEqual(['완전좋아', '진짜좋아']);
     expect(res.body.assets[0].localizations.en.candidates[0].text).toBe('Loving it!');
-    expect(res.body.assets[0].cleanup).toEqual({ method: 'blur', quality: 'good', needsManualCleanup: false });
+    expect(res.body.assets[0].cleanup).toEqual({ method: 'transparent-mask', quality: 'good', needsManualCleanup: false });
     expect(res.body.assets[0].originalUrl).toBe('https://signed.example/url');
   });
 });
