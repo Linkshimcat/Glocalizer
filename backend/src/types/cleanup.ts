@@ -1,4 +1,4 @@
-export type CleanupMethod = 'transparent-mask' | 'solid-color-fill' | 'directional-inpaint' | 'manual-required';
+export type CleanupMethod = 'blur' | 'manual-required';
 export type CleanupQuality = 'good' | 'acceptable' | 'low';
 
 export interface CleanupResult {

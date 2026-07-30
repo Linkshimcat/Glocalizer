@@ -7,12 +7,7 @@ import type { CleanupResult } from '../types/cleanup.js';
 import { AppError, describeError } from '../errors/app-error.js';
 import { env } from '../config/env.js';
 import { sampleBorderPixels, sampleTextColor } from './background-sampler.js';
-import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
-import { applySolidColorCleanup } from './solid-color-cleanup.js';
-import { applyTransparentCleanup } from './transparent-cleanup.js';
-import { applyDirectionalInpaint } from './directional-inpaint.js';
-import { generateTextEraseMask } from './mask-generator.js';
-import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
+import { applyBlurCleanup } from './blur-cleanup.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
 
 export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult & { assetId: string }> {
@@ -39,54 +34,12 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
       throw new AppError('IMAGE_CLEANUP_FAILED', undefined, '원본 이미지를 스토리지에서 찾을 수 없습니다.');
     }
 
+    // sampleTextColor가 배경색 추정치를 필요로 해서 sampleBorderPixels는 계속 호출한다.
     const stats = await sampleBorderPixels(buffer, region.bbox, asset.width, asset.height);
     // 배경색을 기준으로 원본 글자색을 추정해 번역 텍스트 기본 색으로 쓴다(감지 실패 시 null).
     const textColor = await sampleTextColor(buffer, region.bbox, asset.width, asset.height, stats.medianColor);
-    const method = decideCleanupMethod(stats);
-    const quality = assessCleanupQuality(method, stats);
 
-    // 불확실한 단색 추정으로 캐릭터·말풍선까지 지우는 것보다 editor의 수동 보정이 안전하다.
-    if (method === 'manual-required' || quality === 'low') {
-      await updateAsset(asset.id, {
-        status: 'completed',
-        stage: 'cleaning',
-        progress: 100,
-        cleanupMethod: 'manual-required',
-        cleanupQuality: quality,
-        needsManualCleanup: true,
-        textColor,
-      });
-      return { assetId: asset.id, method: 'manual-required', quality, needsManualCleanup: true };
-    }
-
-    const mask = await generateTextEraseMask(
-      buffer,
-      region.bbox,
-      asset.width,
-      asset.height,
-      method === 'transparent-mask'
-        ? { mode: 'transparent' }
-        : { mode: 'solid', backgroundColor: stats.medianColor },
-    );
-    if (!isMaskCoverageSafe(measureMaskCoverage(mask))) {
-      await updateAsset(asset.id, {
-        status: 'completed',
-        stage: 'cleaning',
-        progress: 100,
-        cleanupMethod: 'manual-required',
-        cleanupQuality: 'low',
-        needsManualCleanup: true,
-        textColor,
-      });
-      return { assetId: asset.id, method: 'manual-required', quality: 'low', needsManualCleanup: true };
-    }
-
-    const cleanedBuffer =
-      method === 'transparent-mask'
-        ? await applyTransparentCleanup(buffer, region.bbox, asset.width, asset.height, mask)
-        : method === 'directional-inpaint'
-          ? await applyDirectionalInpaint(buffer, region.bbox, asset.width, asset.height, mask)
-          : await applySolidColorCleanup(buffer, region.bbox, stats.medianColor, asset.width, asset.height, mask);
+    const cleanedBuffer = await applyBlurCleanup(buffer, region.bbox, asset.width, asset.height);
 
     const cleanedPath = `projects/${asset.project_id}/cleaned/${asset.id}.png`;
     await uploadToStorage(cleanedPath, cleanedBuffer, 'image/png');
@@ -96,13 +49,13 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
       stage: 'cleaning',
       progress: 100,
       cleanedPath,
-      cleanupMethod: method,
-      cleanupQuality: quality,
+      cleanupMethod: 'blur',
+      cleanupQuality: 'good',
       needsManualCleanup: false,
       textColor,
     });
 
-    return { assetId: asset.id, method, quality, needsManualCleanup: false, cleanedImagePath: cleanedPath };
+    return { assetId: asset.id, method: 'blur', quality: 'good', needsManualCleanup: false, cleanedImagePath: cleanedPath };
   } catch (err) {
     const { code: errorCode, message: errorMessage } = describeError(err, 'IMAGE_CLEANUP_FAILED', '이미지 정리 중 알 수 없는 오류가 발생했습니다.');
     await updateAsset(asset.id, { status: 'failed', stage: 'cleaning', errorCode, errorMessage });
