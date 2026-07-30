@@ -23,10 +23,19 @@ export function normalizedToPixel(box: PixelBox, imageWidth: number, imageHeight
 }
 
 export function padAndClampBox(box: PixelBox, paddingPx: number, imageWidth: number, imageHeight: number): PixelBox {
-  const x1 = Math.max(0, box.x - paddingPx);
-  const y1 = Math.max(0, box.y - paddingPx);
-  const x2 = Math.min(imageWidth, box.x + box.width + paddingPx);
-  const y2 = Math.min(imageHeight, box.y + box.height + paddingPx);
+  return padAndClampBoxXY(box, paddingPx, paddingPx, imageWidth, imageHeight);
+}
+
+/**
+ * 가로/세로 패딩을 독립적으로 줄 때 쓴다. 가로로 긴 박스(한 줄짜리 캡션)에 균일한 패딩을
+ * 적용하면 가로 기준으로 계산된 큰 값이 세로 축까지 밀고 들어가 관계없는 영역까지 덮는
+ * 문제가 있어, 축마다 다른 여백이 필요한 경우(예: blur-cleanup)에 사용한다.
+ */
+export function padAndClampBoxXY(box: PixelBox, paddingX: number, paddingY: number, imageWidth: number, imageHeight: number): PixelBox {
+  const x1 = Math.max(0, box.x - paddingX);
+  const y1 = Math.max(0, box.y - paddingY);
+  const x2 = Math.min(imageWidth, box.x + box.width + paddingX);
+  const y2 = Math.min(imageHeight, box.y + box.height + paddingY);
 
   return { x: x1, y: y1, width: Math.max(0, x2 - x1), height: Math.max(0, y2 - y1) };
 }

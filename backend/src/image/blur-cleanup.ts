@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
-import { padAndClampBox } from '../utils/bbox.js';
+import { padAndClampBox, padAndClampBoxXY } from '../utils/bbox.js';
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -31,8 +31,15 @@ export async function applyBlurCleanup(
   // 생성기는 연결성분 탐색으로 이런 삐져나온 획까지 찾아냈지만, 블러는 그런 콘텐츠 인식 없이
   // 순수 사각형만 다루므로 여백을 넉넉하게 잡아야 한다 — 블러는 지우기와 달리 배경을 망가뜨리지
   // 않으니 살짝 과하게 덮는 쪽이 글자가 남는 것보다 훨씬 안전하다.
-  const padding = Math.max(25, Math.min(150, Math.ceil(Math.max(box.width, box.height) * 0.4)));
-  const target = roundBox(padAndClampBox(box, padding, imageWidth, imageHeight), imageWidth, imageHeight);
+  //
+  // 가로/세로 패딩은 반드시 각 축 자신의 크기 기준으로 따로 계산한다. 하나의 값을 두 축에
+  // 똑같이 적용하면, 한 줄짜리 캡션처럼 가로로 긴 박스에서는 가로 기준으로 커진 패딩이
+  // 세로 축까지 밀고 들어가 말풍선 위아래의 캐릭터 얼굴 등 관계없는 영역까지 블러 처리되는
+  // 문제가 실사용 중 발견됐다. 세로 방향은 글자 한 줄의 획(받침·기울어짐) 정도만 여유를
+  // 주면 충분해서 상한을 훨씬 낮게 둔다.
+  const paddingX = Math.max(20, Math.min(150, Math.ceil(box.width * 0.4)));
+  const paddingY = Math.max(12, Math.min(50, Math.ceil(box.height * 0.7)));
+  const target = roundBox(padAndClampBoxXY(box, paddingX, paddingY, imageWidth, imageHeight), imageWidth, imageHeight);
   const sigma = clamp(Math.round(Math.min(target.width, target.height) * 0.4), 10, 60);
 
   // 블러 대상 영역만 잘라서 blur하면 크롭 경계에 주변 컨텍스트가 없어 이음매가 보일 수 있다.
