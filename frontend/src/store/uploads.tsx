@@ -20,6 +20,7 @@ import {
   completeUploads,
   saveEditorState,
   reviseOcr,
+  recordDownload as recordDownloadApi,
   type ProjectResults,
   type ProjectStatus,
 } from '../lib/api'
@@ -125,6 +126,8 @@ interface UploadState {
   /** 파일·언어별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
   styles: StylesByLanguage
   saveStyle: (id: string, languageCode: string, style: Style) => void
+  /** 이모티콘 변환 완주(다운로드) 기록 — 실패해도 실제 다운로드 경험엔 영향 없음(fire-and-forget) */
+  recordDownload: (kind: 'single' | 'zip', languageCode?: string) => void
   projectStatus: ProjectStatus | null
   projectResults: ProjectResults | null
   processingError: string | null
@@ -170,6 +173,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       // 로컬 세션에는 이미 저장됐다. 다음 변경 시 서버 저장을 다시 시도한다.
     })
   }, [files, projectId, projectToken])
+
+  const recordDownload = useCallback((kind: 'single' | 'zip', languageCode?: string) => {
+    if (!projectId || !projectToken) return
+    void recordDownloadApi(projectId, projectToken, kind, languageCode).catch(() => {
+      // 카운팅 실패가 실제 다운로드 경험을 막으면 안 됨 — 조용히 무시
+    })
+  }, [projectId, projectToken])
 
   const addFiles = useCallback((incoming: File[]) => {
     const imgs = incoming.filter(f => f.type.startsWith('image/'))
@@ -323,6 +333,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       setTargetLangs,
       styles,
       saveStyle,
+      recordDownload,
       projectStatus,
       projectResults,
       processingError,
@@ -341,6 +352,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       toggleTargetLang,
       styles,
       saveStyle,
+      recordDownload,
       projectStatus,
       projectResults,
       processingError,
