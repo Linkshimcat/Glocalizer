@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { downloadRouter } from './download.routes.js';
 import { editorRouter } from './editor.routes.js';
 import { healthRouter } from './health.routes.js';
 import { processRouter } from './process.routes.js';
@@ -14,3 +15,4 @@ apiRouter.use(uploadRouter);
 apiRouter.use(processRouter);
 apiRouter.use(resultRouter);
 apiRouter.use(editorRouter);
+apiRouter.use(downloadRouter);

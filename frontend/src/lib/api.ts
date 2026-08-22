@@ -128,6 +128,10 @@ export async function reviseOcr(projectId: string, token: string, assetId: strin
   await request(`/projects/${projectId}/assets/${assetId}/ocr`, { method: 'PATCH', body: JSON.stringify({ text, normalizedBox }) }, token)
 }
 
+export async function recordDownload(projectId: string, token: string, kind: 'single' | 'zip', languageCode?: string): Promise<void> {
+  await request(`/projects/${projectId}/downloads`, { method: 'POST', body: JSON.stringify({ kind, languageCode }) }, token)
+}
+
 export async function saveEditorState(
   projectId: string,
   token: string,

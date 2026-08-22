@@ -230,6 +230,7 @@ export default function Editor() {
     targetLangs,
     styles: savedStyles,
     saveStyle,
+    recordDownload,
     projectStatus,
     refreshProject,
     reviseOcr,
@@ -540,6 +541,7 @@ export default function Editor() {
         await renderItemToPng(current, style),
         exportFileName(current.name, langCode, 'png'),
       )
+      recordDownload('single', langCode)
       markCurrentDone()
       navigate('/result')
     } catch (error) {
@@ -561,6 +563,7 @@ export default function Editor() {
         ),
         `${exportName.trim() || 'glocalizer_export'}.zip`,
       )
+      recordDownload('zip')
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
       navigate('/result')
     } catch (error) {
@@ -582,6 +585,7 @@ export default function Editor() {
         await renderItemToPng(current, style),
         exportFileName(current.name, langCode, 'png'),
       )
+      recordDownload('single', langCode)
       markCurrentDone()
       navigate('/result')
     } catch (error) {
