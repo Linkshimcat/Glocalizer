@@ -92,12 +92,30 @@ describe('POST /api/v1/projects/:projectId/downloads', () => {
 });
 
 describe('GET /api/v1/downloads/count', () => {
-  it('기록된 종류별 집계와 총합을 반환한다', async () => {
+  it('올바른 관리자 키가 있으면 종류별 집계와 총합을 반환한다', async () => {
     vi.mocked(downloadRepo.countDownloadEvents).mockResolvedValue({ total: 3, byKind: { single: 2, zip: 1 } });
 
-    const res = await request(app).get('/api/v1/downloads/count');
+    const res = await request(app)
+      .get('/api/v1/downloads/count')
+      .set('X-Admin-Key', process.env.DOWNLOAD_STATS_API_KEY!);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ total: 3, byKind: { single: 2, zip: 1 } });
+  });
+
+  it('관리자 키가 없으면 401을 반환한다', async () => {
+    const res = await request(app).get('/api/v1/downloads/count');
+
+    expect(res.status).toBe(401);
+    expect(downloadRepo.countDownloadEvents).not.toHaveBeenCalled();
+  });
+
+  it('관리자 키가 틀리면 401을 반환한다', async () => {
+    const res = await request(app)
+      .get('/api/v1/downloads/count')
+      .set('X-Admin-Key', 'wrong-key');
+
+    expect(res.status).toBe(401);
+    expect(downloadRepo.countDownloadEvents).not.toHaveBeenCalled();
   });
 });

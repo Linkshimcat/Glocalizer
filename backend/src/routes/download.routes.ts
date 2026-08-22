@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getDownloadStatsHandler, recordDownloadHandler } from '../controllers/download.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
+import { statsAuthMiddleware } from '../middleware/stats-auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { recordDownloadSchema } from '../schemas/download.schema.js';
 import { projectParamsSchema } from '../schemas/upload.schema.js';
@@ -16,6 +17,5 @@ downloadRouter.post(
   asyncHandler(recordDownloadHandler),
 );
 
-// PoC 범위: 집계 숫자만 노출하는 전역 엔드포인트라 인증 없음.
-// 운영 배포 전에는 접근 제어를 추가해야 한다.
-downloadRouter.get('/downloads/count', asyncHandler(getDownloadStatsHandler));
+// 집계 통계는 개별 프로젝트 토큰이 아니라 관리자 키(X-Admin-Key)로 보호한다.
+downloadRouter.get('/downloads/count', statsAuthMiddleware, asyncHandler(getDownloadStatsHandler));

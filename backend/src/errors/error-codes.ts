@@ -5,6 +5,7 @@ export const ERROR_CODES = {
   IMAGE_DECODE_FAILED: { status: 422, message: '이미지를 읽을 수 없습니다.' },
   PROJECT_NOT_FOUND: { status: 404, message: '프로젝트를 찾을 수 없습니다.' },
   INVALID_PROJECT_TOKEN: { status: 401, message: '프로젝트 인증에 실패했습니다.' },
+  INVALID_STATS_KEY: { status: 401, message: '통계 조회 인증에 실패했습니다.' },
   UPLOAD_NOT_COMPLETED: { status: 409, message: '업로드가 완료되지 않았습니다.' },
   PROCESS_ALREADY_RUNNING: { status: 409, message: '이미 처리 중인 프로젝트입니다.' },
   OCR_TEXT_NOT_FOUND: { status: 422, message: '이미지에서 텍스트를 찾지 못했습니다.' },
