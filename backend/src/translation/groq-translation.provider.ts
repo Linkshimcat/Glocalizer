@@ -52,7 +52,9 @@ export const groqTranslationProvider: TranslationProvider = {
           body: JSON.stringify({
             model: env.GROQ_MODEL,
             temperature: 0.75,
-            max_tokens: 900,
+            // 줄바꿈 병합으로 원문이 길어질 수 있어(merge-recognized-regions.ts), 3개 언어 응답이
+            // 잘려서 JSON 파싱이 실패하지 않도록 넉넉히 잡는다.
+            max_tokens: 1500,
             response_format: { type: 'json_object' },
             messages: [{ role: 'user', content: buildPrompt(input) }],
           }),

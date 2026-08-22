@@ -40,4 +40,32 @@ describe('mergeAdjacentKoreanRegions', () => {
 
     expect(merged.map((value) => value.text)).toEqual(['킹', '받았죠', '아자']);
   });
+
+  it('줄바꿈으로 두 줄에 걸친 같은 캡션을 하나의 영역으로 이어 붙인다', () => {
+    const merged = mergeAdjacentKoreanRegions([
+      region('오늘도', 10, 10, 90, 40),
+      region('힘내자', 12, 44, 92, 74),
+    ]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].text).toBe('오늘도 힘내자');
+  });
+
+  it('세로 간격은 가깝지만 좌우로 겹치지 않는 두 영역은 합치지 않는다', () => {
+    const merged = mergeAdjacentKoreanRegions([
+      region('왼쪽줄', 10, 10, 80, 40),
+      region('오른쪽줄', 200, 44, 280, 74),
+    ]);
+
+    expect(merged.map((value) => value.text)).toEqual(['왼쪽줄', '오른쪽줄']);
+  });
+
+  it('세로 간격이 줄 높이보다 훨씬 먼 두 영역(다른 말풍선)은 합치지 않는다', () => {
+    const merged = mergeAdjacentKoreanRegions([
+      region('자책', 10, 10, 90, 40),
+      region('그', 10, 200, 50, 240),
+    ]);
+
+    expect(merged.map((value) => value.text)).toEqual(['자책', '그']);
+  });
 });
