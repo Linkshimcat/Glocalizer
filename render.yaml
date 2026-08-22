@@ -23,6 +23,10 @@ services:
         sync: false
       - key: PROJECT_TOKEN_SECRET
         generateValue: true
+      # GET /downloads/count 조회 시 X-Admin-Key 헤더로 이 값을 보내야 한다.
+      # 값은 Render 대시보드 → glocalizer-api → Environment에서 확인.
+      - key: DOWNLOAD_STATS_API_KEY
+        generateValue: true
       - key: GROQ_API_KEY
         sync: false
       # Render Starter 플랜(512MB)에서 PaddleOCR의 메모리 급증을 제한한다.

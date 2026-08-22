@@ -21,6 +21,8 @@ export const envSchema = z.object({
   MAX_IMAGE_HEIGHT: z.coerce.number().int().positive().default(4096),
 
   PROJECT_TOKEN_SECRET: z.string().min(16, 'PROJECT_TOKEN_SECRET must be at least 16 characters'),
+  // 다운로드 완주 집계(GET /downloads/count)는 개별 프로젝트 토큰이 아니라 이 관리자 키로 보호한다.
+  DOWNLOAD_STATS_API_KEY: z.string().min(16, 'DOWNLOAD_STATS_API_KEY must be at least 16 characters'),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
