@@ -55,6 +55,9 @@ export const groqTranslationProvider: TranslationProvider = {
             // 줄바꿈 병합으로 원문이 길어질 수 있어(merge-recognized-regions.ts), 3개 언어 응답이
             // 잘려서 JSON 파싱이 실패하지 않도록 넉넉히 잡는다.
             max_tokens: 1500,
+            // GROQ_MODEL 기본값(qwen/qwen3.6-27b)은 reasoning 모델이라, 이 옵션이 없으면
+            // max_tokens 예산을 숨겨진 reasoning에 다 쓰고 빈 응답을 반환하는 경우가 있다.
+            reasoning_effort: 'none',
             response_format: { type: 'json_object' },
             messages: [{ role: 'user', content: buildPrompt(input) }],
           }),

@@ -27,7 +27,9 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   GROQ_API_KEY: z.string().min(1).optional(),
-  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  // llama-3.3-70b-versatile은 2026-08-16부로 Groq에서 폐기(무료/개발자 티어).
+  // Groq 공식 마이그레이션 권장 모델로 교체. (https://console.groq.com/docs/deprecations)
+  GROQ_MODEL: z.string().default('qwen/qwen3.6-27b'),
   GROQ_BASE_URL: z.string().url().default('https://api.groq.com/openai/v1'),
   TRANSLATION_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   TRANSLATION_PROVIDER: z.enum(['groq']).default('groq'),
