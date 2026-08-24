@@ -1,6 +1,7 @@
 import { findAssetsByProjectAndStatus, updateAsset } from '../repositories/asset.repository.js';
 import { findRegionsByAssetId, updateRegionCleanupMetadata } from '../repositories/ocr.repository.js';
-import { updateProjectStage } from '../repositories/project.repository.js';
+import { findProjectById, updateProjectStage } from '../repositories/project.repository.js';
+import { findTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
 import type { CleanupResult } from '../types/cleanup.js';
@@ -14,6 +15,10 @@ import { createTightBoxMask, generateTextEraseMask } from './mask-generator.js';
 import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
 import { logger } from '../config/logger.js';
+import { generateAdaptiveTextMask } from './adaptive-text-mask.js';
+import { applyDirectionalInpaint } from './directional-inpaint.js';
+
+const ADAPTIVE_MASK_MIN_CONFIDENCE = 0.55;
 
 const METHOD_PRIORITY: CleanupResult['method'][] = [
   'manual-required',
@@ -47,6 +52,8 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     }
 
     const decoded = await decodeImagePixels(buffer);
+    const project = await findProjectById(asset.project_id);
+    if (!project) throw new AppError('PROJECT_NOT_FOUND', { projectId: asset.project_id });
     let cleanedBuffer = buffer;
     const methods: CleanupResult['method'][] = [];
     const qualities: CleanupResult['quality'][] = [];
@@ -54,26 +61,43 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     let primaryTextColor: { r: number; g: number; b: number } | null = null;
 
     for (const region of regions) {
-      if (region.needs_manual_review) {
-        needsManualCleanup = true;
-        methods.push('manual-required');
-        qualities.push('low');
-        await updateRegionCleanupMetadata(region.id, { textColor: null, needsManualCleanup: true });
+      const translations = await findTranslationsByOcrRegionId(region.id);
+      const translatedLanguages = new Set(translations.map((translation) => translation.language_code));
+      const isTranslationComplete = project.target_languages.every((languageCode) => translatedLanguages.has(languageCode));
+      if (!isTranslationComplete) {
+        // 번역문이 준비되지 않은 영역을 먼저 지우면 미리보기에 빈 공간만 남는다.
+        // OCR 검수 상태와 cleanup 안전성은 별개이므로 수동 cleanup 대상으로 표시하지 않는다.
+        await updateRegionCleanupMetadata(region.id, { textColor: null, needsManualCleanup: false });
         continue;
       }
       try {
         const stats = sampleBorderPixelsFromDecoded(decoded, region.bbox);
         const textColor = sampleTextColorFromDecoded(decoded, region.bbox, stats.medianColor);
         if (region.is_primary || primaryTextColor === null) primaryTextColor = textColor;
-        let method = decideCleanupMethod(stats);
-        let quality = assessCleanupQuality(method, stats);
+        const method = decideCleanupMethod(stats);
+        const quality = assessCleanupQuality(method, stats);
         if (method === 'directional-inpaint') {
-          // 복잡한 선화·그라데이션에 사각 블러나 자동 덮개를 적용하면 캐릭터까지 훼손된다.
-          // 원본을 보존하고 에디터의 영역별 수동 지우기로 넘긴다.
-          needsManualCleanup = true;
-          methods.push('manual-required');
-          qualities.push('low');
-          await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: true });
+          const adaptive = await generateAdaptiveTextMask(decoded, region.bbox);
+          const safeMask = adaptive.confidence >= ADAPTIVE_MASK_MIN_CONFIDENCE
+            && isMaskCoverageSafe(measureMaskCoverage(adaptive.mask));
+          if (!safeMask) {
+            needsManualCleanup = true;
+            methods.push('manual-required');
+            qualities.push('low');
+            await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: true });
+            continue;
+          }
+
+          cleanedBuffer = await applyDirectionalInpaint(
+            cleanedBuffer,
+            region.bbox,
+            asset.width,
+            asset.height,
+            adaptive.mask,
+          );
+          methods.push(method);
+          qualities.push(quality);
+          await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: false });
           continue;
         }
 

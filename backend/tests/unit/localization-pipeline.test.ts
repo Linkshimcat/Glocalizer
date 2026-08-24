@@ -9,6 +9,8 @@ vi.mock('../../src/repositories/project.repository.js', () => ({ updateProjectSt
 
 const assetRepo = await import('../../src/repositories/asset.repository.js');
 const projectRepo = await import('../../src/repositories/project.repository.js');
+const localizationService = await import('../../src/ai/localization/localization.service.js');
+const fontStyleService = await import('../../src/ocr/font-style-pipeline.service.js');
 const { runLocalizationPipeline } = await import('../../src/pipelines/localization.pipeline.js');
 
 describe('runLocalizationPipeline final state', () => {
@@ -44,5 +46,17 @@ describe('runLocalizationPipeline final state', () => {
       errorCode: null,
       errorMessage: null,
     });
+  });
+
+  it('Groq 한도 충돌을 피하려고 번역 완료 후 폰트 분석을 시작한다', async () => {
+    vi.mocked(assetRepo.findAssetsByProjectId).mockResolvedValue([
+      { status: 'completed', error_code: null, error_message: null },
+    ] as never);
+
+    await runLocalizationPipeline('project-1');
+
+    const translationOrder = vi.mocked(localizationService.runProjectTranslations).mock.invocationCallOrder[0];
+    const fontStyleOrder = vi.mocked(fontStyleService.runProjectFontStyleAnalysis).mock.invocationCallOrder[0];
+    expect(translationOrder).toBeLessThan(fontStyleOrder);
   });
 });

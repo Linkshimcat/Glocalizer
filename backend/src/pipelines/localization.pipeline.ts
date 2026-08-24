@@ -25,9 +25,11 @@ export async function runLocalizationPipeline(projectId: string): Promise<Pipeli
   await runOcrPipeline(projectId);
 
   await updateProjectStage(projectId, { stage: 'translating', progress: 60 });
-  // 원본 글자 시각 특성 분석은 번역과 서로 다른 데이터를 다루고 의존관계가 없어 병렬로 돌린다
-  // (지연시간을 추가하지 않기 위함 — 실패해도 soft-fail이라 번역 결과에 영향 없음).
-  await Promise.all([runProjectTranslations(projectId), runProjectFontStyleAnalysis(projectId)]);
+  // 번역과 폰트 분석이 같은 Groq 한도를 나눠 쓰므로 동시에 실행하면 짧은 시간에 429가
+  // 발생하고 일부 OCR 영역의 번역이 비게 된다. 사용자 결과에 필수인 번역을 먼저 끝낸 뒤,
+  // 실패해도 결과를 막지 않는 폰트 분석을 실행한다.
+  await runProjectTranslations(projectId);
+  await runProjectFontStyleAnalysis(projectId);
 
   await updateProjectStage(projectId, { stage: 'cleaning', progress: 80 });
   await runProjectCleanup(projectId);

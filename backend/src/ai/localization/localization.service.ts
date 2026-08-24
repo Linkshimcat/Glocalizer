@@ -125,14 +125,15 @@ export async function localizeRegionForLanguages(
 
   // 한 언어의 누락/형식 오류가 같은 캡션의 다른 언어까지 버리지 않도록 실패 언어만
   // 단일 언어 요청으로 한 번 더 복구한다. provider 내부 HTTP 재시도와는 별도 단계다.
-  const retryResults = await Promise.all(failedLanguages.map(async (languageCode) => {
+  const retryResults: LanguageTranslationResult[] = [];
+  for (const languageCode of failedLanguages) {
     try {
       const result = await provider.localizeBatch(buildLocalizationInput(region, [languageCode], options, siblingCaptions));
-      return persistResult(languageCode, result);
+      retryResults.push(await persistResult(languageCode, result));
     } catch (error) {
-      return failedResult(languageCode, error);
+      retryResults.push(failedResult(languageCode, error));
     }
-  }));
+  }
   const retriedByLanguage = new Map(retryResults.map((result) => [result.languageCode, result]));
   return firstPass.map((result) => result.status === 'translated'
     ? result

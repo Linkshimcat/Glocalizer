@@ -9,7 +9,8 @@ vi.mock('../../src/repositories/ocr.repository.js', () => ({
   findRegionsByAssetId: vi.fn(),
   updateRegionCleanupMetadata: vi.fn(),
 }));
-vi.mock('../../src/repositories/project.repository.js', () => ({ updateProjectStage: vi.fn() }));
+vi.mock('../../src/repositories/project.repository.js', () => ({ findProjectById: vi.fn(), updateProjectStage: vi.fn() }));
+vi.mock('../../src/repositories/translation.repository.js', () => ({ findTranslationsByOcrRegionId: vi.fn() }));
 vi.mock('../../src/repositories/storage.repository.js', () => ({
   downloadFromStorage: vi.fn(),
   uploadToStorage: vi.fn(),
@@ -39,8 +40,12 @@ vi.mock('../../src/image/blur-cleanup.js', () => ({ applyBlurCleanup: vi.fn() })
 
 const assetRepo = await import('../../src/repositories/asset.repository.js');
 const ocrRepo = await import('../../src/repositories/ocr.repository.js');
+const projectRepo = await import('../../src/repositories/project.repository.js');
+const translationRepo = await import('../../src/repositories/translation.repository.js');
 const storageRepo = await import('../../src/repositories/storage.repository.js');
 const solidCleanup = await import('../../src/image/solid-color-cleanup.js');
+const directionalCleanup = await import('../../src/image/directional-inpaint.js');
+const adaptiveMask = await import('../../src/image/adaptive-text-mask.js');
 const cleanupQuality = await import('../../src/image/cleanup-quality.js');
 const { runCleanupForAsset } = await import('../../src/image/cleanup.service.js');
 
@@ -54,10 +59,20 @@ describe('runCleanupForAsset multi-region behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue(regions as never);
+    vi.mocked(projectRepo.findProjectById).mockResolvedValue({ target_languages: ['en'] } as never);
+    vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValue([{ language_code: 'en' }] as never);
     vi.mocked(storageRepo.downloadFromStorage).mockResolvedValue(Buffer.from('source'));
     vi.mocked(solidCleanup.applySolidColorCleanup)
-      .mockResolvedValueOnce(Buffer.from('cleaned-once'))
+      .mockResolvedValueOnce(Buffer.from('cleaned-review'))
+      .mockResolvedValueOnce(Buffer.from('cleaned-success'))
       .mockRejectedValueOnce(new Error('one region failed'));
+    vi.mocked(adaptiveMask.generateAdaptiveTextMask).mockResolvedValue({
+      mask: { data: new Uint8Array(100), width: 10, height: 10, roi: { x: 1, y: 4, width: 3, height: 2 } },
+      confidence: 0.9,
+      coverage: 0.2,
+      spillRatio: 0,
+    });
+    vi.mocked(directionalCleanup.applyDirectionalInpaint).mockResolvedValue(Buffer.from('inpainted'));
   });
 
   it('continues after region failures and uploads the composed image once', async () => {
@@ -69,9 +84,9 @@ describe('runCleanupForAsset multi-region behavior', () => {
       height: 10,
     } as never);
 
-    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(2);
+    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(3);
     expect(storageRepo.uploadToStorage).toHaveBeenCalledTimes(1);
-    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: null, needsManualCleanup: true });
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: { r: 20, g: 20, b: 20 }, needsManualCleanup: false });
     expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-success', { textColor: { r: 20, g: 20, b: 20 }, needsManualCleanup: false });
     expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-failure', { textColor: null, needsManualCleanup: true });
     expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', expect.objectContaining({
@@ -83,7 +98,7 @@ describe('runCleanupForAsset multi-region behavior', () => {
     expect(result).toMatchObject({ method: 'manual-required', quality: 'low', needsManualCleanup: true });
   });
 
-  it('복잡한 배경은 자동 블러 없이 원본을 보존하고 수동 보정으로 표시한다', async () => {
+  it('복잡한 배경도 신뢰도 높은 글자 마스크가 있으면 해당 픽셀만 인페인트한다', async () => {
     vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[1]] as never);
     vi.mocked(cleanupQuality.decideCleanupMethod).mockReturnValue('directional-inpaint');
 
@@ -92,8 +107,43 @@ describe('runCleanupForAsset multi-region behavior', () => {
     } as never);
 
     expect(solidCleanup.applySolidColorCleanup).not.toHaveBeenCalled();
+    expect(directionalCleanup.applyDirectionalInpaint).toHaveBeenCalledTimes(1);
+    expect(storageRepo.uploadToStorage).toHaveBeenCalledTimes(1);
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-success', expect.objectContaining({ needsManualCleanup: false }));
+    expect(result).toMatchObject({ method: 'directional-inpaint', needsManualCleanup: false });
+  });
+
+  it('복잡한 배경의 글자 마스크 신뢰도가 낮으면 원본을 보존한다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[1]] as never);
+    vi.mocked(cleanupQuality.decideCleanupMethod).mockReturnValue('directional-inpaint');
+    vi.mocked(adaptiveMask.generateAdaptiveTextMask).mockResolvedValue({
+      mask: { data: new Uint8Array(100), width: 10, height: 10, roi: { x: 1, y: 4, width: 3, height: 2 } },
+      confidence: 0.2,
+      coverage: 0,
+      spillRatio: 1,
+    });
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(directionalCleanup.applyDirectionalInpaint).not.toHaveBeenCalled();
     expect(storageRepo.uploadToStorage).not.toHaveBeenCalled();
-    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-success', expect.objectContaining({ needsManualCleanup: true }));
     expect(result).toMatchObject({ method: 'manual-required', needsManualCleanup: true });
+  });
+
+  it('선택 언어 번역이 모두 준비되기 전에는 원문을 지우지 않는다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[1]] as never);
+    vi.mocked(projectRepo.findProjectById).mockResolvedValue({ target_languages: ['en', 'ja'] } as never);
+    vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValue([{ language_code: 'en' }] as never);
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(solidCleanup.applySolidColorCleanup).not.toHaveBeenCalled();
+    expect(storageRepo.uploadToStorage).not.toHaveBeenCalled();
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-success', { textColor: null, needsManualCleanup: false });
+    expect(result.needsManualCleanup).toBe(false);
   });
 });

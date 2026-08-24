@@ -20,7 +20,7 @@ vi.mock('../../src/repositories/translation.repository.js', () => ({
 const ocrRepo = await import('../../src/repositories/ocr.repository.js');
 const assetRepo = await import('../../src/repositories/asset.repository.js');
 const translationRepo = await import('../../src/repositories/translation.repository.js');
-const { runTranslationsForAsset } = await import('../../src/ai/localization/localization.service.js');
+const { localizeRegionForLanguages, runTranslationsForAsset } = await import('../../src/ai/localization/localization.service.js');
 
 const regions = ['잼얘 요구권', '잼얘해줘', '당신이 잼얘를 끊어온지 오래됐기 때문에'].map((text, index) => ({
   id: `region-${index + 1}`,
@@ -70,5 +70,34 @@ describe('runTranslationsForAsset multi-region behavior', () => {
     expect(result.status).toBe('translating');
     expect(result.languages).toEqual([{ languageCode: 'en', status: 'translated', needsReview: false }]);
     expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', { status: 'translating', stage: 'translating', progress: 100 });
+  });
+
+  it('묶음 요청 실패 뒤 언어별 재시도를 동시에 보내지 않는다', async () => {
+    let activeRequests = 0;
+    let maxActiveRequests = 0;
+    provider.localizeBatch.mockImplementation(async input => {
+      if (input.targetLanguages.length > 1) throw new Error('batch failed');
+      activeRequests += 1;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+      await new Promise(resolve => setTimeout(resolve, 5));
+      activeRequests -= 1;
+      const languageCode = input.targetLanguages[0];
+      const text = languageCode === 'en' ? 'Tell me' : languageCode === 'ja' ? '話して' : '说吧';
+      return new Map([[languageCode, {
+        sourceText: input.sourceText,
+        targetLanguage: languageCode,
+        candidates: [{ text, tone: 'casual', meaning: '말해줘', best: true }],
+        recommendedStyle: { fontCategory: 'bold', alignment: 'center', strokeRecommended: false, shadowRecommended: false },
+      }]]);
+    });
+
+    const results = await localizeRegionForLanguages(
+      regions[0] as never,
+      ['en', 'ja', 'zh'],
+      { tone: 'funny', audience: 'teen', translationStyle: 'trendy', highQualityReview: false },
+    );
+
+    expect(maxActiveRequests).toBe(1);
+    expect(results.every(result => result.status === 'translated')).toBe(true);
   });
 });

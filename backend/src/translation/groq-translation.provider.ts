@@ -81,6 +81,6 @@ export const groqTranslationProvider: TranslationProvider = {
       } finally {
         clearTimeout(timeout);
       }
-    }, { attempts: env.AI_MAX_RETRIES, delayMs: 300, shouldRetry: isRetryable });
+    }, { attempts: env.AI_MAX_RETRIES, delayMs: 1_000, shouldRetry: isRetryable });
   },
 };

@@ -3,10 +3,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
+import { useLocation } from 'react-router-dom'
 import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
 import { pickFontByStyle } from '../data/demo'
@@ -93,6 +96,16 @@ export const LANGUAGES: Language[] = [
 /* ── 세션 유지 (새로고침해도 업로드/편집 내용 보존) ─────────────── */
 
 const SESSION_PREFIX = 'glocalizer:'
+const WORKFLOW_SESSION_KEYS = [
+  'files',
+  'selectedFileIds',
+  'targetLangs',
+  'styles',
+  'projectId',
+  'projectToken',
+  'projectStatus',
+  'projectResults',
+] as const
 
 function loadSession<T>(key: string, fallback: T): T {
   try {
@@ -160,6 +173,8 @@ interface UploadState {
 const UploadContext = createContext<UploadState | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
+  const location = useLocation()
+  const previousPathRef = useRef(location.pathname)
   // 초기값을 sessionStorage에서 복원 → 새로고침해도 유지
   const [files, setFiles] = useState<UploadFile[]>(() => loadSession('files', []))
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>(() => {
@@ -176,6 +191,23 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const [projectResults, setProjectResults] = useState<ProjectResults | null>(() => loadSession('projectResults', null))
   const [processingError, setProcessingError] = useState<string | null>(null)
 
+  const resetWorkflow = useCallback(() => {
+    setFiles([])
+    setSelectedFileIds([])
+    setTargetLangs([])
+    setStyles({})
+    setProjectId(null)
+    setProjectToken(null)
+    setProjectStatus(null)
+    setProjectResults(null)
+    setProcessingError(null)
+    try {
+      for (const key of WORKFLOW_SESSION_KEYS) sessionStorage.removeItem(SESSION_PREFIX + key)
+    } catch {
+      // 저장소 접근이 막힌 환경에서도 메모리 상태 초기화는 유지한다.
+    }
+  }, [])
+
   // 상태 변경 시 세션에 저장
   useEffect(() => saveSession('files', files), [files])
   useEffect(() => saveSession('selectedFileIds', selectedFileIds), [selectedFileIds])
@@ -185,6 +217,14 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveSession('projectToken', projectToken), [projectToken])
   useEffect(() => saveSession('projectStatus', projectStatus), [projectStatus])
   useEffect(() => saveSession('projectResults', projectResults), [projectResults])
+
+  useLayoutEffect(() => {
+    const previousPath = previousPathRef.current
+    const leftWorkArea = previousPath === '/editor' || previousPath === '/result'
+    const enteredFreshStart = location.pathname === '/' || location.pathname === '/dashboard'
+    if (leftWorkArea && enteredFreshStart) resetWorkflow()
+    previousPathRef.current = location.pathname
+  }, [location.pathname, resetWorkflow])
 
   const saveStyle = useCallback((id: string, languageCode: string, style: Style, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === id)
