@@ -29,6 +29,12 @@ services:
         generateValue: true
       - key: GROQ_API_KEY
         sync: false
+      # OCR 주력 엔진. luna는 GPT-5.6 Luna(유료)를 쓰고, 실패/한글 미검출 시에만 PaddleOCR로
+      # 자동 대체한다(ocr-provider.ts의 getOcrFallbackProvider). 벤치마크 근거는 2026-08-24 보고서 참고.
+      - key: OCR_PROVIDER
+        value: luna
+      - key: OPENAI_API_KEY
+        sync: false
       # Render Starter 플랜(512MB)에서 PaddleOCR의 메모리 급증을 제한한다.
       - key: AI_CONCURRENCY
         value: 1

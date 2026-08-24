@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { AppError, describeError } from '../errors/app-error.js';
 import { prepareOcrFallbackVariants, preparePrimaryOcrImage } from '../image/vision-image-preprocessor.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../repositories/asset.repository.js';
@@ -8,7 +9,7 @@ import { downloadFromStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
 import { classifyConfidence, type OcrRegion } from '../types/ocr.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
-import { getOcrProvider, getShadowOcrProvider } from './ocr-provider.js';
+import { getOcrFallbackProvider, getOcrProvider, getShadowOcrProvider } from './ocr-provider.js';
 import type { RecognizedRegion } from './ocr-provider.types.js';
 import { measureShadowOcr } from './ocr-shadow.service.js';
 import { selectOcrVariantCount } from './ocr-variant-selection.js';
@@ -63,32 +64,56 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
     const primaryVariant = await preparePrimaryOcrImage(source, env.OCR_IMAGE_MAX_DIMENSION);
     const variants = [primaryVariant];
     const provider = getOcrProvider();
+    const fallbackProvider = getOcrFallbackProvider();
     const shadowProvider = getShadowOcrProvider();
     if (shadowProvider && shadowProvider.name !== provider.name) {
       void measureShadowOcr(shadowProvider, asset.id, [primaryVariant.content]);
     }
-    const results = [mergeAdjacentKoreanRegions(await provider.recognize(primaryVariant.content))];
-    if (shouldRunFallbackVariants(results[0])) {
+    let activeProvider = provider;
+    let primaryRegions: RecognizedRegion[];
+    try {
+      primaryRegions = mergeAdjacentKoreanRegions(await provider.recognize(primaryVariant.content));
+      // Luna처럼 단발 정확도가 검증된 유료 Vision provider가 한글을 아예 못 찾았을 때만
+      // 로컬 PaddleOCR로 한 번 더 확인한다. 재시도가 아니라 단발성 안전망이라 비용은 거의 늘지 않는다.
+      if (fallbackProvider && !primaryRegions.some((region) => containsKorean(region.text))) {
+        const fallbackRegions = mergeAdjacentKoreanRegions(await fallbackProvider.recognize(primaryVariant.content));
+        if (fallbackRegions.some((region) => containsKorean(region.text))) {
+          activeProvider = fallbackProvider;
+          primaryRegions = fallbackRegions;
+        }
+      }
+    } catch (error) {
+      if (!fallbackProvider) throw error;
+      logger.warn({ err: error, assetId: asset.id, provider: provider.name }, 'OCR 주력 provider 처리 중 오류, PaddleOCR로 대체합니다.');
+      activeProvider = fallbackProvider;
+      primaryRegions = mergeAdjacentKoreanRegions(await fallbackProvider.recognize(primaryVariant.content));
+    }
+    const results = [primaryRegions];
+    // Luna/OpenVINO는 단일 호출 정확도가 이미 검증돼 있어, PaddleOCR 전용으로 설계된 이미지
+    // 변형 앙상블(shouldRunFallbackVariants)과 짧은 문구 vision 재판정을 건너뛴다 — 둘 다
+    // PaddleOCR의 저신뢰 특성을 보완하려고 만든 단계라 비용만 늘리고 효과가 없다.
+    const isSingleShotVision = activeProvider.name === 'openvino-npu' || activeProvider.name === 'luna';
+    if (!isSingleShotVision && shouldRunFallbackVariants(results[0])) {
       const fallbackVariants = await prepareOcrFallbackVariants(source, env.OCR_IMAGE_MAX_DIMENSION);
       // 한국어가 전혀 없을 때는 모든 fallback을 시도하지만, 불완전 문구는 빠른 두 변형만
       // 추가해 일반 이미지의 처리 시간을 불필요하게 늘리지 않는다.
       const fallbackCount = results[0].some((region) => containsKorean(region.text))
-        ? Math.min(2, selectOcrVariantCount(provider, fallbackVariants.length))
-        : selectOcrVariantCount(provider, fallbackVariants.length);
+        ? Math.min(2, selectOcrVariantCount(activeProvider, fallbackVariants.length))
+        : selectOcrVariantCount(activeProvider, fallbackVariants.length);
       for (const variant of fallbackVariants.slice(0, fallbackCount)) {
         variants.push(variant);
-        const recognized = mergeAdjacentKoreanRegions(await provider.recognize(variant.content));
+        const recognized = mergeAdjacentKoreanRegions(await activeProvider.recognize(variant.content));
         results.push(recognized);
         if (!results[0].some((region) => containsKorean(region.text)) && recognized.some((region) => containsKorean(region.text))) break;
       }
     }
-    const consensusRegions = selectConsensusRegions(results, { allowSingleVariantAutoApprove: provider.name === 'openvino-npu' });
+    const consensusRegions = selectConsensusRegions(results, { allowSingleVariantAutoApprove: isSingleShotVision });
     const consensus = consensusRegions[0] ?? null;
     let selected = consensus;
     let sourceName: OcrRegion['source'] = 'paddle-consensus';
     let agreementScore = consensus?.agreementScore ?? 0;
     let needsManualReview = consensus?.needsManualReview ?? true;
-    if (shouldUseVisionFallback(selected, results[0], needsManualReview)) {
+    if (!isSingleShotVision && shouldUseVisionFallback(selected, results[0], needsManualReview)) {
       const vision = await requestVisionOcr(variants[0].content, selected ?? undefined);
       if (vision !== null && vision.confidence >= 0.8 && containsKorean(vision.text)) {
         // Vision 모델은 글자 판독(짧은 한글 오독 보정)엔 강하지만, 프롬프트로 요청한 자체
