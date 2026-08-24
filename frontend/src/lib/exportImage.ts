@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import type { DemoItem } from '../data/demo'
-import { DEFAULT_STYLE, hexToRgba, resolveText, type Style } from './style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type Style } from './style'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 512px 캔버스로 합성 */
 const CANVAS_SIZE = 512
@@ -12,6 +12,40 @@ interface DrawnImageFrame {
   y: number
   width: number
   height: number
+}
+
+export interface TextOverlay {
+  regionId: string | null
+  suggestions: Array<{ text: string }>
+  style: Style
+}
+
+export function textOverlaysForItem(
+  item: DemoItem,
+  languageCode: string,
+  styles: Record<string, Record<string, Style>>,
+  selectedOverride?: { regionId: string | null; style: Style },
+): TextOverlay[] {
+  const primaryRegionId = item.analysis?.regionId ?? null
+  const regions = item.textRegions?.length
+    ? item.textRegions
+    : [{
+        id: primaryRegionId ?? item.id,
+        suggestions: item.suggestions,
+        normalizedBox: item.analysis?.normalizedBox ?? null,
+        textColor: item.analysis?.textColor ?? null,
+        recommendedFont: item.recommendedFont,
+      }]
+  return regions.map(region => {
+    const key = styleKeyForRegion(item.id, region.id, primaryRegionId)
+    const fallback = region.normalizedBox
+      ? { ...styleFromNormalizedBox(region.normalizedBox, region.textColor, region.suggestions.find(value => value.best)?.text ?? region.suggestions[0]?.text), font: region.recommendedFont }
+      : DEFAULT_STYLE
+    const style = selectedOverride?.regionId === region.id
+      ? selectedOverride.style
+      : styles[key]?.[languageCode] ?? fallback
+    return { regionId: region.id, suggestions: region.suggestions, style }
+  })
 }
 
 function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number) {
@@ -68,7 +102,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 }
 
 /** 원본 이미지 + 번역 텍스트를 합성한 PNG Blob 생성 */
-export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blob> {
+export async function renderItemToPng(item: DemoItem, style: Style, overlays?: TextOverlay[]): Promise<Blob> {
   const canvas = document.createElement('canvas')
   canvas.width = CANVAS_SIZE
   canvas.height = CANVAS_SIZE
@@ -91,7 +125,9 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
     const h = img.height * contain
     const frame = { x: (CANVAS_SIZE - w) / 2, y: (CANVAS_SIZE - h) / 2, width: w, height: h }
     ctx.drawImage(img, frame.x, frame.y, frame.width, frame.height)
-    applyManualCleanup(ctx, style, frame)
+    for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style }]) {
+      applyManualCleanup(ctx, overlay.style, frame)
+    }
     try {
       ctx.getImageData(0, 0, 1, 1)
     } catch {
@@ -104,42 +140,41 @@ export async function renderItemToPng(item: DemoItem, style: Style): Promise<Blo
     ctx.fillText(item.emoji, CANVAS_SIZE / 2, CANVAS_SIZE / 2)
   }
 
-  // 번역 텍스트
-  const text = resolveText(style, item.suggestions)
-  const weight = style.weight
-  const fontPx = Math.round(style.size * SCALE)
-  const fontSpec = `${weight} ${fontPx}px '${style.font}', sans-serif`
-  try {
-    await document.fonts.load(fontSpec, text)
-  } catch {
-    // 폰트 로드 실패 시 폴백 폰트로 진행
-  }
+  for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style }]) {
+    const overlayStyle = overlay.style
+    const text = resolveText(overlayStyle, overlay.suggestions)
+    if (!text) continue
+    const fontPx = Math.round(overlayStyle.size * SCALE)
+    const fontSpec = `${overlayStyle.weight} ${fontPx}px '${overlayStyle.font}', sans-serif`
+    try {
+      await document.fonts.load(fontSpec, text)
+    } catch {
+      // 폰트 로드 실패 시 폴백 폰트로 진행
+    }
 
-  ctx.save()
-  ctx.translate(
-    CANVAS_SIZE / 2 + style.x * SCALE,
-    CANVAS_SIZE / 2 + style.y * SCALE,
-  )
-  ctx.rotate((style.rotation * Math.PI) / 180)
-  ctx.font = fontSpec
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  drawTextBackground(ctx, text, style, fontPx)
-  if (style.shadowOn) {
-    ctx.shadowColor = hexToRgba(style.shadowColor, style.shadowOpacity / 100)
-    ctx.shadowBlur = style.shadowBlur * SCALE
-    ctx.shadowOffsetX = style.shadowX * SCALE
-    ctx.shadowOffsetY = style.shadowY * SCALE
+    ctx.save()
+    ctx.translate(CANVAS_SIZE / 2 + overlayStyle.x * SCALE, CANVAS_SIZE / 2 + overlayStyle.y * SCALE)
+    ctx.rotate((overlayStyle.rotation * Math.PI) / 180)
+    ctx.font = fontSpec
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    drawTextBackground(ctx, text, overlayStyle, fontPx)
+    if (overlayStyle.shadowOn) {
+      ctx.shadowColor = hexToRgba(overlayStyle.shadowColor, overlayStyle.shadowOpacity / 100)
+      ctx.shadowBlur = overlayStyle.shadowBlur * SCALE
+      ctx.shadowOffsetX = overlayStyle.shadowX * SCALE
+      ctx.shadowOffsetY = overlayStyle.shadowY * SCALE
+    }
+    if (overlayStyle.strokeOn) {
+      ctx.lineWidth = overlayStyle.strokeWidth * 2 * SCALE
+      ctx.strokeStyle = overlayStyle.strokeColor
+      ctx.lineJoin = 'round'
+      ctx.strokeText(text, 0, 0)
+    }
+    ctx.fillStyle = overlayStyle.color
+    ctx.fillText(text, 0, 0)
+    ctx.restore()
   }
-  if (style.strokeOn) {
-    ctx.lineWidth = style.strokeWidth * 2 * SCALE
-    ctx.strokeStyle = style.strokeColor
-    ctx.lineJoin = 'round'
-    ctx.strokeText(text, 0, 0)
-  }
-  ctx.fillStyle = style.color
-  ctx.fillText(text, 0, 0)
-  ctx.restore()
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -178,7 +213,8 @@ export async function zipLocalizedItems(
   for (const { languageCode, items } of itemsByLanguage) {
     for (const item of items) {
       const style = styles[item.id]?.[languageCode] ?? DEFAULT_STYLE
-      zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style))
+      const overlays = textOverlaysForItem(item, languageCode, styles)
+      zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays))
     }
   }
   return zip.generateAsync({ type: 'blob' })

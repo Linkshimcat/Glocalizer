@@ -64,6 +64,7 @@ export const regenerateSchema = z.object({
 });
 
 export const updateOcrSchema = z.object({
+  regionId: z.string().uuid().optional(),
   text: z.string().trim().min(1).max(200),
   normalizedBox: z.object({
     x: z.number().min(0).max(1), y: z.number().min(0).max(1),

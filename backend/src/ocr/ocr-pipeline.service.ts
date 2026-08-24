@@ -13,13 +13,19 @@ import { getOcrFallbackProvider, getOcrProvider, getShadowOcrProvider } from './
 import type { RecognizedRegion } from './ocr-provider.types.js';
 import { measureShadowOcr } from './ocr-shadow.service.js';
 import { selectOcrVariantCount } from './ocr-variant-selection.js';
-import { mergeAdjacentKoreanRegions } from './merge-recognized-regions.js';
+import { deduplicateRecognizedRegions, mergeAdjacentKoreanRegions } from './merge-recognized-regions.js';
 import { selectConsensusRegions } from './ocr-consensus.service.js';
 import { shouldRunFallbackVariants, shouldUseVisionFallback } from './ocr-quality.js';
 import { requestVisionOcr } from './vision-fallback.service.js';
 
 function containsKorean(text: string): boolean {
   return /[\uAC00-\uD7A3]/.test(text);
+}
+
+function normalizeProviderRegions(providerName: string, regions: RecognizedRegion[]): RecognizedRegion[] {
+  return providerName === 'luna'
+    ? deduplicateRecognizedRegions(regions)
+    : mergeAdjacentKoreanRegions(regions);
 }
 
 function normalizePolygon(polygon: Array<{ x: number; y: number }>, width: number, height: number): OcrRegion['polygon'] {
@@ -72,11 +78,11 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
     let activeProvider = provider;
     let primaryRegions: RecognizedRegion[];
     try {
-      primaryRegions = mergeAdjacentKoreanRegions(await provider.recognize(primaryVariant.content));
+      primaryRegions = normalizeProviderRegions(provider.name, await provider.recognize(primaryVariant.content));
       // Luna처럼 단발 정확도가 검증된 유료 Vision provider가 한글을 아예 못 찾았을 때만
       // 로컬 PaddleOCR로 한 번 더 확인한다. 재시도가 아니라 단발성 안전망이라 비용은 거의 늘지 않는다.
       if (fallbackProvider && !primaryRegions.some((region) => containsKorean(region.text))) {
-        const fallbackRegions = mergeAdjacentKoreanRegions(await fallbackProvider.recognize(primaryVariant.content));
+        const fallbackRegions = normalizeProviderRegions(fallbackProvider.name, await fallbackProvider.recognize(primaryVariant.content));
         if (fallbackRegions.some((region) => containsKorean(region.text))) {
           activeProvider = fallbackProvider;
           primaryRegions = fallbackRegions;
@@ -86,7 +92,7 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
       if (!fallbackProvider) throw error;
       logger.warn({ err: error, assetId: asset.id, provider: provider.name }, 'OCR 주력 provider 처리 중 오류, PaddleOCR로 대체합니다.');
       activeProvider = fallbackProvider;
-      primaryRegions = mergeAdjacentKoreanRegions(await fallbackProvider.recognize(primaryVariant.content));
+      primaryRegions = normalizeProviderRegions(fallbackProvider.name, await fallbackProvider.recognize(primaryVariant.content));
     }
     const results = [primaryRegions];
     // Luna/OpenVINO는 단일 호출 정확도가 이미 검증돼 있어, PaddleOCR 전용으로 설계된 이미지
@@ -102,7 +108,7 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
         : selectOcrVariantCount(activeProvider, fallbackVariants.length);
       for (const variant of fallbackVariants.slice(0, fallbackCount)) {
         variants.push(variant);
-        const recognized = mergeAdjacentKoreanRegions(await activeProvider.recognize(variant.content));
+        const recognized = normalizeProviderRegions(activeProvider.name, await activeProvider.recognize(variant.content));
         results.push(recognized);
         if (!results[0].some((region) => containsKorean(region.text)) && recognized.some((region) => containsKorean(region.text))) break;
       }

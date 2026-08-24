@@ -52,5 +52,7 @@ export interface OcrRegionRow {
   agreement_score: number;
   needs_manual_review: boolean;
   font_style: FontStyle | null;
+  text_color?: { r: number; g: number; b: number } | null;
+  needs_manual_cleanup?: boolean;
   created_at: string;
 }

@@ -14,6 +14,18 @@ export interface BorderStats {
   coarseDominantColorRatio: number;
 }
 
+export interface DecodedImage {
+  data: Buffer;
+  width: number;
+  height: number;
+  channels: number;
+}
+
+export async function decodeImagePixels(buffer: Buffer): Promise<DecodedImage> {
+  const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return { data, width: info.width, height: info.height, channels: info.channels };
+}
+
 interface Rect {
   left: number;
   top: number;
@@ -61,10 +73,20 @@ function stdDev(values: number[], mean: number): number {
 export async function sampleBorderPixels(
   buffer: Buffer,
   box: PixelBox,
-  imageWidth: number,
-  imageHeight: number,
+  _imageWidth: number,
+  _imageHeight: number,
   ringWidth = 8,
 ): Promise<BorderStats> {
+  return sampleBorderPixelsFromDecoded(await decodeImagePixels(buffer), box, ringWidth);
+}
+
+export function sampleBorderPixelsFromDecoded(
+  image: DecodedImage,
+  box: PixelBox,
+  ringWidth = 8,
+): BorderStats {
+  const imageWidth = image.width;
+  const imageHeight = image.height;
   const strips = borderStrips(box, ringWidth, imageWidth, imageHeight);
 
   const reds: number[] = [];
@@ -73,14 +95,16 @@ export async function sampleBorderPixels(
   const alphas: number[] = [];
 
   for (const strip of strips) {
-    const { data } = await sharp(buffer).ensureAlpha().extract(strip).raw().toBuffer({ resolveWithObject: true });
-    for (let i = 0; i < data.length; i += 4) {
-      const a = data[i + 3];
-      alphas.push(a);
-      if (a > 10) {
-        reds.push(data[i]);
-        greens.push(data[i + 1]);
-        blues.push(data[i + 2]);
+    for (let y = strip.top; y < strip.top + strip.height; y += 1) {
+      for (let x = strip.left; x < strip.left + strip.width; x += 1) {
+        const base = (y * imageWidth + x) * image.channels;
+        const a = image.data[base + 3];
+        alphas.push(a);
+        if (a > 10) {
+          reds.push(image.data[base]);
+          greens.push(image.data[base + 1]);
+          blues.push(image.data[base + 2]);
+        }
       }
     }
   }
@@ -108,15 +132,17 @@ export async function sampleBorderPixels(
   const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
   const coarseBuckets = new Map<string, number>();
   if (interior) {
-    const { data } = await sharp(buffer).ensureAlpha().extract(interior).raw().toBuffer({ resolveWithObject: true });
-    for (let index = 0; index < data.length; index += 4) {
-      if (data[index + 3] < 24) continue;
-      const key = `${Math.floor(data[index] / 16)}:${Math.floor(data[index + 1] / 16)}:${Math.floor(data[index + 2] / 16)}`;
+    for (let y = interior.top; y < interior.top + interior.height; y += 1) {
+      for (let x = interior.left; x < interior.left + interior.width; x += 1) {
+      const index = (y * imageWidth + x) * image.channels;
+      if (image.data[index + 3] < 24) continue;
+      const key = `${Math.floor(image.data[index] / 16)}:${Math.floor(image.data[index + 1] / 16)}:${Math.floor(image.data[index + 2] / 16)}`;
       const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
-      bucket.count += 1; bucket.r += data[index]; bucket.g += data[index + 1]; bucket.b += data[index + 2];
+      bucket.count += 1; bucket.r += image.data[index]; bucket.g += image.data[index + 1]; bucket.b += image.data[index + 2];
       buckets.set(key, bucket);
-      const coarseKey = `${Math.floor(data[index] / 32)}:${Math.floor(data[index + 1] / 32)}:${Math.floor(data[index + 2] / 32)}`;
+      const coarseKey = `${Math.floor(image.data[index] / 32)}:${Math.floor(image.data[index + 1] / 32)}:${Math.floor(image.data[index + 2] / 32)}`;
       coarseBuckets.set(coarseKey, (coarseBuckets.get(coarseKey) ?? 0) + 1);
+      }
     }
   }
   const dominant = [...buckets.values()].sort((left, right) => right.count - left.count)[0];
@@ -147,31 +173,43 @@ export interface TextColor {
 export async function sampleTextColor(
   buffer: Buffer,
   box: PixelBox,
-  imageWidth: number,
-  imageHeight: number,
+  _imageWidth: number,
+  _imageHeight: number,
   background: { r: number; g: number; b: number },
 ): Promise<TextColor | null> {
+  return sampleTextColorFromDecoded(await decodeImagePixels(buffer), box, background);
+}
+
+export function sampleTextColorFromDecoded(
+  image: DecodedImage,
+  box: PixelBox,
+  background: { r: number; g: number; b: number },
+): TextColor | null {
+  const imageWidth = image.width;
+  const imageHeight = image.height;
   const interior = clampRect({ left: box.x, top: box.y, width: box.width, height: box.height }, imageWidth, imageHeight);
   if (!interior) return null;
 
-  const { data } = await sharp(buffer).ensureAlpha().extract(interior).raw().toBuffer({ resolveWithObject: true });
   // 배경색에서 먼 픽셀만 글자 후보로 삼고, 16단계 양자화 버킷의 dominant를 글자색으로 본다.
   // 안티에일리어싱 경계의 중간색이 평균을 흐리지 않도록 median 대신 dominant 방식을 쓴다.
   const MIN_COLOR_DISTANCE = 60;
   const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
-  for (let index = 0; index < data.length; index += 4) {
-    if (data[index + 3] < 24) continue;
-    const dr = data[index] - background.r;
-    const dg = data[index + 1] - background.g;
-    const db = data[index + 2] - background.b;
+  for (let y = interior.top; y < interior.top + interior.height; y += 1) {
+    for (let x = interior.left; x < interior.left + interior.width; x += 1) {
+    const index = (y * imageWidth + x) * image.channels;
+    if (image.data[index + 3] < 24) continue;
+    const dr = image.data[index] - background.r;
+    const dg = image.data[index + 1] - background.g;
+    const db = image.data[index + 2] - background.b;
     if (Math.sqrt(dr * dr + dg * dg + db * db) < MIN_COLOR_DISTANCE) continue;
-    const key = `${data[index] >> 4}:${data[index + 1] >> 4}:${data[index + 2] >> 4}`;
+    const key = `${image.data[index] >> 4}:${image.data[index + 1] >> 4}:${image.data[index + 2] >> 4}`;
     const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
     bucket.count += 1;
-    bucket.r += data[index];
-    bucket.g += data[index + 1];
-    bucket.b += data[index + 2];
+    bucket.r += image.data[index];
+    bucket.g += image.data[index + 1];
+    bucket.b += image.data[index + 2];
     buckets.set(key, bucket);
+    }
   }
 
   const dominant = [...buckets.values()].sort((left, right) => right.count - left.count)[0];

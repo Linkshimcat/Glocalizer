@@ -57,6 +57,11 @@ export interface Style {
   manualCleanup?: ManualCleanup
 }
 
+/** 대표 영역은 기존 파일 키를 유지하고, 추가 영역만 합성 키를 써 세션 데이터와 호환한다. */
+export function styleKeyForRegion(fileId: string, regionId?: string | null, primaryRegionId?: string | null): string {
+  return !regionId || regionId === primaryRegionId ? fileId : `${fileId}::${regionId}`
+}
+
 /** OCR bbox를 기존 340px 에디터 좌표로 옮긴 기본 텍스트 스타일 */
 export function styleFromNormalizedBox(box: NormalizedRect, textColor?: { r: number; g: number; b: number } | null, text?: string): Style {
   const editorSize = 340

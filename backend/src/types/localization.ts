@@ -17,6 +17,7 @@ export interface LocalizationPromptInput {
     tone: LocalizationOptions['tone'];
     audience: LocalizationOptions['audience'];
     translationStyle: LocalizationOptions['translationStyle'];
+    siblingCaptions?: string[];
   };
   constraints: {
     maxCharacters: number;

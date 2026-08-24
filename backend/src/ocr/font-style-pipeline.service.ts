@@ -1,7 +1,7 @@
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { findAssetsByProjectAndStatus } from '../repositories/asset.repository.js';
-import { findPrimaryRegion, updateRegionFontStyle } from '../repositories/ocr.repository.js';
+import { findRegionsByAssetId, updateRegionFontStyle } from '../repositories/ocr.repository.js';
 import { downloadFromStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
@@ -10,12 +10,18 @@ import { analyzeFontStyle } from './font-style-vision.service.js';
 async function analyzeAssetFontStyle(asset: AssetRow): Promise<void> {
   try {
     if (!asset.original_path || !asset.width || !asset.height) return;
-    const region = await findPrimaryRegion(asset.id);
-    if (!region) return;
+    const regions = (await findRegionsByAssetId(asset.id)).filter((region) => region.contains_korean);
+    if (regions.length === 0) return;
     const buffer = await downloadFromStorage(asset.original_path);
     if (!buffer) return;
-    const fontStyle = await analyzeFontStyle(buffer, region.bbox, asset.width, asset.height);
-    if (fontStyle) await updateRegionFontStyle(region.id, fontStyle);
+    await mapWithConcurrency(regions, env.AI_CONCURRENCY, async (region) => {
+      try {
+        const fontStyle = await analyzeFontStyle(buffer, region.bbox, asset.width as number, asset.height as number);
+        if (fontStyle) await updateRegionFontStyle(region.id, fontStyle);
+      } catch (err) {
+        logger.warn({ err, assetId: asset.id, regionId: region.id }, 'OCR 영역 폰트 스타일 분석 실패 — 다른 영역은 계속 처리합니다.');
+      }
+    });
   } catch (err) {
     logger.warn({ err, assetId: asset.id }, '원본 글자 스타일 분석 실패 — 건너뜀');
   }

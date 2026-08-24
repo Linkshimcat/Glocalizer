@@ -67,6 +67,26 @@ export async function updatePrimaryRegion(assetId: string, input: { text: string
   return unwrapNullableRow<OcrRegionRow>(result, '수정한 OCR 문구를 저장하지 못했습니다.');
 }
 
+export async function updateRegionById(
+  regionId: string,
+  input: { text: string; normalizedBox: OcrRegion['normalizedBox']; box: OcrRegion['box'] },
+): Promise<OcrRegionRow | null> {
+  const payload = {
+    detected_text: input.text,
+    normalized_bbox: input.normalizedBox,
+    bbox: input.box,
+    source: 'paddle-consensus',
+    agreement_score: 1,
+    needs_manual_review: false,
+  };
+  let result = await supabase.from('ocr_regions').update(payload).eq('id', regionId).select().maybeSingle();
+  if (result.error?.message.includes('agreement_score') || result.error?.message.includes('needs_manual_review') || result.error?.message.includes('source')) {
+    const { source: _source, agreement_score: _agreementScore, needs_manual_review: _needsManualReview, ...legacyPayload } = payload;
+    result = await supabase.from('ocr_regions').update(legacyPayload).eq('id', regionId).select().maybeSingle();
+  }
+  return unwrapNullableRow<OcrRegionRow>(result, '수정한 OCR 문구를 저장하지 못했습니다.');
+}
+
 /**
  * 원본 글자 시각 특성 분석(font-style-vision.service.ts) 결과를 저장한다. OCR 단계가 끝난
  * 뒤 번역과 병렬로 실행되는 별도 단계라 replaceOcrRegions와 분리했다. migration 014 적용 전
@@ -76,4 +96,16 @@ export async function updateRegionFontStyle(regionId: string, fontStyle: FontSty
   const result = await supabase.from('ocr_regions').update({ font_style: fontStyle }).eq('id', regionId);
   if (result.error?.message.includes('font_style')) return;
   unwrapVoid(result, '원본 글자 스타일 분석 결과를 저장하지 못했습니다.');
+}
+
+export async function updateRegionCleanupMetadata(
+  regionId: string,
+  input: { textColor: { r: number; g: number; b: number } | null; needsManualCleanup: boolean },
+): Promise<void> {
+  const result = await supabase.from('ocr_regions').update({
+    text_color: input.textColor,
+    needs_manual_cleanup: input.needsManualCleanup,
+  }).eq('id', regionId);
+  if (result.error?.message.includes('text_color') || result.error?.message.includes('needs_manual_cleanup')) return;
+  unwrapVoid(result, 'OCR 영역 정리 상태를 저장하지 못했습니다.');
 }

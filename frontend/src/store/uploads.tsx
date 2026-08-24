@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Style } from '../lib/style'
+import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
 import { pickFontByStyle } from '../data/demo'
 import {
@@ -50,7 +50,18 @@ export interface UploadFile {
     needsManualOcrReview: boolean
     /** 원본에서 감지한 글자색 {r,g,b} — 번역 텍스트 기본 색. 감지 실패 시 null */
     textColor: { r: number; g: number; b: number } | null
+    regions: RegionAnalysis[]
   }
+}
+
+export interface RegionAnalysis {
+  id: string
+  korean: string
+  normalizedBox: NormalizedRect | null
+  localizations: Record<string, LocalizedAnalysis>
+  needsManualCleanup: boolean
+  needsManualOcrReview: boolean
+  textColor: { r: number; g: number; b: number } | null
 }
 
 export interface LocalizedAnalysis {
@@ -125,7 +136,7 @@ interface UploadState {
   setTargetLangs: (langs: Language[]) => void
   /** 파일·언어별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
   styles: StylesByLanguage
-  saveStyle: (id: string, languageCode: string, style: Style) => void
+  saveStyle: (id: string, languageCode: string, style: Style, regionId?: string | null) => void
   /** 이모티콘 변환 완주(다운로드) 기록 — 실패해도 실제 다운로드 경험엔 영향 없음(fire-and-forget) */
   recordDownload: (kind: 'single' | 'zip', languageCode?: string) => void
   projectStatus: ProjectStatus | null
@@ -133,7 +144,7 @@ interface UploadState {
   processingError: string | null
   startLocalization: () => Promise<void>
   refreshProject: () => Promise<ProjectStatus | null>
-  reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
+  reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => Promise<void>
 }
 
 const UploadContext = createContext<UploadState | null>(null)
@@ -165,11 +176,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveSession('projectStatus', projectStatus), [projectStatus])
   useEffect(() => saveSession('projectResults', projectResults), [projectResults])
 
-  const saveStyle = useCallback((id: string, languageCode: string, style: Style) => {
-    setStyles(prev => ({ ...prev, [id]: { ...prev[id], [languageCode]: style } }))
+  const saveStyle = useCallback((id: string, languageCode: string, style: Style, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === id)
-    if (!projectId || !projectToken || !file?.assetId || !file.analysis?.regionId || !languageCode) return
-    void saveEditorState(projectId, projectToken, file.assetId, file.analysis.regionId, languageCode, style).catch(() => {
+    const targetRegionId = regionId ?? file?.analysis?.regionId
+    const styleKey = styleKeyForRegion(id, targetRegionId, file?.analysis?.regionId)
+    setStyles(prev => ({ ...prev, [styleKey]: { ...prev[styleKey], [languageCode]: style } }))
+    if (!projectId || !projectToken || !file?.assetId || !targetRegionId || !languageCode) return
+    void saveEditorState(projectId, projectToken, file.assetId, targetRegionId, languageCode, style).catch(() => {
       // 로컬 세션에는 이미 저장됐다. 다음 변경 시 서버 저장을 다시 시도한다.
     })
   }, [files, projectId, projectToken])
@@ -205,7 +218,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setSelectedFileIds(prev => prev.filter(id => !ids.includes(id)))
     setStyles(prev => {
       const next = { ...prev }
-      ids.forEach(id => delete next[id])
+      for (const key of Object.keys(next)) {
+        if (ids.some(id => key === id || key.startsWith(`${id}::`))) delete next[key]
+      }
       return next
     })
   }, [])
@@ -240,8 +255,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         for (const file of files) {
           const asset = results.assets.find(result => result.id === file.assetId)
           for (const language of targetLangs) {
-            const savedStyle = asset?.editorStates[language.code]
-            if (savedStyle) restored[file.id] = { ...restored[file.id], [language.code]: savedStyle as Style }
+            for (const region of asset?.ocr.regions ?? []) {
+              const savedStyle = asset?.regionEditorStates?.[region.id]?.[language.code]
+              if (!savedStyle) continue
+              const key = styleKeyForRegion(file.id, region.id, asset?.ocr.primaryRegionId)
+              restored[key] = { ...restored[key], [language.code]: savedStyle as Style }
+            }
           }
         }
         return restored
@@ -277,6 +296,24 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             needsManualCleanup: asset.cleanup.needsManualCleanup,
             needsManualOcrReview: asset.needsManualOcrReview,
             textColor: asset.cleanup.textColor,
+            regions: asset.ocr.regions.map(region => ({
+              id: region.id,
+              korean: region.text,
+              normalizedBox: region.normalizedBox,
+              localizations: Object.fromEntries(targetLangs.map(language => {
+                const localization = region.localizations[language.code]
+                const suggestedFont = region.fontStyle
+                  ? pickFontByStyle(region.fontStyle, region.id)
+                  : fontForCategory(localization?.recommendedStyle?.fontCategory)
+                return [language.code, {
+                  suggestions: localization?.candidates ?? [],
+                  recommendedFont: fontForLanguage(language.code, suggestedFont),
+                }]
+              })),
+              needsManualCleanup: region.needsManualCleanup,
+              needsManualOcrReview: region.needsManualReview,
+              textColor: region.textColor,
+            })),
           },
         }
       }))
@@ -312,10 +349,10 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     }
   }, [files, selectedFileIds, targetLangs])
 
-  const reviseAssetOcr = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect) => {
+  const reviseAssetOcr = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
-    await reviseOcr(projectId, projectToken, file.assetId, text, normalizedBox)
+    await reviseOcr(projectId, projectToken, file.assetId, text, normalizedBox, regionId ?? undefined)
     setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
   }, [files, projectId, projectToken])
 

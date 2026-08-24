@@ -14,6 +14,10 @@ export interface ApiRegion {
   source: 'paddle-consensus' | 'vision-fallback'
   agreementScore: number
   needsManualReview: boolean
+  fontStyle: ApiFontStyle | null
+  textColor: { r: number; g: number; b: number } | null
+  needsManualCleanup: boolean
+  localizations: Record<string, { candidates: ApiCandidate[]; recommendedStyle: { fontCategory?: string } | null }>
 }
 
 export interface ApiFontStyle {
@@ -37,6 +41,7 @@ export interface ApiAssetResult {
   cleanup: { method: string | null; quality: string | null; needsManualCleanup: boolean; textColor: { r: number; g: number; b: number } | null }
   needsManualOcrReview: boolean
   editorStates: Record<string, object>
+  regionEditorStates: Record<string, Record<string, object>>
   errorCode?: string
   errorMessage?: string
 }
@@ -124,8 +129,8 @@ export function getProjectResults(projectId: string, token: string): Promise<Pro
   return request(`/projects/${projectId}/results`, {}, token)
 }
 
-export async function reviseOcr(projectId: string, token: string, assetId: string, text: string, normalizedBox: { x: number; y: number; width: number; height: number }): Promise<void> {
-  await request(`/projects/${projectId}/assets/${assetId}/ocr`, { method: 'PATCH', body: JSON.stringify({ text, normalizedBox }) }, token)
+export async function reviseOcr(projectId: string, token: string, assetId: string, text: string, normalizedBox: { x: number; y: number; width: number; height: number }, regionId?: string): Promise<void> {
+  await request(`/projects/${projectId}/assets/${assetId}/ocr`, { method: 'PATCH', body: JSON.stringify({ text, normalizedBox, regionId }) }, token)
 }
 
 export async function recordDownload(projectId: string, token: string, kind: 'single' | 'zip', languageCode?: string): Promise<void> {

@@ -25,7 +25,7 @@ export async function regenerateHandler(req: Request, res: Response) {
 export async function updateOcrHandler(req: Request, res: Response) {
   const projectId = requireProject(req).id;
   const assetId = requireParam(req, 'assetId');
-  await reviseOcrAndReprocess(projectId, assetId, req.body.text, req.body.normalizedBox);
+  await reviseOcrAndReprocess(projectId, assetId, req.body.text, req.body.normalizedBox, req.body.regionId);
   const job = await createProcessingJob(projectId, ['ocr']);
   res.status(202).json({ assetId, status: 'reprocessing', jobId: job.jobId });
   void processClaimedJob(job.job);

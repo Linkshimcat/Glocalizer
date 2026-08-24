@@ -11,16 +11,17 @@ async function buildAssetResult(asset: AssetRow) {
   const regions = await findRegionsByAssetId(asset.id);
   const primaryRegion = regions.find((region) => region.is_primary) ?? null;
 
-  const localizations: Record<string, { candidates: unknown; recommendedStyle: unknown }> = {};
-  if (primaryRegion) {
-    const translations = await findTranslationsByOcrRegionId(primaryRegion.id);
-    for (const translation of translations) {
-      localizations[translation.language_code] = {
-        candidates: translation.final_candidates,
-        recommendedStyle: translation.recommended_style,
-      };
-    }
-  }
+  const translationsByRegion = new Map(await Promise.all(regions.map(async (region) => [
+    region.id,
+    await findTranslationsByOcrRegionId(region.id),
+  ] as const)));
+  const toLocalizations = (regionId: string) => Object.fromEntries(
+    (translationsByRegion.get(regionId) ?? []).map((translation) => [translation.language_code, {
+      candidates: translation.final_candidates,
+      recommendedStyle: translation.recommended_style,
+    }]),
+  );
+  const localizations = primaryRegion ? toLocalizations(primaryRegion.id) : {};
 
   const [originalUrl, cleanedUrl, editorStates] = await Promise.all([
     asset.original_path ? createSignedUrl(asset.original_path) : Promise.resolve(null),
@@ -50,6 +51,10 @@ async function buildAssetResult(asset: AssetRow) {
         source: region.source,
         agreementScore: region.agreement_score,
         needsManualReview: region.needs_manual_review,
+        fontStyle: region.font_style,
+        textColor: region.text_color ?? null,
+        needsManualCleanup: region.needs_manual_cleanup ?? false,
+        localizations: toLocalizations(region.id),
       })),
     },
     localizations,
@@ -60,7 +65,11 @@ async function buildAssetResult(asset: AssetRow) {
       textColor: asset.text_color,
     },
     needsManualOcrReview: primaryRegion?.needs_manual_review ?? false,
-    editorStates: Object.fromEntries(editorStates.map((state) => [state.language_code, state.style])),
+    editorStates: Object.fromEntries(editorStates.filter((state) => state.ocr_region_id === primaryRegion?.id).map((state) => [state.language_code, state.style])),
+    regionEditorStates: Object.fromEntries(regions.map((region) => [
+      region.id,
+      Object.fromEntries(editorStates.filter((state) => state.ocr_region_id === region.id).map((state) => [state.language_code, state.style])),
+    ])),
     ...(asset.error_code ? { errorCode: asset.error_code, errorMessage: asset.error_message } : {}),
   };
 }

@@ -37,9 +37,10 @@ import {
   downloadBlob,
   exportFileName,
   renderItemToPng,
+  textOverlaysForItem,
   zipLocalizedItems,
 } from '../lib/exportImage'
-import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { editorDict } from '../i18n/editor'
@@ -260,6 +261,21 @@ export default function Editor() {
 
   const [currentIdx, setCurrentIdx] = useState(0)
   const current = items[Math.min(currentIdx, items.length - 1)]
+  const textRegions = useMemo(() => current.textRegions?.length
+    ? current.textRegions
+    : [{
+        id: current.analysis?.regionId ?? current.id,
+        korean: current.korean,
+        normalizedBox: current.analysis?.normalizedBox ?? null,
+        suggestions: current.suggestions,
+        recommendedFont: current.recommendedFont,
+        textColor: current.analysis?.textColor ?? null,
+        needsManualCleanup: current.analysis?.needsManualCleanup ?? false,
+        needsManualOcrReview: current.analysis?.needsManualOcrReview ?? false,
+      }], [current])
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
+  const activeRegion = textRegions.find(region => region.id === selectedRegionId) ?? textRegions[0]
+  const activeStyleKey = styleKeyForRegion(current.id, activeRegion.id, current.analysis?.regionId)
   const [doneIds, setDoneIds] = useState<string[]>([])
 
   const toast = useToast()
@@ -278,7 +294,7 @@ export default function Editor() {
       manualCleanupWarnedIdRef.current = current.id
       toast(t.toastCleanupManual)
     }
-  }, [current.id, current.analysis?.needsManualCleanup, toast])
+  }, [current.id, current.analysis?.needsManualCleanup, t.toastCleanupManual, toast])
 
   // 스타일 + undo/redo 히스토리
   const [style, setStyle] = useState<Style>(DEFAULT_STYLE)
@@ -326,10 +342,39 @@ export default function Editor() {
   const [exportFormat, setExportFormat] = useState<'PNG' | 'ZIP'>('ZIP')
   const [ocrDraft, setOcrDraft] = useState('')
 
+  const defaultStyleForRegion = (region = activeRegion) => region.normalizedBox
+    ? initialStyleFor(region.normalizedBox, region.textColor, region.suggestions, region.recommendedFont)
+    : DEFAULT_STYLE
+
+  const saveActiveStyle = (languageCode = activeLanguage.code) => {
+    saveStyle(current.id, languageCode, style, activeRegion.id)
+  }
+
+  const selectRegion = (regionId: string) => {
+    if (regionId === activeRegion.id) return
+    saveActiveStyle()
+    const region = textRegions.find(candidate => candidate.id === regionId)
+    if (!region) return
+    const key = styleKeyForRegion(current.id, region.id, current.analysis?.regionId)
+    setSelectedRegionId(region.id)
+    setStyle(savedStyles[key]?.[activeLanguage.code] ?? defaultStyleForRegion(region))
+    setOcrDraft('')
+    setPast([])
+    setFuture([])
+    setSelected(true)
+  }
+
   const selectItem = (idx: number) => {
-    saveStyle(current.id, activeLanguage.code, style)
+    saveActiveStyle()
     setCurrentIdx(idx)
-    setStyle(savedStyles[items[idx].id]?.[activeLanguage.code] ?? (items[idx].analysis?.normalizedBox ? initialStyleFor(items[idx].analysis.normalizedBox, items[idx].analysis.textColor, items[idx].suggestions, items[idx].recommendedFont) : DEFAULT_STYLE))
+    const next = items[idx]
+    const nextRegion = next.textRegions?.[0]
+    const nextRegionId = nextRegion?.id ?? next.analysis?.regionId ?? next.id
+    const nextKey = styleKeyForRegion(next.id, nextRegionId, next.analysis?.regionId)
+    setSelectedRegionId(nextRegionId)
+    setStyle(savedStyles[nextKey]?.[activeLanguage.code] ?? (nextRegion?.normalizedBox
+      ? initialStyleFor(nextRegion.normalizedBox, nextRegion.textColor, nextRegion.suggestions, nextRegion.recommendedFont)
+      : next.analysis?.normalizedBox ? initialStyleFor(next.analysis.normalizedBox, next.analysis.textColor, next.suggestions, next.recommendedFont) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
     setSelected(true)
@@ -360,16 +405,22 @@ export default function Editor() {
       })
     }, 1500)
     return () => window.clearInterval(timer)
-  }, [projectStatus, refreshProject, toast])
+  }, [projectStatus, refreshProject, t.toastAiFailed, t.toastStatusFail, toast])
 
   useEffect(() => {
-    const normalizedBox = current.analysis?.normalizedBox
-    const styleKey = `${current.id}:${activeLanguage.code}`
-    if (!normalizedBox || savedStyles[current.id]?.[activeLanguage.code] || initializedBoxStyleIds.current.has(styleKey)) return
-    initializedBoxStyleIds.current.add(styleKey)
+    const normalizedBox = activeRegion.normalizedBox
+    const initializationKey = `${activeStyleKey}:${activeLanguage.code}`
+    if (!normalizedBox || savedStyles[activeStyleKey]?.[activeLanguage.code] || initializedBoxStyleIds.current.has(initializationKey)) return
+    initializedBoxStyleIds.current.add(initializationKey)
     // 감지된 원본 글자색(textColor)을 번역 텍스트 기본 색으로 함께 적용한다.
-    setStyle(initialStyleFor(normalizedBox, current.analysis?.textColor, current.suggestions, current.recommendedFont))
-  }, [activeLanguage.code, current, savedStyles])
+    setStyle(initialStyleFor(normalizedBox, activeRegion.textColor, activeRegion.suggestions, activeRegion.recommendedFont))
+  }, [activeLanguage.code, activeRegion, activeStyleKey, savedStyles])
+
+  useEffect(() => {
+    if (!textRegions.some(region => region.id === selectedRegionId)) {
+      setSelectedRegionId(textRegions[0]?.id ?? null)
+    }
+  }, [selectedRegionId, textRegions])
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
     if (currentIdx < items.length - 1) selectItem(currentIdx + 1)
@@ -455,9 +506,8 @@ export default function Editor() {
   }
 
   const usingCustom = style.customText.trim().length > 0
-  const suggestionText = resolveText(style, current.suggestions)
-  const detectedBox = current.analysis?.normalizedBox ?? null
-  const needsManualOcrReview = current.analysis?.needsManualOcrReview ?? false
+  const detectedBox = activeRegion.normalizedBox
+  const needsManualOcrReview = activeRegion.needsManualOcrReview
   const manualCleanup = style.manualCleanup
   const cleanupBox = manualCleanup?.rect ?? detectedBox
   const updateManualCleanup = (patch: Partial<ManualCleanup>) => {
@@ -526,9 +576,12 @@ export default function Editor() {
 
   const selectLanguage = (languageCode: string) => {
     if (languageCode === activeLanguage.code) return
-    saveStyle(current.id, activeLanguage.code, style)
+    saveActiveStyle()
     setActiveLanguageCode(languageCode)
-    setStyle(savedStyles[current.id]?.[languageCode] ?? (current.analysis?.normalizedBox ? initialStyleFor(current.analysis.normalizedBox, current.analysis.textColor, current.analysis?.localizations?.[languageCode]?.suggestions, current.analysis?.localizations?.[languageCode]?.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : undefined)) : DEFAULT_STYLE))
+    const localizedRegion = toDemoItems([current], languageCode)[0]?.textRegions?.find(region => region.id === activeRegion.id)
+    setStyle(savedStyles[activeStyleKey]?.[languageCode] ?? (localizedRegion?.normalizedBox
+      ? initialStyleFor(localizedRegion.normalizedBox, localizedRegion.textColor, localizedRegion.suggestions, localizedRegion.recommendedFont)
+      : DEFAULT_STYLE))
     setPast([])
     setFuture([])
   }
@@ -536,9 +589,10 @@ export default function Editor() {
   const downloadCurrentPng = async () => {
     setBusy(true)
     try {
-      saveStyle(current.id, langCode, style)
+      saveActiveStyle(langCode)
+      const overlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
       downloadBlob(
-        await renderItemToPng(current, style),
+        await renderItemToPng(current, style, overlays),
         exportFileName(current.name, langCode, 'png'),
       )
       recordDownload('single', langCode)
@@ -554,8 +608,8 @@ export default function Editor() {
   const downloadAllZip = async () => {
     setBusy(true)
     try {
-      saveStyle(current.id, langCode, style)
-      const stylesMap = { ...savedStyles, [current.id]: { ...savedStyles[current.id], [langCode]: style } }
+      saveActiveStyle(langCode)
+      const stylesMap = { ...savedStyles, [activeStyleKey]: { ...savedStyles[activeStyleKey], [langCode]: style } }
       downloadBlob(
         await zipLocalizedItems(
           availableLanguages.map(language => ({ languageCode: language.code, items: toDemoItems(editorFiles, language.code).filter(item => !removedDemoIds.includes(item.id)) })),
@@ -580,9 +634,10 @@ export default function Editor() {
     }
     setBusy(true)
     try {
-      saveStyle(current.id, langCode, style)
+      saveActiveStyle(langCode)
+      const overlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
       downloadBlob(
-        await renderItemToPng(current, style),
+        await renderItemToPng(current, style, overlays),
         exportFileName(current.name, langCode, 'png'),
       )
       recordDownload('single', langCode)
@@ -595,24 +650,25 @@ export default function Editor() {
     }
   }
 
-  const overlayTextStyle: React.CSSProperties = {
-    fontSize: style.size,
-    color: style.color,
-    fontFamily: `'${style.font}', sans-serif`,
-    fontWeight: style.weight,
-    WebkitTextStroke: style.strokeOn
-      ? `${style.strokeWidth}px ${style.strokeColor}`
+  const textStyleFor = (value: Style): React.CSSProperties => ({
+    fontSize: value.size,
+    color: value.color,
+    fontFamily: `'${value.font}', sans-serif`,
+    fontWeight: value.weight,
+    WebkitTextStroke: value.strokeOn
+      ? `${value.strokeWidth}px ${value.strokeColor}`
       : undefined,
-    backgroundColor: style.backgroundOn
-      ? hexToRgba(style.backgroundColor, style.backgroundOpacity / 100)
+    backgroundColor: value.backgroundOn
+      ? hexToRgba(value.backgroundColor, value.backgroundOpacity / 100)
       : undefined,
-    padding: style.backgroundOn ? `${style.backgroundPadding}px` : undefined,
-    borderRadius: style.backgroundOn ? `${style.backgroundRadius}px` : undefined,
+    padding: value.backgroundOn ? `${value.backgroundPadding}px` : undefined,
+    borderRadius: value.backgroundOn ? `${value.backgroundRadius}px` : undefined,
     lineHeight: 1,
-    textShadow: style.shadowOn
-      ? `${style.shadowX}px ${style.shadowY}px ${style.shadowBlur}px ${hexToRgba(style.shadowColor, style.shadowOpacity / 100)}`
+    textShadow: value.shadowOn
+      ? `${value.shadowX}px ${value.shadowY}px ${value.shadowBlur}px ${hexToRgba(value.shadowColor, value.shadowOpacity / 100)}`
       : undefined,
-  }
+  })
+  const canvasOverlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
 
   const cornerHandles = [
     '-left-1 -top-1 cursor-nwse-resize',
@@ -903,7 +959,7 @@ export default function Editor() {
         <section className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-surface pb-24 pt-5 lg:gap-5 lg:pb-8 lg:pt-5">
           <div className="flex w-full max-w-[800px] items-center justify-between gap-3 px-5">
             <span className="text-xs font-bold text-sub">
-              {current.korean ? e.foundText : e.enterTextTitle}
+              {activeRegion.korean ? e.foundText : e.enterTextTitle}
             </span>
             <div className="flex shrink-0 gap-1 rounded-xl bg-white p-1">
               {ZOOMS.map(z => (
@@ -956,16 +1012,26 @@ export default function Editor() {
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {detectedBox && !preview && (
+                  {!preview && textRegions.map(region => region.normalizedBox && (
                     <span
-                      className="pointer-events-none absolute border-2 border-dashed border-brand bg-brand-soft/20"
-                      style={{ left: `${detectedBox.x * 100}%`, top: `${detectedBox.y * 100}%`, width: `${detectedBox.width * 100}%`, height: `${detectedBox.height * 100}%` }}
+                      key={region.id}
+                      className={`pointer-events-none absolute border-2 border-dashed ${
+                        region.id === activeRegion.id
+                          ? 'border-brand bg-brand-soft/20'
+                          : 'border-amber-400/80 bg-amber-100/10'
+                      }`}
+                      style={{
+                        left: `${region.normalizedBox.x * 100}%`,
+                        top: `${region.normalizedBox.y * 100}%`,
+                        width: `${region.normalizedBox.width * 100}%`,
+                        height: `${region.normalizedBox.height * 100}%`,
+                      }}
                     />
-                  )}
+                  ))}
                 </div>
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
-                {current.korean ? e.foundText : e.notFoundText}
+                {activeRegion.korean ? e.foundText : e.notFoundText}
               </p>
             </article>
 
@@ -997,19 +1063,38 @@ export default function Editor() {
                       <span onPointerDown={event => startManualCleanupGesture(event, 'resize')} className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-brand bg-white" />
                     </span>
                   )}
-                  <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -50%) translate(${style.x}px, ${style.y}px) rotate(${style.rotation}deg)` }}>
-                    {preview || !selected ? (
-                      <span onPointerDown={preview ? undefined : e => { e.stopPropagation(); setSelected(true) }} className={`whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`} style={overlayTextStyle}>{suggestionText}</span>
-                    ) : (
-                      <div ref={boxRef} onPointerDown={e => startGesture(e, 'move')} className="touch-none relative cursor-move border-2 border-brand px-3 py-1">
-                        <span className="select-none whitespace-nowrap" style={overlayTextStyle}>{suggestionText}</span>
-                        {cornerHandles.map(pos => <span key={pos} onPointerDown={e => startGesture(e, 'resize')} className={`touch-none absolute h-2.5 w-2.5 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
-                        {edgeHandles.map(pos => <span key={pos} className={`pointer-events-none absolute h-2 w-2 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
-                        <span className="pointer-events-none absolute -top-6 left-1/2 h-4 w-px -translate-x-1/2 bg-brand" />
-                        <span onPointerDown={e => startGesture(e, 'rotate')} className="touch-none absolute -top-10 left-1/2 flex h-4 w-4 -translate-x-1/2 cursor-grab items-center justify-center rounded-full border-2 border-brand bg-white active:cursor-grabbing" />
+                  {canvasOverlays.map(overlay => {
+                    const isActive = overlay.regionId === activeRegion.id
+                    const overlayStyle = textStyleFor(overlay.style)
+                    const overlayText = resolveText(overlay.style, overlay.suggestions)
+                    const transform = `translate(-50%, -50%) translate(${overlay.style.x}px, ${overlay.style.y}px) rotate(${overlay.style.rotation}deg)`
+
+                    return (
+                      <div key={overlay.regionId ?? `legacy-${current.id}`} className="absolute left-1/2 top-1/2" style={{ transform }}>
+                        {preview || !isActive || !selected ? (
+                          <span
+                            onPointerDown={preview ? undefined : event => {
+                              event.stopPropagation()
+                              if (!isActive && overlay.regionId) selectRegion(overlay.regionId)
+                              setSelected(true)
+                            }}
+                            className={`select-none whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`}
+                            style={overlayStyle}
+                          >
+                            {overlayText}
+                          </span>
+                        ) : (
+                          <div ref={boxRef} onPointerDown={event => startGesture(event, 'move')} className="touch-none relative cursor-move border-2 border-brand px-3 py-1">
+                            <span className="select-none whitespace-nowrap" style={overlayStyle}>{overlayText}</span>
+                            {cornerHandles.map(pos => <span key={pos} onPointerDown={event => startGesture(event, 'resize')} className={`touch-none absolute h-2.5 w-2.5 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
+                            {edgeHandles.map(pos => <span key={pos} className={`pointer-events-none absolute h-2 w-2 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
+                            <span className="pointer-events-none absolute -top-6 left-1/2 h-4 w-px -translate-x-1/2 bg-brand" />
+                            <span onPointerDown={event => startGesture(event, 'rotate')} className="touch-none absolute -top-10 left-1/2 flex h-4 w-4 -translate-x-1/2 cursor-grab items-center justify-center rounded-full border-2 border-brand bg-white active:cursor-grabbing" />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    )
+                  })}
                 </div>
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
@@ -1084,15 +1169,39 @@ export default function Editor() {
 
           {/* ── 번역 탭 ── */}
           <section className={tabClass('번역')}>
+            {textRegions.length > 1 && (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-extrabold text-ink">{e.detectedCaptions}</p>
+                <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto">
+                  {textRegions.map((region, index) => (
+                    <button
+                      key={region.id}
+                      onClick={() => selectRegion(region.id)}
+                      className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-bold transition-colors ${
+                        activeRegion.id === region.id
+                          ? 'border-brand bg-brand-soft text-brand-dark'
+                          : 'border-gray-100 bg-white text-ink hover:border-gray-200'
+                      }`}
+                    >
+                      <span className="w-5 shrink-0 text-center text-[11px] text-sub">{index + 1}</span>
+                      <span className="min-w-0 flex-1 truncate">{region.korean}</span>
+                      {(region.needsManualCleanup || region.needsManualOcrReview) && (
+                        <span className="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">{e.captionReview}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className={`mb-4 rounded-xl border p-3 ${needsManualOcrReview ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-surface'}`}>
               <p className="text-xs font-extrabold">{e.ocrEditTitle} {needsManualOcrReview && <span className="text-amber-700">{e.ocrNeedCheck}</span>}</p>
               <p className="mt-1 text-[11px] text-sub">{e.ocrEditHint}</p>
-              <input value={ocrDraft || current.korean} onChange={event => setOcrDraft(event.target.value)} className="mt-2 h-9 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold outline-none focus:border-brand" />
-              <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || current.korean, detectedBox).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || current.korean).trim()} className="mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
+              <input value={ocrDraft || activeRegion.korean} onChange={event => setOcrDraft(event.target.value)} className="mt-2 h-9 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold outline-none focus:border-brand" />
+              <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || activeRegion.korean, detectedBox, activeRegion.id).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || activeRegion.korean).trim()} className="mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
             </div>
             <PanelTitle>{e.aiSuggest}</PanelTitle>
             <div className="mt-3 flex flex-col gap-2">
-              {current.suggestions.map((sug, i) => {
+              {activeRegion.suggestions.map((sug, i) => {
                 const active = !usingCustom && style.suggestion === i
                 return (
                   <button
@@ -1145,12 +1254,12 @@ export default function Editor() {
           <section className={tabClass('폰트')}>
             <PanelTitle>{e.font}</PanelTitle>
             {/* AI 폰트 추천 — 원본 글씨체 기반 (API 연동 전 데모) */}
-            {style.font !== current.recommendedFont && (
+            {style.font !== activeRegion.recommendedFont && (
               <button
                 onClick={() =>
                   update({
-                    font: current.recommendedFont,
-                    weight: clampWeight(current.recommendedFont, style.weight),
+                    font: activeRegion.recommendedFont,
+                    weight: clampWeight(activeRegion.recommendedFont, style.weight),
                   })
                 }
                 className="mt-3 flex w-full items-center gap-2 rounded-2xl border-2 border-dashed border-brand/40 bg-brand-soft/60 px-4 py-2.5 text-left transition-colors hover:border-brand"
@@ -1162,9 +1271,9 @@ export default function Editor() {
                   </span>
                   <span
                     className="block truncate text-[15px] font-bold text-brand-dark"
-                    style={{ fontFamily: `'${current.recommendedFont}', sans-serif` }}
+                    style={{ fontFamily: `'${activeRegion.recommendedFont}', sans-serif` }}
                   >
-                    {current.recommendedFont}
+                    {activeRegion.recommendedFont}
                   </span>
                 </span>
                 <span className="shrink-0 rounded-lg bg-brand px-2.5 py-1 text-xs font-bold text-white">
@@ -1185,7 +1294,7 @@ export default function Editor() {
               {FONT_NAMES.map(f => (
                 <option key={f} value={f} style={{ fontFamily: `'${f}', sans-serif` }}>
                   {f}
-                  {f === current.recommendedFont ? ` ${e.recSuffix}` : ''}
+                  {f === activeRegion.recommendedFont ? ` ${e.recSuffix}` : ''}
                 </option>
               ))}
             </select>

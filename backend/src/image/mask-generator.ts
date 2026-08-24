@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
+import type { DecodedImage } from './background-sampler.js';
 import { padAndClampBox } from '../utils/bbox.js';
 
 export interface FeatherMask {
@@ -22,7 +23,7 @@ function colorDistance(red: number, green: number, blue: number, background: { r
   return Math.hypot(red - background.r, green - background.g, blue - background.b);
 }
 
-function dilate(input: Uint8Array, width: number, height: number, radius: number, roi: PixelBox): Uint8Array {
+export function dilateMask(input: Uint8Array, width: number, height: number, radius: number, roi: PixelBox): Uint8Array {
   const output = new Uint8Array(input.length);
   const startY = Math.max(0, Math.floor(roi.y));
   const endY = Math.min(height, Math.ceil(roi.y + roi.height));
@@ -51,7 +52,7 @@ function dilate(input: Uint8Array, width: number, height: number, radius: number
  * ROI 안 foreground(255)를 8-이웃 연결성분으로 묶어, OCR bbox 내부에 한 픽셀이라도
  * 걸치는 성분만 남기고 나머지(박스와 분리된 캐릭터/말풍선)는 0으로 지운다. in-place.
  */
-function keepComponentsTouchingBox(
+export function keepComponentsTouchingBox(
   foreground: Uint8Array,
   width: number,
   height: number,
@@ -114,6 +115,7 @@ export async function generateTextEraseMask(
   imageWidth: number,
   imageHeight: number,
   options: TextMaskOptions,
+  decodedImage?: DecodedImage,
 ): Promise<FeatherMask> {
   // padding은 넉넉히 준다: OCR bbox가 첫/끝 글자·장식의 가장자리를 살짝 잘라내는 경우가
   // 많아, 박스 밖으로 삐져나간 글자 조각까지 ROI에 포함해야 잔여가 안 남는다. 대신 큰
@@ -121,14 +123,19 @@ export async function generateTextEraseMask(
   // 남기는 연결성분 필터로 분리된 캐릭터/말풍선은 보존한다.
   const padding = Math.max(8, Math.min(48, Math.ceil(Math.min(box.width, box.height) * 0.3)));
   const roi = padAndClampBox(box, padding, imageWidth, imageHeight);
-  const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const decoded = decodedImage ?? await (async () => {
+    const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    return { data, width: info.width, height: info.height, channels: info.channels };
+  })();
+  const data = decoded.data;
+  const channels = decoded.channels;
   const foreground = new Uint8Array(imageWidth * imageHeight);
   const background = options.backgroundColor;
 
   for (let y = Math.floor(roi.y); y < Math.ceil(roi.y + roi.height); y += 1) {
     for (let x = Math.floor(roi.x); x < Math.ceil(roi.x + roi.width); x += 1) {
       const pixel = y * imageWidth + x;
-      const base = pixel * info.channels;
+      const base = pixel * channels;
       const alpha = data[base + 3];
       const isText = options.mode === 'transparent'
         ? alpha >= 24
@@ -145,7 +152,7 @@ export async function generateTextEraseMask(
   // 안티에일리어싱 헤일로(잔상)까지 덮도록 dilation을 조금 더 준다. 분리된 캐릭터는 위의
   // 연결성분 필터가 이미 제거했으므로 확대해도 캐릭터를 갉아먹지 않는다.
   const dilationRadius = Math.max(3, Math.min(7, Math.round(Math.min(box.width, box.height) / 24)));
-  const expanded = dilate(foreground, imageWidth, imageHeight, dilationRadius, roi);
+  const expanded = dilateMask(foreground, imageWidth, imageHeight, dilationRadius, roi);
   const { data: blurred, info: blurInfo } = await sharp(Buffer.from(expanded), { raw: { width: imageWidth, height: imageHeight, channels: 1 } })
     .blur(1.2)
     .raw()

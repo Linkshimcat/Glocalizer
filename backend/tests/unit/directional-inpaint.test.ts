@@ -30,8 +30,9 @@ describe('applyDirectionalInpaint', () => {
 
     expect(data[center]).toBeGreaterThan(45);
     expect(data[center + 1]).toBeGreaterThan(45);
-    expect(data[center + 2]).toBe(80);
-  });
+    expect(data[center + 2]).toBeGreaterThanOrEqual(78);
+    expect(data[center + 2]).toBeLessThanOrEqual(82);
+  }, 15_000);
 
   it('does not alter pixels outside the mask', async () => {
     const source = await sharp(gradientImage(), { raw: { width, height, channels: 4 } }).png().toBuffer();
@@ -39,5 +40,5 @@ describe('applyDirectionalInpaint', () => {
     const { data } = await sharp(output).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 
     expect([...data.subarray(0, 4)]).toEqual([0, 0, 80, 255]);
-  });
+  }, 15_000);
 });

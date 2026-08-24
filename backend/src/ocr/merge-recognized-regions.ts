@@ -63,10 +63,23 @@ function belongsToNextLine(previous: RecognizedRegion, next: RecognizedRegion): 
   const bottom = boundsOf(next);
   const lineHeight = Math.max(top.height, bottom.height);
   const verticalGap = bottom.top - top.bottom;
-  if (verticalGap < -lineHeight * 0.2 || verticalGap > lineHeight * 0.9) return false;
+  // 줄 간격이 넓으면 같은 정렬선에 놓인 별도 라벨/캡션일 가능성이 높다. Luna는 이미
+  // 논리 캡션 단위로 반환하므로 이 보수적인 병합은 PaddleOCR 조각에만 사용한다.
+  if (verticalGap < -lineHeight * 0.2 || verticalGap > lineHeight * 0.25) return false;
   const horizontalOverlap = Math.max(0, Math.min(top.right, bottom.right) - Math.max(top.left, bottom.left));
   const minimumWidth = Math.min(top.width, bottom.width);
-  return minimumWidth > 0 && horizontalOverlap / minimumWidth >= 0.3;
+  if (minimumWidth <= 0 || horizontalOverlap / minimumWidth < 0.45) return false;
+
+  const topCenter = (top.left + top.right) / 2;
+  const bottomCenter = (bottom.left + bottom.right) / 2;
+  const alignmentMatches = Math.abs(top.left - bottom.left) <= lineHeight * 0.4
+    || Math.abs(topCenter - bottomCenter) <= lineHeight * 0.4;
+  const widthRatio = Math.min(top.width, bottom.width) / Math.max(1, Math.max(top.width, bottom.width));
+  const widthMatches = widthRatio >= 0.55;
+  const previousText = previous.text.trim();
+  const looksComplete = /(?:다|요|까|네|지|죠|임|함|됨|[.!?~…])$/u.test(previousText);
+  const continuationMatches = !looksComplete;
+  return [alignmentMatches, widthMatches, continuationMatches].filter(Boolean).length >= 2;
 }
 
 /** 같은 줄 병합이 끝난 영역들 중, 줄바꿈으로 이어지는 같은 캡션끼리 한 번 더 묶는다. */
@@ -75,8 +88,23 @@ function mergeWrappedLines(lines: RecognizedRegion[]): RecognizedRegion[] {
   const merged: RecognizedRegion[] = [];
   let group: RecognizedRegion[] = [];
 
+  const isGroupConsistent = (members: RecognizedRegion[]) => {
+    if (members.length < 3) return true;
+    const bounds = members.map(boundsOf);
+    const averageHeight = bounds.reduce((sum, value) => sum + value.height, 0) / bounds.length;
+    const lefts = bounds.map((value) => value.left);
+    const centers = bounds.map((value) => (value.left + value.right) / 2);
+    const widths = bounds.map((value) => value.width);
+    const aligned = Math.max(...lefts) - Math.min(...lefts) <= averageHeight * 0.5
+      || Math.max(...centers) - Math.min(...centers) <= averageHeight * 0.5;
+    const widthConsistent = Math.min(...widths) / Math.max(1, Math.max(...widths)) >= 0.45;
+    return aligned && widthConsistent;
+  };
+
   for (const line of sorted) {
-    if (group.length === 0 || belongsToNextLine(group[group.length - 1], line)) {
+    const joinsPrevious = group.length > 0 && belongsToNextLine(group[group.length - 1], line);
+    const joinsGroup = isGroupConsistent([...group, line]);
+    if (group.length === 0 || (joinsPrevious && joinsGroup)) {
       group.push(line);
       continue;
     }
@@ -85,6 +113,30 @@ function mergeWrappedLines(lines: RecognizedRegion[]): RecognizedRegion[] {
   }
   if (group.length > 0) merged.push(mergeGroup(group, ' '));
   return merged;
+}
+
+function intersectionOverUnion(left: RecognizedRegion, right: RecognizedRegion): number {
+  const a = boundsOf(left);
+  const b = boundsOf(right);
+  const overlap = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+    * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  const areaA = Math.max(1, a.width * a.height);
+  const areaB = Math.max(1, b.width * b.height);
+  return overlap / Math.max(1, areaA + areaB - overlap);
+}
+
+/** Luna처럼 캡션 단위로 반환하는 provider 결과는 재병합하지 않고 중복만 제거한다. */
+export function deduplicateRecognizedRegions(regions: RecognizedRegion[]): RecognizedRegion[] {
+  const selected: RecognizedRegion[] = [];
+  for (const region of [...regions].filter((value) => value.text.trim() && value.polygon.length >= 4).sort((a, b) => b.confidence - a.confidence)) {
+    const compact = region.text.replace(/\s+/g, '');
+    const duplicate = selected.some((candidate) => (
+      candidate.text.replace(/\s+/g, '') === compact
+      && intersectionOverUnion(candidate, region) >= 0.5
+    ));
+    if (!duplicate) selected.push({ ...region, text: region.text.trim() });
+  }
+  return selected.sort((left, right) => boundsOf(left).top - boundsOf(right).top || boundsOf(left).left - boundsOf(right).left);
 }
 
 /** 같은 줄에서 분절된 한글 OCR box를 하나의 문구로 결합하고, 줄바꿈된 같은 캡션도 이어 붙인다. */

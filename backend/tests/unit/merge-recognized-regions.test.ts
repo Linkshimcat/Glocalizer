@@ -68,4 +68,21 @@ describe('mergeAdjacentKoreanRegions', () => {
 
     expect(merged.map((value) => value.text)).toEqual(['자책', '그']);
   });
+
+  it('세로로 가까이 쌓인 별개 캡션은 합치지 않고 실제 줄바꿈만 병합한다', () => {
+    const merged = mergeAdjacentKoreanRegions([
+      region('잼얘 요구권', 120, 60, 400, 100),
+      region('잼얘요구권', 130, 112, 390, 152),
+      region('잼얘해줘', 150, 172, 370, 212),
+      region('당신이 잼얘를 끊어온지 오래됐기 때문에', 90, 300, 430, 335),
+      region('제 도파민이 줄어들었습니다 잼얘를 요구합니다', 110, 342, 410, 377),
+    ]);
+
+    expect(merged.map((value) => value.text)).toEqual([
+      '잼얘 요구권',
+      '잼얘요구권',
+      '잼얘해줘',
+      '당신이 잼얘를 끊어온지 오래됐기 때문에 제 도파민이 줄어들었습니다 잼얘를 요구합니다',
+    ]);
+  });
 });

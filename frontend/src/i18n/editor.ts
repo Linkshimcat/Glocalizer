@@ -39,6 +39,8 @@ export interface EditorDict {
   ocrNeedCheck: string
   ocrEditHint: string
   ocrResave: string
+  detectedCaptions: string
+  captionReview: string
   aiSuggest: string
   customHint: string
   customPlaceholder: string
@@ -98,7 +100,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     foundText: '텍스트를 찾았어요', notFoundText: '텍스트를 찾지 못했어요', enterTextTitle: '직접 문구를 입력해보세요', originalSize: '원래 크기',
     hintManualBg: '복잡한 배경은 수동 보정이 필요할 수 있어요.', hintComposite: 'AI가 정리한 이미지 위에 번역을 합성해요.', hintDrag: '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요',
     tabTranslate: '번역', tabFont: '폰트', tabStyle: '스타일',
-    ocrEditTitle: '인식 문구 수정', ocrNeedCheck: '· 확인 필요', ocrEditHint: '문구 또는 감지 영역을 확인한 뒤 저장하면 이 이미지 하나만 다시 번역·정리합니다.', ocrResave: '인식 문구 저장 후 재처리',
+    ocrEditTitle: '인식 문구 수정', ocrNeedCheck: '· 확인 필요', ocrEditHint: '문구 또는 감지 영역을 확인한 뒤 저장하면 이 이미지 하나만 다시 번역·정리합니다.', ocrResave: '인식 문구 저장 후 재처리', detectedCaptions: '감지된 문구', captionReview: '검수 필요',
     aiSuggest: 'AI 번역 추천', customHint: '마음에 드는 게 없다면 직접 써보세요', customPlaceholder: '원하는 문구를 직접 입력해보세요',
     font: '폰트', fontAiRec: '원본 글씨체와 어울리는 AI 추천', apply: '적용', recSuffix: '✨ 추천',
     weight: '굵기', oneWeightOnly: '이 폰트는 한 가지 굵기만 지원해요.', sizeRotation: '크기 · 회전', size: '크기', rotation: '회전',
@@ -119,7 +121,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     foundText: 'Text found', notFoundText: 'No text found', enterTextTitle: 'Type your own text', originalSize: 'Actual size',
     hintManualBg: 'Complex backgrounds may need manual touch-up.', hintComposite: 'Translation is composited on the cleaned image.', hintDrag: 'Drag the text to move it; use the corner and top handles to adjust.',
     tabTranslate: 'Translate', tabFont: 'Font', tabStyle: 'Style',
-    ocrEditTitle: 'Edit detected text', ocrNeedCheck: '· needs review', ocrEditHint: 'Check the text or detected area, then save to re-run just this image.', ocrResave: 'Save & reprocess',
+    ocrEditTitle: 'Edit detected text', ocrNeedCheck: '· needs review', ocrEditHint: 'Check the text or detected area, then save to re-run just this image.', ocrResave: 'Save & reprocess', detectedCaptions: 'Detected captions', captionReview: 'Review',
     aiSuggest: 'AI suggestions', customHint: 'Not a fan? Write your own', customPlaceholder: 'Type the text you want',
     font: 'Font', fontAiRec: 'AI pick matching the original', apply: 'Apply', recSuffix: '✨ pick',
     weight: 'Weight', oneWeightOnly: 'This font supports only one weight.', sizeRotation: 'Size · Rotation', size: 'Size', rotation: 'Rotation',
@@ -140,7 +142,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     foundText: 'テキストを検出しました', notFoundText: 'テキストが見つかりません', enterTextTitle: '文言を直接入力できます', originalSize: '元のサイズ',
     hintManualBg: '複雑な背景は手動調整が必要な場合があります。', hintComposite: 'AIが整理した画像に翻訳を合成します。', hintDrag: 'テキストをドラッグして移動し、角と上のハンドルで調整してください。',
     tabTranslate: '翻訳', tabFont: 'フォント', tabStyle: 'スタイル',
-    ocrEditTitle: '認識文言の修正', ocrNeedCheck: '· 要確認', ocrEditHint: '文言または検出領域を確認して保存すると、この画像だけ再翻訳・整理します。', ocrResave: '文言を保存して再処理',
+    ocrEditTitle: '認識文言の修正', ocrNeedCheck: '· 要確認', ocrEditHint: '文言または検出領域を確認して保存すると、この画像だけ再翻訳・整理します。', ocrResave: '文言を保存して再処理', detectedCaptions: '検出した文言', captionReview: '要確認',
     aiSuggest: 'AI翻訳のおすすめ', customHint: '気に入らなければ直接入力', customPlaceholder: '入力したい文言を書いてください',
     font: 'フォント', fontAiRec: '原本の書体に合うAIおすすめ', apply: '適用', recSuffix: '✨ おすすめ',
     weight: '太さ', oneWeightOnly: 'このフォントは1種類の太さのみ対応です。', sizeRotation: 'サイズ · 回転', size: 'サイズ', rotation: '回転',
@@ -161,7 +163,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     foundText: '已找到文字', notFoundText: '未找到文字', enterTextTitle: '直接输入文字', originalSize: '原始大小',
     hintManualBg: '复杂背景可能需要手动修整。', hintComposite: '在 AI 整理后的图片上合成翻译。', hintDrag: '拖动文字移动，用四角和顶部手柄调整。',
     tabTranslate: '翻译', tabFont: '字体', tabStyle: '样式',
-    ocrEditTitle: '修改识别文字', ocrNeedCheck: '· 需确认', ocrEditHint: '确认文字或检测区域后保存，将只对这张图片重新翻译整理。', ocrResave: '保存并重新处理',
+    ocrEditTitle: '修改识别文字', ocrNeedCheck: '· 需确认', ocrEditHint: '确认文字或检测区域后保存，将只对这张图片重新翻译整理。', ocrResave: '保存并重新处理', detectedCaptions: '检测到的文字', captionReview: '需确认',
     aiSuggest: 'AI 翻译推荐', customHint: '不满意就自己输入', customPlaceholder: '输入你想要的文字',
     font: '字体', fontAiRec: '与原字体相配的 AI 推荐', apply: '应用', recSuffix: '✨ 推荐',
     weight: '粗细', oneWeightOnly: '该字体仅支持一种粗细。', sizeRotation: '大小 · 旋转', size: '大小', rotation: '旋转',

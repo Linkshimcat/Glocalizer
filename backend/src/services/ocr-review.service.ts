@@ -1,7 +1,7 @@
 import { AppError } from '../errors/app-error.js';
 import { findAssetsByIds, updateAsset } from '../repositories/asset.repository.js';
 import { findActiveJobForProject } from '../repositories/job.repository.js';
-import { updatePrimaryRegion } from '../repositories/ocr.repository.js';
+import { findRegionById, updatePrimaryRegion, updateRegionById } from '../repositories/ocr.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import { deleteTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
 import { removeFromStorage } from '../repositories/storage.repository.js';
@@ -49,7 +49,7 @@ async function refineCorrectedBox(asset: { original_path: string | null }, text:
   return refined && overlapRatio(currentBox, refined) >= 0.2 ? refined : currentBox;
 }
 
-export async function reviseOcrAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox): Promise<void> {
+export async function reviseOcrAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, regionId?: string): Promise<void> {
   const activeJob = await findActiveJobForProject(projectId);
   if (activeJob) {
     throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id }, '처리 중인 작업이 끝난 뒤 OCR 문구를 수정해주세요.');
@@ -61,8 +61,14 @@ export async function reviseOcrAndReprocess(projectId: string, assetId: string, 
   if (!target || !target.width || !target.height) throw new AppError('INVALID_REQUEST', { assetId }, '수정할 이미지를 찾을 수 없습니다.');
   const refinedNormalizedBox = await refineCorrectedBox(target, text, normalizedBox);
   const box = { x: Math.round(refinedNormalizedBox.x * target.width), y: Math.round(refinedNormalizedBox.y * target.height), width: Math.round(refinedNormalizedBox.width * target.width), height: Math.round(refinedNormalizedBox.height * target.height) };
-  const region = await updatePrimaryRegion(assetId, { text, normalizedBox: refinedNormalizedBox, box });
-  if (!region) throw new AppError('INVALID_REQUEST', { assetId }, '대표 OCR 영역을 찾을 수 없습니다.');
+  if (regionId) {
+    const existing = await findRegionById(regionId);
+    if (!existing || existing.asset_id !== assetId) throw new AppError('INVALID_REQUEST', { regionId }, '해당 이미지에 속하지 않는 OCR 영역입니다.');
+  }
+  const region = regionId
+    ? await updateRegionById(regionId, { text, normalizedBox: refinedNormalizedBox, box })
+    : await updatePrimaryRegion(assetId, { text, normalizedBox: refinedNormalizedBox, box });
+  if (!region) throw new AppError('INVALID_REQUEST', { assetId, regionId }, '수정할 OCR 영역을 찾을 수 없습니다.');
   await deleteTranslationsByOcrRegionId(region.id);
   if (target.cleaned_path) await removeFromStorage([target.cleaned_path]);
   await updateAsset(assetId, { status: 'ocr', stage: 'ocr-corrected', progress: 55, cleanedPath: null, cleanupMethod: null, cleanupQuality: null, needsManualCleanup: false });

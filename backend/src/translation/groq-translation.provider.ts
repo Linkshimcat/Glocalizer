@@ -18,6 +18,9 @@ function buildPrompt(input: LocalizationBatchInput): string {
     'Use target-language internet culture naturally; do not force slang, explain jokes, use hate, sexual content, or profanity. Emojis are allowed only when they improve the punchline.',
     'Never leave Korean in the translated candidate text.',
     `Source Korean: ${JSON.stringify(input.sourceText)}`,
+    ...(input.context.siblingCaptions?.length
+      ? [`Other captions in the same image (context only; do NOT translate these in this response): ${JSON.stringify(input.context.siblingCaptions)}`]
+      : []),
     `Tone=${input.context.tone}; audience=${input.context.audience}; style=${input.context.translationStyle}.`,
     `Constraints: ${constraints.join('; ')}`,
     'JSON schema: {"translations":[{"languageCode":"en|ja|zh","candidates":[{"text":"string","tone":"string","meaning":"Korean explanation","best":true}],"recommendedStyle":{"fontCategory":"bold|comic|cute|handwriting|minimal","alignment":"left|center|right","strokeRecommended":false,"shadowRecommended":false}}]}',

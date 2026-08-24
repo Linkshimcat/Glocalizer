@@ -14,6 +14,18 @@ export interface DemoItem extends UploadFile {
   suggestions: Suggestion[]
   /** 원본 이미지 글씨체와 어울리는 AI 추천 폰트 (API 연동 전 데모값) */
   recommendedFont: string
+  textRegions?: DemoTextRegion[]
+}
+
+export interface DemoTextRegion {
+  id: string
+  korean: string
+  normalizedBox: { x: number; y: number; width: number; height: number } | null
+  suggestions: Suggestion[]
+  recommendedFont: string
+  textColor: { r: number; g: number; b: number } | null
+  needsManualCleanup: boolean
+  needsManualOcrReview: boolean
 }
 
 export const DEMO_ITEMS: DemoItem[] = [
@@ -246,6 +258,19 @@ export function toDemoItems(files: UploadFile[], languageCode = 'en'): DemoItem[
   return files.map((f, i) => {
     if (f.analysis) {
       const localized = f.analysis.localizations?.[languageCode]
+      const textRegions = f.analysis.regions.map(region => {
+        const regionLocalization = region.localizations[languageCode]
+        return {
+          id: region.id,
+          korean: region.korean,
+          normalizedBox: region.normalizedBox,
+          suggestions: regionLocalization?.suggestions ?? [],
+          recommendedFont: regionLocalization?.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : 'Pretendard'),
+          textColor: region.textColor,
+          needsManualCleanup: region.needsManualCleanup,
+          needsManualOcrReview: region.needsManualOcrReview,
+        }
+      })
       return {
         ...f,
         // 자동 정리본이 있으면 export/미리보기의 base로, 없으면 원본을 쓴다.
@@ -254,6 +279,7 @@ export function toDemoItems(files: UploadFile[], languageCode = 'en'): DemoItem[
         korean: f.analysis.korean,
         suggestions: localized?.suggestions ?? f.analysis.suggestions ?? [],
         recommendedFont: localized?.recommendedFont ?? f.analysis.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : 'Pretendard'),
+        textRegions,
       }
     }
     const detected = f.name.replace(/\.[^.]+$/, '').match(KOREAN_RE)?.[0] ?? ''
