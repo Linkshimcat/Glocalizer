@@ -106,7 +106,7 @@ export default function ServiceIntro() {
             {s.do2}
           </p>
 
-          <div className="mt-10 overflow-hidden rounded-[32px] bg-[#FAFBFC] p-8 sm:p-14">
+          <div className="-mx-6 mt-10 overflow-hidden rounded-[32px] bg-[#FAFBFC] sm:mx-0 sm:p-4">
             <img src={ABOUT_IMG[lang] ?? aboutKR} alt={s.proAlt} className="w-full" />
           </div>
         </section>
