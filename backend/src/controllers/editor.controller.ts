@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { regenerateTranslation } from '../ai/localization/localization.service.js';
 import { requireProject } from '../middleware/project-auth.middleware.js';
 import { saveEditorState } from '../services/editor-state.service.js';
-import { reviseOcrAndReprocess } from '../services/ocr-review.service.js';
+import { createOcrRegionAndReprocess, detectOcrSelection, reviseOcrAndReprocess } from '../services/ocr-review.service.js';
 import { createProcessingJob } from '../services/processing.service.js';
 import { requireParam } from '../utils/request-params.js';
 import { processClaimedJob } from '../workers/job-runner.js';
@@ -28,5 +28,19 @@ export async function updateOcrHandler(req: Request, res: Response) {
   await reviseOcrAndReprocess(projectId, assetId, req.body.text, req.body.normalizedBox, req.body.regionId);
   const job = await createProcessingJob(projectId, ['ocr']);
   res.status(202).json({ assetId, status: 'reprocessing', jobId: job.jobId });
+  void processClaimedJob(job.job);
+}
+
+export async function detectOcrRegionHandler(req: Request, res: Response) {
+  const result = await detectOcrSelection(requireProject(req).id, requireParam(req, 'assetId'), req.body.normalizedBox);
+  res.json(result);
+}
+
+export async function createOcrRegionHandler(req: Request, res: Response) {
+  const projectId = requireProject(req).id;
+  const assetId = requireParam(req, 'assetId');
+  const regionId = await createOcrRegionAndReprocess(projectId, assetId, req.body.text, req.body.normalizedBox);
+  const job = await createProcessingJob(projectId, ['ocr']);
+  res.status(202).json({ assetId, regionId, status: 'reprocessing', jobId: job.jobId });
   void processClaimedJob(job.job);
 }

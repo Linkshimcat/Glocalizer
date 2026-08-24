@@ -26,6 +26,7 @@ export interface DemoTextRegion {
   textColor: { r: number; g: number; b: number } | null
   needsManualCleanup: boolean
   needsManualOcrReview: boolean
+  translationStatus: 'translated' | 'failed'
 }
 
 export const DEMO_ITEMS: DemoItem[] = [
@@ -265,6 +266,7 @@ export function toDemoItems(files: UploadFile[], languageCode = 'en'): DemoItem[
           korean: region.korean,
           normalizedBox: region.normalizedBox,
           suggestions: regionLocalization?.suggestions ?? [],
+          translationStatus: regionLocalization?.status ?? 'failed',
           recommendedFont: regionLocalization?.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : 'Pretendard'),
           textColor: region.textColor,
           needsManualCleanup: region.needsManualCleanup,

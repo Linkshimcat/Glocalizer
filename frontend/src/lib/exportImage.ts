@@ -50,10 +50,12 @@ export function textOverlaysForItem(
 
 function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number) {
   if (!style.backgroundOn || !text) return
-  const metrics = ctx.measureText(text)
+  const lines = text.split(/\r?\n/)
+  const measuredWidth = Math.max(...lines.map(line => ctx.measureText(line).width))
+  const lineHeight = fontPx * 1.15
   const padding = style.backgroundPadding * SCALE
-  const width = metrics.width + padding * 2
-  const height = fontPx + padding * 2
+  const width = measuredWidth + padding * 2
+  const height = lineHeight * lines.length + padding * 2
   const x = -width / 2
   const y = -height / 2
   const radius = Math.min(style.backgroundRadius * SCALE, height / 2, width / 2)
@@ -65,6 +67,17 @@ function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: 
     ctx.rect(x, y, width, height)
   }
   ctx.fill()
+}
+
+function drawMultilineText(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number) {
+  const lines = text.split(/\r?\n/)
+  const lineHeight = fontPx * 1.15
+  const firstBaseline = -((lines.length - 1) * lineHeight) / 2
+  lines.forEach((line, index) => {
+    const y = firstBaseline + index * lineHeight
+    if (style.strokeOn) ctx.strokeText(line, 0, y)
+    ctx.fillText(line, 0, y)
+  })
 }
 
 function applyManualCleanup(ctx: CanvasRenderingContext2D, style: Style, frame: DrawnImageFrame) {
@@ -169,10 +182,9 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
       ctx.lineWidth = overlayStyle.strokeWidth * 2 * SCALE
       ctx.strokeStyle = overlayStyle.strokeColor
       ctx.lineJoin = 'round'
-      ctx.strokeText(text, 0, 0)
     }
     ctx.fillStyle = overlayStyle.color
-    ctx.fillText(text, 0, 0)
+    drawMultilineText(ctx, text, overlayStyle, fontPx)
     ctx.restore()
   }
 

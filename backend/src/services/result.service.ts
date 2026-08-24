@@ -6,8 +6,9 @@ import { findProjectById } from '../repositories/project.repository.js';
 import { findTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
 import { findEditorStatesByAssetId } from '../repositories/editor-state.repository.js';
 import type { AssetRow } from '../types/asset.js';
+import type { TargetLanguage } from '../types/project.js';
 
-async function buildAssetResult(asset: AssetRow) {
+async function buildAssetResult(asset: AssetRow, targetLanguages: TargetLanguage[]) {
   const regions = await findRegionsByAssetId(asset.id);
   const primaryRegion = regions.find((region) => region.is_primary) ?? null;
 
@@ -15,12 +16,15 @@ async function buildAssetResult(asset: AssetRow) {
     region.id,
     await findTranslationsByOcrRegionId(region.id),
   ] as const)));
-  const toLocalizations = (regionId: string) => Object.fromEntries(
-    (translationsByRegion.get(regionId) ?? []).map((translation) => [translation.language_code, {
-      candidates: translation.final_candidates,
-      recommendedStyle: translation.recommended_style,
-    }]),
-  );
+  const toLocalizations = (regionId: string) => {
+    const translations = translationsByRegion.get(regionId) ?? [];
+    return Object.fromEntries(targetLanguages.map((languageCode) => {
+      const translation = translations.find((candidate) => candidate.language_code === languageCode);
+      return [languageCode, translation
+        ? { status: 'translated', candidates: translation.final_candidates, recommendedStyle: translation.recommended_style }
+        : { status: 'failed', candidates: [], recommendedStyle: null }];
+    }));
+  };
   const localizations = primaryRegion ? toLocalizations(primaryRegion.id) : {};
 
   const [originalUrl, cleanedUrl, editorStates] = await Promise.all([
@@ -81,7 +85,7 @@ export async function getProjectResults(projectId: string) {
   }
 
   const assets = await findAssetsByProjectId(projectId);
-  const assetResults = await Promise.all(assets.map((asset) => buildAssetResult(asset)));
+  const assetResults = await Promise.all(assets.map((asset) => buildAssetResult(asset, project.target_languages)));
 
   return {
     projectId: project.id,

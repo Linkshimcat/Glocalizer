@@ -124,13 +124,13 @@ describe('GET /api/v1/projects/:projectId/results', () => {
       },
     ] as never);
 
-    vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValue([
+    vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValueOnce([
       {
         language_code: 'en',
         final_candidates: [{ text: 'Loving it!', tone: 'trendy', meaning: '완전 좋다', best: true }],
         recommended_style: { fontCategory: 'bold', alignment: 'center', strokeRecommended: true, shadowRecommended: false },
       },
-    ] as never);
+    ] as never).mockResolvedValueOnce([]);
 
     vi.mocked(storageRepo.createSignedUrl).mockResolvedValue('https://signed.example/url');
     vi.mocked(editorStateRepo.findEditorStatesByAssetId).mockResolvedValue([]);
@@ -142,8 +142,9 @@ describe('GET /api/v1/projects/:projectId/results', () => {
     expect(res.body.assets[0].ocr.primaryRegionId).toBe(REGION_ID);
     expect(res.body.assets[0].ocr.regions).toHaveLength(2);
     expect(res.body.assets[0].ocr.regions.map((region: { text: string }) => region.text)).toEqual(['완전좋아', '진짜좋아']);
+    expect(res.body.assets[0].ocr.regions[0].localizations.en.status).toBe('translated');
     expect(res.body.assets[0].ocr.regions[0].localizations.en.candidates[0].text).toBe('Loving it!');
-    expect(res.body.assets[0].ocr.regions[1].localizations.en.candidates[0].text).toBe('Loving it!');
+    expect(res.body.assets[0].ocr.regions[1].localizations.en).toEqual({ status: 'failed', candidates: [], recommendedStyle: null });
     expect(res.body.assets[0].regionEditorStates).toEqual({
       [REGION_ID]: {},
       'b7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d': {},

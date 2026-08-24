@@ -7,10 +7,12 @@ import {
   EyeOff,
   FileArchive,
   LoaderCircle,
+  Plus,
   Redo2,
   RotateCcw,
   Sparkles,
   SlidersHorizontal,
+  ScanText,
   Trash2,
   Undo2,
   X,
@@ -77,6 +79,15 @@ const DEFAULT_ZOOM = 100
 
 type MobileTab = '번역' | '폰트' | '스타일'
 type MobileCanvasTab = '원본' | '미리보기'
+type SelectionMode = 'reselect' | 'add'
+
+interface SelectionDraft {
+  mode: SelectionMode
+  regionId: string | null
+  text: string
+  confidence: number
+  normalizedBox: NormalizedRect
+}
 
 const LOADING_STEP_COUNT = 2
 
@@ -235,6 +246,9 @@ export default function Editor() {
     projectStatus,
     refreshProject,
     reviseOcr,
+    detectOcrRegion,
+    addOcrRegion,
+    retryTranslation,
   } = useUploads()
 
   const availableLanguages = useMemo(
@@ -272,6 +286,7 @@ export default function Editor() {
         textColor: current.analysis?.textColor ?? null,
         needsManualCleanup: current.analysis?.needsManualCleanup ?? false,
         needsManualOcrReview: current.analysis?.needsManualOcrReview ?? false,
+        translationStatus: current.suggestions.length > 0 ? 'translated' as const : 'failed' as const,
       }], [current])
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
   const activeRegion = textRegions.find(region => region.id === selectedRegionId) ?? textRegions[0]
@@ -341,6 +356,12 @@ export default function Editor() {
   const [exportName, setExportName] = useState('glocalizer_export')
   const [exportFormat, setExportFormat] = useState<'PNG' | 'ZIP'>('ZIP')
   const [ocrDraft, setOcrDraft] = useState('')
+  const [selectionMode, setSelectionMode] = useState<SelectionMode | null>(null)
+  const [selectionRect, setSelectionRect] = useState<NormalizedRect | null>(null)
+  const [selectionDraft, setSelectionDraft] = useState<SelectionDraft | null>(null)
+  const [selectionBusy, setSelectionBusy] = useState(false)
+  const [selectionSaving, setSelectionSaving] = useState(false)
+  const [retryingRegionId, setRetryingRegionId] = useState<string | null>(null)
 
   const defaultStyleForRegion = (region = activeRegion) => region.normalizedBox
     ? initialStyleFor(region.normalizedBox, region.textColor, region.suggestions, region.recommendedFont)
@@ -452,6 +473,114 @@ export default function Editor() {
 
   const boxRef = useRef<HTMLDivElement>(null)
   const cleanupPreviewRef = useRef<HTMLDivElement>(null)
+  const originalFrameRef = useRef<HTMLDivElement>(null)
+  const selectionStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const selectionPoint = (event: ReactPointerEvent): { x: number; y: number } | null => {
+    const bounds = originalFrameRef.current?.getBoundingClientRect()
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) return null
+    return {
+      x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+      y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+    }
+  }
+
+  const rectFromPoints = (start: { x: number; y: number }, end: { x: number; y: number }): NormalizedRect => ({
+    x: Math.min(start.x, end.x),
+    y: Math.min(start.y, end.y),
+    width: Math.abs(end.x - start.x),
+    height: Math.abs(end.y - start.y),
+  })
+
+  const beginAreaSelection = (mode: SelectionMode) => {
+    setMobileCanvasTab('원본')
+    setSelectionMode(mode)
+    setSelectionRect(null)
+    setSelectionDraft(null)
+    toast(e.selectionHint)
+  }
+
+  const startAreaSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!selectionMode || selectionBusy) return
+    const point = selectionPoint(event)
+    if (!point) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    selectionStartRef.current = point
+    setSelectionRect({ x: point.x, y: point.y, width: 0, height: 0 })
+  }
+
+  const moveAreaSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = selectionStartRef.current
+    if (!selectionMode || !start) return
+    const point = selectionPoint(event)
+    if (point) setSelectionRect(rectFromPoints(start, point))
+  }
+
+  const finishAreaSelection = async (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = selectionStartRef.current
+    selectionStartRef.current = null
+    if (!selectionMode || !start) return
+    const point = selectionPoint(event)
+    if (!point) return
+    const normalizedBox = rectFromPoints(start, point)
+    setSelectionRect(normalizedBox)
+    if (normalizedBox.width < 0.02 || normalizedBox.height < 0.02) {
+      toast(e.selectionHint)
+      return
+    }
+    setSelectionBusy(true)
+    try {
+      const detected = await detectOcrRegion(current.id, normalizedBox)
+      setSelectionRect(detected.normalizedBox)
+      setSelectionDraft({
+        mode: selectionMode,
+        regionId: selectionMode === 'reselect' ? activeRegion.id : null,
+        text: detected.text,
+        confidence: detected.confidence,
+        normalizedBox: detected.normalizedBox,
+      })
+    } catch (error) {
+      toast(error instanceof Error ? error.message : e.notFoundText)
+    } finally {
+      setSelectionBusy(false)
+    }
+  }
+
+  const cancelAreaSelection = () => {
+    setSelectionMode(null)
+    setSelectionRect(null)
+    setSelectionDraft(null)
+  }
+
+  const confirmAreaSelection = async () => {
+    if (!selectionDraft || !selectionDraft.text.trim()) return
+    setSelectionSaving(true)
+    try {
+      if (selectionDraft.mode === 'reselect' && selectionDraft.regionId) {
+        await reviseOcr(current.id, selectionDraft.text.trim(), selectionDraft.normalizedBox, selectionDraft.regionId)
+      } else {
+        await addOcrRegion(current.id, selectionDraft.text.trim(), selectionDraft.normalizedBox)
+      }
+      cancelAreaSelection()
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t.toastAiFailed)
+    } finally {
+      setSelectionSaving(false)
+    }
+  }
+
+  const retryActiveTranslation = async () => {
+    setRetryingRegionId(activeRegion.id)
+    try {
+      await retryTranslation(current.id, activeRegion.id, activeLanguage.code)
+      await refreshProject()
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t.toastAiFailed)
+    } finally {
+      setRetryingRegionId(null)
+    }
+  }
 
   const startGesture = (
     e: ReactPointerEvent,
@@ -568,6 +697,11 @@ export default function Editor() {
     transform: `scale(${zoom / 100})`,
     transformOrigin: 'center center',
   }
+  const sourceWidth = current.analysis?.width ?? 1
+  const sourceHeight = current.analysis?.height ?? 1
+  const originalImageFrameStyle = sourceWidth >= sourceHeight
+    ? { width: '100%', aspectRatio: `${sourceWidth} / ${sourceHeight}`, transform: `scale(${style.imageScale / 100})` }
+    : { height: '100%', aspectRatio: `${sourceWidth} / ${sourceHeight}`, transform: `scale(${style.imageScale / 100})` }
 
   /* ── 다운로드 ─────────────────────────────────────────────────── */
 
@@ -1002,42 +1136,83 @@ export default function Editor() {
           <div className="grid w-full max-w-[800px] grid-cols-1 gap-5 px-5 lg:grid-cols-2 lg:gap-6">
             {/* 좌측: 원본과 감지 위치 */}
             <article className={`${mobileCanvasTab === '원본' ? 'block' : 'hidden'} lg:block`}>
-              <p className="mb-2 text-center text-sm font-extrabold text-ink">{e.original}</p>
+              <div className="mb-2 flex h-8 items-center justify-between gap-2">
+                <p className="text-sm font-extrabold text-ink">{e.original}</p>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => beginAreaSelection('reselect')}
+                    className={`flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-colors ${selectionMode === 'reselect' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
+                  >
+                    <ScanText className="h-3.5 w-3.5" /> {e.reselectArea}
+                  </button>
+                  <button
+                    onClick={() => beginAreaSelection('add')}
+                    className={`flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-colors ${selectionMode === 'add' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> {e.addCaption}
+                  </button>
+                </div>
+              </div>
               <div className="mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl bg-white sm:h-[340px] sm:w-[340px]">
                 <div className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
                   {current.url ? (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
-                      <img src={current.analysis?.originalUrl ?? current.url} alt={current.name} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
+                    <div className="absolute inset-0 flex items-center justify-center p-2">
+                      <div
+                        ref={originalFrameRef}
+                        onPointerDown={startAreaSelection}
+                        onPointerMove={moveAreaSelection}
+                        onPointerUp={finishAreaSelection}
+                        className={`relative touch-none ${selectionMode ? 'cursor-crosshair' : ''}`}
+                        style={originalImageFrameStyle}
+                      >
+                        <img src={current.analysis?.originalUrl ?? current.url} alt={current.name} draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none" />
+                        {!preview && textRegions.map(region => region.normalizedBox && (
+                          <span
+                            key={region.id}
+                            className={`pointer-events-none absolute border-2 border-dashed ${
+                              region.id === activeRegion.id
+                                ? 'border-brand bg-brand-soft/20'
+                                : 'border-amber-400/80 bg-amber-100/10'
+                            }`}
+                            style={{
+                              left: `${region.normalizedBox.x * 100}%`,
+                              top: `${region.normalizedBox.y * 100}%`,
+                              width: `${region.normalizedBox.width * 100}%`,
+                              height: `${region.normalizedBox.height * 100}%`,
+                            }}
+                          />
+                        ))}
+                        {selectionRect && (
+                          <span
+                            className="pointer-events-none absolute border-2 border-brand bg-brand-soft/25"
+                            style={{
+                              left: `${selectionRect.x * 100}%`,
+                              top: `${selectionRect.y * 100}%`,
+                              width: `${selectionRect.width * 100}%`,
+                              height: `${selectionRect.height * 100}%`,
+                            }}
+                          />
+                        )}
+                        {selectionBusy && (
+                          <span className="absolute inset-x-3 top-3 flex items-center justify-center gap-1 rounded-lg bg-white/95 px-2 py-1.5 text-[11px] font-bold text-brand-dark shadow-sm">
+                            <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> {e.detectingArea}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {!preview && textRegions.map(region => region.normalizedBox && (
-                    <span
-                      key={region.id}
-                      className={`pointer-events-none absolute border-2 border-dashed ${
-                        region.id === activeRegion.id
-                          ? 'border-brand bg-brand-soft/20'
-                          : 'border-amber-400/80 bg-amber-100/10'
-                      }`}
-                      style={{
-                        left: `${region.normalizedBox.x * 100}%`,
-                        top: `${region.normalizedBox.y * 100}%`,
-                        width: `${region.normalizedBox.width * 100}%`,
-                        height: `${region.normalizedBox.height * 100}%`,
-                      }}
-                    />
-                  ))}
                 </div>
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
-                {activeRegion.korean ? e.foundText : e.notFoundText}
+                {selectionMode ? e.selectionHint : activeRegion.korean ? e.foundText : e.notFoundText}
               </p>
             </article>
 
             {/* 우측: 변환 미리보기와 편집 제스처 */}
             <article className={`${mobileCanvasTab === '미리보기' ? 'block' : 'hidden'} lg:block`}>
-              <p className="mb-2 text-center text-sm font-extrabold text-ink">{e.canvasPreview}</p>
+              <div className="mb-2 flex h-8 items-center justify-center"><p className="text-sm font-extrabold text-ink">{e.canvasPreview}</p></div>
               <div className="checkerboard mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl sm:h-[340px] sm:w-[340px]">
                 <div ref={cleanupPreviewRef} onPointerDown={() => setSelected(false)} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
                   {current.url ? (
@@ -1078,14 +1253,14 @@ export default function Editor() {
                               if (!isActive && overlay.regionId) selectRegion(overlay.regionId)
                               setSelected(true)
                             }}
-                            className={`select-none whitespace-nowrap ${preview ? '' : 'cursor-pointer'}`}
+                            className={`select-none whitespace-pre text-center ${preview ? '' : 'cursor-pointer'}`}
                             style={overlayStyle}
                           >
                             {overlayText}
                           </span>
                         ) : (
                           <div ref={boxRef} onPointerDown={event => startGesture(event, 'move')} className="touch-none relative cursor-move border-2 border-brand px-3 py-1">
-                            <span className="select-none whitespace-nowrap" style={overlayStyle}>{overlayText}</span>
+                            <span className="select-none whitespace-pre text-center" style={overlayStyle}>{overlayText}</span>
                             {cornerHandles.map(pos => <span key={pos} onPointerDown={event => startGesture(event, 'resize')} className={`touch-none absolute h-2.5 w-2.5 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
                             {edgeHandles.map(pos => <span key={pos} className={`pointer-events-none absolute h-2 w-2 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
                             <span className="pointer-events-none absolute -top-6 left-1/2 h-4 w-px -translate-x-1/2 bg-brand" />
@@ -1185,6 +1360,9 @@ export default function Editor() {
                     >
                       <span className="w-5 shrink-0 text-center text-[11px] text-sub">{index + 1}</span>
                       <span className="min-w-0 flex-1 truncate">{region.korean}</span>
+                      {region.translationStatus === 'failed' && (
+                        <span className="shrink-0 rounded-md bg-red-50 px-1.5 py-0.5 text-[9px] text-red-600">{e.translationNeeded}</span>
+                      )}
                       {(region.needsManualCleanup || region.needsManualOcrReview) && (
                         <span className="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">{e.captionReview}</span>
                       )}
@@ -1200,6 +1378,19 @@ export default function Editor() {
               <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || activeRegion.korean, detectedBox, activeRegion.id).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || activeRegion.korean).trim()} className="mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
             </div>
             <PanelTitle>{e.aiSuggest}</PanelTitle>
+            {activeRegion.translationStatus === 'failed' && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs font-semibold text-amber-800">{e.translationMissing}</p>
+                <button
+                  onClick={() => void retryActiveTranslation()}
+                  disabled={retryingRegionId === activeRegion.id}
+                  className="mt-2 flex h-9 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-extrabold text-white disabled:opacity-50"
+                >
+                  {retryingRegionId === activeRegion.id && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
+                  {retryingRegionId === activeRegion.id ? e.retryingTranslation : e.retryTranslation}
+                </button>
+              </div>
+            )}
             <div className="mt-3 flex flex-col gap-2">
               {activeRegion.suggestions.map((sug, i) => {
                 const active = !usingCustom && style.suggestion === i
@@ -1237,12 +1428,13 @@ export default function Editor() {
             <p className="mt-4 text-[11px] font-semibold text-sub">
               {e.customHint}
             </p>
-            <input
+            <textarea
               value={style.customText}
               onFocus={beginGesture}
               onChange={e => live({ customText: e.target.value })}
               placeholder={e.customPlaceholder}
-              className={`mt-2 h-11 w-full rounded-xl border-2 px-3 text-[15px] font-semibold outline-none transition-colors ${
+              rows={3}
+              className={`mt-2 min-h-20 w-full resize-y rounded-xl border-2 px-3 py-2 text-[15px] font-semibold outline-none transition-colors ${
                 usingCustom
                   ? 'border-brand bg-brand-soft'
                   : 'border-gray-100 bg-white focus:border-brand'
@@ -1688,6 +1880,32 @@ export default function Editor() {
           </section>
         </aside>
       </div>
+
+      {selectionDraft && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-ink/25 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-extrabold text-ink">{e.detectedAreaTitle}</h2>
+                <p className="mt-1 text-xs font-semibold text-sub">{Math.round(selectionDraft.confidence * 100)}%</p>
+              </div>
+              <button onClick={cancelAreaSelection} className="rounded-lg p-2 text-sub hover:bg-surface" aria-label={e.cancelArea}><X className="h-4 w-4" /></button>
+            </div>
+            <textarea
+              value={selectionDraft.text}
+              onChange={event => setSelectionDraft(previous => previous ? { ...previous, text: event.target.value } : previous)}
+              rows={4}
+              className="mt-4 w-full resize-none rounded-xl border-2 border-gray-100 px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
+            />
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button onClick={cancelAreaSelection} className="h-11 rounded-xl border-2 border-gray-100 text-sm font-bold text-sub">{e.cancelArea}</button>
+              <button onClick={() => void confirmAreaSelection()} disabled={selectionSaving || !selectionDraft.text.trim()} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-brand text-sm font-extrabold text-white disabled:opacity-50">
+                {selectionSaving && <LoaderCircle className="h-4 w-4 animate-spin" />}{e.confirmArea}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

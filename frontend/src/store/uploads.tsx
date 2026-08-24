@@ -18,11 +18,15 @@ import {
   startProject,
   uploadToSignedUrl,
   completeUploads,
+  createOcrRegion,
+  detectOcrRegion,
+  regenerateTranslation,
   saveEditorState,
   reviseOcr,
   recordDownload as recordDownloadApi,
   type ProjectResults,
   type ProjectStatus,
+  type DetectedOcrSelection,
 } from '../lib/api'
 
 export interface UploadFile {
@@ -42,6 +46,8 @@ export interface UploadFile {
     recommendedFont?: string
     originalUrl: string | null
     cleanedUrl: string | null
+    width: number | null
+    height: number | null
     regionId: string | null
     normalizedBox: NormalizedRect | null
     cleanupMethod: string | null
@@ -65,6 +71,7 @@ export interface RegionAnalysis {
 }
 
 export interface LocalizedAnalysis {
+  status: 'translated' | 'failed'
   suggestions: Array<{ text: string; tone: string; best?: boolean }>
   recommendedFont: string
 }
@@ -145,6 +152,9 @@ interface UploadState {
   startLocalization: () => Promise<void>
   refreshProject: () => Promise<ProjectStatus | null>
   reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => Promise<void>
+  detectOcrRegion: (fileId: string, normalizedBox: NormalizedRect) => Promise<DetectedOcrSelection>
+  addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
+  retryTranslation: (fileId: string, regionId: string, languageCode: string) => Promise<void>
 }
 
 const UploadContext = createContext<UploadState | null>(null)
@@ -283,12 +293,15 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                 ? pickFontByStyle(asset.ocr.fontStyle, asset.id)
                 : fontForCategory(localization?.recommendedStyle?.fontCategory)
               return [language.code, {
+                status: localization?.status ?? 'failed',
                 suggestions: localization?.candidates ?? [],
                 recommendedFont: fontForLanguage(language.code, suggestedFont),
               }]
             })),
             originalUrl: asset.originalUrl,
             cleanedUrl: asset.cleanedUrl,
+            width: asset.width,
+            height: asset.height,
             regionId: asset.ocr.primaryRegionId,
             normalizedBox: asset.ocr.regions.find(region => region.id === asset.ocr.primaryRegionId)?.normalizedBox ?? null,
             cleanupMethod: asset.cleanup.method,
@@ -306,6 +319,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                   ? pickFontByStyle(region.fontStyle, region.id)
                   : fontForCategory(localization?.recommendedStyle?.fontCategory)
                 return [language.code, {
+                  status: localization?.status ?? 'failed',
                   suggestions: localization?.candidates ?? [],
                   recommendedFont: fontForLanguage(language.code, suggestedFont),
                 }]
@@ -356,6 +370,25 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
   }, [files, projectId, projectToken])
 
+  const detectAssetOcrRegion = useCallback(async (fileId: string, normalizedBox: NormalizedRect) => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
+    return detectOcrRegion(projectId, projectToken, file.assetId, normalizedBox)
+  }, [files, projectId, projectToken])
+
+  const addAssetOcrRegion = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect) => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
+    await createOcrRegion(projectId, projectToken, file.assetId, text, normalizedBox)
+    setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
+  }, [files, projectId, projectToken])
+
+  const retryAssetTranslation = useCallback(async (fileId: string, regionId: string, languageCode: string) => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('번역 세션을 찾을 수 없어요.')
+    await regenerateTranslation(projectId, projectToken, file.assetId, regionId, languageCode)
+  }, [files, projectId, projectToken])
+
   const value = useMemo(
     () => ({
       files,
@@ -377,6 +410,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       startLocalization,
       refreshProject,
       reviseOcr: reviseAssetOcr,
+      detectOcrRegion: detectAssetOcrRegion,
+      addOcrRegion: addAssetOcrRegion,
+      retryTranslation: retryAssetTranslation,
     }),
     [
       files,
@@ -396,6 +432,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       startLocalization,
       refreshProject,
       reviseAssetOcr,
+      detectAssetOcrRegion,
+      addAssetOcrRegion,
+      retryAssetTranslation,
     ],
   )
 

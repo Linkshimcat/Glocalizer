@@ -35,6 +35,32 @@ export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): 
   unwrapVoid(insertResult, 'OCR 결과 저장에 실패했습니다.');
 }
 
+export async function insertOcrRegion(assetId: string, region: OcrRegion): Promise<OcrRegionRow> {
+  const record = {
+    id: region.id,
+    asset_id: assetId,
+    detected_text: region.text,
+    confidence: region.confidence,
+    bbox: region.box,
+    normalized_bbox: region.normalizedBox,
+    polygon: region.polygon,
+    contains_korean: region.containsKorean,
+    is_primary: region.isPrimary,
+    reading_order: region.readingOrder,
+    source: region.source,
+    agreement_score: region.agreementScore,
+    needs_manual_review: region.needsManualReview,
+  };
+  let result = await supabase.from('ocr_regions').insert(record).select().single();
+  if (result.error?.message.includes('agreement_score') || result.error?.message.includes('needs_manual_review') || result.error?.message.includes('source')) {
+    const { source: _source, agreement_score: _agreementScore, needs_manual_review: _needsManualReview, ...legacyRecord } = record;
+    result = await supabase.from('ocr_regions').insert(legacyRecord).select().single();
+  }
+  const row = unwrapNullableRow<OcrRegionRow>(result, 'OCR 영역을 추가하지 못했습니다.');
+  if (!row) throw new Error('추가한 OCR 영역을 찾을 수 없습니다.');
+  return row;
+}
+
 export async function findPrimaryRegion(assetId: string): Promise<OcrRegionRow | null> {
   const result = await supabase.from('ocr_regions').select().eq('asset_id', assetId).eq('is_primary', true).maybeSingle();
   return unwrapNullableRow<OcrRegionRow>(result, 'OCR 대표 영역 조회에 실패했습니다.');

@@ -69,52 +69,74 @@ export async function localizeRegionForLanguages(
   siblingCaptions: string[] = [],
 ): Promise<LanguageTranslationResult[]> {
   const provider = getTranslationProvider();
-  let results;
-  try {
-    results = await provider.localizeBatch(buildLocalizationInput(region, targetLanguages, options, siblingCaptions));
-  } catch (error) {
+  const failedResult = (languageCode: TargetLanguage, error: unknown): LanguageTranslationResult => {
     const { code: errorCode, message: errorMessage } = describeError(
       error,
       'TRANSLATION_PROVIDER_FAILED',
       '번역 처리 중 알 수 없는 오류가 발생했습니다.',
     );
-    return targetLanguages.map((languageCode) => ({ languageCode, status: 'failed', errorCode, errorMessage }));
+    return { languageCode, status: 'failed', errorCode, errorMessage };
+  };
+
+  const persistResult = async (
+    languageCode: TargetLanguage,
+    results: Awaited<ReturnType<typeof provider.localizeBatch>>,
+  ): Promise<LanguageTranslationResult> => {
+    try {
+      const result = results.get(languageCode);
+      if (!result) {
+        throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode }, '번역 provider가 요청 언어를 반환하지 않았습니다.');
+      }
+
+      const validation = validateTranslationResult(result);
+      if (!validation.valid) {
+        throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode, reasons: validation.reasons }, '번역 결과가 검증을 통과하지 못했습니다.');
+      }
+
+      await upsertTranslation({
+        ocrRegionId: region.id,
+        languageCode,
+        generationCandidates: result.candidates,
+        finalCandidates: result.candidates,
+        recommendedStyle: result.recommendedStyle,
+        generationModel: provider.model,
+        promptVersion: LOCALIZATION_PROMPT_VERSION,
+      });
+
+      return { languageCode, status: 'translated', needsReview: validation.needsReview };
+    } catch (error) {
+      return failedResult(languageCode, error);
+    }
+  };
+
+  let batchResults: Awaited<ReturnType<typeof provider.localizeBatch>> | null = null;
+  let batchError: unknown = null;
+  try {
+    batchResults = await provider.localizeBatch(buildLocalizationInput(region, targetLanguages, options, siblingCaptions));
+  } catch (error) {
+    batchError = error;
   }
 
-  return Promise.all(
-    targetLanguages.map(async (languageCode): Promise<LanguageTranslationResult> => {
-      try {
-        const result = results.get(languageCode);
-        if (!result) {
-          throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode }, '번역 provider가 요청 언어를 반환하지 않았습니다.');
-        }
+  const firstPass = await Promise.all(targetLanguages.map((languageCode) => (
+    batchResults ? persistResult(languageCode, batchResults) : Promise.resolve(failedResult(languageCode, batchError))
+  )));
+  const failedLanguages = firstPass.filter((result) => result.status === 'failed').map((result) => result.languageCode);
+  if (failedLanguages.length === 0) return firstPass;
 
-        const validation = validateTranslationResult(result);
-        if (!validation.valid) {
-          throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode, reasons: validation.reasons }, '번역 결과가 검증을 통과하지 못했습니다.');
-        }
-
-        await upsertTranslation({
-          ocrRegionId: region.id,
-          languageCode,
-          generationCandidates: result.candidates,
-          finalCandidates: result.candidates,
-          recommendedStyle: result.recommendedStyle,
-          generationModel: provider.model,
-          promptVersion: LOCALIZATION_PROMPT_VERSION,
-        });
-
-        return { languageCode, status: 'translated', needsReview: validation.needsReview };
-      } catch (error) {
-        const { code: errorCode, message: errorMessage } = describeError(
-          error,
-          'TRANSLATION_PROVIDER_FAILED',
-          '번역 처리 중 알 수 없는 오류가 발생했습니다.',
-        );
-        return { languageCode, status: 'failed', errorCode, errorMessage };
-      }
-    }),
-  );
+  // 한 언어의 누락/형식 오류가 같은 캡션의 다른 언어까지 버리지 않도록 실패 언어만
+  // 단일 언어 요청으로 한 번 더 복구한다. provider 내부 HTTP 재시도와는 별도 단계다.
+  const retryResults = await Promise.all(failedLanguages.map(async (languageCode) => {
+    try {
+      const result = await provider.localizeBatch(buildLocalizationInput(region, [languageCode], options, siblingCaptions));
+      return persistResult(languageCode, result);
+    } catch (error) {
+      return failedResult(languageCode, error);
+    }
+  }));
+  const retriedByLanguage = new Map(retryResults.map((result) => [result.languageCode, result]));
+  return firstPass.map((result) => result.status === 'translated'
+    ? result
+    : retriedByLanguage.get(result.languageCode) ?? result);
 }
 
 export async function runTranslationsForAsset(

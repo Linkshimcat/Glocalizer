@@ -17,6 +17,20 @@ export interface TextMaskOptions {
   backgroundColor?: { r: number; g: number; b: number };
 }
 
+/** 배경이 확실한 단색일 때만 쓰는 타이트한 bbox 채움 마스크. */
+export function createTightBoxMask(box: PixelBox, imageWidth: number, imageHeight: number): FeatherMask {
+  const data = new Uint8Array(imageWidth * imageHeight);
+  data.fill(255);
+  const left = Math.max(0, Math.floor(box.x));
+  const top = Math.max(0, Math.floor(box.y));
+  const right = Math.min(imageWidth, Math.ceil(box.x + box.width));
+  const bottom = Math.min(imageHeight, Math.ceil(box.y + box.height));
+  for (let y = top; y < bottom; y += 1) {
+    for (let x = left; x < right; x += 1) data[y * imageWidth + x] = 0;
+  }
+  return { data, width: imageWidth, height: imageHeight, roi: box };
+}
+
 const MIN_COLOR_DISTANCE = 12;
 
 function colorDistance(red: number, green: number, blue: number, background: { r: number; g: number; b: number }): number {

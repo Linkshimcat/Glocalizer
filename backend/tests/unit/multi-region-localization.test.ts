@@ -47,24 +47,28 @@ describe('runTranslationsForAsset multi-region behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue(regions as never);
+    let failedOnce = false;
     provider.localizeBatch.mockImplementation(async input => {
-      if (input.sourceText === '잼얘해줘') throw new Error('one caption failed');
+      if (input.sourceText === '잼얘해줘' && !failedOnce) {
+        failedOnce = true;
+        throw new Error('one caption failed');
+      }
       return translation(input.sourceText);
     });
   });
 
-  it('translates every caption independently and continues after one caption fails', async () => {
+  it('실패한 캡션 언어만 개별 재시도해 모든 영역을 저장한다', async () => {
     const result = await runTranslationsForAsset(
       { id: 'asset-1', project_id: 'project-1' } as never,
       ['en'],
       { tone: 'funny', audience: 'teen', translationStyle: 'trendy', highQualityReview: false },
     );
 
-    expect(provider.localizeBatch).toHaveBeenCalledTimes(3);
+    expect(provider.localizeBatch).toHaveBeenCalledTimes(4);
     expect(provider.localizeBatch.mock.calls[0][0].context.siblingCaptions).toEqual(['잼얘해줘', '당신이 잼얘를 끊어온지 오래됐기 때문에']);
-    expect(translationRepo.upsertTranslation).toHaveBeenCalledTimes(2);
+    expect(translationRepo.upsertTranslation).toHaveBeenCalledTimes(3);
     expect(result.status).toBe('translating');
-    expect(result.languages).toEqual([{ languageCode: 'en', status: 'translated', needsReview: true }]);
+    expect(result.languages).toEqual([{ languageCode: 'en', status: 'translated', needsReview: false }]);
     expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', { status: 'translating', stage: 'translating', progress: 100 });
   });
 });

@@ -10,18 +10,15 @@ import { decodeImagePixels, sampleBorderPixelsFromDecoded, sampleTextColorFromDe
 import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
 import { applySolidColorCleanup } from './solid-color-cleanup.js';
 import { applyTransparentCleanup } from './transparent-cleanup.js';
-import { applyDirectionalInpaint } from './directional-inpaint.js';
-import { applyBlurCleanup } from './blur-cleanup.js';
-import { generateTextEraseMask } from './mask-generator.js';
+import { createTightBoxMask, generateTextEraseMask } from './mask-generator.js';
 import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
-import { generateAdaptiveTextMask } from './adaptive-text-mask.js';
 import { logger } from '../config/logger.js';
 
 const METHOD_PRIORITY: CleanupResult['method'][] = [
   'manual-required',
-  'blur-mask',
   'directional-inpaint',
+  'blur-mask',
   'solid-color-fill',
   'transparent-mask',
 ];
@@ -70,39 +67,41 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         if (region.is_primary || primaryTextColor === null) primaryTextColor = textColor;
         let method = decideCleanupMethod(stats);
         let quality = assessCleanupQuality(method, stats);
-        let mask;
-
         if (method === 'directional-inpaint') {
-          const adaptive = await generateAdaptiveTextMask(decoded, region.bbox);
-          mask = adaptive.mask;
-          if (adaptive.confidence < 0.55 || !isMaskCoverageSafe(measureMaskCoverage(mask))) {
-            method = 'blur-mask';
-            quality = 'acceptable';
-          }
-        } else {
-          mask = await generateTextEraseMask(
-            buffer,
-            region.bbox,
-            asset.width,
-            asset.height,
-            method === 'transparent-mask'
-              ? { mode: 'transparent' }
-              : { mode: 'solid', backgroundColor: stats.medianColor },
-            decoded,
-          );
-          if (!isMaskCoverageSafe(measureMaskCoverage(mask))) {
-            method = 'blur-mask';
-            quality = 'acceptable';
+          // 복잡한 선화·그라데이션에 사각 블러나 자동 덮개를 적용하면 캐릭터까지 훼손된다.
+          // 원본을 보존하고 에디터의 영역별 수동 지우기로 넘긴다.
+          needsManualCleanup = true;
+          methods.push('manual-required');
+          qualities.push('low');
+          await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: true });
+          continue;
+        }
+
+        let mask = await generateTextEraseMask(
+          buffer,
+          region.bbox,
+          asset.width,
+          asset.height,
+          method === 'transparent-mask'
+            ? { mode: 'transparent' }
+            : { mode: 'solid', backgroundColor: stats.medianColor },
+          decoded,
+        );
+        if (!isMaskCoverageSafe(measureMaskCoverage(mask))) {
+          if (method === 'solid-color-fill' && quality === 'good') {
+            mask = createTightBoxMask(region.bbox, asset.width, asset.height);
+          } else {
+            needsManualCleanup = true;
+            methods.push('manual-required');
+            qualities.push('low');
+            await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: true });
+            continue;
           }
         }
 
-        cleanedBuffer = method === 'blur-mask'
-          ? await applyBlurCleanup(cleanedBuffer, region.bbox, asset.width, asset.height)
-          : method === 'transparent-mask'
-            ? await applyTransparentCleanup(cleanedBuffer, region.bbox, asset.width, asset.height, mask)
-            : method === 'directional-inpaint'
-              ? await applyDirectionalInpaint(cleanedBuffer, region.bbox, asset.width, asset.height, mask)
-              : await applySolidColorCleanup(cleanedBuffer, region.bbox, stats.medianColor, asset.width, asset.height, mask);
+        cleanedBuffer = method === 'transparent-mask'
+          ? await applyTransparentCleanup(cleanedBuffer, region.bbox, asset.width, asset.height, mask)
+          : await applySolidColorCleanup(cleanedBuffer, region.bbox, stats.medianColor, asset.width, asset.height, mask);
         methods.push(method);
         qualities.push(quality);
         await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: false });

@@ -65,9 +65,18 @@ export const regenerateSchema = z.object({
 
 export const updateOcrSchema = z.object({
   regionId: z.string().uuid().optional(),
-  text: z.string().trim().min(1).max(200),
+  text: z.string().trim().min(1).max(500),
   normalizedBox: z.object({
     x: z.number().min(0).max(1), y: z.number().min(0).max(1),
     width: z.number().positive().max(1), height: z.number().positive().max(1),
   }).refine((box) => box.x + box.width <= 1 && box.y + box.height <= 1, 'normalizedBox must be within image bounds'),
+});
+
+export const detectOcrRegionSchema = z.object({
+  normalizedBox: updateOcrSchema.shape.normalizedBox,
+});
+
+export const createOcrRegionSchema = z.object({
+  text: z.string().trim().min(1).max(500),
+  normalizedBox: updateOcrSchema.shape.normalizedBox,
 });

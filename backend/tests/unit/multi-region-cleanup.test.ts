@@ -25,6 +25,7 @@ vi.mock('../../src/image/cleanup-quality.js', () => ({
 }));
 vi.mock('../../src/image/mask-generator.js', () => ({
   generateTextEraseMask: vi.fn().mockResolvedValue({ data: new Uint8Array(100), width: 10, height: 10, roi: { x: 0, y: 0, width: 10, height: 10 } }),
+  createTightBoxMask: vi.fn(),
 }));
 vi.mock('../../src/image/mask-coverage.js', () => ({
   measureMaskCoverage: vi.fn().mockReturnValue({ ratio: 0.2 }),
@@ -40,6 +41,7 @@ const assetRepo = await import('../../src/repositories/asset.repository.js');
 const ocrRepo = await import('../../src/repositories/ocr.repository.js');
 const storageRepo = await import('../../src/repositories/storage.repository.js');
 const solidCleanup = await import('../../src/image/solid-color-cleanup.js');
+const cleanupQuality = await import('../../src/image/cleanup-quality.js');
 const { runCleanupForAsset } = await import('../../src/image/cleanup.service.js');
 
 const regions = [
@@ -79,5 +81,19 @@ describe('runCleanupForAsset multi-region behavior', () => {
       cleanedPath: 'projects/project-1/cleaned/asset-1.png',
     }));
     expect(result).toMatchObject({ method: 'manual-required', quality: 'low', needsManualCleanup: true });
+  });
+
+  it('복잡한 배경은 자동 블러 없이 원본을 보존하고 수동 보정으로 표시한다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[1]] as never);
+    vi.mocked(cleanupQuality.decideCleanupMethod).mockReturnValue('directional-inpaint');
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(solidCleanup.applySolidColorCleanup).not.toHaveBeenCalled();
+    expect(storageRepo.uploadToStorage).not.toHaveBeenCalled();
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-success', expect.objectContaining({ needsManualCleanup: true }));
+    expect(result).toMatchObject({ method: 'manual-required', needsManualCleanup: true });
   });
 });

@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { regenerateHandler, saveEditorStateHandler, updateOcrHandler } from '../controllers/editor.controller.js';
+import { createOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, updateOcrHandler } from '../controllers/editor.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
-import { assetParamsSchema, regenerateSchema, saveEditorStateSchema, updateOcrSchema } from '../schemas/editor-state.schema.js';
+import { assetParamsSchema, createOcrRegionSchema, detectOcrRegionSchema, regenerateSchema, saveEditorStateSchema, updateOcrSchema } from '../schemas/editor-state.schema.js';
 import { asyncHandler } from '../utils/async-handler.js';
 
 export const editorRouter = Router();
@@ -29,4 +29,20 @@ editorRouter.patch(
   projectAuthMiddleware,
   validate(updateOcrSchema, 'body'),
   asyncHandler(updateOcrHandler),
+);
+
+editorRouter.post(
+  '/projects/:projectId/assets/:assetId/ocr/regions/detect',
+  validate(assetParamsSchema, 'params'),
+  projectAuthMiddleware,
+  validate(detectOcrRegionSchema, 'body'),
+  asyncHandler(detectOcrRegionHandler),
+);
+
+editorRouter.post(
+  '/projects/:projectId/assets/:assetId/ocr/regions',
+  validate(assetParamsSchema, 'params'),
+  projectAuthMiddleware,
+  validate(createOcrRegionSchema, 'body'),
+  asyncHandler(createOcrRegionHandler),
 );

@@ -65,13 +65,15 @@ export function styleKeyForRegion(fileId: string, regionId?: string | null, prim
 /** OCR bbox를 기존 340px 에디터 좌표로 옮긴 기본 텍스트 스타일 */
 export function styleFromNormalizedBox(box: NormalizedRect, textColor?: { r: number; g: number; b: number } | null, text?: string): Style {
   const editorSize = 340
-  const heightSize = box.height * editorSize * 0.82
+  const lines = text?.trim().split(/\r?\n/) ?? []
+  const lineCount = Math.max(1, lines.length)
+  const heightSize = (box.height * editorSize * 0.82) / lineCount
   let size = heightSize
-  const trimmed = text?.trim()
-  if (trimmed) {
+  const longestLine = lines.reduce((longest, line) => Math.max(longest, line.trim().length), 0)
+  if (longestLine > 0) {
     // 번역 문구가 box 너비를 넘어 잘리지 않도록 폭 기준으로도 제한한다.
     // 문자폭 ≈ 0.6 * fontSize로 추정하고, 좌우 여백을 위해 0.95를 곱한다.
-    const widthSize = (box.width * editorSize * 0.95) / (trimmed.length * 0.6)
+    const widthSize = (box.width * editorSize * 0.95) / (longestLine * 0.6)
     size = Math.min(heightSize, widthSize)
   }
   return {

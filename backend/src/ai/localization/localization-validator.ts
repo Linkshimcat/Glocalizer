@@ -19,9 +19,9 @@ export function validateTranslationResult(result: TranslationResult): Translatio
   const { candidates, targetLanguage } = result;
   const maxCharacters = MAX_CHARACTERS_BY_LANGUAGE[targetLanguage];
 
-  if (candidates.length !== 3) {
+  if (candidates.length < 1 || candidates.length > 3) {
     valid = false;
-    reasons.push(`후보 개수가 3개가 아닙니다 (${candidates.length}개).`);
+    reasons.push(`후보 개수가 허용 범위(1~3개)가 아닙니다 (${candidates.length}개).`);
   }
 
   const emptyCount = candidates.filter((candidate) => candidate.text.trim().length === 0).length;

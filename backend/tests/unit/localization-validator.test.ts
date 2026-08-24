@@ -21,10 +21,10 @@ describe('validateTranslationResult', () => {
     expect(validateTranslationResult(r)).toEqual({ valid: true, needsReview: false, reasons: [] });
   });
 
-  it('후보가 3개가 아니면 invalid', () => {
+  it('유효한 후보가 1~3개면 통과한다', () => {
     const r = result('en', [candidate('a', true), candidate('b')]);
     const v = validateTranslationResult(r);
-    expect(v.valid).toBe(false);
+    expect(v.valid).toBe(true);
   });
 
   it('best가 0개 또는 2개 이상이면 invalid', () => {

@@ -6,6 +6,7 @@ import type { OcrProvider, RecognizedRegion } from '../ocr-provider.types.js';
 
 const PROMPT = [
   'Detect EVERY distinct Korean text caption in this image (there may be more than one, in different locations).',
+  'Transcribe every visible glyph exactly as written. Preserve slang, unusual spelling, spacing, punctuation, repeated characters, and line breaks. Never autocorrect, normalize, paraphrase, or guess a more common Korean phrase.',
   'Return ONLY JSON: {"regions": [{"text": "<exact Korean text>", "confidence": 0-1, "box": {"x": 0-1, "y": 0-1, "width": 0-1, "height": 0-1}}, ...]}',
   'confidence reflects how certain you are that both the text and the box are correct. box coordinates are normalized 0-1 fractions of image width/height (x,y = top-left corner), tightly bounding just the text glyphs of each distinct caption — not the whole image, not extra padding, not any background shape like a speech bubble. Do not merge separate captions into one region.',
   'If no Korean text is visible, return {"regions": []}.',

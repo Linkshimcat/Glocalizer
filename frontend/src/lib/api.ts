@@ -6,6 +6,12 @@ export interface ApiCandidate {
   best?: boolean
 }
 
+export interface ApiLocalization {
+  status: 'translated' | 'failed'
+  candidates: ApiCandidate[]
+  recommendedStyle: { fontCategory?: string } | null
+}
+
 export interface ApiRegion {
   id: string
   text: string
@@ -17,7 +23,7 @@ export interface ApiRegion {
   fontStyle: ApiFontStyle | null
   textColor: { r: number; g: number; b: number } | null
   needsManualCleanup: boolean
-  localizations: Record<string, { candidates: ApiCandidate[]; recommendedStyle: { fontCategory?: string } | null }>
+  localizations: Record<string, ApiLocalization>
 }
 
 export interface ApiFontStyle {
@@ -37,7 +43,7 @@ export interface ApiAssetResult {
   originalUrl: string | null
   cleanedUrl: string | null
   ocr: { fullText: string | null; primaryRegionId: string | null; fontStyle: ApiFontStyle | null; regions: ApiRegion[] }
-  localizations: Record<string, { candidates: ApiCandidate[]; recommendedStyle: { fontCategory?: string } | null }>
+  localizations: Record<string, ApiLocalization>
   cleanup: { method: string | null; quality: string | null; needsManualCleanup: boolean; textColor: { r: number; g: number; b: number } | null }
   needsManualOcrReview: boolean
   editorStates: Record<string, object>
@@ -131,6 +137,33 @@ export function getProjectResults(projectId: string, token: string): Promise<Pro
 
 export async function reviseOcr(projectId: string, token: string, assetId: string, text: string, normalizedBox: { x: number; y: number; width: number; height: number }, regionId?: string): Promise<void> {
   await request(`/projects/${projectId}/assets/${assetId}/ocr`, { method: 'PATCH', body: JSON.stringify({ text, normalizedBox, regionId }) }, token)
+}
+
+export interface DetectedOcrSelection {
+  text: string
+  confidence: number
+  normalizedBox: { x: number; y: number; width: number; height: number }
+}
+
+export function detectOcrRegion(projectId: string, token: string, assetId: string, normalizedBox: { x: number; y: number; width: number; height: number }): Promise<DetectedOcrSelection> {
+  return request(`/projects/${projectId}/assets/${assetId}/ocr/regions/detect`, {
+    method: 'POST',
+    body: JSON.stringify({ normalizedBox }),
+  }, token)
+}
+
+export async function createOcrRegion(projectId: string, token: string, assetId: string, text: string, normalizedBox: { x: number; y: number; width: number; height: number }): Promise<void> {
+  await request(`/projects/${projectId}/assets/${assetId}/ocr/regions`, {
+    method: 'POST',
+    body: JSON.stringify({ text, normalizedBox }),
+  }, token)
+}
+
+export async function regenerateTranslation(projectId: string, token: string, assetId: string, regionId: string, languageCode: string): Promise<void> {
+  await request(`/projects/${projectId}/assets/${assetId}/regenerate`, {
+    method: 'POST',
+    body: JSON.stringify({ regionId, languageCode }),
+  }, token)
 }
 
 export async function recordDownload(projectId: string, token: string, kind: 'single' | 'zip', languageCode?: string): Promise<void> {
