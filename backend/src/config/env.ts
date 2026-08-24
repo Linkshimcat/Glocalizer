@@ -34,13 +34,19 @@ export const envSchema = z.object({
   TRANSLATION_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   TRANSLATION_PROVIDER: z.enum(['groq']).default('groq'),
 
-  OCR_PROVIDER: z.enum(['paddle', 'openvino-npu']).default('paddle'),
+  OCR_PROVIDER: z.enum(['paddle', 'openvino-npu', 'luna']).default('paddle'),
   OCR_SHADOW_PROVIDER: z.enum(['none', 'openvino-npu']).default('none'),
   OCR_SHADOW_MAX_VARIANTS: z.coerce.number().int().min(1).max(3).default(2),
   OCR_PYTHON_EXECUTABLE: z.string().default('python3'),
   OCR_WINDOWS_PYTHON: z.string().default('py'),
   OCR_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),
   OCR_IMAGE_MAX_DIMENSION: z.coerce.number().int().min(512).max(4096).default(1280),
+  // OCR_PROVIDER=luna일 때 사용하는 OCR 주력 엔진. 벤치마크(2026-08-24)에서 PaddleOCR(평균
+  // IoU 0.637) 대비 GPT-5.6 Luna(0.914)가 정확도·안정성·비용 모두 우위였다. PaddleOCR는
+  // Luna 호출이 실패하거나 한글을 전혀 찾지 못했을 때의 fallback으로 유지한다.
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_OCR_MODEL: z.string().default('gpt-5.6-luna'),
+  OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
   GEMINI_API_KEY: z.string().min(1).optional(),
   GEMINI_VISION_MODEL: z.string().default('gemini-2.5-flash'),
   VISION_PROVIDER: z.enum(['groq', 'gemini']).default('groq'),
