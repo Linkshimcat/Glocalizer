@@ -71,6 +71,12 @@ export async function findRegionsByAssetId(assetId: string): Promise<OcrRegionRo
   return unwrapList<OcrRegionRow>(result, 'OCR 영역 조회에 실패했습니다.');
 }
 
+export async function findRegionsByAssetIds(assetIds: string[]): Promise<OcrRegionRow[]> {
+  if (assetIds.length === 0) return [];
+  const result = await supabase.from('ocr_regions').select().in('asset_id', assetIds).order('reading_order');
+  return unwrapList<OcrRegionRow>(result, 'OCR 영역 조회에 실패했습니다.');
+}
+
 export async function findRegionById(regionId: string): Promise<OcrRegionRow | null> {
   const result = await supabase.from('ocr_regions').select().eq('id', regionId).maybeSingle();
   return unwrapNullableRow<OcrRegionRow>(result, 'OCR 영역 조회에 실패했습니다.');

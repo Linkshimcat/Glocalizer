@@ -21,12 +21,14 @@ vi.mock('../../src/repositories/ocr.repository.js', () => ({
   replaceOcrRegions: vi.fn(),
   findPrimaryRegion: vi.fn(),
   findRegionsByAssetId: vi.fn(),
+  findRegionsByAssetIds: vi.fn(),
   findRegionById: vi.fn(),
 }));
 
 vi.mock('../../src/repositories/translation.repository.js', () => ({
   upsertTranslation: vi.fn(),
   findTranslationsByOcrRegionId: vi.fn(),
+  findTranslationsByOcrRegionIds: vi.fn(),
   findTranslation: vi.fn(),
   incrementRegenerateCount: vi.fn(),
 }));
@@ -34,6 +36,7 @@ vi.mock('../../src/repositories/translation.repository.js', () => ({
 vi.mock('../../src/repositories/editor-state.repository.js', () => ({
   upsertEditorState: vi.fn(),
   findEditorStatesByAssetId: vi.fn(),
+  findEditorStatesByAssetIds: vi.fn(),
 }));
 
 vi.mock('../../src/repositories/storage.repository.js', () => ({
@@ -107,9 +110,10 @@ describe('GET /api/v1/projects/:projectId/results', () => {
       },
     ] as never);
 
-    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([
+    vi.mocked(ocrRepo.findRegionsByAssetIds).mockResolvedValue([
       {
         id: REGION_ID,
+        asset_id: ASSET_ID,
         detected_text: '완전좋아',
         confidence: 0.93,
         bbox: { x: 10, y: 10, width: 100, height: 50 },
@@ -117,6 +121,7 @@ describe('GET /api/v1/projects/:projectId/results', () => {
       },
       {
         id: 'b7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d',
+        asset_id: ASSET_ID,
         detected_text: '진짜좋아',
         confidence: 0.88,
         bbox: { x: 120, y: 10, width: 100, height: 50 },
@@ -124,8 +129,9 @@ describe('GET /api/v1/projects/:projectId/results', () => {
       },
     ] as never);
 
-    vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValueOnce([
+    vi.mocked(translationRepo.findTranslationsByOcrRegionIds).mockResolvedValueOnce([
       {
+        ocr_region_id: REGION_ID,
         language_code: 'en',
         final_candidates: [{ text: 'Loving it!', tone: 'trendy', meaning: '완전 좋다', best: true }],
         recommended_style: { fontCategory: 'bold', alignment: 'center', strokeRecommended: true, shadowRecommended: false },
@@ -133,7 +139,7 @@ describe('GET /api/v1/projects/:projectId/results', () => {
     ] as never).mockResolvedValueOnce([]);
 
     vi.mocked(storageRepo.createSignedUrl).mockResolvedValue('https://signed.example/url');
-    vi.mocked(editorStateRepo.findEditorStatesByAssetId).mockResolvedValue([]);
+    vi.mocked(editorStateRepo.findEditorStatesByAssetIds).mockResolvedValue([]);
 
     const res = await request(app).get(`/api/v1/projects/${PROJECT_ID}/results`).set('X-Project-Token', TOKEN);
 

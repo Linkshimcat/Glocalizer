@@ -1,7 +1,7 @@
 import { findAssetsByProjectAndStatus, updateAsset } from '../repositories/asset.repository.js';
 import { findRegionsByAssetId, updateRegionCleanupMetadata } from '../repositories/ocr.repository.js';
 import { findProjectById, updateProjectStage } from '../repositories/project.repository.js';
-import { findTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
+import { findTranslationsByOcrRegionIds } from '../repositories/translation.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
 import type { CleanupResult } from '../types/cleanup.js';
@@ -54,6 +54,13 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     const decoded = await decodeImagePixels(buffer);
     const project = await findProjectById(asset.project_id);
     if (!project) throw new AppError('PROJECT_NOT_FOUND', { projectId: asset.project_id });
+    const translations = await findTranslationsByOcrRegionIds(regions.map((region) => region.id));
+    const translatedLanguagesByRegion = new Map<string, Set<string>>();
+    for (const translation of translations) {
+      const languages = translatedLanguagesByRegion.get(translation.ocr_region_id) ?? new Set<string>();
+      languages.add(translation.language_code);
+      translatedLanguagesByRegion.set(translation.ocr_region_id, languages);
+    }
     let cleanedBuffer = buffer;
     const methods: CleanupResult['method'][] = [];
     const qualities: CleanupResult['quality'][] = [];
@@ -61,8 +68,7 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     let primaryTextColor: { r: number; g: number; b: number } | null = null;
 
     for (const region of regions) {
-      const translations = await findTranslationsByOcrRegionId(region.id);
-      const translatedLanguages = new Set(translations.map((translation) => translation.language_code));
+      const translatedLanguages = translatedLanguagesByRegion.get(region.id) ?? new Set<string>();
       const isTranslationComplete = project.target_languages.every((languageCode) => translatedLanguages.has(languageCode));
       if (!isTranslationComplete) {
         // 번역문이 준비되지 않은 영역을 먼저 지우면 미리보기에 빈 공간만 남는다.

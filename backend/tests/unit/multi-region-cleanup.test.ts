@@ -10,7 +10,7 @@ vi.mock('../../src/repositories/ocr.repository.js', () => ({
   updateRegionCleanupMetadata: vi.fn(),
 }));
 vi.mock('../../src/repositories/project.repository.js', () => ({ findProjectById: vi.fn(), updateProjectStage: vi.fn() }));
-vi.mock('../../src/repositories/translation.repository.js', () => ({ findTranslationsByOcrRegionId: vi.fn() }));
+vi.mock('../../src/repositories/translation.repository.js', () => ({ findTranslationsByOcrRegionIds: vi.fn() }));
 vi.mock('../../src/repositories/storage.repository.js', () => ({
   downloadFromStorage: vi.fn(),
   uploadToStorage: vi.fn(),
@@ -60,7 +60,7 @@ describe('runCleanupForAsset multi-region behavior', () => {
     vi.clearAllMocks();
     vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue(regions as never);
     vi.mocked(projectRepo.findProjectById).mockResolvedValue({ target_languages: ['en'] } as never);
-    vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValue([{ language_code: 'en' }] as never);
+    vi.mocked(translationRepo.findTranslationsByOcrRegionIds).mockResolvedValue(regions.map((region) => ({ ocr_region_id: region.id, language_code: 'en' })) as never);
     vi.mocked(storageRepo.downloadFromStorage).mockResolvedValue(Buffer.from('source'));
     vi.mocked(solidCleanup.applySolidColorCleanup)
       .mockResolvedValueOnce(Buffer.from('cleaned-review'))
@@ -135,7 +135,7 @@ describe('runCleanupForAsset multi-region behavior', () => {
   it('선택 언어 번역이 모두 준비되기 전에는 원문을 지우지 않는다', async () => {
     vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[1]] as never);
     vi.mocked(projectRepo.findProjectById).mockResolvedValue({ target_languages: ['en', 'ja'] } as never);
-    vi.mocked(translationRepo.findTranslationsByOcrRegionId).mockResolvedValue([{ language_code: 'en' }] as never);
+    vi.mocked(translationRepo.findTranslationsByOcrRegionIds).mockResolvedValue([{ ocr_region_id: 'region-success', language_code: 'en' }] as never);
 
     const result = await runCleanupForAsset({
       id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,

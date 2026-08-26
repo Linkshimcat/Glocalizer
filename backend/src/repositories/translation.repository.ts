@@ -44,6 +44,13 @@ export async function findTranslationsByOcrRegionId(ocrRegionId: string): Promis
   return unwrapList<TranslationRow>(result, '번역 결과 조회에 실패했습니다.');
 }
 
+/** 여러 OCR 영역의 번역을 한 번에 조회해 영역 수에 비례하는 DB 왕복을 피한다. */
+export async function findTranslationsByOcrRegionIds(ocrRegionIds: string[]): Promise<TranslationRow[]> {
+  if (ocrRegionIds.length === 0) return [];
+  const result = await supabase.from('translations').select().in('ocr_region_id', ocrRegionIds);
+  return unwrapList<TranslationRow>(result, '번역 결과 조회에 실패했습니다.');
+}
+
 export async function findTranslation(ocrRegionId: string, languageCode: TargetLanguage): Promise<TranslationRow | null> {
   const result = await supabase.from('translations').select().eq('ocr_region_id', ocrRegionId).eq('language_code', languageCode).maybeSingle();
   return unwrapNullableRow<TranslationRow>(result, '번역 결과 조회에 실패했습니다.');
