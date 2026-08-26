@@ -11,28 +11,44 @@ export interface AdaptiveTextMaskResult {
   spillRatio: number;
 }
 
-function integralLuminance(image: DecodedImage): Float64Array {
-  const stride = image.width + 1;
-  const integral = new Float64Array((image.width + 1) * (image.height + 1));
-  for (let y = 0; y < image.height; y += 1) {
+interface IntegralRegion {
+  data: Float64Array;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+function integralLuminance(image: DecodedImage, roi: PixelBox, margin: number): IntegralRegion {
+  const left = Math.max(0, Math.floor(roi.x) - margin);
+  const top = Math.max(0, Math.floor(roi.y) - margin);
+  const right = Math.min(image.width, Math.ceil(roi.x + roi.width) + margin);
+  const bottom = Math.min(image.height, Math.ceil(roi.y + roi.height) + margin);
+  const width = right - left;
+  const height = bottom - top;
+  const stride = width + 1;
+  const integral = new Float64Array((width + 1) * (height + 1));
+  for (let y = 0; y < height; y += 1) {
     let rowTotal = 0;
-    for (let x = 0; x < image.width; x += 1) {
-      const base = (y * image.width + x) * image.channels;
+    for (let x = 0; x < width; x += 1) {
+      const base = ((top + y) * image.width + left + x) * image.channels;
       rowTotal += image.data[base] * 0.299 + image.data[base + 1] * 0.587 + image.data[base + 2] * 0.114;
       integral[(y + 1) * stride + x + 1] = integral[y * stride + x + 1] + rowTotal;
     }
   }
-  return integral;
+  return { data: integral, left, top, width, height };
 }
 
-function localMean(integral: Float64Array, width: number, height: number, x: number, y: number, radius: number): number {
+function localMean(integral: IntegralRegion, imageX: number, imageY: number, radius: number): number {
+  const x = imageX - integral.left;
+  const y = imageY - integral.top;
   const left = Math.max(0, x - radius);
   const top = Math.max(0, y - radius);
-  const right = Math.min(width - 1, x + radius);
-  const bottom = Math.min(height - 1, y + radius);
-  const stride = width + 1;
-  const sum = integral[(bottom + 1) * stride + right + 1] - integral[top * stride + right + 1]
-    - integral[(bottom + 1) * stride + left] + integral[top * stride + left];
+  const right = Math.min(integral.width - 1, x + radius);
+  const bottom = Math.min(integral.height - 1, y + radius);
+  const stride = integral.width + 1;
+  const sum = integral.data[(bottom + 1) * stride + right + 1] - integral.data[top * stride + right + 1]
+    - integral.data[(bottom + 1) * stride + left] + integral.data[top * stride + left];
   return sum / ((right - left + 1) * (bottom - top + 1));
 }
 
@@ -119,9 +135,11 @@ function filterTextLikeComponents(
 export async function generateAdaptiveTextMask(image: DecodedImage, box: PixelBox): Promise<AdaptiveTextMaskResult> {
   const padding = Math.max(8, Math.min(40, Math.ceil(Math.min(box.width, box.height) * 0.25)));
   const roi = padAndClampBox(box, padding, image.width, image.height);
-  const integral = integralLuminance(image);
-  const foreground = new Uint8Array(image.width * image.height);
   const radius = Math.max(4, Math.min(18, Math.round(Math.min(box.width, box.height) * 0.18)));
+  // OCR 영역마다 전체 이미지를 다시 적분하면 영역 수 × 이미지 픽셀 수만큼 비용이 든다.
+  // 로컬 평균에 실제 필요한 ROI + radius만 적분해 큰 이미지의 다중 영역 처리 비용을 줄인다.
+  const integral = integralLuminance(image, roi, radius);
+  const foreground = new Uint8Array(image.width * image.height);
   const contrastThreshold = 16;
 
   for (let y = Math.floor(roi.y); y < Math.ceil(roi.y + roi.height); y += 1) {
@@ -130,7 +148,7 @@ export async function generateAdaptiveTextMask(image: DecodedImage, box: PixelBo
       const base = pixel * image.channels;
       if (image.data[base + 3] < 24) continue;
       const luminance = image.data[base] * 0.299 + image.data[base + 1] * 0.587 + image.data[base + 2] * 0.114;
-      if (Math.abs(luminance - localMean(integral, image.width, image.height, x, y, radius)) >= contrastThreshold) {
+      if (Math.abs(luminance - localMean(integral, x, y, radius)) >= contrastThreshold) {
         foreground[pixel] = 255;
       }
     }
