@@ -192,7 +192,7 @@ export function sampleTextColorFromDecoded(
 
   // 배경색에서 먼 픽셀만 글자 후보로 삼고, 16단계 양자화 버킷의 dominant를 글자색으로 본다.
   // 안티에일리어싱 경계의 중간색이 평균을 흐리지 않도록 median 대신 dominant 방식을 쓴다.
-  const MIN_COLOR_DISTANCE = 60;
+  const MIN_COLOR_DISTANCE_SQUARED = 60 ** 2;
   const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
   for (let y = interior.top; y < interior.top + interior.height; y += 1) {
     for (let x = interior.left; x < interior.left + interior.width; x += 1) {
@@ -201,7 +201,8 @@ export function sampleTextColorFromDecoded(
     const dr = image.data[index] - background.r;
     const dg = image.data[index + 1] - background.g;
     const db = image.data[index + 2] - background.b;
-    if (Math.sqrt(dr * dr + dg * dg + db * db) < MIN_COLOR_DISTANCE) continue;
+    // 픽셀마다 sqrt를 계산할 필요 없이 제곱 거리끼리 비교한다.
+    if (dr * dr + dg * dg + db * db < MIN_COLOR_DISTANCE_SQUARED) continue;
     const key = `${image.data[index] >> 4}:${image.data[index + 1] >> 4}:${image.data[index + 2] >> 4}`;
     const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
     bucket.count += 1;

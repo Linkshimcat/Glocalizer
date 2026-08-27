@@ -15,6 +15,7 @@ vi.mock('../../src/image/cleanup.service.js', () => ({ runCleanupForAsset: vi.fn
 vi.mock('../../src/repositories/editor-state.repository.js', () => ({ upsertEditorState: vi.fn(), findEditorStatesByAssetId: vi.fn() }));
 vi.mock('../../src/workers/job-runner.js', () => ({ processClaimedJob: vi.fn() }));
 vi.mock('../../src/ocr/ocr-provider.js', () => ({ getOcrProvider: () => ocrProvider, getOcrFallbackProvider: () => null }));
+vi.mock('../../src/ocr/vision-fallback.service.js', () => ({ requestVisionOcr: vi.fn().mockResolvedValue(null) }));
 
 const { createApp } = await import('../../src/app.js');
 const projectRepo = await import('../../src/repositories/project.repository.js');

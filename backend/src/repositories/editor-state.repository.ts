@@ -24,6 +24,16 @@ export async function findEditorStatesByAssetId(assetId: string): Promise<Editor
   return (result.data ?? []) as EditorStateRow[];
 }
 
+export async function findEditorStatesByAssetIds(assetIds: string[]): Promise<EditorStateRow[]> {
+  if (assetIds.length === 0) return [];
+  const result = await supabase
+    .from('editor_states')
+    .select('asset_id, ocr_region_id, language_code, style')
+    .in('asset_id', assetIds);
+  if (result.error) throw result.error;
+  return (result.data ?? []) as EditorStateRow[];
+}
+
 export async function upsertEditorState(input: UpsertEditorStateInput): Promise<void> {
   const result = await supabase.from('editor_states').upsert(
     {
