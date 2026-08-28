@@ -20,7 +20,17 @@ export default function Footer() {
         </a>
         <div className="text-xs font-bold leading-relaxed text-sub sm:text-sm md:justify-self-end md:text-right">
           <p>Naver OGQ 공모전 · 박소연 | 이윤재 | 장예나 | 김래원</p>
-          <p className="mt-1">미림마이스터고등학교 · Glocalizer Team</p>
+          <p className="mt-1">
+            미림마이스터고등학교 · Glocalizer Team |{' '}
+            <a
+              href="https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 transition-colors hover:text-ink"
+            >
+              Apache License 2.0
+            </a>
+          </p>
         </div>
       </div>
     </footer>

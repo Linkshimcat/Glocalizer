@@ -39,6 +39,7 @@ export interface Dict {
   dashStep1: string
   dashTitle: string
   dashSubtitle: string
+  dashAiNotice: string
   dashDropTitle: string
   dashDropMulti: string
   dashSelectFile: string
@@ -108,6 +109,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashStep1: '1단계 · 업로드',
     dashTitle: '이모티콘을 올려주세요',
     dashSubtitle: 'PNG, JPG 파일을 끌어다 놓으면 바로 시작할 수 있어요.',
+    dashAiNotice: 'AI 로컬라이징이 적용됨',
     dashDropTitle: '파일을 여기에 끌어다 놓으세요',
     dashDropMulti: '여러 장을 한 번에 올릴 수 있어요',
     dashSelectFile: '파일 선택',
@@ -173,6 +175,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashStep1: 'Step 1 · Upload',
     dashTitle: 'Upload your emojis',
     dashSubtitle: 'Drag and drop PNG or JPG files to get started.',
+    dashAiNotice: 'AI localization enabled',
     dashDropTitle: 'Drag files here',
     dashDropMulti: 'You can upload several at once',
     dashSelectFile: 'Choose files',
@@ -238,6 +241,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashStep1: 'ステップ1 · アップロード',
     dashTitle: '絵文字をアップロード',
     dashSubtitle: 'PNG・JPGファイルをドラッグ&ドロップですぐ始められます。',
+    dashAiNotice: 'AIローカライズを使用',
     dashDropTitle: 'ここにファイルをドロップ',
     dashDropMulti: '複数枚を一度にアップロードできます',
     dashSelectFile: 'ファイルを選択',
@@ -303,6 +307,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashStep1: '第1步 · 上传',
     dashTitle: '上传你的表情包',
     dashSubtitle: '拖入 PNG、JPG 文件即可开始。',
+    dashAiNotice: '已启用 AI 本地化',
     dashDropTitle: '将文件拖到这里',
     dashDropMulti: '可以一次上传多张',
     dashSelectFile: '选择文件',

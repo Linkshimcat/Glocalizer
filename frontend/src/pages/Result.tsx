@@ -1,6 +1,8 @@
 import { ArrowLeft, Check, Home } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import sparkleDownload from '../assets/GCFrontendUI/SparkleDownload.svg'
+import greenBackground from '../assets/LendingPage/GreenBackground-web.jpg'
+import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import { toDemoItems } from '../data/demo'
@@ -11,7 +13,7 @@ import { useSiteLang } from '../i18n/LanguageContext'
 function StepIndicator() {
   const { t } = useSiteLang()
   return (
-    <div className="hidden items-center gap-2 text-sm font-semibold text-sub md:flex">
+    <div className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-sub sm:gap-2 sm:text-xs md:text-sm">
       <span>1 {t.stepUpload}</span>
       <span>›</span>
       <span>2 {t.stepEdit}</span>
@@ -24,9 +26,11 @@ function StepIndicator() {
 export default function Result() {
   const navigate = useNavigate()
   const { t } = useSiteLang()
-  const { files, targetLangs, styles } = useUploads()
-  // 업로드 없이 직접 접근하면 데모 데이터가 뜨므로 대시보드로 돌려보낸다.
-  if (files.length === 0) return <Navigate to="/dashboard" replace />
+  const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady } = useUploads()
+  const localizationFinished = projectStatus?.status === 'completed' || projectStatus?.status === 'failed'
+  // 업로드 → AI 처리 → 에디터 다운로드를 완료하지 않고 주소로 직접 접근하는 경우를 막는다.
+  if (files.length === 0 || !projectStatus) return <Navigate to="/dashboard" replace state={{ preserveWorkflow: true }} />
+  if (!localizationFinished || !resultReady) return <Navigate to="/editor" replace />
   const languages = targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
 
   const langLabel =
@@ -40,7 +44,10 @@ export default function Result() {
 
       <main className="mx-auto max-w-[880px] px-6 py-16">
         {/* 완료 히어로 */}
-        <div className="flex flex-col items-center gap-5 rounded-[28px] bg-brand-soft px-8 py-12 text-center">
+        <div
+          className="relative isolate flex min-h-[284px] flex-col items-center justify-center gap-5 rounded-[28px] bg-cover bg-center px-6 py-10 text-center before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-[32px] before:bg-[conic-gradient(from_120deg,rgba(34,197,94,0.72),rgba(45,212,191,0.55),rgba(125,211,252,0.5),rgba(244,114,182,0.42),rgba(250,204,21,0.32),rgba(34,197,94,0.72))] before:opacity-60 before:blur-2xl sm:px-8 sm:py-12"
+          style={{ backgroundImage: `url(${greenBackground})` }}
+        >
           <span className="relative flex h-16 w-16 items-center justify-center">
             {/* 퍼지는 링 */}
             <span className="animate-success-ring absolute inset-0 rounded-full bg-brand" />
@@ -66,7 +73,10 @@ export default function Result() {
 
         {/* 결과 미리보기 */}
         <section className="mt-12">
-          <h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2>
+            <AILocalizationBadge />
+          </div>
           <div className="mt-4 space-y-7">
             {languages.map(language => {
               const items = toDemoItems(files, language.code)
@@ -100,13 +110,19 @@ export default function Result() {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => navigate('/')}
+            onClick={() => {
+              resetWorkflow()
+              navigate('/')
+            }}
             className="min-h-14 flex-1 md:min-h-0"
           >
             <Home className="h-4 w-4" /> {t.resultToMain}
           </Button>
           <Button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => {
+              resetWorkflow()
+              navigate('/dashboard')
+            }}
             className="min-h-14 flex-1 md:min-h-0"
             glow
           >

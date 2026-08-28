@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   FileArchive,
+  ImageDown,
   LoaderCircle,
   Plus,
   Redo2,
@@ -24,7 +25,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Logo from '../components/Logo'
 import { useToast } from '../components/Toast'
@@ -243,6 +244,7 @@ export default function Editor() {
     styles: savedStyles,
     saveStyle,
     recordDownload,
+    markResultReady,
     projectStatus,
     refreshProject,
     reviseOcr,
@@ -296,11 +298,6 @@ export default function Editor() {
   const toast = useToast()
   const { t, lang } = useSiteLang()
   const e = editorDict[lang]
-
-  // 업로드 없이 직접 접근하면 데모 데이터가 뜨므로 대시보드로 돌려보낸다.
-  useEffect(() => {
-    if (files.length === 0) navigate('/dashboard', { replace: true })
-  }, [files.length, navigate])
 
   // AI 자동 배경 정리가 안 된 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도 알려준다.
   const manualCleanupWarnedIdRef = useRef<string | null>(null)
@@ -731,6 +728,7 @@ export default function Editor() {
       )
       recordDownload('single', langCode)
       markCurrentDone()
+      markResultReady()
       navigate('/result')
     } catch (error) {
       toast(error instanceof Error ? error.message : t.toastPngFail)
@@ -753,6 +751,7 @@ export default function Editor() {
       )
       recordDownload('zip')
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
+      markResultReady()
       navigate('/result')
     } catch (error) {
       toast(error instanceof Error ? error.message : t.toastZipFail)
@@ -776,6 +775,7 @@ export default function Editor() {
       )
       recordDownload('single', langCode)
       markCurrentDone()
+      markResultReady()
       navigate('/result')
     } catch (error) {
       toast(error instanceof Error ? error.message : t.toastDownloadFail)
@@ -887,6 +887,10 @@ export default function Editor() {
   // 인식·번역이 끝나기 전에는 에디터 화면(상단 바·언어 탭·파일 목록·설정 패널 등)을 전혀
   // 그리지 않고 로딩 화면만 보여준다 — 전에는 로딩 오버레이가 캔버스 영역에만 떠서 나머지
   // UI가 먼저 다 보이는 문제가 있었다.
+  if (files.length === 0 || !projectStatus) {
+    return <Navigate to="/dashboard" replace state={{ preserveWorkflow: true }} />
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-white px-6 text-center">
@@ -1025,8 +1029,8 @@ export default function Editor() {
                   tabIndex={0}
                   onClick={() => selectItem(idx)}
                   onKeyDown={e => e.key === 'Enter' && selectItem(idx)}
-                  className={`group flex w-48 shrink-0 cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors xl:mb-1.5 xl:w-auto xl:shrink ${
-                    active ? 'bg-brand-soft' : 'hover:bg-surface'
+                  className={`group flex w-48 shrink-0 cursor-pointer items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-colors xl:mb-1.5 xl:w-auto xl:shrink ${
+                    active ? 'border-brand bg-brand-soft' : 'border-transparent hover:bg-surface'
                   }`}
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-xl">
@@ -1222,10 +1226,10 @@ export default function Editor() {
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {cleanupBox && manualCleanup && !preview && (
+                  {cleanupBox && manualCleanup && (
                     <span
-                      onPointerDown={event => startManualCleanupGesture(event, 'move')}
-                      className={`absolute cursor-move border-2 border-brand ${manualCleanup.mode === 'transparent' ? 'checkerboard' : ''}`}
+                      onPointerDown={preview ? undefined : event => startManualCleanupGesture(event, 'move')}
+                      className={`absolute ${preview ? 'pointer-events-none' : 'cursor-move border-2 border-brand'} ${manualCleanup.mode === 'transparent' ? 'checkerboard' : ''}`}
                       style={{
                         left: `${cleanupBox.x * 100}%`,
                         top: `${cleanupBox.y * 100}%`,
@@ -1235,7 +1239,7 @@ export default function Editor() {
                         backgroundColor: manualCleanup.mode === 'solid' ? manualCleanup.color ?? '#FFFFFF' : undefined,
                       }}
                     >
-                      <span onPointerDown={event => startManualCleanupGesture(event, 'resize')} className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-brand bg-white" />
+                      {!preview && <span onPointerDown={event => startManualCleanupGesture(event, 'resize')} className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-brand bg-white" />}
                     </span>
                   )}
                   {canvasOverlays.map(overlay => {
@@ -1864,16 +1868,22 @@ export default function Editor() {
                 <button
                   key={fmt}
                   onClick={() => setExportFormat(fmt)}
-                  className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                  className={`flex h-9 items-center justify-center gap-1.5 rounded-xl border-2 text-xs font-bold transition-colors ${
                     exportFormat === fmt
                       ? 'border-brand bg-brand-soft text-brand-dark'
                       : 'border-gray-100 bg-white text-sub hover:border-gray-200'
                   }`}
                 >
+                  {fmt === 'PNG'
+                    ? <ImageDown className="h-4 w-4 shrink-0" />
+                    : <FileArchive className="h-4 w-4 shrink-0" />}
                   {fmt}
                 </button>
               ))}
             </div>
+            <p className="mt-4 text-xs font-semibold text-sub underline decoration-gray-300 underline-offset-4">
+              {e.aiLocalizationApplied}
+            </p>
             <Button className="mt-3 w-full" glow onClick={handleExport} disabled={busy}>
               <Download className="h-4 w-4" /> {busy ? e.making : e.download}
             </Button>
