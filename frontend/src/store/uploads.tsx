@@ -105,6 +105,7 @@ const WORKFLOW_SESSION_KEYS = [
   'projectToken',
   'projectStatus',
   'projectResults',
+  'resultReady',
 ] as const
 
 function loadSession<T>(key: string, fallback: T): T {
@@ -154,6 +155,9 @@ interface UploadState {
   targetLangs: Language[]
   toggleTargetLang: (lang: Language) => void
   setTargetLangs: (langs: Language[]) => void
+  resetWorkflow: () => void
+  resultReady: boolean
+  markResultReady: () => void
   /** 파일·언어별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
   styles: StylesByLanguage
   saveStyle: (id: string, languageCode: string, style: Style, regionId?: string | null) => void
@@ -175,20 +179,23 @@ const UploadContext = createContext<UploadState | null>(null)
 export function UploadProvider({ children }: { children: ReactNode }) {
   const location = useLocation()
   const previousPathRef = useRef(location.pathname)
+  const preserveWorkflowOnRedirect = Boolean((location.state as { preserveWorkflow?: boolean } | null)?.preserveWorkflow)
   // 초기값을 sessionStorage에서 복원 → 새로고침해도 유지
   const [files, setFiles] = useState<UploadFile[]>(() => loadSession('files', []))
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>(() => {
     const saved = loadSession<string[] | null>('selectedFileIds', null)
     return saved ?? loadSession<UploadFile[]>('files', []).map(file => file.id)
   })
-  const [targetLangs, setTargetLangs] = useState<Language[]>(() =>
-    loadSession('targetLangs', []),
-  )
+  const [targetLangs, setTargetLangs] = useState<Language[]>(() => {
+    const savedFiles = loadSession<UploadFile[]>('files', [])
+    return savedFiles.length > 0 ? loadSession('targetLangs', []) : []
+  })
   const [styles, setStyles] = useState<StylesByLanguage>(loadStyles)
   const [projectId, setProjectId] = useState<string | null>(() => loadSession('projectId', null))
   const [projectToken, setProjectToken] = useState<string | null>(() => loadSession('projectToken', null))
   const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(() => loadSession('projectStatus', null))
   const [projectResults, setProjectResults] = useState<ProjectResults | null>(() => loadSession('projectResults', null))
+  const [resultReady, setResultReady] = useState(() => loadSession('resultReady', false))
   const [processingError, setProcessingError] = useState<string | null>(null)
 
   const resetWorkflow = useCallback(() => {
@@ -200,6 +207,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setProjectToken(null)
     setProjectStatus(null)
     setProjectResults(null)
+    setResultReady(false)
     setProcessingError(null)
     try {
       for (const key of WORKFLOW_SESSION_KEYS) sessionStorage.removeItem(SESSION_PREFIX + key)
@@ -217,14 +225,20 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveSession('projectToken', projectToken), [projectToken])
   useEffect(() => saveSession('projectStatus', projectStatus), [projectStatus])
   useEffect(() => saveSession('projectResults', projectResults), [projectResults])
+  useEffect(() => saveSession('resultReady', resultReady), [resultReady])
+
+  const markResultReady = useCallback(() => {
+    setResultReady(true)
+    saveSession('resultReady', true)
+  }, [])
 
   useLayoutEffect(() => {
     const previousPath = previousPathRef.current
     const leftWorkArea = previousPath === '/editor' || previousPath === '/result'
     const enteredFreshStart = location.pathname === '/' || location.pathname === '/dashboard'
-    if (leftWorkArea && enteredFreshStart) resetWorkflow()
+    if (leftWorkArea && enteredFreshStart && !preserveWorkflowOnRedirect) resetWorkflow()
     previousPathRef.current = location.pathname
-  }, [location.pathname, resetWorkflow])
+  }, [location.pathname, preserveWorkflowOnRedirect, resetWorkflow])
 
   const saveStyle = useCallback((id: string, languageCode: string, style: Style, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === id)
@@ -381,6 +395,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       throw new ApiError('번역할 이미지와 언어를 선택해주세요.')
     }
     setProcessingError(null)
+    setResultReady(false)
     try {
       const uploadFiles = await Promise.all(selected.map(fileToUploadFile))
       const created = await createProject(uploadFiles, targetLangs.map(language => language.code))
@@ -441,6 +456,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       targetLangs,
       toggleTargetLang,
       setTargetLangs,
+      resetWorkflow,
+      resultReady,
+      markResultReady,
       styles,
       saveStyle,
       recordDownload,
@@ -463,6 +481,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       toggleFileSelection,
       targetLangs,
       toggleTargetLang,
+      resetWorkflow,
+      resultReady,
+      markResultReady,
       styles,
       saveStyle,
       recordDownload,

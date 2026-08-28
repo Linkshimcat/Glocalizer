@@ -1,6 +1,7 @@
-import { Check, ImagePlus, Upload, X } from 'lucide-react'
+import { Check, ImagePlus, X } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import { useToast } from '../components/Toast'
@@ -9,6 +10,7 @@ import { useSiteLang } from '../i18n/LanguageContext'
 import usFlag from '../assets/GCFrontendUI/Group 1.svg'
 import jpFlag from '../assets/GCFrontendUI/Japan (JP).svg'
 import cnFlag from '../assets/GCFrontendUI/China (CN).svg'
+import dragNDropImage from '../assets/GCFrontendUI/DragNDropIMG.svg'
 
 // OS(특히 Windows)마다 국기 이모지 렌더가 달라서, 통일된 이미지 아이콘을 쓴다.
 const FLAG_IMG: Record<string, string> = { en: usFlag, ja: jpFlag, zh: cnFlag }
@@ -107,6 +109,9 @@ export default function Dashboard() {
         <p className="mt-2 text-[16px] font-medium text-sub">
           {t.dashSubtitle}
         </p>
+        <div className="mt-3">
+          <AILocalizationBadge />
+        </div>
 
         {/* 드롭존 */}
         <div
@@ -120,14 +125,14 @@ export default function Dashboard() {
           role="button"
           tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && inputRef.current?.click()}
-          className={`mt-10 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-4 py-12 transition-colors sm:px-8 sm:py-16 ${
+          className={`relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-[32px] before:bg-[conic-gradient(from_120deg,rgba(34,197,94,0.72),rgba(45,212,191,0.55),rgba(125,211,252,0.5),rgba(244,114,182,0.42),rgba(250,204,21,0.32),rgba(34,197,94,0.72))] before:opacity-0 before:blur-2xl before:transition-opacity before:duration-500 sm:px-8 sm:py-16 ${
             dragging
-              ? 'border-brand bg-brand-soft'
-              : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/50'
+              ? 'border-brand bg-brand-soft before:opacity-75'
+              : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70 hover:before:opacity-55'
           }`}
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft">
-            <Upload className="h-7 w-7 text-brand-dark" strokeWidth={2.5} />
+            <img src={dragNDropImage} alt="" aria-hidden className="h-10 w-10" />
           </span>
           <div className="break-keep text-center">
             <p className="text-lg font-bold">{t.dashDropTitle}</p>
