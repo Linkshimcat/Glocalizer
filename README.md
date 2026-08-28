@@ -43,11 +43,13 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
    ▼
 [Localization Pipeline] — 프로젝트 단위, 애셋별 부분 실패 허용
    1. OCR 단계
-      원본 이미지 → PaddleOCR(Python, JSONL 영속 브릿지) 다중 변형 인식
-      → selectConsensusRegions로 IoU+텍스트 유사도 합의
+      원본 이미지 → GPT-5.6 Luna(주력, 유료 Vision API)로 이미지 내 모든 한글 캡션(줄바꿈·여러 캡션 포함)을
+      한 번에 검출 → 실패하거나 한글을 못 찾으면 PaddleOCR(Python, JSONL 영속 브릿지)로 자동 폴백
+      → PaddleOCR 경로일 때만 selectConsensusRegions로 다중 변형 IoU+텍스트 유사도 합의
+      → 여러 줄로 잘린 캡션은 mergeWrappedLines로 한 캡션으로 병합
       → 합의도 낮음 + 한글 3자 이하 등 조건이면 Vision(Groq/Gemini) 폴백으로 재판정
    2. 번역 + 폰트 스타일 분석 (병렬, 서로 독립)
-      - 번역: Groq(Llama 3.3 70B)로 원문 뉘앙스 반영한 다국어 번역 후보 생성
+      - 번역: Groq(Qwen3.6 27B)로 원문 뉘앙스 반영한 다국어 번역 후보 생성
       - 폰트 스타일 분석: Vision 모델이 원본 글자 크롭만 보고 굵기/둥글기/손글씨여부/격식 태깅 (soft-fail)
    3. 이미지 정리(cleanup) 단계
       OCR 영역을 Sharp로 크롭→블러→합성 (배경 재구성 없이 항상 성공)
@@ -60,9 +62,45 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
    GET /results로 조립된 결과(원문/번역 후보/추천 폰트/정리본 URL) 수신
    → 클라이언트에서 cleanedUrl 위에 번역 텍스트를 CSS 오버레이로 얹어 실시간 편집(폰트·굵기·색·위치)
    → PNG export는 Canvas로 동일 로직 재합성, 여러 장은 JSZip으로 일괄 다운로드
+   → 다운로드가 실제로 완료되는 시점마다 POST /projects/:id/downloads로 "변환 완주" 이벤트를 비동기 기록
+      (북극성 지표. 아래 [핵심 기능 검증 가이드] 참고)
 ```
 
 핵심 설계 포인트: 번역/OCR/클린업 각 단계가 애셋 단위로 독립 실패하고, 무거운 Python 작업(OCR)은 별도 프로세스로 격리, Job 테이블 기반 polling worker라 별도 큐 인프라(Redis/SQS 등) 없이 동작함.
+
+---
+
+#### **[핵심 기능 검증 가이드 — 심사위원용]**
+
+**1. OCR 예외 처리**
+
+다양한 이미지에서 한글 텍스트를 놓치거나 잘못 잘라내는 문제를 두 층위로 방어함.
+
+| 방어 대상 | 구현 위치 | 관련 PR / 테스트 |
+| --- | --- | --- |
+| 한 캡션이 여러 줄로 잘려 인식되는 경우 | [`backend/src/ocr/merge-recognized-regions.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/src/ocr/merge-recognized-regions.ts) — `belongsToNextLine` / `mergeWrappedLines`가 세로 간격·가로 겹침을 계산해 같은 캡션의 줄바꿈 조각을 하나로 병합 | [#24](https://github.com/Linkshimcat/Glocalizer/pull/24), [`merge-recognized-regions.test.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/tests/unit/merge-recognized-regions.test.ts) |
+| 한 이미지에 서로 다른 캡션이 여러 개인 경우 | [`backend/src/ocr/luna/luna-ocr.provider.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/src/ocr/luna/luna-ocr.provider.ts) — 모든 캡션을 개별 영역(`regions[]`)으로 반환하도록 프롬프트 설계 | [#29](https://github.com/Linkshimcat/Glocalizer/pull/29) |
+| OCR provider 자체가 실패(타임아웃/인증/요금 한도 등)하거나 한글을 못 찾은 경우 | [`backend/src/ocr/ocr-pipeline.service.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/src/ocr/ocr-pipeline.service.ts) — 주력 provider(GPT-5.6 Luna) 실패 시 `getOcrFallbackProvider()`가 로컬 PaddleOCR로 자동 대체, 이미지 자체 처리 실패 시에도 다른 애셋 처리는 계속 진행 | [#29](https://github.com/Linkshimcat/Glocalizer/pull/29), [`luna-ocr.provider.test.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/tests/unit/luna-ocr.provider.test.ts) |
+
+정확도 근거: PIL로 픽셀 단위 정답 박스를 만들어 PaddleOCR·Gemini 3.7 Flash·GPT-5.6 Luna를 IoU 기준으로 직접 비교 — PaddleOCR 0.637, Gemini 0.923, **Luna 0.914(채택)**. 정확도가 근소한 대신 안정성(재시도 없이 8/8 성공)과 비용(₩ 기준 약 1/3.5)에서 우위를 보여 주력 엔진으로 선정함.
+
+**2. 북극성 지표 — 변환 완주(다운로드) 횟수 카운팅**
+
+> **지표명**: Glocalizer를 통해 배경 복원 및 초월 번역을 완료하여 최종 이모티콘 세트를 다운로드한 횟수
+> **현재 값**: 0회 · **8주 뒤 목표치**: 50회 (실제 창작자 대상 유효 변환 완주 기준)
+
+사용자가 에디터에서 "PNG 저장" 또는 "전체 ZIP 다운로드" 버튼을 눌러 결과물을 실제로 받아가는 순간을 "완주"로 정의하고, 그 순간마다 백엔드에 이벤트 하나를 기록함.
+
+| 구성 요소 | 구현 위치 |
+| --- | --- |
+| DB 스키마 | [`supabase/migrations/015_create_download_events.sql`](https://github.com/Linkshimcat/Glocalizer/blob/main/supabase/migrations/015_create_download_events.sql) |
+| 기록 API | `POST /projects/:projectId/downloads` — [`download.controller.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/src/controllers/download.controller.ts) / [`download.routes.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/src/routes/download.routes.ts) |
+| 집계 조회 API | `GET /downloads/count` (관리자 키 인증, [`stats-auth.middleware.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/src/middleware/stats-auth.middleware.ts)) |
+| 프론트 연동 지점 | [`frontend/src/pages/Editor.tsx`](https://github.com/Linkshimcat/Glocalizer/blob/main/frontend/src/pages/Editor.tsx) — 단일 PNG 저장 2곳 + ZIP 일괄 다운로드 1곳, 실제 다운로드 성공 직후 fire-and-forget으로 기록 |
+| 테스트 | [`backend/tests/integration/download-api.test.ts`](https://github.com/Linkshimcat/Glocalizer/blob/main/backend/tests/integration/download-api.test.ts) — 기록 성공/검증 실패/미인증 거부, 집계 인증 통과/거부 케이스 |
+| 관련 PR | [#25](https://github.com/Linkshimcat/Glocalizer/pull/25) (PoC), [#26](https://github.com/Linkshimcat/Glocalizer/pull/26) (접근 제어) |
+
+실사용 여부는 [production 서버](https://glocalizer-api.onrender.com/api/v1/health/ready)가 살아있는 상태에서 `GET /downloads/count`를 관리자 키와 함께 호출해 실시간으로 확인 가능함(키는 보안상 코드/리포에 노출하지 않으며 팀에 별도 요청 시 전달).
 
 ---
 
@@ -81,11 +119,12 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 ```bash
 # 0. 사전 준비
 #    - Node.js 20+, Python 3.12(PaddlePaddle이 3.14 미지원)
-#    - Supabase 프로젝트(Postgres + Storage), Groq API 키 (선택: Gemini API 키)
+#    - Supabase 프로젝트(Postgres + Storage), Groq API 키, OpenAI API 키(OCR 주력, OCR_PROVIDER=luna일 때 필요)
+#      OPENAI_API_KEY 없이도 OCR_PROVIDER=paddle로 두면 PaddleOCR만으로 로컬 실행 가능
 
 # 1. 백엔드
 cd backend
-cp .env.example .env        # SUPABASE_*, DATABASE_URL, GROQ_API_KEY 등 채우기
+cp .env.example .env        # SUPABASE_*, DATABASE_URL, GROQ_API_KEY, OPENAI_API_KEY 등 채우기
 python3 -m venv python/.venv
 python/.venv/bin/pip install -r python/requirements.txt
 # .env의 OCR_PYTHON_EXECUTABLE을 python/.venv/bin/python3 절대경로로 지정
@@ -117,7 +156,7 @@ Claude, ChatGPT, Gemini, GLM
 
 #### **[사용한 AI 모델]**
 
-한국어 텍스트 인식 모델(PaddleOCR PP-OCRv5 Korean), 텍스트 분석 및 번역 모델(Grop Llama 3.3 70B / LLM), 보조 분석 모델(Vision Language Model / Multimodal LLM)
+한국어 텍스트 인식 모델(GPT-5.6 Luna, Vision LLM / 주력 OCR — 실패 시 PaddleOCR PP-OCRv5 Korean으로 자동 폴백), 텍스트 분석 및 번역 모델(Groq Qwen3.6 27B / LLM), 보조 분석 모델(Vision Language Model / Multimodal LLM)
 
 ---
 
