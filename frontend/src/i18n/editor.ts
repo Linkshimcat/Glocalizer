@@ -20,6 +20,7 @@ export interface EditorDict {
   statusDone: string
   statusEditing: string
   statusWait: string
+  deleteEmoji: string
   prev: string
   next: string
   canvasOriginal: string
@@ -107,7 +108,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiEditor: 'AI 에디터', backToDash: '대시보드로 돌아가기', undo: '실행 취소', redo: '다시 실행', reset: '초기화',
     preview: '미리보기', savePng: 'PNG 저장', settings: '설정', save: '저장', saving: '저장 중…', making: '만드는 중…',
     downloadAllZip: '전체 ZIP 다운로드', editingSuffix: '편집 중', emojiLabel: '이모티콘', doneLabel: '완료', countUnit: '장',
-    statusDone: '✓ 완료', statusEditing: '편집 중', statusWait: '대기', prev: '이전', next: '다음',
+    statusDone: '✓ 완료', statusEditing: '편집 중', statusWait: '대기', deleteEmoji: '이모티콘 삭제', prev: '이전', next: '다음',
     canvasOriginal: '원본', canvasPreview: '변환 미리보기', original: '원본',
     foundText: '텍스트를 찾았어요', notFoundText: '텍스트를 찾지 못했어요', enterTextTitle: '직접 문구를 입력해보세요', originalSize: '원래 크기',
     hintManualBg: '복잡한 배경은 수동 보정이 필요할 수 있어요.', hintComposite: 'AI가 정리한 이미지 위에 번역을 합성해요.', hintDrag: '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요',
@@ -129,7 +130,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiEditor: 'AI Editor', backToDash: 'Back to dashboard', undo: 'Undo', redo: 'Redo', reset: 'Reset',
     preview: 'Preview', savePng: 'Save PNG', settings: 'Settings', save: 'Save', saving: 'Saving…', making: 'Working…',
     downloadAllZip: 'Download all (ZIP)', editingSuffix: 'editing', emojiLabel: 'Emojis', doneLabel: 'Done', countUnit: '',
-    statusDone: '✓ Done', statusEditing: 'Editing', statusWait: 'Waiting', prev: 'Prev', next: 'Next',
+    statusDone: '✓ Done', statusEditing: 'Editing', statusWait: 'Waiting', deleteEmoji: 'Delete emoji', prev: 'Prev', next: 'Next',
     canvasOriginal: 'Original', canvasPreview: 'Preview', original: 'Original',
     foundText: 'Text found', notFoundText: 'No text found', enterTextTitle: 'Type your own text', originalSize: 'Actual size',
     hintManualBg: 'Complex backgrounds may need manual touch-up.', hintComposite: 'Translation is composited on the cleaned image.', hintDrag: 'Drag the text to move it; use the corner and top handles to adjust.',
@@ -151,7 +152,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiEditor: 'AIエディター', backToDash: 'ダッシュボードに戻る', undo: '元に戻す', redo: 'やり直し', reset: 'リセット',
     preview: 'プレビュー', savePng: 'PNG保存', settings: '設定', save: '保存', saving: '保存中…', making: '作成中…',
     downloadAllZip: '一括ZIPダウンロード', editingSuffix: '編集中', emojiLabel: '絵文字', doneLabel: '完了', countUnit: '枚',
-    statusDone: '✓ 完了', statusEditing: '編集中', statusWait: '待機', prev: '前へ', next: '次へ',
+    statusDone: '✓ 完了', statusEditing: '編集中', statusWait: '待機', deleteEmoji: '絵文字を削除', prev: '前へ', next: '次へ',
     canvasOriginal: '原本', canvasPreview: '変換プレビュー', original: '原本',
     foundText: 'テキストを検出しました', notFoundText: 'テキストが見つかりません', enterTextTitle: '文言を直接入力できます', originalSize: '元のサイズ',
     hintManualBg: '複雑な背景は手動調整が必要な場合があります。', hintComposite: 'AIが整理した画像に翻訳を合成します。', hintDrag: 'テキストをドラッグして移動し、角と上のハンドルで調整してください。',
@@ -173,7 +174,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiEditor: 'AI 编辑器', backToDash: '返回仪表板', undo: '撤销', redo: '重做', reset: '重置',
     preview: '预览', savePng: '保存 PNG', settings: '设置', save: '保存', saving: '保存中…', making: '生成中…',
     downloadAllZip: '打包 ZIP 下载', editingSuffix: '编辑中', emojiLabel: '表情包', doneLabel: '完成', countUnit: '张',
-    statusDone: '✓ 完成', statusEditing: '编辑中', statusWait: '等待', prev: '上一张', next: '下一张',
+    statusDone: '✓ 完成', statusEditing: '编辑中', statusWait: '等待', deleteEmoji: '删除表情包', prev: '上一张', next: '下一张',
     canvasOriginal: '原图', canvasPreview: '转换预览', original: '原图',
     foundText: '已找到文字', notFoundText: '未找到文字', enterTextTitle: '直接输入文字', originalSize: '原始大小',
     hintManualBg: '复杂背景可能需要手动修整。', hintComposite: '在 AI 整理后的图片上合成翻译。', hintDrag: '拖动文字移动，用四角和顶部手柄调整。',

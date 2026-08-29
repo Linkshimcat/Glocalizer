@@ -18,12 +18,12 @@ const FLAG_IMG: Record<string, string> = { en: usFlag, ja: jpFlag, zh: cnFlag }
 function StepIndicator() {
   const { t } = useSiteLang()
   return (
-    <div className="flex items-center gap-2 text-xs font-semibold text-sub md:text-sm">
+    <div className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-sub sm:gap-2 sm:text-xs md:text-sm">
       <span className="text-brand-dark">1 {t.stepUpload}</span>
-      <span className="hidden sm:inline">›</span>
-      <span className="hidden sm:inline">2 {t.stepEdit}</span>
-      <span className="hidden sm:inline">›</span>
-      <span className="hidden sm:inline">3 {t.stepDownload}</span>
+      <span>›</span>
+      <span>2 {t.stepEdit}</span>
+      <span>›</span>
+      <span>3 {t.stepDownload}</span>
     </div>
   )
 }
@@ -115,6 +115,7 @@ export default function Dashboard() {
 
         {/* 드롭존 */}
         <div
+          data-dragging={dragging}
           onDragOver={e => {
             e.preventDefault()
             setDragging(true)
@@ -125,7 +126,7 @@ export default function Dashboard() {
           role="button"
           tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && inputRef.current?.click()}
-          className={`relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-[32px] before:bg-[conic-gradient(from_120deg,rgba(34,197,94,0.72),rgba(45,212,191,0.55),rgba(125,211,252,0.5),rgba(244,114,182,0.42),rgba(250,204,21,0.32),rgba(34,197,94,0.72))] before:opacity-0 before:blur-2xl before:transition-opacity before:duration-500 sm:px-8 sm:py-16 ${
+          className={`dropzone-aurora relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-[32px] before:bg-[conic-gradient(from_120deg,rgba(34,197,94,0.72),rgba(45,212,191,0.55),rgba(125,211,252,0.5),rgba(244,114,182,0.42),rgba(250,204,21,0.32),rgba(34,197,94,0.72))] before:opacity-0 before:blur-2xl before:transition-opacity before:duration-500 sm:px-8 sm:py-16 ${
             dragging
               ? 'border-brand bg-brand-soft before:opacity-75'
               : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70 hover:before:opacity-55'

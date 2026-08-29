@@ -240,6 +240,7 @@ export default function Editor() {
     files,
     selectedFileIds,
     removeFile,
+    resetWorkflow,
     targetLangs,
     styles: savedStyles,
     saveStyle,
@@ -449,11 +450,15 @@ export default function Editor() {
   const markCurrentDone = () =>
     setDoneIds(prev => (prev.includes(current.id) ? prev : [...prev, current.id]))
 
-  /** 리스트에서 이모티콘 삭제 (마지막 1장은 유지) */
+  /** 리스트에서 이모티콘 삭제. 마지막 항목이면 작업 상태를 비우고 업로드 화면으로 돌아간다. */
   const deleteItem = (idx: number) => {
-    if (items.length <= 1) return
     const item = items[idx]
     setDoneIds(prev => prev.filter(id => id !== item.id))
+    if (items.length === 1) {
+      resetWorkflow()
+      navigate('/dashboard', { replace: true })
+      return
+    }
     if (files.length > 0) removeFile(item.id)
     else setRemovedDemoIds(prev => [...prev, item.id])
     if (idx < currentIdx) {
@@ -1055,18 +1060,18 @@ export default function Editor() {
                   {done && (
                     <Check className="h-4 w-4 shrink-0 text-brand-dark" strokeWidth={3} />
                   )}
-                  {items.length > 1 && (
-                    <button
-                      onClick={e => {
-                        e.stopPropagation()
-                        deleteItem(idx)
-                      }}
-                      title={`${item.name} 삭제`}
-                      className="shrink-0 rounded-lg p-1.5 text-sub transition-colors hover:bg-white hover:text-[#EF4444] xl:opacity-0 xl:group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={event => {
+                      event.stopPropagation()
+                      deleteItem(idx)
+                    }}
+                    aria-label={`${item.name}: ${e.deleteEmoji}`}
+                    title={e.deleteEmoji}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sub transition-colors hover:bg-red-50 hover:text-[#EF4444] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#EF4444]"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               )
             })}

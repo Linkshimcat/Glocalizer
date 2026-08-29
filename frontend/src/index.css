@@ -109,10 +109,40 @@ body {
   animation: success-ring 1s ease-out 0.3s both;
 }
 
+/* 드롭존 오로라를 Hover/Drag 중에만 잔잔하게 흐르게 합니다. */
+@keyframes dropzone-aurora-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    transform: translate3d(-1.5%, 0, 0) scale(0.98) rotate(-1deg);
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: translate3d(1.5%, -1%, 0) scale(1.03) rotate(1deg);
+  }
+}
+
+.dropzone-aurora::before {
+  background-size: 180% 180%;
+  animation: dropzone-aurora-flow 8s ease-in-out infinite;
+  animation-play-state: paused;
+  transform-origin: center;
+  will-change: transform, background-position;
+}
+
+.dropzone-aurora:hover::before,
+.dropzone-aurora[data-dragging='true']::before {
+  animation-play-state: running;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-success-pop,
   .animate-success-check,
   .animate-success-ring {
+    animation: none;
+  }
+
+  .dropzone-aurora::before {
     animation: none;
   }
 }
