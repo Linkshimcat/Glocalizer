@@ -72,6 +72,29 @@ describe('runTranslationsForAsset multi-region behavior', () => {
     expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', { status: 'translating', stage: 'translating', progress: 100 });
   });
 
+  it('재시도 후에도 한 OCR 영역이 실패하면 이미지를 완료 단계로 넘기지 않는다', async () => {
+    provider.localizeBatch.mockImplementation(async input => {
+      if (input.sourceText === '잼얘해줘') throw new Error('persistent caption failure');
+      return translation(input.sourceText);
+    });
+
+    const result = await runTranslationsForAsset(
+      { id: 'asset-1', project_id: 'project-1' } as never,
+      ['en'],
+      { tone: 'funny', audience: 'teen', translationStyle: 'trendy', highQualityReview: false },
+    );
+
+    expect(result.status).toBe('failed');
+    expect(result.languages).toEqual([expect.objectContaining({ languageCode: 'en', status: 'failed' })]);
+    expect(result.errorMessage).toContain('3개 OCR 영역 중 1개 영역');
+    expect(translationRepo.upsertTranslation).toHaveBeenCalledTimes(2);
+    expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', expect.objectContaining({
+      status: 'failed',
+      stage: 'translating',
+      errorCode: 'TRANSLATION_PROVIDER_FAILED',
+    }));
+  });
+
   it('묶음 요청 실패 뒤 언어별 재시도를 동시에 보내지 않는다', async () => {
     let activeRequests = 0;
     let maxActiveRequests = 0;

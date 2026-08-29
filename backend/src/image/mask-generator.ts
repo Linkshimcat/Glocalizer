@@ -31,7 +31,9 @@ export function createTightBoxMask(box: PixelBox, imageWidth: number, imageHeigh
   return { data, width: imageWidth, height: imageHeight, roi: box };
 }
 
-const MIN_COLOR_DISTANCE = 12;
+// PNG 안티에일리어싱/JPEG 노이즈와 완만한 그라데이션까지 글자로 오인하면 OCR 박스
+// 대부분이 지워진다. 실제 글자색과 배경색을 구분할 수 있는 보수적인 최소 거리다.
+const MIN_COLOR_DISTANCE = 28;
 
 function colorDistance(red: number, green: number, blue: number, background: { r: number; g: number; b: number }): number {
   return Math.hypot(red - background.r, green - background.g, blue - background.b);
@@ -63,8 +65,9 @@ export function dilateMask(input: Uint8Array, width: number, height: number, rad
 }
 
 /**
- * ROI 안 foreground(255)를 8-이웃 연결성분으로 묶어, OCR bbox 내부에 한 픽셀이라도
- * 걸치는 성분만 남기고 나머지(박스와 분리된 캐릭터/말풍선)는 0으로 지운다. in-place.
+ * ROI 안 foreground(255)를 8-이웃 연결성분으로 묶어, 성분의 충분한 비율이 OCR bbox
+ * 내부에 있는 경우만 남긴다. 캐릭터 윤곽이 박스에 한 픽셀 닿았다는 이유만으로 전체가
+ * 글자로 유지되는 것을 막으면서, bbox 밖으로 조금 삐져나간 글자 획은 보존한다. in-place.
  */
 export function keepComponentsTouchingBox(
   foreground: Uint8Array,
@@ -91,13 +94,13 @@ export function keepComponentsTouchingBox(
       stack.push(start);
       visited[start] = 1;
       const component: number[] = [];
-      let touchesBox = false;
+      let insideCount = 0;
       while (stack.length > 0) {
         const pixel = stack.pop() as number;
         component.push(pixel);
         const px = pixel % width;
         const py = (pixel - px) / width;
-        if (px >= boxLeft && px < boxRight && py >= boxTop && py < boxBottom) touchesBox = true;
+        if (px >= boxLeft && px < boxRight && py >= boxTop && py < boxBottom) insideCount += 1;
         for (let dy = -1; dy <= 1; dy += 1) {
           for (let dx = -1; dx <= 1; dx += 1) {
             if (dx === 0 && dy === 0) continue;
@@ -112,7 +115,8 @@ export function keepComponentsTouchingBox(
           }
         }
       }
-      if (!touchesBox) {
+      const insideRatio = component.length > 0 ? insideCount / component.length : 0;
+      if (insideCount === 0 || insideRatio < 0.35) {
         for (const pixel of component) foreground[pixel] = 0;
       }
     }
@@ -137,6 +141,15 @@ export async function generateTextEraseMask(
   // 남기는 연결성분 필터로 분리된 캐릭터/말풍선은 보존한다.
   const padding = Math.max(8, Math.min(48, Math.ceil(Math.min(box.width, box.height) * 0.3)));
   const roi = padAndClampBox(box, padding, imageWidth, imageHeight);
+  // 첫/끝 글자는 OCR 박스 좌우로 자주 삐져나오지만, 위아래의 큰 여백은 바로 붙은
+  // 캐릭터 몸통·말풍선 테두리를 후보에 포함시킨다. 탐색은 좌우 위주로 확장한다.
+  const verticalPadding = Math.max(1, Math.min(2, Math.ceil(box.height * 0.08)));
+  const scanRoi = {
+    x: roi.x,
+    y: Math.max(0, box.y - verticalPadding),
+    width: roi.width,
+    height: Math.max(0, Math.min(imageHeight, box.y + box.height + verticalPadding) - Math.max(0, box.y - verticalPadding)),
+  };
   const decoded = decodedImage ?? await (async () => {
     const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     return { data, width: info.width, height: info.height, channels: info.channels };
@@ -146,8 +159,8 @@ export async function generateTextEraseMask(
   const foreground = new Uint8Array(imageWidth * imageHeight);
   const background = options.backgroundColor;
 
-  for (let y = Math.floor(roi.y); y < Math.ceil(roi.y + roi.height); y += 1) {
-    for (let x = Math.floor(roi.x); x < Math.ceil(roi.x + roi.width); x += 1) {
+  for (let y = Math.floor(scanRoi.y); y < Math.ceil(scanRoi.y + scanRoi.height); y += 1) {
+    for (let x = Math.floor(scanRoi.x); x < Math.ceil(scanRoi.x + scanRoi.width); x += 1) {
       const pixel = y * imageWidth + x;
       const base = pixel * channels;
       const alpha = data[base + 3];
@@ -158,15 +171,29 @@ export async function generateTextEraseMask(
     }
   }
 
+  // 작은 이모티콘에서 캐릭터 몸통/말풍선 면이 OCR 박스 상단에 걸치면 한 행을 거의
+  // 전부 채우며 아래 글자와 연결된다. 이런 고밀도 행을 끊어 거대한 비문자 성분이 글자
+  // 마스크로 확장되는 것을 막는다. 실제 글자 획은 한 행 전체의 85%를 채우지 않는다.
+  const scanLeft = Math.max(0, Math.floor(scanRoi.x));
+  const scanRight = Math.min(imageWidth, Math.ceil(scanRoi.x + scanRoi.width));
+  const denseRowThreshold = Math.max(1, Math.floor((scanRight - scanLeft) * 0.85));
+  for (let y = Math.max(0, Math.floor(scanRoi.y)); y < Math.min(imageHeight, Math.ceil(scanRoi.y + scanRoi.height)); y += 1) {
+    let foregroundCount = 0;
+    for (let x = scanLeft; x < scanRight; x += 1) if (foreground[y * imageWidth + x] === 255) foregroundCount += 1;
+    if (foregroundCount >= denseRowThreshold) {
+      for (let x = scanLeft; x < scanRight; x += 1) foreground[y * imageWidth + x] = 0;
+    }
+  }
+
   // 연결성분 필터: ROI 안 foreground를 성분으로 묶고, OCR bbox 내부에 걸치는 성분만 남긴다.
   // → 박스 안 글자에 연결된 조각(첫/끝 글자의 삐져나간 부분, 장식 등)은 지우고, 박스와
   //   떨어진 캐릭터·말풍선 선은 보존한다. 넓은 padding을 안전하게 쓸 수 있게 하는 핵심.
-  keepComponentsTouchingBox(foreground, imageWidth, imageHeight, roi, box);
+  keepComponentsTouchingBox(foreground, imageWidth, imageHeight, scanRoi, box);
 
   // 안티에일리어싱 헤일로(잔상)까지 덮도록 dilation을 조금 더 준다. 분리된 캐릭터는 위의
   // 연결성분 필터가 이미 제거했으므로 확대해도 캐릭터를 갉아먹지 않는다.
   const dilationRadius = Math.max(3, Math.min(7, Math.round(Math.min(box.width, box.height) / 24)));
-  const expanded = dilateMask(foreground, imageWidth, imageHeight, dilationRadius, roi);
+  const expanded = dilateMask(foreground, imageWidth, imageHeight, dilationRadius, scanRoi);
   const { data: blurred, info: blurInfo } = await sharp(Buffer.from(expanded), { raw: { width: imageWidth, height: imageHeight, channels: 1 } })
     .blur(1.2)
     .raw()
@@ -175,5 +202,5 @@ export async function generateTextEraseMask(
   for (let index = 0; index < mask.length; index += 1) {
     mask[index] = 255 - blurred[index * blurInfo.channels];
   }
-  return { data: mask, width: imageWidth, height: imageHeight, roi };
+  return { data: mask, width: imageWidth, height: imageHeight, roi: scanRoi };
 }

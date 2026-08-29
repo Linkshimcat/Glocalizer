@@ -11,7 +11,7 @@ import { decodeImagePixels, sampleBorderPixelsFromDecoded, sampleTextColorFromDe
 import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
 import { applySolidColorCleanup } from './solid-color-cleanup.js';
 import { applyTransparentCleanup } from './transparent-cleanup.js';
-import { createTightBoxMask, generateTextEraseMask } from './mask-generator.js';
+import { generateTextEraseMask } from './mask-generator.js';
 import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
 import { logger } from '../config/logger.js';
@@ -76,17 +76,39 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         await updateRegionCleanupMetadata(region.id, { textColor: null, needsManualCleanup: false });
         continue;
       }
+      if (region.needs_manual_review) {
+        // OCR 문구나 좌표가 확정되지 않은 상태에서 자동 삭제하면 반복 장식 문구·캐릭터를
+        // 일부만 지우는 비가역적 결과가 생긴다. 원본을 보존하고 에디터 검수로 넘긴다.
+        needsManualCleanup = true;
+        methods.push('manual-required');
+        qualities.push('low');
+        await updateRegionCleanupMetadata(region.id, { textColor: null, needsManualCleanup: true });
+        continue;
+      }
       try {
         const stats = sampleBorderPixelsFromDecoded(decoded, region.bbox);
-        const textColor = sampleTextColorFromDecoded(decoded, region.bbox, stats.medianColor);
-        if (region.is_primary || primaryTextColor === null) primaryTextColor = textColor;
         const method = decideCleanupMethod(stats);
         const quality = assessCleanupQuality(method, stats);
         if (method === 'directional-inpaint') {
           const adaptive = await generateAdaptiveTextMask(decoded, region.bbox);
-          const safeMask = adaptive.confidence >= ADAPTIVE_MASK_MIN_CONFIDENCE
+          const adaptiveSafe = adaptive.confidence >= ADAPTIVE_MASK_MIN_CONFIDENCE
             && isMaskCoverageSafe(measureMaskCoverage(adaptive.mask));
-          if (!safeMask) {
+          // 로컬 명암 기반 마스크가 두꺼운 글자·작은 이미지에서 실패하면 배경 대표색과
+          // 다른 연결성분 마스크를 보조 후보로 검사한다. 둘 다 안전하지 않으면 원본 보존.
+          const colorMask = adaptiveSafe ? null : await generateTextEraseMask(
+            buffer,
+            region.bbox,
+            asset.width,
+            asset.height,
+            { mode: 'solid', backgroundColor: stats.medianColor },
+            decoded,
+          );
+          const selectedMask = adaptiveSafe
+            ? adaptive.mask
+            : colorMask && isMaskCoverageSafe(measureMaskCoverage(colorMask)) ? colorMask : null;
+          const textColor = sampleTextColorFromDecoded(decoded, region.bbox, stats.medianColor, selectedMask ?? adaptive.mask);
+          if (region.is_primary || primaryTextColor === null) primaryTextColor = textColor;
+          if (!selectedMask) {
             needsManualCleanup = true;
             methods.push('manual-required');
             qualities.push('low');
@@ -99,7 +121,7 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
             region.bbox,
             asset.width,
             asset.height,
-            adaptive.mask,
+            selectedMask,
           );
           methods.push(method);
           qualities.push(quality);
@@ -107,7 +129,7 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
           continue;
         }
 
-        let mask = await generateTextEraseMask(
+        const mask = await generateTextEraseMask(
           buffer,
           region.bbox,
           asset.width,
@@ -117,16 +139,16 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
             : { mode: 'solid', backgroundColor: stats.medianColor },
           decoded,
         );
+        const textColor = sampleTextColorFromDecoded(decoded, region.bbox, stats.medianColor, mask);
+        if (region.is_primary || primaryTextColor === null) primaryTextColor = textColor;
         if (!isMaskCoverageSafe(measureMaskCoverage(mask))) {
-          if (method === 'solid-color-fill' && quality === 'good') {
-            mask = createTightBoxMask(region.bbox, asset.width, asset.height);
-          } else {
-            needsManualCleanup = true;
-            methods.push('manual-required');
-            qualities.push('low');
-            await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: true });
-            continue;
-          }
+          // 마스크가 비정상이면 단색 배경이어도 OCR 사각형 전체를 덮지 않는다. 잘못 잡힌
+          // 박스가 캐릭터/말풍선 윤곽을 영구적으로 지우는 것보다 원본 보존 + 수동 검수가 안전하다.
+          needsManualCleanup = true;
+          methods.push('manual-required');
+          qualities.push('low');
+          await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: true });
+          continue;
         }
 
         cleanedBuffer = method === 'transparent-mask'

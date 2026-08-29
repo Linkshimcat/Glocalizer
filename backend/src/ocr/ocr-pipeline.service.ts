@@ -130,8 +130,11 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
         // PaddleOCR 후보가 이미 한글을 포함해 위치를 찾아둔 상태라면, 검출 전용 모델의 위치
         // 추정치를 그대로 쓰고 텍스트 내용만 vision으로 교체한다.
         const polygon = selected && containsKorean(selected.text) ? selected.polygon : vision.polygon;
-        selected = { ...vision, polygon, agreementScore: vision.confidence, source: 'paddle-consensus', needsManualReview: false };
-        sourceName = 'vision-fallback'; agreementScore = vision.confidence; needsManualReview = false;
+        // Vision이 텍스트를 교정해도 기존 검출 polygon의 정확성까지 증명하지는 않는다.
+        // 저합의 Paddle 좌표를 그대로 쓰는 경우 좌표 검수 플래그를 유지해 자동 cleanup을 막는다.
+        const coordinateNeedsReview = selected?.needsManualReview ?? true;
+        selected = { ...vision, polygon, agreementScore: vision.confidence, source: 'paddle-consensus', needsManualReview: coordinateNeedsReview };
+        sourceName = 'vision-fallback'; agreementScore = vision.confidence; needsManualReview = coordinateNeedsReview;
       }
     }
     if (!selected) throw new AppError('OCR_TEXT_NOT_FOUND');

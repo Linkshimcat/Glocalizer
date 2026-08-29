@@ -163,17 +163,29 @@ export async function runTranslationsForAsset(
   }));
   const languages = targetLanguages.map((languageCode): LanguageTranslationResult => {
     const results = regionResults.map(({ languages: values }) => values.find((value) => value.languageCode === languageCode));
-    const succeeded = results.some((result) => result?.status === 'translated');
+    const succeeded = results.length === regions.length
+      && results.every((result) => result?.status === 'translated');
     const failure = results.find((result) => result?.status === 'failed');
     return succeeded
-      ? { languageCode, status: 'translated', needsReview: results.some((result) => result?.status === 'failed' || result?.needsReview) }
+      ? { languageCode, status: 'translated', needsReview: results.some((result) => result?.needsReview) }
       : { languageCode, status: 'failed', errorCode: failure?.errorCode, errorMessage: failure?.errorMessage };
   });
-  const allFailed = languages.length > 0 && languages.every((language) => language.status === 'failed');
-  if (allFailed) {
-    const errorMessage = languages.find((language) => language.errorMessage)?.errorMessage ?? '모든 언어의 번역이 실패했습니다.';
+  const failedRegionCount = regionResults.filter(({ languages: values }) => (
+    targetLanguages.some((languageCode) => values.find((value) => value.languageCode === languageCode)?.status !== 'translated')
+  )).length;
+  const hasFailure = failedRegionCount > 0 || languages.some((language) => language.status === 'failed');
+  if (hasFailure) {
+    const providerMessage = languages.find((language) => language.errorMessage)?.errorMessage;
+    const errorMessage = `${regions.length}개 OCR 영역 중 ${failedRegionCount}개 영역의 번역을 완료하지 못했습니다.${providerMessage ? ` ${providerMessage}` : ''}`;
     const errorCode = languages.find((language) => language.errorCode)?.errorCode ?? 'TRANSLATION_PROVIDER_FAILED';
-    logger.warn({ assetId: asset.id, projectId: asset.project_id, errorCode, languageCodes: targetLanguages }, 'Asset 번역 실패');
+    logger.warn({
+      assetId: asset.id,
+      projectId: asset.project_id,
+      errorCode,
+      failedRegionCount,
+      totalRegionCount: regions.length,
+      languageCodes: targetLanguages,
+    }, 'Asset OCR 영역 번역 미완료');
     await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage });
     return { assetId: asset.id, status: 'failed', languages, errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage };
   }

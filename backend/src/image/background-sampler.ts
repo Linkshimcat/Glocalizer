@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
+import type { FeatherMask } from './mask-generator.js';
 
 export interface BorderStats {
   /** ensureAlpha() 기준이라 원본이 알파 채널이 없으면 항상 255에 가깝다. */
@@ -184,6 +185,7 @@ export function sampleTextColorFromDecoded(
   image: DecodedImage,
   box: PixelBox,
   background: { r: number; g: number; b: number },
+  textMask?: FeatherMask,
 ): TextColor | null {
   const imageWidth = image.width;
   const imageHeight = image.height;
@@ -192,29 +194,43 @@ export function sampleTextColorFromDecoded(
 
   // 배경색에서 먼 픽셀만 글자 후보로 삼고, 16단계 양자화 버킷의 dominant를 글자색으로 본다.
   // 안티에일리어싱 경계의 중간색이 평균을 흐리지 않도록 median 대신 dominant 방식을 쓴다.
-  const MIN_COLOR_DISTANCE_SQUARED = 60 ** 2;
-  const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+  // 마스크가 있으면 실제 글자 획의 중심 픽셀만 사용하므로, 배경과 색 차이가 작은 컬러
+  // 글자도 추출한다. 마스크가 없는 이전 호출은 보수적인 기존 임계값을 유지한다.
+  const minColorDistance = textMask ? 24 : 60;
+  const minColorDistanceSquared = minColorDistance ** 2;
+  const buckets = new Map<string, { count: number; r: number; g: number; b: number; distance: number }>();
   for (let y = interior.top; y < interior.top + interior.height; y += 1) {
     for (let x = interior.left; x < interior.left + interior.width; x += 1) {
     const index = (y * imageWidth + x) * image.channels;
     if (image.data[index + 3] < 24) continue;
+    if (textMask && textMask.data[y * imageWidth + x] >= 96) continue;
     const dr = image.data[index] - background.r;
     const dg = image.data[index + 1] - background.g;
     const db = image.data[index + 2] - background.b;
     // 픽셀마다 sqrt를 계산할 필요 없이 제곱 거리끼리 비교한다.
-    if (dr * dr + dg * dg + db * db < MIN_COLOR_DISTANCE_SQUARED) continue;
+    if (dr * dr + dg * dg + db * db < minColorDistanceSquared) continue;
     const key = `${image.data[index] >> 4}:${image.data[index + 1] >> 4}:${image.data[index + 2] >> 4}`;
-    const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+    const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0, distance: 0 };
     bucket.count += 1;
     bucket.r += image.data[index];
     bucket.g += image.data[index + 1];
     bucket.b += image.data[index + 2];
+    bucket.distance += Math.sqrt(dr * dr + dg * dg + db * db);
     buckets.set(key, bucket);
     }
   }
 
-  const dominant = [...buckets.values()].sort((left, right) => right.count - left.count)[0];
-  if (!dominant || dominant.count < 12) return null;
+  const minimumSamples = textMask ? Math.max(4, Math.ceil(interior.width * interior.height * 0.002)) : 12;
+  // JPEG 안티에일리어싱으로 생긴 배경 근처 회색은 개수가 많아도 글자색이 아니다. 픽셀
+  // 개수 × 평균 배경 거리의 제곱근으로 평가하면 글자 핵심색을 우선하면서, 얇은 검은
+  // 외곽선보다 넓은 컬러 본문이 충분히 많을 때는 본문색을 유지할 수 있다.
+  const dominant = [...buckets.values()]
+    .filter((bucket) => bucket.count >= minimumSamples)
+    .sort((left, right) => (
+      right.count * Math.sqrt(right.distance / right.count)
+      - left.count * Math.sqrt(left.distance / left.count)
+    ))[0];
+  if (!dominant || dominant.count < minimumSamples) return null;
   return {
     r: Math.round(dominant.r / dominant.count),
     g: Math.round(dominant.g / dominant.count),
