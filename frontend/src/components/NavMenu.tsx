@@ -8,10 +8,9 @@ export default function NavMenu() {
 
   return (
     <nav aria-label="주요 메뉴" className="flex items-center gap-1.5">
-      <LanguageSelect />
       <button
         onClick={() => navigate('/dashboard')}
-        className="rounded-xl bg-brand-soft px-3 py-1.5 text-[13px] font-bold text-brand-dark transition-colors hover:bg-brand hover:text-white md:px-4 md:py-2 md:text-sm"
+        className="rounded-xl px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-surface md:px-4 md:py-2 md:text-sm"
       >
         {t.navStart}
       </button>
@@ -22,6 +21,7 @@ export default function NavMenu() {
       >
         {t.navService}
       </button>
+      <LanguageSelect />
     </nav>
   )
 }
