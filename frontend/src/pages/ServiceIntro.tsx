@@ -48,7 +48,7 @@ export default function ServiceIntro() {
       />
 
       <main className="mx-auto w-full max-w-[960px] px-6 pb-24 pt-12 sm:px-10 sm:pt-16">
-        <h1 className="text-[42px] font-extrabold leading-tight tracking-tight sm:text-[52px]">
+        <h1 className="whitespace-nowrap text-[26px] font-extrabold leading-tight tracking-tight min-[360px]:text-[30px] min-[400px]:text-[34px] sm:text-[52px]">
           {s.titleMain} <span className="text-brand">{s.titleAccent}</span>
         </h1>
         <p className="mt-6 text-xl font-bold leading-snug text-ink sm:text-2xl">

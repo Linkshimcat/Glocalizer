@@ -4,5 +4,5 @@
     "rootDir": ".",
     "outDir": "dist"
   },
-  "include": ["src", "scripts/check-supabase.ts", "scripts/run-migrations.ts", "scripts/smoke-e2e.ts"]
+  "include": ["src", "scripts/check-supabase.ts", "scripts/run-migrations.ts", "scripts/smoke-e2e.ts", "scripts/emoticon-batch-e2e.ts"]
 }

@@ -26,7 +26,6 @@ vi.mock('../../src/image/cleanup-quality.js', () => ({
 }));
 vi.mock('../../src/image/mask-generator.js', () => ({
   generateTextEraseMask: vi.fn().mockResolvedValue({ data: new Uint8Array(100), width: 10, height: 10, roi: { x: 0, y: 0, width: 10, height: 10 } }),
-  createTightBoxMask: vi.fn(),
 }));
 vi.mock('../../src/image/mask-coverage.js', () => ({
   measureMaskCoverage: vi.fn().mockReturnValue({ ratio: 0.2 }),
@@ -46,6 +45,7 @@ const storageRepo = await import('../../src/repositories/storage.repository.js')
 const solidCleanup = await import('../../src/image/solid-color-cleanup.js');
 const directionalCleanup = await import('../../src/image/directional-inpaint.js');
 const adaptiveMask = await import('../../src/image/adaptive-text-mask.js');
+const maskCoverage = await import('../../src/image/mask-coverage.js');
 const cleanupQuality = await import('../../src/image/cleanup-quality.js');
 const { runCleanupForAsset } = await import('../../src/image/cleanup.service.js');
 
@@ -63,7 +63,6 @@ describe('runCleanupForAsset multi-region behavior', () => {
     vi.mocked(translationRepo.findTranslationsByOcrRegionIds).mockResolvedValue(regions.map((region) => ({ ocr_region_id: region.id, language_code: 'en' })) as never);
     vi.mocked(storageRepo.downloadFromStorage).mockResolvedValue(Buffer.from('source'));
     vi.mocked(solidCleanup.applySolidColorCleanup)
-      .mockResolvedValueOnce(Buffer.from('cleaned-review'))
       .mockResolvedValueOnce(Buffer.from('cleaned-success'))
       .mockRejectedValueOnce(new Error('one region failed'));
     vi.mocked(adaptiveMask.generateAdaptiveTextMask).mockResolvedValue({
@@ -84,9 +83,9 @@ describe('runCleanupForAsset multi-region behavior', () => {
       height: 10,
     } as never);
 
-    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(3);
+    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(2);
     expect(storageRepo.uploadToStorage).toHaveBeenCalledTimes(1);
-    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: { r: 20, g: 20, b: 20 }, needsManualCleanup: false });
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: null, needsManualCleanup: true });
     expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-success', { textColor: { r: 20, g: 20, b: 20 }, needsManualCleanup: false });
     expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-failure', { textColor: null, needsManualCleanup: true });
     expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', expect.objectContaining({
@@ -122,6 +121,7 @@ describe('runCleanupForAsset multi-region behavior', () => {
       coverage: 0,
       spillRatio: 1,
     });
+    vi.mocked(maskCoverage.isMaskCoverageSafe).mockReturnValue(false);
 
     const result = await runCleanupForAsset({
       id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
@@ -130,6 +130,25 @@ describe('runCleanupForAsset multi-region behavior', () => {
     expect(directionalCleanup.applyDirectionalInpaint).not.toHaveBeenCalled();
     expect(storageRepo.uploadToStorage).not.toHaveBeenCalled();
     expect(result).toMatchObject({ method: 'manual-required', needsManualCleanup: true });
+  });
+
+  it('복잡한 배경의 적응형 마스크가 실패해도 안전한 색상 마스크로 인페인트한다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[1]] as never);
+    vi.mocked(cleanupQuality.decideCleanupMethod).mockReturnValue('directional-inpaint');
+    vi.mocked(adaptiveMask.generateAdaptiveTextMask).mockResolvedValue({
+      mask: { data: new Uint8Array(100), width: 10, height: 10, roi: { x: 1, y: 4, width: 3, height: 2 } },
+      confidence: 0.2,
+      coverage: 0,
+      spillRatio: 1,
+    });
+    vi.mocked(maskCoverage.isMaskCoverageSafe).mockReturnValue(true);
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(directionalCleanup.applyDirectionalInpaint).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ method: 'directional-inpaint', needsManualCleanup: false });
   });
 
   it('선택 언어 번역이 모두 준비되기 전에는 원문을 지우지 않는다', async () => {

@@ -11,6 +11,7 @@
     "db:migrate": "npm run build && tsc -p tsconfig.scripts.json && node dist/scripts/run-migrations.js",
     "db:migrate:production": "node dist/scripts/run-migrations.js",
     "smoke:e2e": "npm run build && tsc -p tsconfig.scripts.json && node dist/scripts/smoke-e2e.js",
+    "test:emoticons": "npm run build && tsc -p tsconfig.scripts.json && node dist/scripts/emoticon-batch-e2e.js",
     "dataset:generate": "python3 python/generate_synthetic_ocr_dataset.py --count 1000",
     "dataset:split": "python3 python/prepare_ocr_training_splits.py",
     "benchmark:ocr": "python3 python/benchmark_ocr.py --manifest benchmarks/ocr/manifest.local.json",

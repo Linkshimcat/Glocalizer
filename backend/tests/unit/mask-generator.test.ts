@@ -38,4 +38,16 @@ describe('generateTextEraseMask', () => {
     expect(mask.data[2 * width + 10]).toBeGreaterThan(240);
     expect(mask.data[10 * width + 10]).toBeLessThan(40);
   });
+
+  it('OCR 박스에 일부만 닿는 큰 캐릭터 성분은 글자로 유지하지 않는다', async () => {
+    const raw = pixelBuffer([255, 255, 255, 255], [255, 255, 255, 255]);
+    // 큰 성분 대부분은 box 위에 있고 맨 아래 한 줄만 box에 닿는다.
+    for (let y = 1; y < 9; y += 1) for (let x = 2; x < 7; x += 1) raw.set([0, 0, 0, 255], (y * width + x) * 4);
+    for (let y = 9; y < 12; y += 1) for (let x = 9; x < 11; x += 1) raw.set([0, 0, 0, 255], (y * width + x) * 4);
+    const buffer = await sharp(raw, { raw: { width, height, channels: 4 } }).png().toBuffer();
+    const mask = await generateTextEraseMask(buffer, { x: 5, y: 8, width: 8, height: 5 }, width, height, { mode: 'solid', backgroundColor: { r: 255, g: 255, b: 255 } });
+
+    expect(mask.data[4 * width + 4]).toBeGreaterThan(240);
+    expect(mask.data[10 * width + 10]).toBeLessThan(40);
+  });
 });

@@ -35,4 +35,22 @@ describe('selectConsensusRegion', () => {
     const regions = selectConsensusRegions([[region('첫문구', 0.96, 10), region('둘째문구', 0.94, 180)]]);
     expect(regions.map((region) => region.text)).toEqual(expect.arrayContaining(['첫문구', '둘째문구']));
   });
+
+  it('고신뢰 부분 인식보다 전체 문구를 택하고 일치 polygon 외곽을 합친다', () => {
+    const full = region('안녕하세요', 0.96, 10, 10);
+    const widerFull = {
+      ...region('안녕하세요', 0.94, 6, 9),
+      polygon: [{ x: 6, y: 9 }, { x: 96, y: 9 }, { x: 96, y: 36 }, { x: 6, y: 36 }],
+    };
+    const partial = {
+      ...region('녕하세요', 0.999, 24, 10),
+      polygon: [{ x: 24, y: 10 }, { x: 90, y: 10 }, { x: 90, y: 34 }, { x: 24, y: 34 }],
+    };
+
+    const result = selectConsensusRegion([[full], [widerFull], [partial]]);
+
+    expect(result?.text).toBe('안녕하세요');
+    expect(Math.min(...(result?.polygon.map((point) => point.x) ?? []))).toBe(6);
+    expect(Math.max(...(result?.polygon.map((point) => point.x) ?? []))).toBe(96);
+  });
 });
