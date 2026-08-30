@@ -55,6 +55,41 @@ interface RankedCandidateGroup {
   score: number;
 }
 
+function representativeCandidate(entries: Candidate[]): Candidate {
+  const lengths = entries.map((entry) => normalizedText(entry.region.text).length);
+  const areas = entries.map((entry) => {
+    const box = bounds(entry.region);
+    return Math.max(1, (box.right - box.left) * (box.bottom - box.top));
+  });
+  const maximumLength = Math.max(1, ...lengths);
+  const maximumArea = Math.max(1, ...areas);
+  const selectedIndex = entries
+    .map((entry, index) => ({
+      index,
+      score: entry.region.confidence * 0.7
+        + (lengths[index] / maximumLength) * 0.2
+        + (areas[index] / maximumArea) * 0.1,
+    }))
+    .sort((left, right) => right.score - left.score)[0].index;
+  const selected = entries[selectedIndex];
+
+  // 동일 문구를 읽은 변형들의 polygon 외곽을 합쳐, 어떤 변형에서 첫/끝 글자 박스가
+  // 조금 잘렸더라도 cleanup 좌표가 실제 문구 전체를 포함하게 한다.
+  const compatible = entries.filter((entry) => editSimilarity(selected.region.text, entry.region.text) >= 0.75);
+  const points = compatible.flatMap((entry) => entry.region.polygon);
+  const left = Math.min(...points.map((point) => point.x));
+  const top = Math.min(...points.map((point) => point.y));
+  const right = Math.max(...points.map((point) => point.x));
+  const bottom = Math.max(...points.map((point) => point.y));
+  return {
+    ...selected,
+    region: {
+      ...selected.region,
+      polygon: [{ x: left, y: top }, { x: right, y: top }, { x: right, y: bottom }, { x: left, y: bottom }],
+    },
+  };
+}
+
 interface ConsensusOptions {
   allowSingleVariantAutoApprove?: boolean;
 }
@@ -68,7 +103,7 @@ function rankCandidateGroups(variantResults: RecognizedRegion[][], options: Cons
     if (group) group.push(candidate); else groups.push([candidate]);
   }
   return groups.map((entries) => {
-    const representative = [...entries].sort((a, b) => b.region.confidence - a.region.confidence)[0];
+    const representative = representativeCandidate(entries);
     const distinctVariants = new Set(entries.map((entry) => entry.variant)).size;
     const agreement = distinctVariants / variantResults.length;
     const textAgreement = entries.length > 1
