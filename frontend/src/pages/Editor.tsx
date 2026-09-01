@@ -27,6 +27,7 @@ import {
 } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
+import AuroraBackground from '../components/AuroraBackground'
 import Logo from '../components/Logo'
 import { useToast } from '../components/Toast'
 import {
@@ -346,6 +347,8 @@ export default function Editor() {
   const [preview, setPreview] = useState(false)
   // 캔버스 위 번역 텍스트 선택 여부 (선택 시에만 초록 편집 박스+핸들 표시)
   const [selected, setSelected] = useState(true)
+  // 원문 지우기 영역 선택 여부 — 텍스트와 마찬가지로 선택했을 때만 초록 테두리를 보여준다.
+  const [cleanupSelected, setCleanupSelected] = useState(false)
   const [mobileTab, setMobileTab] = useState<MobileTab>('번역')
   const [mobileCanvasTab, setMobileCanvasTab] = useState<MobileCanvasTab>('미리보기')
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
@@ -381,6 +384,7 @@ export default function Editor() {
     setPast([])
     setFuture([])
     setSelected(true)
+    setCleanupSelected(false)
   }
 
   const selectItem = (idx: number) => {
@@ -397,6 +401,7 @@ export default function Editor() {
     setPast([])
     setFuture([])
     setSelected(true)
+    setCleanupSelected(false)
     setZoom(DEFAULT_ZOOM)
   }
 
@@ -477,6 +482,8 @@ export default function Editor() {
   const cleanupPreviewRef = useRef<HTMLDivElement>(null)
   const originalFrameRef = useRef<HTMLDivElement>(null)
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null)
+  // 취소한 뒤 늦게 도착한 OCR 응답이 사라진 선택을 되살리지 않도록 실행 회차를 센다.
+  const selectionRunRef = useRef(0)
 
   const selectionPoint = (event: ReactPointerEvent): { x: number; y: number } | null => {
     const bounds = originalFrameRef.current?.getBoundingClientRect()
@@ -500,6 +507,12 @@ export default function Editor() {
     setSelectionRect(null)
     setSelectionDraft(null)
     toast(e.selectionHint)
+  }
+
+  /** 같은 버튼을 다시 누르면 지정 모드를 끈다. */
+  const toggleAreaSelection = (mode: SelectionMode) => {
+    if (selectionMode === mode) cancelAreaSelection()
+    else beginAreaSelection(mode)
   }
 
   const startAreaSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -531,9 +544,11 @@ export default function Editor() {
       toast(e.selectionHint)
       return
     }
+    const run = ++selectionRunRef.current
     setSelectionBusy(true)
     try {
       const detected = await detectOcrRegion(current.id, normalizedBox)
+      if (selectionRunRef.current !== run) return // 기다리는 동안 취소됨
       setSelectionRect(detected.normalizedBox)
       setSelectionDraft({
         mode: selectionMode,
@@ -543,16 +558,20 @@ export default function Editor() {
         normalizedBox: detected.normalizedBox,
       })
     } catch (error) {
+      if (selectionRunRef.current !== run) return
       toast(error instanceof Error ? error.message : e.notFoundText)
     } finally {
-      setSelectionBusy(false)
+      if (selectionRunRef.current === run) setSelectionBusy(false)
     }
   }
 
   const cancelAreaSelection = () => {
+    selectionRunRef.current += 1
+    selectionStartRef.current = null
     setSelectionMode(null)
     setSelectionRect(null)
     setSelectionDraft(null)
+    setSelectionBusy(false)
   }
 
   const confirmAreaSelection = async () => {
@@ -898,18 +917,21 @@ export default function Editor() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-white px-6 text-center">
-        <Logo small />
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft">
+      <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 overflow-hidden bg-white px-6 text-center">
+        <AuroraBackground />
+        <div className="relative z-10">
+          <Logo small />
+        </div>
+        <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft">
           <LoaderCircle className="h-7 w-7 animate-spin text-brand-dark" />
         </span>
-        <div>
+        <div className="relative z-10">
           <p className="text-xl font-extrabold">{[t.loadingStep1, t.loadingStep2][loadingStep]}</p>
           <p className="mt-2 text-sm font-medium text-sub">
             {t.loadingSub}
           </p>
         </div>
-        <div className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-surface">
+        <div className="relative z-10 h-2 w-full max-w-xs overflow-hidden rounded-full bg-white/70 shadow-[inset_0_0_0_1px_rgba(25,31,40,0.06)]">
           <div
             className="h-full rounded-full bg-brand transition-[width] duration-500"
             style={{ width: `${Math.max(4, projectStatus?.progress ?? 0)}%` }}
@@ -917,7 +939,7 @@ export default function Editor() {
         </div>
         <button
           onClick={() => navigate('/dashboard')}
-          className="text-sm font-semibold text-sub hover:underline"
+          className="relative z-10 text-sm font-semibold text-sub hover:underline"
         >
           {t.loadingCancel}
         </button>
@@ -1149,13 +1171,15 @@ export default function Editor() {
                 <p className="text-sm font-extrabold text-ink">{e.original}</p>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => beginAreaSelection('reselect')}
+                    onClick={() => toggleAreaSelection('reselect')}
+                    aria-pressed={selectionMode === 'reselect'}
                     className={`flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-colors ${selectionMode === 'reselect' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
                   >
                     <ScanText className="h-3.5 w-3.5" /> {e.reselectArea}
                   </button>
                   <button
-                    onClick={() => beginAreaSelection('add')}
+                    onClick={() => toggleAreaSelection('add')}
+                    aria-pressed={selectionMode === 'add'}
                     className={`flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-colors ${selectionMode === 'add' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
                   >
                     <Plus className="h-3.5 w-3.5" /> {e.addCaption}
@@ -1223,7 +1247,7 @@ export default function Editor() {
             <article className={`${mobileCanvasTab === '미리보기' ? 'block' : 'hidden'} lg:block`}>
               <div className="mb-2 flex h-8 items-center justify-center"><p className="text-sm font-extrabold text-ink">{e.canvasPreview}</p></div>
               <div className="checkerboard mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl sm:h-[340px] sm:w-[340px]">
-                <div ref={cleanupPreviewRef} onPointerDown={() => setSelected(false)} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
+                <div ref={cleanupPreviewRef} onPointerDown={() => { setSelected(false); setCleanupSelected(false) }} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
                   {current.url ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
                       <img src={current.url} alt={`${current.name} 변환 미리보기`} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
@@ -1233,8 +1257,12 @@ export default function Editor() {
                   )}
                   {cleanupBox && manualCleanup && (
                     <span
-                      onPointerDown={preview ? undefined : event => startManualCleanupGesture(event, 'move')}
-                      className={`absolute ${preview ? 'pointer-events-none' : 'cursor-move border-2 border-brand'} ${manualCleanup.mode === 'transparent' ? 'checkerboard' : ''}`}
+                      onPointerDown={preview ? undefined : event => {
+                        setSelected(false)
+                        setCleanupSelected(true)
+                        startManualCleanupGesture(event, 'move')
+                      }}
+                      className={`absolute ${preview ? 'pointer-events-none' : `cursor-move${cleanupSelected ? ' border-2 border-brand' : ''}`} ${manualCleanup.mode === 'transparent' ? 'checkerboard' : ''}`}
                       style={{
                         left: `${cleanupBox.x * 100}%`,
                         top: `${cleanupBox.y * 100}%`,
@@ -1244,7 +1272,7 @@ export default function Editor() {
                         backgroundColor: manualCleanup.mode === 'solid' ? manualCleanup.color ?? '#FFFFFF' : undefined,
                       }}
                     >
-                      {!preview && <span onPointerDown={event => startManualCleanupGesture(event, 'resize')} className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-brand bg-white" />}
+                      {!preview && cleanupSelected && <span onPointerDown={event => startManualCleanupGesture(event, 'resize')} className="absolute -bottom-1 -right-1 h-3 w-3 cursor-nwse-resize rounded-sm border-2 border-brand bg-white" />}
                     </span>
                   )}
                   {canvasOverlays.map(overlay => {
@@ -1261,6 +1289,7 @@ export default function Editor() {
                               event.stopPropagation()
                               if (!isActive && overlay.regionId) selectRegion(overlay.regionId)
                               setSelected(true)
+                              setCleanupSelected(false)
                             }}
                             className={`select-none whitespace-pre text-center ${preview ? '' : 'cursor-pointer'}`}
                             style={overlayStyle}
@@ -1321,7 +1350,7 @@ export default function Editor() {
 
         {/* 컨트롤 패널 — 중간 화면에서는 슬라이드 패널 */}
         <aside
-          className={`relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
+          className={`relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
             isInspectorOpen ? 'lg:translate-x-0' : 'lg:translate-x-full'
           }`}
         >
@@ -1826,14 +1855,27 @@ export default function Editor() {
               <PanelTitle>{e.eraseOriginal}</PanelTitle>
               <Toggle
                 on={Boolean(manualCleanup)}
-                onToggle={() => manualCleanup ? update({ manualCleanup: undefined }) : updateManualCleanup({})}
+                onToggle={() => {
+                  if (manualCleanup) {
+                    update({ manualCleanup: undefined })
+                    setCleanupSelected(false)
+                  } else {
+                    updateManualCleanup({})
+                    setSelected(false)
+                    setCleanupSelected(true)
+                  }
+                }}
               />
             </div>
             <p className="mt-2 text-xs font-semibold text-sub">
               {current.analysis?.needsManualCleanup ? e.eraseHintManual : e.eraseHintAuto}
             </p>
             {manualCleanup && (
-              <div className="mt-3 flex flex-col gap-3">
+              // 이 안의 컨트롤을 건드리면 지우기 영역을 선택 상태로 만들어 초록 테두리를 띄운다.
+              <div
+                onPointerDown={() => { setSelected(false); setCleanupSelected(true) }}
+                className="mt-3 flex flex-col gap-3"
+              >
                 <div className="grid grid-cols-2 gap-2">
                   {(['transparent', 'solid'] as const).map(mode => (
                     <button
@@ -1861,7 +1903,7 @@ export default function Editor() {
           </section>
 
           {/* ── 내보내기 (모바일에선 항상 표시) ── */}
-          <section className="mt-auto border-t border-gray-100 bg-white pt-6 xl:sticky xl:bottom-0 xl:pb-1">
+          <section className="mt-auto border-t border-gray-100 bg-white pt-6 xl:sticky xl:bottom-0 xl:pb-6">
             <PanelTitle>{e.exportTitle}</PanelTitle>
             <input
               value={exportName}
