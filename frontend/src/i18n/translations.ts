@@ -40,6 +40,7 @@ export interface Dict {
   dashTitle: string
   dashSubtitle: string
   dashAiNotice: string
+  dashSpecNotice: string
   dashDropTitle: string
   dashDropMulti: string
   dashSelectFile: string
@@ -110,6 +111,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashTitle: '이모티콘을 올려주세요',
     dashSubtitle: 'PNG, JPG 파일을 끌어다 놓으면 바로 시작할 수 있어요.',
     dashAiNotice: 'AI 로컬라이징이 적용됨',
+    dashSpecNotice: '이모티콘 업로드 규격',
     dashDropTitle: '파일을 여기에 끌어다 놓으세요',
     dashDropMulti: '여러 장을 한 번에 올릴 수 있어요',
     dashSelectFile: '파일 선택',
@@ -143,7 +145,7 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG 다운로드에 실패했어요.',
     toastZipFail: 'ZIP 다운로드에 실패했어요.',
     toastDownloadFail: '다운로드에 실패했어요.',
-    nfTitle: '페이지를 찾을 수 없어요',
+    nfTitle: '페이지를 찾을 수 없어요😭',
     nfDesc: '주소가 바뀌었거나 없는 페이지예요.',
     nfHome: '홈으로 돌아가기',
   },
@@ -176,6 +178,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashTitle: 'Upload your emojis',
     dashSubtitle: 'Drag and drop PNG or JPG files to get started.',
     dashAiNotice: 'AI localization enabled',
+    dashSpecNotice: 'Emoji upload specs',
     dashDropTitle: 'Drag files here',
     dashDropMulti: 'You can upload several at once',
     dashSelectFile: 'Choose files',
@@ -209,7 +212,7 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG download failed.',
     toastZipFail: 'ZIP download failed.',
     toastDownloadFail: 'Download failed.',
-    nfTitle: 'Page not found',
+    nfTitle: 'Page not found😭',
     nfDesc: 'The page may have moved or no longer exists.',
     nfHome: 'Back to home',
   },
@@ -242,6 +245,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashTitle: '絵文字をアップロード',
     dashSubtitle: 'PNG・JPGファイルをドラッグ&ドロップですぐ始められます。',
     dashAiNotice: 'AIローカライズを使用',
+    dashSpecNotice: '絵文字アップロード規格',
     dashDropTitle: 'ここにファイルをドロップ',
     dashDropMulti: '複数枚を一度にアップロードできます',
     dashSelectFile: 'ファイルを選択',
@@ -275,7 +279,7 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNGのダウンロードに失敗しました。',
     toastZipFail: 'ZIPのダウンロードに失敗しました。',
     toastDownloadFail: 'ダウンロードに失敗しました。',
-    nfTitle: 'ページが見つかりません',
+    nfTitle: 'ページが見つかりません😭',
     nfDesc: 'アドレスが変わったか、存在しないページです。',
     nfHome: 'ホームに戻る',
   },
@@ -308,6 +312,7 @@ export const translations: Record<SiteLang, Dict> = {
     dashTitle: '上传你的表情包',
     dashSubtitle: '拖入 PNG、JPG 文件即可开始。',
     dashAiNotice: '已启用 AI 本地化',
+    dashSpecNotice: '表情包上传规格',
     dashDropTitle: '将文件拖到这里',
     dashDropMulti: '可以一次上传多张',
     dashSelectFile: '选择文件',
@@ -341,7 +346,7 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG 下载失败。',
     toastZipFail: 'ZIP 下载失败。',
     toastDownloadFail: '下载失败。',
-    nfTitle: '找不到页面',
+    nfTitle: '找不到页面😭',
     nfDesc: '地址可能已更改，或该页面不存在。',
     nfHome: '返回首页',
   },
