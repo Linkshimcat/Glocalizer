@@ -47,8 +47,11 @@ backend/python/__pycache__/
 # Claude Code 로컬 설정 (머신별 권한 허용목록 등 — 커밋 대상 아님)
 .claude/
 
-# 불필요한 리소스 제외
-output/pdf
+# 생성 산출물·보고서 (로컬 보관 — Git으로 공유하지 않음)
+# 문서 자체(api.md 등 Markdown)는 계속 추적한다.
+output/
+docs/*.pdf
+docs/*.docx
 
 # 로컬 전용 감사 기록 (공유 대상 아님)
-docs/secret-audit-2026-09-02.md
+docs/secret-audit-*.md
