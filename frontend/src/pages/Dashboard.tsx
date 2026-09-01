@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
 import Header from '../components/Header'
+import UploadSpecBadge from '../components/UploadSpecBadge'
 import { useToast } from '../components/Toast'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -109,8 +110,9 @@ export default function Dashboard() {
         <p className="mt-2 text-[16px] font-medium text-sub">
           {t.dashSubtitle}
         </p>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <AILocalizationBadge />
+          <UploadSpecBadge />
         </div>
 
         {/* 드롭존 */}

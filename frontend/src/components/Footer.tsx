@@ -28,7 +28,7 @@ export default function Footer() {
               rel="noreferrer"
               className="underline underline-offset-2 transition-colors hover:text-ink"
             >
-              Apache License 2.0
+              라이센스: Apache License 2.0
             </a>
           </p>
         </div>

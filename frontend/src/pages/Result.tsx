@@ -5,6 +5,7 @@ import greenBackground from '../assets/LendingPage/GreenBackground-web.jpg'
 import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
 import Header from '../components/Header'
+import UploadSpecBadge from '../components/UploadSpecBadge'
 import { toDemoItems } from '../data/demo'
 import { DEFAULT_STYLE, resolveText } from '../lib/style'
 import { useUploads } from '../store/uploads'
@@ -76,6 +77,7 @@ export default function Result() {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2>
             <AILocalizationBadge />
+            <UploadSpecBadge />
           </div>
           <div className="mt-4 space-y-7">
             {languages.map(language => {

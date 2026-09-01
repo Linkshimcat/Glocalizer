@@ -135,6 +135,186 @@ body {
   animation-play-state: running;
 }
 
+/* ── 로딩 화면 오로라 배경 ──────────────────────────────────────────────
+   큰 블러 덩어리 4개가 서로 다른 주기로 흐르고, 그 위를 커튼 한 겹이
+   좌우로 밀려가면서 파도처럼 겹치는 결을 만든다. transform만 애니메이션해
+   블러를 매 프레임 다시 계산하지 않도록 한다. */
+/* ── 로딩 화면 오로라 배경 ──────────────────────────────────────────────
+   드롭존과 같은 conic 그라데이션 팔레트를 화면 전체로 키우고, 그 위에
+   물결 띠 두 겹을 얹어 천천히 파도치게 만든다. 블러는 정적으로 두고
+   background-position·transform만 애니메이션한다. */
+/* ── 로딩 화면 오로라 배경 ──────────────────────────────────────────────
+   드롭존과 같은 conic 팔레트를 화면 전체로 키우고 물결 띠를 얹는다.
+   블러가 걸린 레이어는 transform(translate)만 애니메이션한다 —
+   background-position·border-radius·scale·rotate를 움직이면 매 프레임
+   거대한 블러를 다시 래스터해야 해서 프레임을 놓치고 흰 화면이 번쩍인다. */
+
+/* 어떤 순간에도 순백이 드러나지 않도록 깔아두는 불투명 바닥 */
+.aurora-base {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    #e9f7ee 0%,
+    #e4f3f5 34%,
+    #eef4e8 58%,
+    #f5efe4 78%,
+    #ecf6f1 100%
+  );
+}
+
+.aurora-field {
+  position: absolute;
+  /* 뷰포트의 2배 크기 — 흘러도 가장자리가 드러나지 않는다. */
+  inset: -50%;
+  background: conic-gradient(
+    from 120deg,
+    rgba(34, 197, 94, 0.72),
+    rgba(45, 212, 191, 0.55),
+    rgba(125, 211, 252, 0.5),
+    rgba(244, 114, 182, 0.42),
+    rgba(250, 204, 21, 0.32),
+    rgba(34, 197, 94, 0.72)
+  );
+  filter: blur(72px);
+  opacity: 0.62;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: aurora-drift-x 34s ease-in-out infinite alternate;
+}
+
+/* 같은 팔레트를 반대로 돌려 겹치면 색 경계가 한자리에 고정되지 않는다. */
+.aurora-field--alt {
+  background: conic-gradient(
+    from 300deg,
+    rgba(250, 204, 21, 0.34),
+    rgba(244, 114, 182, 0.4),
+    rgba(125, 211, 252, 0.5),
+    rgba(45, 212, 191, 0.52),
+    rgba(34, 197, 94, 0.6),
+    rgba(250, 204, 21, 0.34)
+  );
+  opacity: 0.44;
+  animation: aurora-drift-y 47s ease-in-out infinite alternate;
+}
+
+/* 물결 띠 — 능선 모양은 고정해두고 옆으로 밀려가게만 한다. */
+.aurora-swell {
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  filter: blur(60px);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.aurora-swell--back {
+  top: 8%;
+  height: 58%;
+  border-radius: 52% 48% 44% 56% / 44% 56% 42% 58%;
+  background: linear-gradient(
+    268deg,
+    rgba(250, 204, 21, 0.3) 0%,
+    rgba(244, 114, 182, 0.32) 30%,
+    rgba(125, 211, 252, 0.4) 66%,
+    rgba(45, 212, 191, 0.42) 100%
+  );
+  animation: aurora-roll-back 26s ease-in-out infinite alternate;
+}
+
+.aurora-swell--mid {
+  top: 34%;
+  height: 54%;
+  border-radius: 60% 40% 52% 48% / 40% 58% 42% 60%;
+  background: linear-gradient(
+    88deg,
+    rgba(125, 211, 252, 0.34) 0%,
+    rgba(244, 114, 182, 0.26) 42%,
+    rgba(250, 204, 21, 0.3) 100%
+  );
+  animation: aurora-roll-mid 31s ease-in-out infinite alternate;
+}
+
+.aurora-swell--front {
+  bottom: -6%;
+  height: 62%;
+  border-radius: 46% 54% 50% 50% / 58% 52% 48% 42%;
+  background: linear-gradient(
+    92deg,
+    rgba(34, 197, 94, 0.5) 0%,
+    rgba(45, 212, 191, 0.44) 34%,
+    rgba(125, 211, 252, 0.4) 62%,
+    rgba(244, 114, 182, 0.3) 100%
+  );
+  animation: aurora-roll-front 19s ease-in-out infinite alternate;
+}
+
+/* 문구 뒤에만 좁게 까는 헤일로 — 배경 전체를 씻어내지는 않는다. */
+.aurora-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    32% 26% at 50% 50%,
+    rgba(255, 255, 255, 0.74) 0%,
+    rgba(255, 255, 255, 0.34) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+@media (min-width: 768px) {
+  .aurora-field {
+    filter: blur(110px);
+  }
+  .aurora-swell {
+    filter: blur(90px);
+  }
+}
+
+@keyframes aurora-drift-x {
+  from {
+    transform: translate3d(-6%, -3%, 0);
+  }
+  to {
+    transform: translate3d(6%, 3%, 0);
+  }
+}
+
+@keyframes aurora-drift-y {
+  from {
+    transform: translate3d(5%, 4%, 0);
+  }
+  to {
+    transform: translate3d(-5%, -4%, 0);
+  }
+}
+
+@keyframes aurora-roll-back {
+  from {
+    transform: translate3d(-9%, 2%, 0);
+  }
+  to {
+    transform: translate3d(9%, -2%, 0);
+  }
+}
+
+@keyframes aurora-roll-mid {
+  from {
+    transform: translate3d(8%, -3%, 0);
+  }
+  to {
+    transform: translate3d(-8%, 3%, 0);
+  }
+}
+
+@keyframes aurora-roll-front {
+  from {
+    transform: translate3d(-10%, 3%, 0);
+  }
+  to {
+    transform: translate3d(10%, -3%, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-success-pop,
   .animate-success-check,
@@ -142,7 +322,9 @@ body {
     animation: none;
   }
 
-  .dropzone-aurora::before {
+  .dropzone-aurora::before,
+  .aurora-field,
+  .aurora-swell {
     animation: none;
   }
 }
