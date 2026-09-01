@@ -25,10 +25,10 @@ dist-ssr
 .vite
 
 # 환경변수 (API 키 등 비밀 값 — 절대 커밋 금지)
+# .env 로 시작하는 모든 변형(.env.production 등)을 막고, 공유용 템플릿만 예외로 둡니다.
 .env
-.env.local
-*/.env
-*/.env.local
+.env.*
+!.env.example
 
 # Local OCR benchmark inputs and regenerable acceleration artifacts
 backend/benchmarks/ocr/images/
@@ -46,3 +46,9 @@ backend/python/__pycache__/
 
 # Claude Code 로컬 설정 (머신별 권한 허용목록 등 — 커밋 대상 아님)
 .claude/
+
+# 불필요한 리소스 제외
+output/pdf
+
+# 로컬 전용 감사 기록 (공유 대상 아님)
+docs/secret-audit-2026-09-02.md
