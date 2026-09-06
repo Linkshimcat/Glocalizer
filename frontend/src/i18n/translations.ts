@@ -88,7 +88,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: '한국 밈을',
     heroLine2: '전 세계 언어로',
-    heroDesc: '이모티콘 속 한글을 자연스러운 현지 표현으로 바꿔드려요.',
+    heroDesc: '이모티콘 속 한글을 자연스러운 현지 표현으로 바꿔요.',
     heroCta: '시작하기',
     beforeAfter: 'Before → After',
     cardTitle: '한글 밈이 현지 표현이 돼요',

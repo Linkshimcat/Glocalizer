@@ -60,7 +60,9 @@ export default function Landing() {
                   <br />
                   <span className="text-brand">{t.heroLine2}</span>
                 </h1>
-                <p className="mt-5 max-w-[420px] text-[15px] font-medium text-sub sm:mt-6 sm:text-[17px]">
+                <p className={`mt-5 max-w-[420px] font-medium text-sub sm:mt-6 sm:text-[17px] ${
+                  lang === 'ko' ? 'whitespace-nowrap text-[13px] min-[360px]:text-[14px]' : 'text-[15px]'
+                }`}>
                   {t.heroDesc}
                 </p>
                 <Button size="lg" onClick={() => navigate('/dashboard')} className="mt-7 w-full sm:mt-8 sm:w-auto">
