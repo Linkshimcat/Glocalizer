@@ -18,7 +18,7 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 
 #### **[해결 방안 (**Glocalizer**의 가치)]**
 
-본 프로덕트는 사용자가 이모티콘 이미지를 업로드하고 클릭 한 번만 하면, 이모티콘 이미지 속 한국어 글자의 위치를 정확히 찾아내고, 해당 글자 영역을 단순히 지우는 것에 그치지 않고, 글자 뒤에 가려져 있던 캐릭터나 배경을 AI가 예측하여 자연스럽게 채워 넣음. 대상 국가의 최신 인터넷 밈, 신조어, 유행어를 학습한 LLM을 활용해, 한국어 원문의 뉘앙스를 현지 청소년들이 진짜 쓰는 찰진 표현으로 자연스럽게 치환함. 현지에서 이모티콘에 자주 쓰이는 귀엽고 개성 있는 무료 폰트들을 매칭하고, 원본의 구도에 맞게 텍스트를 얹어 최종 완성본을 제공함.
+본 프로덕트는 사용자가 이모티콘 이미지를 업로드하면 이미지 속 한국어 글자 영역을 탐지하고, 안전하게 지울 수 있는 영역은 주변 색상과 형태를 바탕으로 자동 정리함. 이후 LLM이 한국어 원문의 의미와 말투를 대상 언어에 맞는 표현으로 현지화하고, 원본 스타일에 가까운 글꼴 후보와 함께 편집 가능한 결과를 제공함. OCR·번역·이미지 정리는 입력에 따라 실패하거나 부정확할 수 있으므로, 사용자는 에디터에서 원문과 번역문, 글자 영역, 배경 정리 방식, 글꼴과 위치를 직접 검토하고 수정할 수 있음.
 
 ---
 
@@ -48,11 +48,12 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
       → PaddleOCR 경로일 때만 selectConsensusRegions로 다중 변형 IoU+텍스트 유사도 합의
       → 여러 줄로 잘린 캡션은 mergeWrappedLines로 한 캡션으로 병합
       → 합의도 낮음 + 한글 3자 이하 등 조건이면 Vision(Groq/Gemini) 폴백으로 재판정
-   2. 번역 + 폰트 스타일 분석 (병렬, 서로 독립)
+   2. 번역 → 폰트 스타일 분석 (순차 실행, 실패는 서로 독립)
       - 번역: Groq(Qwen3.6 27B)로 원문 뉘앙스 반영한 다국어 번역 후보 생성
-      - 폰트 스타일 분석: Vision 모델이 원본 글자 크롭만 보고 굵기/둥글기/손글씨여부/격식 태깅 (soft-fail)
+      - 폰트 스타일 분석: 번역 완료 후 Vision 모델이 원본 글자 크롭만 보고 굵기/둥글기/손글씨 여부/격식 태깅 (soft-fail)
    3. 이미지 정리(cleanup) 단계
-      OCR 영역을 Sharp로 크롭→블러→합성 (배경 재구성 없이 항상 성공)
+      OCR 영역의 배경 복잡도와 마스크 안전성을 평가해 방향성 inpaint·단색 채우기·투명 처리를 선택
+      → 마스크 신뢰도가 낮거나 OCR 검수가 필요하면 원본을 보존하고 에디터의 수동 정리 대상으로 표시
    4. 결과 저장 → project/asset 상태를 completed로 갱신
    ▼
 [Supabase: PostgreSQL + Storage]
@@ -108,7 +109,7 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 
 | **분류** | **기술 스택** |
 | --- | --- |
-| Backend | Node.js (v22+) , TypeScript, Express 5, supabase |
+| Backend | Node.js (v22+), TypeScript, Express 5, Supabase |
 | Frontend | React 19, Vite, TypeScript, TailWind CSS |
 | Design | Figma, Claude Design |
 
@@ -118,28 +119,33 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 
 ```bash
 # 0. 사전 준비
-#    - Node.js 20+, Python 3.12(PaddlePaddle이 3.14 미지원)
-#    - Supabase 프로젝트(Postgres + Storage), Groq API 키, OpenAI API 키(OCR 주력, OCR_PROVIDER=luna일 때 필요)
+#    - Node.js 22+, Python 3.12(PaddlePaddle이 3.14 미지원)
+#    - Supabase 프로젝트(Postgres + Storage), Groq API 키
+#    - OpenAI API 키는 OCR_PROVIDER=luna일 때만 필요
 #      OPENAI_API_KEY 없이도 OCR_PROVIDER=paddle로 두면 PaddleOCR만으로 로컬 실행 가능
 
-# 1. 백엔드
+git clone https://github.com/Linkshimcat/Glocalizer.git
+cd Glocalizer
+
+# 1. 백엔드 (터미널 1, 저장소 루트에서 시작)
 cd backend
 cp .env.example .env        # SUPABASE_*, DATABASE_URL, GROQ_API_KEY, OPENAI_API_KEY 등 채우기
 python3 -m venv python/.venv
 python/.venv/bin/pip install -r python/requirements.txt
 # .env의 OCR_PYTHON_EXECUTABLE을 python/.venv/bin/python3 절대경로로 지정
-npm install
+npm ci
 npm run db:migrate          # supabase/migrations 순서대로 적용
 npm run dev                 # http://localhost:3000, tsx watch
 
-# 2. 프론트엔드
+# 2. 프론트엔드 (터미널 2, 저장소 루트에서 시작)
 cd frontend
-npm install
+cp .env.example .env
+npm ci
 npm run dev                 # http://localhost:5173, VITE_API_BASE_URL로 백엔드 지정
 
-# 3. 테스트
-cd backend && npm test      # vitest
-cd frontend && npx tsc --noEmit && npm run build
+# 3. 검증 (저장소 루트에서 실행)
+(cd backend && npm test)    # vitest
+(cd frontend && npm run lint && npm run build)
 
 # 배포는 각각 GitHub 연동 자동배포: backend → Render(Docker), frontend → Vercel
 ```
@@ -148,86 +154,98 @@ cd frontend && npx tsc --noEmit && npm run build
 
 #### **[AI 사용 내역]**
 
-Claude, ChatGPT, Gemini, GLM
+AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리 결과를 에디터에서 사용자가 확인하고 직접 수정할 수 있으며, 자동 정리가 안전하지 않다고 판단되면 원본을 보존하고 수동 정리 대상으로 표시함.
+
+**제품 실행 중 사용하는 AI·ML**
+
+| 제공자·모델 | 사용 목적 | 전달 데이터 | 실패 대응 |
+| --- | --- | --- | --- |
+| OpenAI · GPT-5.6 Luna | `OCR_PROVIDER=luna` 배포에서 업로드 이미지의 한국어 문구와 좌표를 찾는 OCR | 크기를 제한한 업로드 이미지 | 호출 실패 또는 한글 미검출 시 로컬 PaddleOCR로 폴백 |
+| PaddlePaddle · PP-OCRv5 Korean | 로컬 OCR 및 Luna 장애 시 폴백 | 서버 내부 이미지 처리, 외부 AI API 전송 없음 | 여러 전처리 결과의 IoU·문자 유사도 합의와 수동 영역 지정 제공 |
+| Groq · Qwen3.6 27B | OCR 원문의 영어·일본어·중국어 현지화, 선택적 OCR 재판정과 글꼴 스타일 분석 | OCR 텍스트, 대상 언어, 필요한 경우 글자 영역 이미지 | 제한된 재시도 후 애셋별 오류 또는 soft-fail 처리 |
+| Google · Gemini 2.5 Flash | OCR 합의도가 낮을 때 선택적으로 재판정하는 보조 Vision 모델 | 재판정이 필요한 이미지 | API 키가 없거나 호출에 실패하면 기존 OCR 결과와 수동 편집 경로 유지 |
+| Google · Gemini 3.7 Flash | 2026-08-24 내부 OCR 정확도 벤치마크에만 사용한 비교 모델 | 벤치마크용 이미지 | 제품의 현재 런타임 모델에는 포함하지 않음 |
+
+저장소 기본값은 `OCR_PROVIDER=paddle`이며, `OCR_PROVIDER`, `VISION_PROVIDER`, `ENABLE_FONT_STYLE_ANALYSIS` 환경변수로 각 기능의 사용 여부를 제어함. 프로젝트는 업로드 이미지를 자체 모델 학습 데이터로 사용하지 않으며, 외부 AI API를 사용하는 경우 해당 제공자의 데이터 처리 정책이 적용됨.
+
+**개발 과정에서 사용한 생성형 AI**
+
+| 도구 | 사용 범위 | 반영 원칙 |
+| --- | --- | --- |
+| ChatGPT / Codex | 코드 작성·검토, 테스트, 문서 초안 | 팀원이 diff와 실행 결과를 검토한 뒤 반영 |
+| Claude Code | 코드·UI 아이디어와 디자인 보조 | 기존 디자인 시스템과 요구사항에 맞는지 사람이 검토 |
+| Gemini / GLM | 기술 대안 비교와 문구 초안 | 제품 런타임 모델과 구분하며 결과를 그대로 확정하지 않음 |
+
+생성형 AI는 구현·테스트·문서의 초안과 대안을 제안하는 데 사용함. 요구사항과 아키텍처 결정, Figma 원본 디자인, 적용할 코드 선택과 수정, 테스트·배포 결과 확인은 팀원이 직접 수행하며, AI 생성 결과를 검토 없이 제품에 반영하지 않음.
+
+#### **[보안 점검]**
+
+- 점검일: 2026-09-07
+- 현재 Git 추적 파일에서 OpenAI·Groq·Gemini·Supabase 형식의 실제 키와 `API_KEY`·`SECRET`·`PASSWORD`·`SERVICE_ROLE_KEY`·`DATABASE_URL`에 직접 대입된 비밀값을 검색한 결과, 운영 비밀값은 발견되지 않음.
+- 초기 Git 기록의 `backend/.env`에는 `SUPABASE_URL`과 레거시 `SUPABASE_ANON_KEY`가 포함된 적이 있음. `anon` 키는 공개 클라이언트용 키이며 비밀키는 아니지만, 현재는 파일을 추적 대상에서 제거했고 [`007_enable_rls.sql`](supabase/migrations/007_enable_rls.sql)에서 모든 서비스 테이블의 RLS를 활성화해 `anon`·`authenticated` 접근을 차단함. OpenAI·Groq·Gemini 키와 Supabase `service_role` 키가 커밋된 흔적은 발견되지 않음.
+- 단위 테스트에는 외부 호출을 막기 위한 `test-groq-key`, `test-openai-key`만 존재하며 실제 인증 정보가 아님.
+- 실제 값은 로컬 `backend/.env` 또는 Render·Vercel·Supabase의 환경변수로만 주입함. `.env`와 파생 파일은 `.gitignore`로 제외하고, 공유용 `.env.example`만 추적함.
+- 향후 실제 비밀키가 Git 기록이나 외부 로그에 노출되면 환경변수로 옮기는 것만으로 끝내지 않고, 제공자 콘솔에서 기존 키를 폐기한 뒤 새 키를 발급함. Supabase 레거시 `anon` 키는 긴급 폐기 대상은 아니지만, 지원 종료 전에 새 publishable key로 이전함.
 
 ---
 
-#### **하단 명시**
+#### **[오픈소스 패키지 및 라이선스]**
 
-#### **[사용한 AI 모델]**
+아래 표는 `backend/package.json`, `frontend/package.json`, `backend/python/requirements*.txt`의 직접 의존성 기준임. 실제 배포에 포함되는 전이 의존성의 고지 사항은 각 lockfile과 패키지 배포본의 `LICENSE`를 함께 확인함.
 
-한국어 텍스트 인식 모델(GPT-5.6 Luna, Vision LLM / 주력 OCR — 실패 시 PaddleOCR PP-OCRv5 Korean으로 자동 폴백), 텍스트 분석 및 번역 모델(Groq Qwen3.6 27B / LLM), 보조 분석 모델(Vision Language Model / Multimodal LLM)
+**Backend · Node.js**
 
----
+| 패키지 | 선언 버전 | 라이선스 | 용도 |
+| --- | --- | --- | --- |
+| @supabase/supabase-js | ^2.110.2 | MIT | Supabase Storage·Database 클라이언트 |
+| cors / express / express-rate-limit | ^2.8.6 / ^5.2.1 / ^8.6.0 | MIT | HTTP API, CORS, 요청 속도 제한 |
+| pg | ^8.22.0 | MIT | PostgreSQL 연결과 마이그레이션 |
+| pino / pino-http / pino-pretty | ^10.3.1 / ^11.0.0 / ^13.1.3 | MIT | 구조화 로깅과 개발용 출력 |
+| zod | ^4.4.3 | MIT | 요청·환경변수 스키마 검증 |
+| dotenv | ^17.4.2 | BSD-2-Clause | 로컬 환경변수 로드 |
+| sharp | ^0.35.3 | Apache-2.0 | 이미지 디코딩·마스킹·합성 |
+| supertest / vitest / tsx | ^7.2.2 / ^4.1.10 / ^4.23.1 | MIT | 통합 테스트, 테스트 러너, TypeScript 실행 |
+| typescript | ^7.0.2 | Apache-2.0 | 정적 타입 검사와 빌드 |
+| @types/cors / @types/express / @types/node / @types/pg / @types/supertest | package.json 참조 | MIT | TypeScript 타입 선언 |
 
-#### **[오픈소스 패키지]**
+**Frontend · Node.js**
 
-**Backend — 서버/인프라**
+| 패키지 | 선언 버전 | 라이선스 | 용도 |
+| --- | --- | --- | --- |
+| react / react-dom / react-router-dom | ^19.2.7 / ^19.2.7 / ^7.18.1 | MIT | UI 렌더링과 클라이언트 라우팅 |
+| tailwindcss / @tailwindcss/vite | ^4.3.2 | MIT | 스타일 시스템과 Vite 연동 |
+| lucide-react | ^1.25.0 | ISC | 버튼·상태 아이콘 |
+| jszip | ^3.10.1 | MIT 선택 사용 | 여러 PNG 결과의 ZIP 다운로드 |
+| vite / @vitejs/plugin-react | ^8.1.1 / ^6.0.3 | MIT | 개발 서버와 production build |
+| oxlint | ^1.71.0 | MIT | 정적 분석과 린트 |
+| playwright | ^1.62.1 | Apache-2.0 | 브라우저 화면 검증 |
+| typescript | ~6.0.2 | Apache-2.0 | 정적 타입 검사와 빌드 |
+| @types/node / @types/react / @types/react-dom | package.json 참조 | MIT | TypeScript 타입 선언 |
 
-| 패키지 | 용도 |
-| --- | --- |
-| express | HTTP API 서버 프레임워크 |
-| cors | 프론트엔드 origin 허용(CORS) 미들웨어 |
-| express-rate-limit | API 요청 속도 제한 |
-| zod | 요청 바디·환경변수 스키마 검증 |
-| pino / pino-http / pino-pretty | 구조화 로깅(JSON) 및 개발용 포맷터 |
-| dotenv | .env 환경변수 로드 |
+**Backend · Python/OCR**
 
-**Backend — 데이터**
+| 패키지 | 선언 버전 | 라이선스 | 용도 |
+| --- | --- | --- | --- |
+| paddleocr / paddlepaddle | >=3.0.0,<4.0.0 | Apache-2.0 | PP-OCRv5 기반 로컬 OCR |
+| Pillow | >=10.0.0 | HPND | 이미지 입출력과 전처리 |
+| NumPy | >=1.26.0 | BSD-3-Clause | 이미지 배열 연산 |
+| opencv-contrib-python | >=4.9.0,<5.0.0 | Apache-2.0 | 마스크 기반 inpaint 처리 |
+| openvino / opencv-python-headless | 선택 설치 | Apache-2.0 | Intel NPU OCR 추론과 이미지 처리 |
+| paddle2onnx | 선택 설치 | Apache-2.0 | 로컬 OCR 모델의 ONNX 변환 |
 
-| 패키지 | 용도 |
-| --- | --- |
-| @supabase/supabase-js | Supabase Storage(서명 URL 발급/업로드) 클라이언트 |
-| pg | 마이그레이션 실행 등 Postgres 직접 연결(node-postgres) |
+주요 원문: [npm 패키지 정보](https://www.npmjs.com/), [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR), [PaddlePaddle](https://github.com/PaddlePaddle/Paddle), [Pillow](https://github.com/python-pillow/Pillow), [NumPy](https://github.com/numpy/numpy), [OpenCV](https://github.com/opencv/opencv), [OpenVINO](https://github.com/openvinotoolkit/openvino)
 
-**Backend — 이미지/OCR**
+#### **[폰트·아이콘·이미지·영상 출처]**
 
-| 패키지 | 용도 |
-| --- | --- |
-| sharp | 이미지 크롭·리사이즈·블러·합성 전 과정(libvips 기반, 고성능) |
-| paddleocr / paddlepaddle | 한글 포함 다국어 OCR 엔진 (Python) |
-| pillow, numpy | Python 측 이미지 배열 처리(OCR 전처리용) |
-
-**Backend — 테스트**
-
-| 패키지 | 용도 |
-| --- | --- |
-| vitest | 단위/통합 테스트 러너 |
-| supertest | Express 앱에 대한 HTTP 통합 테스트 |
-
-**Frontend — 프레임워크**
-
-| 패키지 | 용도 |
-| --- | --- |
-| react / react-dom | UI 라이브러리 |
-| react-router-dom | 클라이언트 라우팅(대시보드/에디터 등 페이지 전환) |
-| vite | 개발 서버·번들러 |
-| typescript | 정적 타입 검사 |
-
-**Frontend — UI/스타일**
-
-| 패키지 | 용도 |
-| --- | --- |
-| tailwindcss / @tailwindcss/vite | 유틸리티 CSS 프레임워크 |
-| lucide-react | 아이콘 세트 |
-
-**Frontend — 기능**
-
-| 패키지 | 용도 |
-| --- | --- |
-| jszip | 여러 번역 결과 PNG를 ZIP으로 묶어 일괄 다운로드 |
-
-**Frontend — 품질**
-
-| 패키지 | 용도 |
-| --- | --- |
-| oxlint | 고속 Rust 기반 린터 |
-
-**공통**
-
-| 패키지 | 용도 |
-| --- | --- |
-| tsx | 백엔드 dev 서버(TypeScript 즉시 실행/watch) |
+| 에셋 | 출처·라이선스 | 사용 위치 |
+| --- | --- | --- |
+| Anton, Baloo 2, Bangers, Black Han Sans, Caveat, Comic Neue, Do Hyeon, Fredoka, Gaegu, Gothic A1, Jua, Lobster, Luckiest Guy, Nanum Pen Script, Noto Sans JP/KR/SC, Poppins | [Google Fonts](https://fonts.google.com/)에서 웹폰트로 로드하며 각 글꼴의 SIL Open Font License 1.1을 따름 | 에디터 번역문 글꼴 선택 |
+| Lucide 아이콘 | [Lucide](https://lucide.dev/), ISC License | 공통 버튼과 상태 아이콘 |
+| `iconsax-*.svg` 기반 아이콘 | [Iconsax](https://github.com/lusaxweb/iconsax), MIT License | AI 배지·안내 아이콘 |
+| `GlocalizerLogo.png`, `GCFrontendUI/*`, `ServicePageLending/about-*.png`, `ProCards.png` | Glocalizer Team이 제작·편집한 Figma 및 서비스 UI 에셋 | 로고, 업로드·소개 화면 |
+| `ServicePageLending/IntroduceVideo.mp4` | Glocalizer Team 제작 서비스 소개 영상 | 서비스 소개 페이지 |
+| `LendingPage/GreenBackground-web.jpg` | [Magnific 원본](https://www.magnific.com/kr/free-vector/colorful-gradient-blur-background_16330574.htm), [라이선스 증명서](docs/licenses/GreenBackground-Magnific-license.pdf) · Free for commercial use WITH ATTRIBUTION · 저작자 `rawpixel.com - Magnific.com` · 웹 표시 문구 `designed by rawpixel.com - Magnific.com` | 결과·랜딩 배경 |
+| `github-mark.svg` | [GitHub Logos and Usage](https://github.com/logos)의 표시 지침을 따름 | 공통 푸터 |
 
 ---
 
@@ -250,6 +268,6 @@ OCR 오인식 및 오역을 막고자 사용자에게 '검수 및 확인 단계'
     말풍선/스티커 템블릿 및 수동 오버레이 UI 도입: 배경 복원이 어려운 복잡한 밈 이미지를 고려해, 사용자가 직접 문제를 해결할 수 있는 직관적인 수동 제어 UX 제안. 말풍선 스티커 추가 또는 이미지 업로드 기능을 도입하여, 깨끗한 말풍선/자막 바(혹은 사용자가 만든 템플릿)를 원본 글자 위에 직접 붙여 가린 후 번역문을 작성할 수 있도록 보완함.
    
 ---
-# **[라이선스- 오픈소스 라이선스 명시]**
-Apache License 2.0
-[http://www.apache.org/licenses/](https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file)
+# **[프로젝트 라이선스]**
+
+Glocalizer 소스 코드는 [Apache License 2.0](https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file)으로 배포함. 라이선스 전문과 조건은 [Apache License 2.0 공식 문서](https://www.apache.org/licenses/LICENSE-2.0)에서도 확인할 수 있음.

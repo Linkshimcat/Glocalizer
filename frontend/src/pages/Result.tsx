@@ -71,6 +71,16 @@ export default function Result() {
             </p>
           </div>
         </div>
+        <p className="mt-2 text-right text-[10px] font-medium text-sub">
+          <a
+            href="https://www.magnific.com"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 transition-colors hover:text-ink"
+          >
+            designed by rawpixel.com - Magnific.com
+          </a>
+        </p>
 
         {/* 결과 미리보기 */}
         <section className="mt-12">
