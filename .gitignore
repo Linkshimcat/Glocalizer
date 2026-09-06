@@ -55,3 +55,7 @@ docs/*.docx
 
 # 로컬 전용 감사 기록 (공유 대상 아님)
 docs/secret-audit-*.md
+
+# 영상 마스터 원본 — 웹용은 frontend/src/assets 에 압축본으로 들어간다
+media-master/
+tmp/

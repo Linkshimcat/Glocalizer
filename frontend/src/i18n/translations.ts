@@ -16,6 +16,7 @@ export interface Dict {
   heroLine2: string
   heroDesc: string
   heroCta: string
+  heroReplay: string
   beforeAfter: string
   cardTitle: string
   beforeLabel: string
@@ -90,6 +91,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroLine2: '전 세계 언어로',
     heroDesc: '이모티콘 속 한글을 자연스러운 현지 표현으로 바꿔요.',
     heroCta: '시작하기',
+    heroReplay: '영상 처음부터 다시 보기',
     beforeAfter: 'Before → After',
     cardTitle: '한글 밈이 현지 표현이 돼요',
     beforeLabel: 'Before · 원본',
@@ -157,6 +159,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroLine2: 'in every language',
     heroDesc: 'We turn the Korean text in your emojis into natural local expressions.',
     heroCta: 'Get started',
+    heroReplay: 'Replay the video from the start',
     beforeAfter: 'Before → After',
     cardTitle: 'Korean memes become local expressions',
     beforeLabel: 'Before · Original',
@@ -224,6 +227,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroLine2: '世界の言語へ',
     heroDesc: '絵文字の中の韓国語を、自然なローカル表現に変換します。',
     heroCta: 'はじめる',
+    heroReplay: '動画を最初から再生',
     beforeAfter: 'Before → After',
     cardTitle: '韓国のミームがローカル表現になります',
     beforeLabel: 'Before · 原文',
@@ -291,6 +295,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroLine2: '变成全球语言',
     heroDesc: '将表情包里的韩文转换成自然的本地表达。',
     heroCta: '开始使用',
+    heroReplay: '从头播放视频',
     beforeAfter: 'Before → After',
     cardTitle: '韩国梗变成本地表达',
     beforeLabel: 'Before · 原文',
