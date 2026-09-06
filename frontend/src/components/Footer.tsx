@@ -31,6 +31,16 @@ export default function Footer() {
               라이센스: Apache License 2.0
             </a>
           </p>
+          <p className="mt-1 font-medium">
+            <a
+              href="https://www.magnific.com"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 transition-colors hover:text-ink"
+            >
+              designed by rawpixel.com - Magnific.com
+            </a>
+          </p>
         </div>
       </div>
     </footer>
