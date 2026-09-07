@@ -1102,18 +1102,18 @@ export default function Editor() {
           <div className="hidden gap-2 border-t border-gray-100 p-2.5 xl:flex">
             <Button
               variant="secondary"
-              size="sm"
+              size="xs"
               onClick={goPrev}
               disabled={currentIdx === 0}
-              className="flex-1 gap-1 px-2! whitespace-nowrap"
+              className="flex-1 gap-1 whitespace-nowrap"
             >
               <ChevronLeft className="h-4 w-4 shrink-0" /> {e.prev}
             </Button>
             <Button
-              size="sm"
+              size="xs"
               onClick={goNext}
               disabled={currentIdx === items.length - 1}
-              className="flex-1 gap-1 px-2! whitespace-nowrap"
+              className="flex-1 gap-1 whitespace-nowrap"
             >
               {e.next} <ChevronRight className="h-4 w-4 shrink-0" />
             </Button>
