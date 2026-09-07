@@ -14,6 +14,9 @@ export interface Dict {
   heroBrandTag: string
   heroLine1: string
   heroLine2: string
+  /** 히어로 2번째 줄에서 굴러가는 어절. LANGUAGES(en·ja·zh) 순서와 맞춘다.
+   *  조사가 깨지지 않도록 원어가 아니라 완성된 어절로 넣는다. */
+  heroLine2Roll: string[]
   heroDesc: string
   heroCta: string
   heroReplay: string
@@ -89,6 +92,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: '한국 밈을',
     heroLine2: '전 세계 언어로',
+    heroLine2Roll: ['영어로', '일본어로', '중국어로'],
     heroDesc: '이모티콘 속 한글을\n자연스러운 현지 표현으로 바꿔요.',
     heroCta: '시작하기',
     heroReplay: '영상 처음부터 다시 보기',
@@ -157,6 +161,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: 'Korean memes,',
     heroLine2: 'in every language',
+    heroLine2Roll: ['in English', 'in Japanese', 'in Chinese'],
     heroDesc: 'We turn the Korean text in your emojis into natural local expressions.',
     heroCta: 'Get started',
     heroReplay: 'Replay the video from the start',
@@ -225,6 +230,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: '韓国のミームを',
     heroLine2: '世界の言語へ',
+    heroLine2Roll: ['英語へ', '日本語へ', '中国語へ'],
     heroDesc: '絵文字の中の韓国語を、自然なローカル表現に変換します。',
     heroCta: 'はじめる',
     heroReplay: '動画を最初から再生',
@@ -293,6 +299,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: '把韩国梗',
     heroLine2: '变成全球语言',
+    heroLine2Roll: ['变成英语', '变成日语', '变成中文'],
     heroDesc: '将表情包里的韩文转换成自然的本地表达。',
     heroCta: '开始使用',
     heroReplay: '从头播放视频',
