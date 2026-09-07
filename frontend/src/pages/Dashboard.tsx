@@ -104,7 +104,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-white">
       <Header right={<StepIndicator />} sticky />
 
-      <main className="mx-auto max-w-[880px] px-4 pb-32 pt-10 sm:px-6 sm:py-16 lg:pb-16">
+      <main className="layout-app pb-32 pt-10 sm:py-16 lg:pb-16">
         <p className="text-sm font-extrabold text-brand-dark">{t.dashStep1}</p>
         <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">{t.dashTitle}</h1>
         <p className="mt-2 text-[16px] font-medium text-sub">

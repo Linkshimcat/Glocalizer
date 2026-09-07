@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
+import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -23,6 +24,8 @@ export default function NotFound() {
           {t.nfHome}
         </Button>
       </main>
+
+      <Footer />
     </div>
   )
 }
