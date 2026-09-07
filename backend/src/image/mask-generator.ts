@@ -17,20 +17,6 @@ export interface TextMaskOptions {
   backgroundColor?: { r: number; g: number; b: number };
 }
 
-/** 배경이 확실한 단색일 때만 쓰는 타이트한 bbox 채움 마스크. */
-export function createTightBoxMask(box: PixelBox, imageWidth: number, imageHeight: number): FeatherMask {
-  const data = new Uint8Array(imageWidth * imageHeight);
-  data.fill(255);
-  const left = Math.max(0, Math.floor(box.x));
-  const top = Math.max(0, Math.floor(box.y));
-  const right = Math.min(imageWidth, Math.ceil(box.x + box.width));
-  const bottom = Math.min(imageHeight, Math.ceil(box.y + box.height));
-  for (let y = top; y < bottom; y += 1) {
-    for (let x = left; x < right; x += 1) data[y * imageWidth + x] = 0;
-  }
-  return { data, width: imageWidth, height: imageHeight, roi: box };
-}
-
 // PNG 안티에일리어싱/JPEG 노이즈와 완만한 그라데이션까지 글자로 오인하면 OCR 박스
 // 대부분이 지워진다. 실제 글자색과 배경색을 구분할 수 있는 보수적인 최소 거리다.
 const MIN_COLOR_DISTANCE = 28;
