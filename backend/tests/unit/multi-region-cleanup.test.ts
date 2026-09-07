@@ -35,7 +35,6 @@ vi.mock('../../src/image/adaptive-text-mask.js', () => ({ generateAdaptiveTextMa
 vi.mock('../../src/image/solid-color-cleanup.js', () => ({ applySolidColorCleanup: vi.fn() }));
 vi.mock('../../src/image/transparent-cleanup.js', () => ({ applyTransparentCleanup: vi.fn() }));
 vi.mock('../../src/image/directional-inpaint.js', () => ({ applyDirectionalInpaint: vi.fn() }));
-vi.mock('../../src/image/blur-cleanup.js', () => ({ applyBlurCleanup: vi.fn() }));
 
 const assetRepo = await import('../../src/repositories/asset.repository.js');
 const ocrRepo = await import('../../src/repositories/ocr.repository.js');

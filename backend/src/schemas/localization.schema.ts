@@ -34,5 +34,3 @@ export const translationBatchResponseSchema = z.object({
     }),
   ).min(1).max(3),
 });
-
-export type TranslationResponse = z.infer<typeof translationResponseSchema>;

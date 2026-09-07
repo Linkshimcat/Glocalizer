@@ -32,7 +32,7 @@ export default function Header({ center, right, sticky = false, overlay = false 
       }`}
     >
       <div
-        className={`mx-auto grid max-w-[1400px] grid-cols-[1fr_auto_1fr] items-center px-4 md:h-[72px] md:px-10 ${
+        className={`layout-wide grid grid-cols-[1fr_auto_1fr] items-center md:h-[72px] ${
           // 오버레이 헤더는 히어로 카드 안에 있으므로 카드 폭을 꽉 채운다.
           overlay ? 'lg:max-w-none lg:px-7' : ''
         } ${center ? 'min-h-[72px] gap-y-2 py-3 md:py-0' : 'h-[72px]'}`}

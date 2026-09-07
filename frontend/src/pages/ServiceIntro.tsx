@@ -47,7 +47,7 @@ export default function ServiceIntro() {
         }
       />
 
-      <main className="mx-auto w-full max-w-[960px] px-6 pb-24 pt-12 sm:px-10 sm:pt-16">
+      <main className="layout-doc pb-24 pt-12 sm:pt-16">
         <h1 className="whitespace-nowrap text-[26px] font-extrabold leading-tight tracking-tight min-[360px]:text-[30px] min-[400px]:text-[34px] sm:text-[52px]">
           {s.titleMain} <span className="text-brand">{s.titleAccent}</span>
         </h1>
@@ -59,7 +59,7 @@ export default function ServiceIntro() {
         </p>
 
         {/* 이런 고민 */}
-        <section className="mt-20">
+        <section className="section-block">
           <SectionHeading>{s.worryHead}</SectionHeading>
           <p className="mt-6 text-lg font-medium leading-[1.85] text-sub">
             {s.worryLead}
@@ -80,7 +80,7 @@ export default function ServiceIntro() {
         </section>
 
         {/* 왜 Glocalizer인가요 */}
-        <section className="mt-20">
+        <section className="section-block">
           <SectionHeading>{s.whyHead}</SectionHeading>
           <ul className="mt-6 space-y-4 text-lg font-medium leading-[1.85] text-sub">
             {s.whys.map(item => (
@@ -95,10 +95,10 @@ export default function ServiceIntro() {
         </section>
 
         {/* Glocalizer가 대신 해드려요 */}
-        <section className="mt-20">
-          <h2 className="text-[28px] font-extrabold tracking-tight sm:text-[32px]">
+        <section className="section-block">
+          <SectionHeading>
             {s.doHead} <span className="text-brand">{s.doAccent}</span>
-          </h2>
+          </SectionHeading>
           <p className="mt-6 text-lg font-medium leading-[1.85] text-sub">
             {s.do1}
           </p>
@@ -112,28 +112,28 @@ export default function ServiceIntro() {
         </section>
 
         {/* 핵심 기능 3가지 */}
-        <section className="mt-20">
-          <h2 className="text-[28px] font-extrabold tracking-tight sm:text-[32px]">
+        <section className="section-block">
+          <SectionHeading>
             {s.featHead} <span className="text-brand">{s.featAccent}</span>
-          </h2>
+          </SectionHeading>
 
-          {s.features.map((item, index) => (
-            <div key={item.title} className={index === 0 ? 'mt-8' : 'mt-10'}>
-              <h3 className="flex items-center gap-2.5 text-xl font-extrabold text-ink sm:text-2xl">
-                {item.title}
-                <img src={FEATURE_ICONS[index]} alt="" aria-hidden className="h-6 w-6" />
-              </h3>
-              <p className="mt-2.5 text-lg font-medium leading-[1.85] text-sub">
-                {item.desc}
-              </p>
-            </div>
-          ))}
+          <div className="mt-8 space-y-10">
+            {s.features.map((item, index) => (
+              <div key={item.title}>
+                <h3 className="flex items-center gap-2.5 text-xl font-extrabold text-ink sm:text-2xl">
+                  {item.title}
+                  <img src={FEATURE_ICONS[index]} alt="" aria-hidden className="h-6 w-6" />
+                </h3>
+                <p className="mt-2.5 text-lg font-medium leading-[1.85] text-sub">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
         </section>
       </main>
 
-      <div className="h-16 w-full bg-surface sm:h-20" />
-
-      <section className="mx-auto w-full max-w-[960px] px-6 py-20 sm:px-10">
+      <section className="layout-doc py-20">
         <h2 className="flex items-center gap-2.5 text-[28px] font-extrabold tracking-tight sm:text-[32px]">
           {s.videoHead}
           <img src={iconYoutube} alt="" aria-hidden className="h-7 w-7" />
@@ -153,7 +153,9 @@ export default function ServiceIntro() {
         </div>
       </section>
 
-      <Footer />
+      <div className="bg-surface pt-16 sm:pt-20">
+        <Footer />
+      </div>
     </div>
   )
 }

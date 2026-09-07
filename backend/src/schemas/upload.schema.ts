@@ -8,8 +8,6 @@ export const completeUploadsSchema = z.object({
   }),
 });
 
-export type CompleteUploadsInput = z.infer<typeof completeUploadsSchema>;
-
 export const projectParamsSchema = z.object({
   projectId: z.string().uuid(),
 });
