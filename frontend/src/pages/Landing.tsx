@@ -1,9 +1,10 @@
-import { useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
+import RollingText from '../components/RollingText'
 import heroGradient from '../assets/LendingPage/GreenBackground-web.jpg'
 import motionGraphic from '../assets/LendingPage/MotionGrap.mp4'
 import refreshIcon from '../assets/LendingPage/refreshButton.svg'
@@ -13,6 +14,7 @@ export default function Landing() {
   const navigate = useNavigate()
   const { t, lang } = useSiteLang()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [progress, setProgress] = useState(0)
 
   // 모션그래픽은 한 번만 재생하고 멈춘다. 되감기 버튼으로 처음부터 다시 본다.
   const replayVideo = () => {
@@ -21,6 +23,43 @@ export default function Landing() {
     video.currentTime = 0
     void video.play()
   }
+
+  // 진행 바는 timeupdate(초당 4회)로는 끊겨 보여서 재생 중에만 rAF로 따라간다.
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    let frame = 0
+    const sync = () => {
+      if (video.duration > 0) setProgress(Math.min(video.currentTime / video.duration, 1))
+    }
+    const loop = () => {
+      sync()
+      frame = requestAnimationFrame(loop)
+    }
+    const start = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(loop)
+    }
+    const stop = () => {
+      cancelAnimationFrame(frame)
+      sync()
+    }
+
+    video.addEventListener('play', start)
+    video.addEventListener('pause', stop)
+    video.addEventListener('ended', stop)
+    video.addEventListener('seeked', sync)
+    if (!video.paused) start()
+
+    return () => {
+      cancelAnimationFrame(frame)
+      video.removeEventListener('play', start)
+      video.removeEventListener('pause', stop)
+      video.removeEventListener('ended', stop)
+      video.removeEventListener('seeked', sync)
+    }
+  }, [])
 
   return (
     <div
@@ -37,7 +76,9 @@ export default function Landing() {
               <h1 className="text-[42px] leading-[1.12] font-extrabold tracking-tight sm:text-5xl md:text-[60px]">
                 {t.heroLine1}
                 <br />
-                <span className="text-brand">{t.heroLine2}</span>
+                {/* 굴러가는 어절은 aria-hidden이라 읽히는 문구를 따로 남긴다. */}
+                <span className="sr-only">{t.heroLine2}</span>
+                <RollingText items={t.heroLine2Roll} className="text-brand" />
               </h1>
               <p className={`mt-6 max-w-[420px] font-medium text-sub sm:text-[17px] ${
                 lang === 'ko' ? 'whitespace-nowrap text-[13px] min-[360px]:text-[14px] lg:whitespace-pre-line' : 'text-[15px]'
@@ -62,23 +103,28 @@ export default function Landing() {
                   aria-label={t.cardTitle}
                 />
               </div>
-              <div className="hidden items-center gap-4 font-extrabold text-ink lg:flex">
-                <span className="text-[15px]">01</span>
-                <span aria-hidden="true" className="h-1 flex-1 rounded-full bg-ink" />
-                <span className="text-[15px]">03</span>
+              {/* 타임라인은 전 화면에서 보인다. 되감기 버튼은 좁은 화면에서 이 줄 끝에 붙고,
+                  lg부터는 목업대로 히어로 오른쪽 아래로 빠진다(기준점은 relative인 section). */}
+              <div className="flex items-center gap-3 font-extrabold text-ink sm:gap-4">
+                <span aria-hidden="true" className="text-[13px] sm:text-[15px]">01</span>
+                <span aria-hidden="true" className="relative h-1 flex-1 overflow-hidden rounded-full bg-ink/15">
+                  <span
+                    className="absolute inset-y-0 left-0 rounded-full bg-ink"
+                    style={{ width: `${progress * 100}%` }}
+                  />
+                </span>
+                <span aria-hidden="true" className="text-[13px] sm:text-[15px]">03</span>
+                <button
+                  type="button"
+                  onClick={replayVideo}
+                  aria-label={t.heroReplay}
+                  title={t.heroReplay}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition hover:bg-white focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:outline-none lg:absolute lg:right-6 lg:bottom-6"
+                >
+                  <img src={refreshIcon} alt="" aria-hidden className="h-5 w-5" />
+                </button>
               </div>
             </div>
-
-              {/* 영상 되감기 — 목업대로 히어로 오른쪽 아래에 띄운다. */}
-              <button
-                type="button"
-                onClick={replayVideo}
-                aria-label={t.heroReplay}
-                title={t.heroReplay}
-                className="absolute right-6 bottom-6 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition hover:bg-white focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                <img src={refreshIcon} alt="" aria-hidden className="h-5 w-5" />
-              </button>
           </div>
         </section>
       </main>

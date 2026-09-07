@@ -49,6 +49,42 @@ body {
   animation: float 4s ease-in-out 2s infinite;
 }
 
+/* 히어로 롤링 텍스트 — 어절이 아래에서 올라와 머물다 위로 빠진다.
+   진입·퇴장 구간에만 블러가 걸리므로 매 프레임 블러를 다시 계산하지 않는다.
+
+   타이밍은 어절 N=3개, 슬롯 S=2.4s, 전환 D=0.6s, 한 바퀴 C=N×S=7.2s에서 나온다.
+     진입 0 → D/C     =  8.33%
+     유지     → S/C     = 33.33%
+     퇴장     → (S+D)/C = 41.67%
+   유지가 S/C에서 끝나야 다음 어절이 들어오기 시작하는 순간과 맞물린다.
+   이보다 일찍 끝내면 나가는 어절이 먼저 사라져 두 번째 줄이 통째로 빈다.
+   항목 수를 바꾸면 RollingText의 SLOT_SECONDS와 위 값들을 함께 다시 계산할 것. */
+@keyframes roll-word {
+  0% {
+    transform: translateY(90%);
+    filter: blur(10px);
+    opacity: 0;
+  }
+  8.33%,
+  33.33% {
+    transform: translateY(0);
+    filter: blur(0);
+    opacity: 1;
+  }
+  41.67%,
+  100% {
+    transform: translateY(-90%);
+    filter: blur(10px);
+    opacity: 0;
+  }
+}
+.animate-roll-word {
+  /* easeOutQuint처럼 앞에 몰린 커브를 쓰면 0.1초 만에 끝나 블러가 안 보인다.
+     완만한 커브를 써야 굴러가는 게 읽힌다. */
+  animation: roll-word 7.2s cubic-bezier(0.33, 1, 0.68, 1) infinite both;
+  will-change: transform, filter, opacity;
+}
+
 /* 토스트 등장 애니메이션 */
 @keyframes toast-in {
   from {
@@ -326,6 +362,15 @@ body {
   .aurora-field,
   .aurora-swell {
     animation: none;
+  }
+
+  /* 롤링을 멈추고 첫 어절만 정적으로 남긴다. */
+  .animate-roll-word {
+    animation: none;
+    opacity: 0;
+  }
+  .animate-roll-word:first-child {
+    opacity: 1;
   }
 }
 
