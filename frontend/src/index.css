@@ -364,12 +364,15 @@ body {
     animation: none;
   }
 
-  /* 롤링을 멈추고 첫 어절만 정적으로 남긴다. */
+  /* 롤링을 멈추고 첫 어절만 정적으로 남긴다. 어절 겹(.roll-layer)에서 가리므로
+     글자 단위(per="char")여도 첫 어절이 통째로 남는다. */
   .animate-roll-word {
     animation: none;
+  }
+  .roll-layer {
     opacity: 0;
   }
-  .animate-roll-word:first-child {
+  .roll-layer:first-child {
     opacity: 1;
   }
 }

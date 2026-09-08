@@ -78,7 +78,7 @@ export default function Landing() {
                 <br />
                 {/* 굴러가는 어절은 aria-hidden이라 읽히는 문구를 따로 남긴다. */}
                 <span className="sr-only">{t.heroLine2}</span>
-                <RollingText items={t.heroLine2Roll} className="text-brand" />
+                <RollingText items={t.heroLine2Roll} per="char" className="text-brand" />
               </h1>
               <p className={`mt-6 max-w-[420px] font-medium text-sub sm:text-[17px] ${
                 lang === 'ko' ? 'whitespace-nowrap text-[13px] min-[360px]:text-[14px] lg:whitespace-pre-line' : 'text-[15px]'
