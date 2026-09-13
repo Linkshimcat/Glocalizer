@@ -3,8 +3,10 @@ import { AppError } from '../errors/app-error.js';
 import {
   findUserByEmail,
   findUserById,
+  findUserByNaverId,
   insertEmailUser,
-  upsertNaverUser,
+  insertNaverUser,
+  linkNaverProfile,
 } from '../repositories/user.repository.js';
 import type { LoginInput, SignupInput } from '../schemas/auth.schema.js';
 import type { PublicUser, UserRow } from '../types/user.js';
@@ -95,12 +97,21 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
   }
 
   const profile = profileJson.response;
-  const user = await upsertNaverUser({
-    naverId: profile.id,
-    email: profile.email ?? null,
-    name: profile.name ?? null,
-    avatarUrl: profile.profile_image ?? null,
-  });
+  const name = profile.name ?? null;
+  const avatarUrl = profile.profile_image ?? null;
+
+  // naver_id로 먼저 찾고(재로그인), 없으면 같은 이메일로 가입된 계정이 있는지 확인해 연결한다.
+  // email에도 UNIQUE 제약이 있어서, 이 순서 없이 바로 insert/upsert(naver_id)만 하면 이메일
+  // 회원가입 계정과 이메일이 겹치는 순간 제약 위반으로 로그인 자체가 실패한다.
+  let user = await findUserByNaverId(profile.id);
+  if (user) {
+    user = await linkNaverProfile(user.id, { naverId: profile.id, name, avatarUrl });
+  } else {
+    const existingByEmail = profile.email ? await findUserByEmail(profile.email) : null;
+    user = existingByEmail
+      ? await linkNaverProfile(existingByEmail.id, { naverId: profile.id, name: name ?? existingByEmail.name, avatarUrl: avatarUrl ?? existingByEmail.avatar_url })
+      : await insertNaverUser({ naverId: profile.id, email: profile.email ?? null, name, avatarUrl });
+  }
 
   return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
 }
