@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authRouter } from './auth.routes.js';
 import { downloadRouter } from './download.routes.js';
 import { editorRouter } from './editor.routes.js';
 import { healthRouter } from './health.routes.js';
@@ -10,6 +11,7 @@ import { uploadRouter } from './upload.routes.js';
 export const apiRouter = Router();
 
 apiRouter.use(healthRouter);
+apiRouter.use(authRouter);
 apiRouter.use(projectRouter);
 apiRouter.use(uploadRouter);
 apiRouter.use(processRouter);
