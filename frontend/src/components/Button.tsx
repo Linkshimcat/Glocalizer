@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-type Variant = 'primary' | 'secondary' | 'ghost'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'naver' | 'outline'
 type Size = 'xs' | 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -13,6 +13,9 @@ const variantClass: Record<Variant, string> = {
   primary: 'bg-brand text-white hover:bg-brand-dark',
   secondary: 'bg-surface text-ink hover:bg-[#E8EBEE]',
   ghost: 'bg-transparent text-sub hover:bg-surface',
+  // 네이버 공식 브랜드 그린(#03C75A) — 앱 고유의 --color-brand(#22c55e)와는 별개로 고정한다.
+  naver: 'bg-[#03C75A] text-white hover:bg-[#02b350]',
+  outline: 'border border-gray-200 bg-white text-ink hover:bg-surface',
 }
 
 const sizeClass: Record<Size, string> = {

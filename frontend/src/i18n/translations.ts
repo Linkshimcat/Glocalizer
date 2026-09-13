@@ -83,6 +83,30 @@ export interface Dict {
   nfTitle: string
   nfDesc: string
   nfHome: string
+  // 로그인 / 회원가입
+  navLogin: string
+  navLogout: string
+  loginTitle: string
+  loginSubtitle: string
+  loginTabLogin: string
+  loginTabSignup: string
+  loginEmailLabel: string
+  loginEmailPlaceholder: string
+  loginPasswordLabel: string
+  loginPasswordPlaceholder: string
+  loginNameLabel: string
+  loginNamePlaceholder: string
+  loginNameOptional: string
+  loginSubmitLogin: string
+  loginSubmitSignup: string
+  loginDivider: string
+  loginNaverCta: string
+  loginSwitchToSignup: string
+  loginSwitchToLogin: string
+  loginBackHome: string
+  loginNaverProcessing: string
+  loginNaverFailed: string
+  loginNaverBack: string
 }
 
 export const translations: Record<SiteLang, Dict> = {
@@ -154,6 +178,29 @@ export const translations: Record<SiteLang, Dict> = {
     nfTitle: '페이지를 찾을 수 없어요😭',
     nfDesc: '주소가 바뀌었거나 없는 페이지예요.',
     nfHome: '홈으로 돌아가기',
+    navLogin: '로그인',
+    navLogout: '로그아웃',
+    loginTitle: '환영해요',
+    loginSubtitle: '로그인하고 이모티콘 번역 기록을 이어가세요.',
+    loginTabLogin: '로그인',
+    loginTabSignup: '회원가입',
+    loginEmailLabel: '이메일',
+    loginEmailPlaceholder: 'you@example.com',
+    loginPasswordLabel: '비밀번호',
+    loginPasswordPlaceholder: '8자 이상 입력해주세요',
+    loginNameLabel: '이름',
+    loginNamePlaceholder: '닉네임',
+    loginNameOptional: '(선택)',
+    loginSubmitLogin: '로그인',
+    loginSubmitSignup: '회원가입',
+    loginDivider: '또는',
+    loginNaverCta: '네이버 아이디로 로그인',
+    loginSwitchToSignup: '계정이 없으신가요? 회원가입',
+    loginSwitchToLogin: '이미 계정이 있으신가요? 로그인',
+    loginBackHome: '홈으로',
+    loginNaverProcessing: '네이버 로그인 처리 중이에요…',
+    loginNaverFailed: '네이버 로그인에 실패했어요.',
+    loginNaverBack: '로그인 화면으로 돌아가기',
   },
   en: {
     navStart: 'Start',
@@ -223,6 +270,29 @@ export const translations: Record<SiteLang, Dict> = {
     nfTitle: 'Page not found😭',
     nfDesc: 'The page may have moved or no longer exists.',
     nfHome: 'Back to home',
+    navLogin: 'Log in',
+    navLogout: 'Log out',
+    loginTitle: 'Welcome back',
+    loginSubtitle: 'Log in to keep your emoji translation history.',
+    loginTabLogin: 'Log in',
+    loginTabSignup: 'Sign up',
+    loginEmailLabel: 'Email',
+    loginEmailPlaceholder: 'you@example.com',
+    loginPasswordLabel: 'Password',
+    loginPasswordPlaceholder: 'At least 8 characters',
+    loginNameLabel: 'Name',
+    loginNamePlaceholder: 'Nickname',
+    loginNameOptional: '(optional)',
+    loginSubmitLogin: 'Log in',
+    loginSubmitSignup: 'Sign up',
+    loginDivider: 'or',
+    loginNaverCta: 'Continue with Naver',
+    loginSwitchToSignup: "Don't have an account? Sign up",
+    loginSwitchToLogin: 'Already have an account? Log in',
+    loginBackHome: 'Home',
+    loginNaverProcessing: 'Signing you in with Naver…',
+    loginNaverFailed: 'Naver login failed.',
+    loginNaverBack: 'Back to login',
   },
   ja: {
     navStart: 'はじめる',
@@ -292,6 +362,29 @@ export const translations: Record<SiteLang, Dict> = {
     nfTitle: 'ページが見つかりません😭',
     nfDesc: 'アドレスが変わったか、存在しないページです。',
     nfHome: 'ホームに戻る',
+    navLogin: 'ログイン',
+    navLogout: 'ログアウト',
+    loginTitle: 'おかえりなさい',
+    loginSubtitle: 'ログインして絵文字翻訳の履歴を続けましょう。',
+    loginTabLogin: 'ログイン',
+    loginTabSignup: '新規登録',
+    loginEmailLabel: 'メールアドレス',
+    loginEmailPlaceholder: 'you@example.com',
+    loginPasswordLabel: 'パスワード',
+    loginPasswordPlaceholder: '8文字以上で入力してください',
+    loginNameLabel: '名前',
+    loginNamePlaceholder: 'ニックネーム',
+    loginNameOptional: '(任意)',
+    loginSubmitLogin: 'ログイン',
+    loginSubmitSignup: '新規登録',
+    loginDivider: 'または',
+    loginNaverCta: 'NAVERアカウントでログイン',
+    loginSwitchToSignup: 'アカウントをお持ちでないですか？ 新規登録',
+    loginSwitchToLogin: 'すでにアカウントをお持ちですか？ ログイン',
+    loginBackHome: 'ホームへ',
+    loginNaverProcessing: 'NAVERログインを処理しています…',
+    loginNaverFailed: 'NAVERログインに失敗しました。',
+    loginNaverBack: 'ログイン画面に戻る',
   },
   zh: {
     navStart: '开始',
@@ -361,5 +454,28 @@ export const translations: Record<SiteLang, Dict> = {
     nfTitle: '找不到页面😭',
     nfDesc: '地址可能已更改，或该页面不存在。',
     nfHome: '返回首页',
+    navLogin: '登录',
+    navLogout: '退出登录',
+    loginTitle: '欢迎回来',
+    loginSubtitle: '登录后可继续查看表情包翻译记录。',
+    loginTabLogin: '登录',
+    loginTabSignup: '注册',
+    loginEmailLabel: '邮箱',
+    loginEmailPlaceholder: 'you@example.com',
+    loginPasswordLabel: '密码',
+    loginPasswordPlaceholder: '至少8位字符',
+    loginNameLabel: '姓名',
+    loginNamePlaceholder: '昵称',
+    loginNameOptional: '(可选)',
+    loginSubmitLogin: '登录',
+    loginSubmitSignup: '注册',
+    loginDivider: '或',
+    loginNaverCta: '使用 NAVER 账号登录',
+    loginSwitchToSignup: '还没有账号？去注册',
+    loginSwitchToLogin: '已有账号？去登录',
+    loginBackHome: '返回首页',
+    loginNaverProcessing: '正在处理 NAVER 登录…',
+    loginNaverFailed: 'NAVER 登录失败。',
+    loginNaverBack: '返回登录页',
   },
 }

@@ -24,6 +24,19 @@ export const envSchema = z.object({
   // 다운로드 완주 집계(GET /downloads/count)는 개별 프로젝트 토큰이 아니라 이 관리자 키로 보호한다.
   DOWNLOAD_STATS_API_KEY: z.string().min(16, 'DOWNLOAD_STATS_API_KEY must be at least 16 characters'),
 
+  // 이메일/네이버 로그인 세션 토큰 서명 키(HS256, 자체 구현 — utils/jwt.ts).
+  JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
+  // 네이버 개발자센터에서 발급. 미설정 시 네이버 로그인 API만 503으로 비활성화되고 나머지는 정상 동작한다.
+  // .env에 빈 문자열로 남아있어도(NAVER_CLIENT_ID=) "미설정"으로 취급하도록 빈 문자열을 undefined로 정규화한다.
+  NAVER_CLIENT_ID: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  NAVER_CLIENT_SECRET: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   GROQ_API_KEY: z.string().min(1).optional(),

@@ -5,3 +5,4 @@ process.env.SUPABASE_ANON_KEY ??= 'test-anon-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY ??= 'test-service-role-key';
 process.env.PROJECT_TOKEN_SECRET ??= 'test-project-token-secret';
 process.env.DOWNLOAD_STATS_API_KEY ??= 'test-download-stats-api-key';
+process.env.JWT_SECRET ??= 'test-jwt-secret-for-vitest';
