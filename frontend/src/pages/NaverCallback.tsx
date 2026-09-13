@@ -2,6 +2,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
+import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { consumeNaverState } from '../lib/naverAuth'
 import { useAuth } from '../store/AuthContext'
@@ -11,6 +12,7 @@ export default function NaverCallback() {
   const navigate = useNavigate()
   const { t } = useSiteLang()
   const { completeNaverLogin } = useAuth()
+  const toast = useToast()
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
 
@@ -28,7 +30,10 @@ export default function NaverCallback() {
     }
 
     completeNaverLogin(code, state)
-      .then(() => navigate('/dashboard', { replace: true }))
+      .then(() => {
+        toast(t.loginSuccessToast, 'success')
+        navigate('/dashboard', { replace: true })
+      })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : t.loginNaverFailed)
       })

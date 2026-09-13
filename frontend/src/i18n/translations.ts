@@ -107,6 +107,7 @@ export interface Dict {
   loginNaverProcessing: string
   loginNaverFailed: string
   loginNaverBack: string
+  loginSuccessToast: string
 }
 
 export const translations: Record<SiteLang, Dict> = {
@@ -201,6 +202,7 @@ export const translations: Record<SiteLang, Dict> = {
     loginNaverProcessing: '네이버 로그인 처리 중이에요…',
     loginNaverFailed: '네이버 로그인에 실패했어요.',
     loginNaverBack: '로그인 화면으로 돌아가기',
+    loginSuccessToast: '로그인 완료!',
   },
   en: {
     navStart: 'Start',
@@ -293,6 +295,7 @@ export const translations: Record<SiteLang, Dict> = {
     loginNaverProcessing: 'Signing you in with Naver…',
     loginNaverFailed: 'Naver login failed.',
     loginNaverBack: 'Back to login',
+    loginSuccessToast: 'Logged in!',
   },
   ja: {
     navStart: 'はじめる',
@@ -385,6 +388,7 @@ export const translations: Record<SiteLang, Dict> = {
     loginNaverProcessing: 'NAVERログインを処理しています…',
     loginNaverFailed: 'NAVERログインに失敗しました。',
     loginNaverBack: 'ログイン画面に戻る',
+    loginSuccessToast: 'ログイン完了！',
   },
   zh: {
     navStart: '开始',
@@ -477,5 +481,6 @@ export const translations: Record<SiteLang, Dict> = {
     loginNaverProcessing: '正在处理 NAVER 登录…',
     loginNaverFailed: 'NAVER 登录失败。',
     loginNaverBack: '返回登录页',
+    loginSuccessToast: '登录成功！',
   },
 }
