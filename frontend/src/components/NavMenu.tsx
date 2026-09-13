@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import AccountMenu from './AccountMenu'
 import LanguageSelect from './LanguageSelect'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useAuth } from '../store/AuthContext'
@@ -6,7 +7,7 @@ import { useAuth } from '../store/AuthContext'
 export default function NavMenu() {
   const navigate = useNavigate()
   const { t } = useSiteLang()
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   return (
     <nav aria-label="주요 메뉴" className="flex items-center gap-1.5">
@@ -25,14 +26,7 @@ export default function NavMenu() {
       </button>
       <LanguageSelect />
       {isAuthenticated ? (
-        <button
-          type="button"
-          onClick={logout}
-          title={user?.email ?? user?.name ?? undefined}
-          className="rounded-xl px-3 py-1.5 text-[13px] font-bold text-sub transition-colors hover:bg-surface hover:text-ink md:px-4 md:py-2 md:text-sm"
-        >
-          {t.navLogout}
-        </button>
+        <AccountMenu />
       ) : (
         <button
           type="button"
