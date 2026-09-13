@@ -33,27 +33,36 @@ export async function insertEmailUser(input: InsertEmailUserInput): Promise<User
   return unwrapRow<UserRow>(result, '회원가입에 실패했습니다.');
 }
 
-interface UpsertNaverUserInput {
+interface InsertNaverUserInput {
   naverId: string;
   email: string | null;
   name: string | null;
   avatarUrl: string | null;
 }
 
-/** 네이버로 재로그인할 때 프로필(이름/사진)이 바뀌었을 수 있어 매번 upsert로 최신화한다. */
-export async function upsertNaverUser(input: UpsertNaverUserInput): Promise<UserRow> {
+export async function insertNaverUser(input: InsertNaverUserInput): Promise<UserRow> {
   const result = await supabase
     .from('users')
-    .upsert(
-      {
-        naver_id: input.naverId,
-        email: input.email,
-        name: input.name,
-        avatar_url: input.avatarUrl,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'naver_id' },
-    )
+    .insert({ naver_id: input.naverId, email: input.email, name: input.name, avatar_url: input.avatarUrl })
+    .select()
+    .single();
+
+  return unwrapRow<UserRow>(result, '네이버 로그인 처리에 실패했습니다.');
+}
+
+interface LinkNaverProfileInput {
+  naverId: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+/** naver_id로 기존 행을 찾았을 때의 재로그인(프로필 갱신)과, 이메일로 가입했던 계정에
+ *  네이버 계정을 처음 연결하는 경우 둘 다 같은 update라 하나로 합쳤다. */
+export async function linkNaverProfile(userId: string, input: LinkNaverProfileInput): Promise<UserRow> {
+  const result = await supabase
+    .from('users')
+    .update({ naver_id: input.naverId, name: input.name, avatar_url: input.avatarUrl, updated_at: new Date().toISOString() })
+    .eq('id', userId)
     .select()
     .single();
 
