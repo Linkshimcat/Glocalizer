@@ -32,7 +32,7 @@ export default function NaverCallback() {
     completeNaverLogin(code, state)
       .then(() => {
         toast(t.loginSuccessToast, 'success')
-        navigate('/dashboard', { replace: true })
+        navigate('/', { replace: true })
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : t.loginNaverFailed)

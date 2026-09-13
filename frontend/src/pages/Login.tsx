@@ -35,7 +35,7 @@ export default function Login() {
         await signupWithEmail(email, password, name.trim() || undefined)
       }
       toast(t.loginSuccessToast, 'success')
-      navigate('/dashboard')
+      navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : '요청에 실패했어요.')
     } finally {
