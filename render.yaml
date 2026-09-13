@@ -27,6 +27,15 @@ services:
       # 값은 Render 대시보드 → glocalizer-api → Environment에서 확인.
       - key: DOWNLOAD_STATS_API_KEY
         generateValue: true
+      # 이메일/네이버 로그인 세션 토큰 서명 키.
+      - key: JWT_SECRET
+        generateValue: true
+      # 네이버 개발자센터(developers.naver.com)에서 발급. 미설정 시 네이버 로그인 API만
+      # 503으로 비활성화되고 나머지 기능은 정상 동작한다.
+      - key: NAVER_CLIENT_ID
+        sync: false
+      - key: NAVER_CLIENT_SECRET
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       # OCR 주력 엔진. luna는 GPT-5.6 Luna(유료)를 쓰고, 실패/한글 미검출 시에만 PaddleOCR로
