@@ -42,7 +42,7 @@ export const envSchema = z.object({
   GROQ_API_KEY: z.string().min(1).optional(),
   // llama-3.3-70b-versatile은 2026-08-16부로 Groq에서 폐기(무료/개발자 티어).
   // Groq 공식 마이그레이션 권장 모델로 교체. (https://console.groq.com/docs/deprecations)
-  GROQ_MODEL: z.string().default('qwen/qwen3.6-27b'),
+  GROQ_MODEL: z.string().default('qwen/qwen3.8-27b'),
   GROQ_BASE_URL: z.string().url().default('https://api.groq.com/openai/v1'),
   TRANSLATION_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   TRANSLATION_PROVIDER: z.enum(['groq']).default('groq'),
@@ -63,7 +63,7 @@ export const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(1).optional(),
   GEMINI_VISION_MODEL: z.string().default('gemini-2.5-flash'),
   VISION_PROVIDER: z.enum(['groq', 'gemini']).default('groq'),
-  GROQ_VISION_MODEL: z.string().default('qwen/qwen3.6-27b'),
+  GROQ_VISION_MODEL: z.string().default('qwen/qwen3.8-27b'),
   VISION_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
   // 원본 글자 이미지를 분석해 번역 폰트를 원본과 비슷하게 고르는 기능. 번역과 병렬로 도는
   // 별도 Vision 호출이 하나 더 붙는 거라, 문제가 생기면 재배포 없이 바로 끌 수 있게 플래그로 뺐다.
