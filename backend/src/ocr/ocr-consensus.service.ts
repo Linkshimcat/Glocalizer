@@ -13,7 +13,7 @@ function normalizedText(text: string): string {
   return text.replace(/\s+/g, '').trim();
 }
 
-function editSimilarity(left: string, right: string): number {
+export function editSimilarity(left: string, right: string): number {
   const a = normalizedText(left);
   const b = normalizedText(right);
   if (!a || !b) return 0;
