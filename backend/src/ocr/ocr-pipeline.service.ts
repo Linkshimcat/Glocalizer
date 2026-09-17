@@ -14,9 +14,63 @@ import type { RecognizedRegion } from './ocr-provider.types.js';
 import { measureShadowOcr } from './ocr-shadow.service.js';
 import { selectOcrVariantCount } from './ocr-variant-selection.js';
 import { deduplicateRecognizedRegions, mergeAdjacentKoreanRegions } from './merge-recognized-regions.js';
-import { selectConsensusRegions } from './ocr-consensus.service.js';
+import { editSimilarity, selectConsensusRegions, type ConsensusRegion } from './ocr-consensus.service.js';
 import { shouldRunFallbackVariants, shouldUseVisionFallback } from './ocr-quality.js';
 import { requestVisionOcr } from './vision-fallback.service.js';
+import type { OcrProvider } from './ocr-provider.types.js';
+
+// Luna는 같은 이미지도 호출마다 다르게 읽을 수 있고(비결정성), 자체 confidence는 오독일 때도
+// 높게 나와 신뢰 신호로 쓸 수 없다는 걸 실측으로 확인했다(2026-09-17, "덩실 덩"→"멍실멍" 오독
+// 사례, 정답/오답 모두 confidence 0.86~0.87). PaddleOCR는 비용이 들지 않는 로컬 모델이라,
+// Luna 결과와 위치가 겹치는 영역의 텍스트가 크게 다르면 "둘 다 맞을 수도 틀릴 수도 있다"는
+// 뜻으로 보고 자동 승인 대신 사용자 검수로 넘긴다. 텍스트 자체를 덮어쓰지는 않는다 — 어느
+// 쪽이 더 정확한지 알고리즘으로 판단할 근거가 없기 때문이다.
+const CROSS_CHECK_MIN_OVERLAP = 0.3;
+const CROSS_CHECK_MIN_SIMILARITY = 0.6;
+
+function boundsOf(region: RecognizedRegion) {
+  const xs = region.polygon.map((point) => point.x);
+  const ys = region.polygon.map((point) => point.y);
+  return { left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) };
+}
+
+/**
+ * 표준 IoU는 두 박스 크기가 비슷할 때만 잘 맞는다. Luna가 한 캡션을 여러 조각(작은 박스)으로
+ * 쪼갰는데 PaddleOCR는 하나로 합쳐서 반환하면(실측 사례), 작은 조각 하나 대 큰 박스의 IoU가
+ * 낮게 나와 실제로는 같은 글자를 가리키는데도 대조가 안 됐다. "더 작은 박스 기준으로 얼마나
+ * 덮였는지"를 보면, 작은 조각이 큰 박스 안에 완전히 들어있는 정상 케이스를 놓치지 않는다.
+ */
+function overlapRatio(left: RecognizedRegion, right: RecognizedRegion): number {
+  const a = boundsOf(left);
+  const b = boundsOf(right);
+  const overlapWidth = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+  const overlapHeight = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  const overlapArea = overlapWidth * overlapHeight;
+  const areaA = Math.max(1, (a.right - a.left) * (a.bottom - a.top));
+  const areaB = Math.max(1, (b.right - b.left) * (b.bottom - b.top));
+  return overlapArea / Math.min(areaA, areaB);
+}
+
+export async function crossCheckWithPaddleOcr(regions: ConsensusRegion[], image: Buffer, paddleProvider: OcrProvider): Promise<ConsensusRegion[]> {
+  if (regions.length === 0) return regions;
+  let paddleRegions: RecognizedRegion[];
+  try {
+    paddleRegions = mergeAdjacentKoreanRegions(await paddleProvider.recognize(image));
+  } catch (error) {
+    // 대조는 부가 안전장치일 뿐이다. PaddleOCR 브릿지 실패가 이미 확보한 Luna 결과까지
+    // 검수로 밀어내면 안 된다.
+    logger.warn({ err: error }, 'PaddleOCR 대조 호출 실패, 기존 OCR 결과를 그대로 사용합니다.');
+    return regions;
+  }
+  return regions.map((region) => {
+    const bestMatch = paddleRegions
+      .map((candidate) => ({ candidate, overlap: overlapRatio(region, candidate) }))
+      .sort((left, right) => right.overlap - left.overlap)[0];
+    if (!bestMatch || bestMatch.overlap < CROSS_CHECK_MIN_OVERLAP) return region;
+    const agrees = editSimilarity(region.text, bestMatch.candidate.text) >= CROSS_CHECK_MIN_SIMILARITY;
+    return agrees ? region : { ...region, needsManualReview: true };
+  });
+}
 
 function containsKorean(text: string): boolean {
   return /[\uAC00-\uD7A3]/.test(text);
@@ -113,7 +167,10 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
         if (!results[0].some((region) => containsKorean(region.text)) && recognized.some((region) => containsKorean(region.text))) break;
       }
     }
-    const consensusRegions = selectConsensusRegions(results, { allowSingleVariantAutoApprove: isSingleShotVision });
+    let consensusRegions = selectConsensusRegions(results, { allowSingleVariantAutoApprove: isSingleShotVision });
+    if (activeProvider.name === 'luna' && fallbackProvider) {
+      consensusRegions = await crossCheckWithPaddleOcr(consensusRegions, primaryVariant.content, fallbackProvider);
+    }
     const consensus = consensusRegions[0] ?? null;
     let selected = consensus;
     let sourceName: OcrRegion['source'] = 'paddle-consensus';
