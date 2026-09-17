@@ -21,7 +21,15 @@ function mix(left: Rgb, right: Rgb, ratio: number): Rgb {
   };
 }
 
-/** OCR 박스 바깥의 좌우·상하 픽셀을 보간해 글자 아래의 배경색을 추정한다. */
+/**
+ * OCR 박스 바깥의 좌우·상하 픽셀을 보간해 글자 아래의 배경색을 추정한다.
+ *
+ * 참조로 쓰는 테두리 좌표(box 경계 바로 바깥 1~2px)가 실측(2026-09-17)에서 문제가 됐다 —
+ * OCR 박스가 살짝 타이트해서 글자 획이 이 참조 지점까지 침범하면, "배경색"이라고 뽑은 색이
+ * 실은 글자 잉크 색이라 박스 안쪽에 옅은 회색 잔상이 번져 남았다. mask는 이미 그 지점이
+ * 글자(지울 대상)인지 판단해뒀으므로, 참조 지점이 mask 상 글자로 표시돼 있으면 원본 픽셀을
+ * 믿지 않고 대표 배경색(fallback)으로 대신한다.
+ */
 function surroundingBackground(
   data: Buffer,
   width: number,
@@ -31,6 +39,7 @@ function surroundingBackground(
   x: number,
   y: number,
   fallback: Rgb,
+  mask: FeatherMask,
 ): Rgb {
   const left = Math.max(0, Math.floor(box.x) - 2);
   const right = Math.min(width - 1, Math.ceil(box.x + box.width) + 1);
@@ -40,14 +49,17 @@ function surroundingBackground(
 
   const clampedX = Math.max(left, Math.min(right, x));
   const clampedY = Math.max(top, Math.min(bottom, y));
+  const sample = (sampleX: number, sampleY: number): Rgb => (
+    mask.data[sampleY * width + sampleX] >= 200 ? pixelRgb(data, width, channels, sampleX, sampleY) : fallback
+  );
   const horizontal = mix(
-    pixelRgb(data, width, channels, left, clampedY),
-    pixelRgb(data, width, channels, right, clampedY),
+    sample(left, clampedY),
+    sample(right, clampedY),
     (clampedX - left) / (right - left),
   );
   const vertical = mix(
-    pixelRgb(data, width, channels, clampedX, top),
-    pixelRgb(data, width, channels, clampedX, bottom),
+    sample(clampedX, top),
+    sample(clampedX, bottom),
     (clampedY - top) / (bottom - top),
   );
   return mix(horizontal, vertical, 0.5);
@@ -75,7 +87,7 @@ export async function applySolidColorCleanup(
     const base = i * channels;
     const x = i % imageWidth;
     const y = (i - x) / imageWidth;
-    const fill = surroundingBackground(data, imageWidth, imageHeight, channels, box, x, y, fillColor);
+    const fill = surroundingBackground(data, imageWidth, imageHeight, channels, box, x, y, fillColor, mask);
     const fillChannels = [fill.r, fill.g, fill.b];
     for (let c = 0; c < 3; c += 1) {
       out[base + c] = Math.round(out[base + c] * keepWeight + fillChannels[c] * (1 - keepWeight));
