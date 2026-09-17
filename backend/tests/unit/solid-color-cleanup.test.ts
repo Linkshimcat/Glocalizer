@@ -43,4 +43,25 @@ describe('applySolidColorCleanup', () => {
     const untouched = (2 * width + 2) * 4;
     expect([...data.subarray(untouched, untouched + 4)]).toEqual([184, 122, 142, 255]);
   });
+
+  it('배경색 참조 지점이 mask상 글자로 표시돼 있으면 그 픽셀 대신 대표 배경색을 쓴다', async () => {
+    // 실제 프로덕션 재현(2026-09-17): OCR 박스가 살짝 타이트해서 글자 획이 배경 참조로 쓰는
+    // 지점(box 경계 바로 바깥)까지 침범하면, 원본 픽셀(글자 잉크색)을 "배경색"으로 잘못 믿어
+    // 옅은 잔상이 남았다. surroundingBackground의 참조 지점(y=12, bottom 샘플)에 원본 이미지
+    // 글자 획이 있어도, mask가 그 지점을 erase(0)로 표시해두면 fallback 색을 써야 한다.
+    const pixels = gradientWithText();
+    for (let x = 10; x < 14; x += 1) pixels.set([10, 10, 10, 255], (12 * width + x) * 4); // bottom 샘플 지점에도 글자 잉크
+    const source = await sharp(pixels, { raw: { width, height, channels: 4 } }).png().toBuffer();
+
+    const mask = textOnlyMask();
+    for (let x = 10; x < 14; x += 1) mask.data[12 * width + x] = 0; // mask도 그 지점을 글자로 인식
+
+    const fallback = { r: 200, g: 130, b: 150 };
+    const cleaned = await applySolidColorCleanup(source, box, fallback, width, height, mask);
+    const { data } = await sharp(cleaned).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+
+    const base = (7 * width + 11) * 4;
+    // 오염된 원본 잉크색(10,10,10)이 아니라 대표 배경색 쪽으로 나와야 한다.
+    expect(data[base]).toBeGreaterThan(100);
+  });
 });

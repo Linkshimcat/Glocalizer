@@ -129,7 +129,10 @@ export async function generateTextEraseMask(
   const roi = padAndClampBox(box, padding, imageWidth, imageHeight);
   // 첫/끝 글자는 OCR 박스 좌우로 자주 삐져나오지만, 위아래의 큰 여백은 바로 붙은
   // 캐릭터 몸통·말풍선 테두리를 후보에 포함시킨다. 탐색은 좌우 위주로 확장한다.
-  const verticalPadding = Math.max(1, Math.min(2, Math.ceil(box.height * 0.08)));
+  // 2026-09-17 실측: 2px 상한이 둥근 폰트 글자 획의 아래쪽 끝을 스캔 범위 밖에 남기는
+  // 경우가 있었다. 배경색 추정 오염 문제(solid-color-cleanup.ts)를 고친 뒤에도 아주 옅은
+  // 실선이 남아, 여유를 1px 더 뒀다.
+  const verticalPadding = Math.max(1, Math.min(3, Math.ceil(box.height * 0.1)));
   const scanRoi = {
     x: roi.x,
     y: Math.max(0, box.y - verticalPadding),
