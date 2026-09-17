@@ -141,7 +141,10 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         );
         const textColor = sampleTextColorFromDecoded(decoded, region.bbox, stats.medianColor, mask);
         if (region.is_primary || primaryTextColor === null) primaryTextColor = textColor;
-        if (!isMaskCoverageSafe(measureMaskCoverage(mask))) {
+        // solid-color-fill/transparent-mask는 decideCleanupMethod가 이미 배경이 단색/투명임을
+        // 확인한 뒤에만 선택하므로, 지우는 비율이 높아도(안티에일리어싱까지 지우는 정상 범위)
+        // 안전하다고 본다. 복잡한 배경(directional-inpaint)만 보수적인 상한을 유지한다.
+        if (!isMaskCoverageSafe(measureMaskCoverage(mask), true)) {
           // 마스크가 비정상이면 단색 배경이어도 OCR 사각형 전체를 덮지 않는다. 잘못 잡힌
           // 박스가 캐릭터/말풍선 윤곽을 영구적으로 지우는 것보다 원본 보존 + 수동 검수가 안전하다.
           needsManualCleanup = true;
