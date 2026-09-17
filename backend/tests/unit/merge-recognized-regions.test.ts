@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeAdjacentKoreanRegions } from '../../src/ocr/merge-recognized-regions.js';
+import { deduplicateRecognizedRegions, mergeAdjacentKoreanRegions } from '../../src/ocr/merge-recognized-regions.js';
 
 function region(text: string, left: number, top: number, right: number, bottom: number) {
   return {
@@ -84,5 +84,38 @@ describe('mergeAdjacentKoreanRegions', () => {
       '잼얘해줘',
       '당신이 잼얘를 끊어온지 오래됐기 때문에 제 도파민이 줄어들었습니다 잼얘를 요구합니다',
     ]);
+  });
+});
+
+describe('deduplicateRecognizedRegions', () => {
+  it('한 캡션을 여러 조각으로 쪼갠 결과(Luna 비결정성)를 하나로 합친다', () => {
+    // 실제 프로덕션에서 재현된 케이스: "덩실 덩"을 "멍"/"멍"/"멍" 3개 조각으로 오독·분절.
+    // 텍스트 오독 자체는 별개 문제지만, 조각을 하나로 합쳐야 클린업이 부분 실패하지 않는다.
+    const merged = deduplicateRecognizedRegions([
+      region('멍', 54, 17, 76, 44),
+      region('멍', 80, 17, 99, 45),
+      region('멍', 112, 18, 133, 43),
+    ]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].text).toBe('멍멍멍');
+  });
+
+  it('같은 캡션이 중복으로 검출되면 하나만 남긴다', () => {
+    const merged = deduplicateRecognizedRegions([
+      region('완전 좋아', 40, 40, 200, 80),
+      region('완전 좋아', 42, 41, 198, 79),
+    ]);
+
+    expect(merged).toHaveLength(1);
+  });
+
+  it('서로 다른 위치의 캡션은 합치지 않고 그대로 유지한다', () => {
+    const merged = deduplicateRecognizedRegions([
+      region('완전 좋아', 40, 40, 200, 80),
+      region('최고야', 40, 300, 180, 340),
+    ]);
+
+    expect(merged.map((value) => value.text)).toEqual(['완전 좋아', '최고야']);
   });
 });

@@ -125,10 +125,14 @@ function intersectionOverUnion(left: RecognizedRegion, right: RecognizedRegion):
   return overlap / Math.max(1, areaA + areaB - overlap);
 }
 
-/** Luna처럼 캡션 단위로 반환하는 provider 결과는 재병합하지 않고 중복만 제거한다. */
+/**
+ * Luna처럼 캡션 단위로 반환하는 provider 결과는 줄바꿈 병합(mergeWrappedLines)까지는
+ * 필요 없지만, 같은 줄 조각 병합은 그대로 거친 뒤 중복만 제거한다. mergeWrappedLines는
+ * 서로 다른 캡션/말풍선을 잘못 합치는 실패 모드가 있어 Luna 경로에서는 계속 생략한다.
+ */
 export function deduplicateRecognizedRegions(regions: RecognizedRegion[]): RecognizedRegion[] {
   const selected: RecognizedRegion[] = [];
-  for (const region of [...regions].filter((value) => value.text.trim() && value.polygon.length >= 4).sort((a, b) => b.confidence - a.confidence)) {
+  for (const region of [...mergeSameLineFragments(regions)].sort((a, b) => b.confidence - a.confidence)) {
     const compact = region.text.replace(/\s+/g, '');
     const duplicate = selected.some((candidate) => (
       candidate.text.replace(/\s+/g, '') === compact
@@ -139,8 +143,13 @@ export function deduplicateRecognizedRegions(regions: RecognizedRegion[]): Recog
   return selected.sort((left, right) => boundsOf(left).top - boundsOf(right).top || boundsOf(left).left - boundsOf(right).left);
 }
 
-/** 같은 줄에서 분절된 한글 OCR box를 하나의 문구로 결합하고, 줄바꿈된 같은 캡션도 이어 붙인다. */
-export function mergeAdjacentKoreanRegions(regions: RecognizedRegion[]): RecognizedRegion[] {
+/**
+ * 같은 줄에서 분절된 한글 OCR box를 하나의 문구로 결합한다(줄바꿈 병합은 별도).
+ * PaddleOCR뿐 아니라 Luna 계열에도 재사용한다 — Luna는 캡션 단위로 반환하는 게 보통이지만,
+ * 같은 이미지를 다시 호출해도 한 캡션을 여러 조각으로 쪼개 반환하는 비결정적 사례가 실측으로
+ * 확인돼(2026-09-17), provider와 무관하게 이 안전망을 항상 거치는 쪽이 안전하다.
+ */
+export function mergeSameLineFragments(regions: RecognizedRegion[]): RecognizedRegion[] {
   const sorted = [...regions]
     .filter((region) => region.text.trim() && region.polygon.length >= 4)
     .sort((left, right) => boundsOf(left).top - boundsOf(right).top || boundsOf(left).left - boundsOf(right).left);
@@ -156,5 +165,10 @@ export function mergeAdjacentKoreanRegions(regions: RecognizedRegion[]): Recogni
     group = [region];
   }
   if (group.length > 0) merged.push(mergeGroup(group, ''));
-  return mergeWrappedLines(merged);
+  return merged;
+}
+
+/** 같은 줄에서 분절된 한글 OCR box를 하나의 문구로 결합하고, 줄바꿈된 같은 캡션도 이어 붙인다. */
+export function mergeAdjacentKoreanRegions(regions: RecognizedRegion[]): RecognizedRegion[] {
+  return mergeWrappedLines(mergeSameLineFragments(regions));
 }
