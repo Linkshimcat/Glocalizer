@@ -17,6 +17,7 @@ import { mapWithConcurrency } from '../utils/concurrency.js';
 import { logger } from '../config/logger.js';
 import { generateAdaptiveTextMask } from './adaptive-text-mask.js';
 import { applyDirectionalInpaint } from './directional-inpaint.js';
+import { detectsPeriodicPattern } from './pattern-detector.js';
 
 const ADAPTIVE_MASK_MIN_CONFIDENCE = 0.55;
 
@@ -89,6 +90,20 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         const stats = sampleBorderPixelsFromDecoded(decoded, region.bbox);
         const method = decideCleanupMethod(stats);
         const quality = assessCleanupQuality(method, stats);
+        if (method === 'directional-inpaint' && detectsPeriodicPattern(decoded, region.bbox)) {
+          // cv2 Telea 인페인팅은 주변 텍스처를 매끈하게 이어붙이는 방식이라, 물방울무늬·
+          // 체크무늬처럼 반복되는 배경에서는 무늬를 재현하지 못하고 얼룩을 남긴다(실측 확인,
+          // 2026-09-17). 색 분산으로는 이 얼룩을 구분할 수 없었다 — 스머지 부분도 노이즈
+          // 자체는 여전히 많아 분산이 오히려 정상 패턴 영역보다 높게 나왔다. 그래서 인페인트
+          // 시도 자체를 사전에 건너뛰고 원본을 보존한다.
+          const textColor = sampleTextColorFromDecoded(decoded, region.bbox, stats.medianColor);
+          if (region.is_primary || primaryTextColor === null) primaryTextColor = textColor;
+          needsManualCleanup = true;
+          methods.push('manual-required');
+          qualities.push('low');
+          await updateRegionCleanupMetadata(region.id, { textColor, needsManualCleanup: true });
+          continue;
+        }
         if (method === 'directional-inpaint') {
           const adaptive = await generateAdaptiveTextMask(decoded, region.bbox);
           const adaptiveSafe = adaptive.confidence >= ADAPTIVE_MASK_MIN_CONFIDENCE
