@@ -1,3 +1,4 @@
+import { generationRouter } from './generation.routes.js';
 import { Router } from 'express';
 import { authRouter } from './auth.routes.js';
 import { downloadRouter } from './download.routes.js';
@@ -18,3 +19,5 @@ apiRouter.use(processRouter);
 apiRouter.use(resultRouter);
 apiRouter.use(editorRouter);
 apiRouter.use(downloadRouter);
+
+apiRouter.use(generationRouter);

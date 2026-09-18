@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Navigate } from 'react-router-dom'
 import CloudProjectList from '../components/CloudProjectList'
+import GenerationList from '../components/GenerationList'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -17,6 +18,7 @@ export default function Archive() {
       <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
       <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{t.cloudArchive}</h1>
       <CloudProjectList archive />
+      <GenerationList archive />
     </main>
   </div>
 }

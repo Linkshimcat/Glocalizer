@@ -7,11 +7,15 @@ import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useUploads } from '../store/uploads'
+import { useAuth } from '../store/AuthContext'
+import GenerationList from '../components/GenerationList'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t } = useSiteLang()
+  const { user } = useAuth()
+  const canGenerate = user?.email?.toLowerCase() === 'yunjae14278@naver.com'
   const { files, projectStatus, resultReady, resetWorkflow, flushCloudWork, cloudSaving } = useUploads()
   const hasWork = files.length > 0
   const resumePath = !projectStatus || projectStatus.status === 'created' ? '/localize' : resultReady && ['completed', 'failed'].includes(projectStatus.status) ? '/result' : '/editor'
@@ -23,7 +27,7 @@ export default function Dashboard() {
   const cards = [
     { title: t.hubLocalize, description: t.hubLocalizeDesc, Icon: Globe2, active: true },
     { title: t.hubReview, description: t.hubReviewDesc, Icon: ShieldCheck, active: false },
-    { title: t.hubGenerate, description: t.hubGenerateDesc, Icon: Sparkles, active: false },
+    { title: t.hubGenerate, description: t.hubGenerateDesc, Icon: Sparkles, active: canGenerate },
   ]
 
   return (
@@ -42,10 +46,10 @@ export default function Dashboard() {
               </div>
               <h2 className="mt-6 text-xl font-extrabold text-ink">{title}</h2>
               <p className="mb-7 mt-3 flex-1 break-normal text-sm leading-6 text-sub [overflow-wrap:anywhere]">{description}</p>
-              <Button disabled={!active || cloudSaving} onClick={() => hasWork ? navigate(resumePath) : startNew()} className="w-full">
-                {active ? hasWork ? t.hubContinue : t.hubStart : t.hubSoon}{active && <ArrowRight className="h-4 w-4" />}
+              <Button disabled={!active || cloudSaving} onClick={() => Icon === Sparkles ? navigate('/generate') : hasWork ? navigate(resumePath) : startNew()} className="w-full">
+                {active ? hasWork && Icon === Globe2 ? t.hubContinue : t.hubStart : t.hubSoon}{active && <ArrowRight className="h-4 w-4" />}
               </Button>
-              {active && hasWork && <Button variant="ghost" onClick={startNew} className="mt-2 w-full">{t.hubNew}</Button>}
+              {active && hasWork && Icon === Globe2 && <Button variant="ghost" onClick={startNew} className="mt-2 w-full">{t.hubNew}</Button>}
             </section>
           ))}
         </div>
@@ -53,6 +57,7 @@ export default function Dashboard() {
           <h2 id="progress-title" className="text-xl font-extrabold">{t.cloudInProgress}</h2>
           <CloudProjectList archive={false} />
         </section>
+        <GenerationList />
       </main>
     </div>
   )
