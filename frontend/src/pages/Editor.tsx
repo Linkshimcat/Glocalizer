@@ -461,7 +461,7 @@ export default function Editor() {
     setDoneIds(prev => prev.filter(id => id !== item.id))
     if (items.length === 1) {
       resetWorkflow()
-      navigate('/dashboard', { replace: true })
+      navigate('/localize', { replace: true })
       return
     }
     if (files.length > 0) removeFile(item.id)
@@ -912,7 +912,7 @@ export default function Editor() {
   // 그리지 않고 로딩 화면만 보여준다 — 전에는 로딩 오버레이가 캔버스 영역에만 떠서 나머지
   // UI가 먼저 다 보이는 문제가 있었다.
   if (files.length === 0 || !projectStatus) {
-    return <Navigate to="/dashboard" replace state={{ preserveWorkflow: true }} />
+    return <Navigate to="/localize" replace />
   }
 
   if (isLoading) {
@@ -941,7 +941,7 @@ export default function Editor() {
           onClick={() => navigate('/dashboard')}
           className="relative z-10 text-sm font-semibold text-sub hover:underline"
         >
-          {t.loadingCancel}
+          {t.hubDashboard}
         </button>
       </div>
     )

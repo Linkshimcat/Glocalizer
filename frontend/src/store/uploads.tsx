@@ -3,13 +3,10 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
-import { useLocation } from 'react-router-dom'
 import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
 import { pickFontByStyle } from '../data/demo'
@@ -177,9 +174,6 @@ interface UploadState {
 const UploadContext = createContext<UploadState | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
-  const location = useLocation()
-  const previousPathRef = useRef(location.pathname)
-  const preserveWorkflowOnRedirect = Boolean((location.state as { preserveWorkflow?: boolean } | null)?.preserveWorkflow)
   // 초기값을 sessionStorage에서 복원 → 새로고침해도 유지
   const [files, setFiles] = useState<UploadFile[]>(() => loadSession('files', []))
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>(() => {
@@ -231,14 +225,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setResultReady(true)
     saveSession('resultReady', true)
   }, [])
-
-  useLayoutEffect(() => {
-    const previousPath = previousPathRef.current
-    const leftWorkArea = previousPath === '/editor' || previousPath === '/result'
-    const enteredFreshStart = location.pathname === '/' || location.pathname === '/dashboard'
-    if (leftWorkArea && enteredFreshStart && !preserveWorkflowOnRedirect) resetWorkflow()
-    previousPathRef.current = location.pathname
-  }, [location.pathname, preserveWorkflowOnRedirect, resetWorkflow])
 
   const saveStyle = useCallback((id: string, languageCode: string, style: Style, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === id)

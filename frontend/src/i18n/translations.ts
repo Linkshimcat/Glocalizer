@@ -9,6 +9,35 @@ export const SITE_LANGS: { code: SiteLang; label: string; flag: string; short: s
 ]
 
 export interface Dict {
+  hubDashboard: string
+  hubTitle: string
+  hubSubtitle: string
+  hubLocalize: string
+  hubLocalizeDesc: string
+  hubReview: string
+  hubReviewDesc: string
+  hubGenerate: string
+  hubGenerateDesc: string
+  hubSoon: string
+  hubStart: string
+  hubContinue: string
+  hubNew: string
+  hubConfirm: string
+  hubResume: string
+  hubSession: string
+  hubFiles: string
+  hubUpload: string
+  hubProcessing: string
+  hubEditing: string
+  hubResult: string
+  hubFailed: string
+  accountTitle: string
+  accountDesc: string
+  accountName: string
+  accountEmail: string
+  accountMissing: string
+  accountMenu: string
+
   navStart: string
   navService: string
   heroBrandTag: string
@@ -112,6 +141,35 @@ export interface Dict {
 
 export const translations: Record<SiteLang, Dict> = {
   ko: {
+    hubDashboard: '대시보드',
+    hubTitle: '어떤 작업을 시작할까요?',
+    hubSubtitle: '이모티콘의 제작부터 현지화와 출시 준비까지, Glocalizer와 함께해요.',
+    hubLocalize: '이모티콘 현지화',
+    hubLocalizeDesc: '이모티콘 속 문구를 다른 언어의 자연스러운 표현으로 바꿔요.',
+    hubReview: 'OGQ 출시 검토',
+    hubReviewDesc: '출시 준비를 위한 이모티콘 검토를 도와드려요.',
+    hubGenerate: '이모티콘 생성',
+    hubGenerateDesc: '아이디어를 새로운 이모티콘으로 만들어요.',
+    hubSoon: '준비 중',
+    hubStart: '시작하기',
+    hubContinue: '이어하기',
+    hubNew: '새 작업',
+    hubConfirm: '기존 현지화 작업을 지우고 새 작업을 시작할까요?',
+    hubResume: '이어서 작업하기',
+    hubSession: '이 브라우저 탭에 보관된 현지화 작업이에요.',
+    hubFiles: '이미지 {n}개',
+    hubUpload: '업로드 중',
+    hubProcessing: '처리 중',
+    hubEditing: '편집 중',
+    hubResult: '결과 준비 완료',
+    hubFailed: '확인 필요',
+    accountTitle: '계정 정보',
+    accountDesc: 'Glocalizer에 연결된 계정 정보를 확인하세요.',
+    accountName: '이름',
+    accountEmail: '이메일',
+    accountMissing: '등록된 정보 없음',
+    accountMenu: '프로필 메뉴',
+
     navStart: '시작하기',
     navService: '서비스 소개',
     heroBrandTag: 'Glocalizer',
@@ -205,6 +263,35 @@ export const translations: Record<SiteLang, Dict> = {
     loginSuccessToast: '로그인 완료!',
   },
   en: {
+    hubDashboard: 'Dashboard',
+    hubTitle: 'What would you like to work on?',
+    hubSubtitle: 'Create, localize, and prepare your emoticons for release with Glocalizer.',
+    hubLocalize: 'Emoticon localization',
+    hubLocalizeDesc: 'Turn captions into natural expressions in other languages.',
+    hubReview: 'OGQ release review',
+    hubReviewDesc: 'Get help reviewing your emoticons before release.',
+    hubGenerate: 'Emoticon generation',
+    hubGenerateDesc: 'Turn your ideas into new emoticons.',
+    hubSoon: 'Coming soon',
+    hubStart: 'Get started',
+    hubContinue: 'Continue',
+    hubNew: 'New task',
+    hubConfirm: 'Clear your current localization task and start a new one?',
+    hubResume: 'Continue your work',
+    hubSession: 'This localization task is saved in this browser tab.',
+    hubFiles: '{n} images',
+    hubUpload: 'Uploading',
+    hubProcessing: 'Processing',
+    hubEditing: 'Editing',
+    hubResult: 'Results ready',
+    hubFailed: 'Needs attention',
+    accountTitle: 'Account information',
+    accountDesc: 'View your account information connected to Glocalizer.',
+    accountName: 'Name',
+    accountEmail: 'Email',
+    accountMissing: 'No information provided',
+    accountMenu: 'Profile menu',
+
     navStart: 'Start',
     navService: 'About',
     heroBrandTag: 'Glocalizer',
@@ -298,6 +385,35 @@ export const translations: Record<SiteLang, Dict> = {
     loginSuccessToast: 'Logged in!',
   },
   ja: {
+    hubDashboard: 'ダッシュボード',
+    hubTitle: 'どんな作業を始めますか？',
+    hubSubtitle: '制作から翻訳、リリース準備まで、Glocalizerと一緒に。',
+    hubLocalize: 'スタンプの現地化',
+    hubLocalizeDesc: 'スタンプの文字を他の言語の自然な表現に変えます。',
+    hubReview: 'OGQリリース確認',
+    hubReviewDesc: 'リリース前のスタンプ確認をサポートします。',
+    hubGenerate: 'スタンプ生成',
+    hubGenerateDesc: 'アイデアを新しいスタンプにします。',
+    hubSoon: '準備中',
+    hubStart: '始める',
+    hubContinue: '続ける',
+    hubNew: '新しい作業',
+    hubConfirm: '現在の現地化作業を削除して、新しく始めますか？',
+    hubResume: '作業を続ける',
+    hubSession: 'このブラウザータブに保存された現地化作業です。',
+    hubFiles: '画像 {n}枚',
+    hubUpload: 'アップロード中',
+    hubProcessing: '処理中',
+    hubEditing: '編集中',
+    hubResult: '結果の準備完了',
+    hubFailed: '確認が必要',
+    accountTitle: 'アカウント情報',
+    accountDesc: 'Glocalizerに接続したアカウント情報を確認できます。',
+    accountName: '名前',
+    accountEmail: 'メール',
+    accountMissing: '登録情報なし',
+    accountMenu: 'プロフィールメニュー',
+
     navStart: 'はじめる',
     navService: 'サービス紹介',
     heroBrandTag: 'Glocalizer',
@@ -391,6 +507,35 @@ export const translations: Record<SiteLang, Dict> = {
     loginSuccessToast: 'ログイン完了！',
   },
   zh: {
+    hubDashboard: '控制台',
+    hubTitle: '想开始什么工作？',
+    hubSubtitle: '与Glocalizer一起制作、本地化表情并准备发布。',
+    hubLocalize: '表情本地化',
+    hubLocalizeDesc: '将表情中的文字转换为其他语言的自然表达。',
+    hubReview: 'OGQ发布检查',
+    hubReviewDesc: '帮助您在发布前检查表情。',
+    hubGenerate: '表情生成',
+    hubGenerateDesc: '将想法变成新的表情。',
+    hubSoon: '即将推出',
+    hubStart: '开始',
+    hubContinue: '继续',
+    hubNew: '新建任务',
+    hubConfirm: '清除当前本地化任务并开始新任务吗？',
+    hubResume: '继续工作',
+    hubSession: '此本地化任务保存在当前浏览器标签页中。',
+    hubFiles: '{n}张图片',
+    hubUpload: '上传中',
+    hubProcessing: '处理中',
+    hubEditing: '编辑中',
+    hubResult: '结果已就绪',
+    hubFailed: '需要检查',
+    accountTitle: '账户信息',
+    accountDesc: '查看与Glocalizer关联的账户信息。',
+    accountName: '姓名',
+    accountEmail: '邮箱',
+    accountMissing: '暂无信息',
+    accountMenu: '个人资料菜单',
+
     navStart: '开始',
     navService: '服务介绍',
     heroBrandTag: 'Glocalizer',
