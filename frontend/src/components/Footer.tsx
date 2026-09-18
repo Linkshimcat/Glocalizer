@@ -3,8 +3,11 @@ import Logo from './Logo'
 
 export default function Footer() {
   return (
-    <footer className="overflow-hidden rounded-t-[20px] border-t border-gray-200 bg-surface">
-      <div className="layout-wide grid gap-3 py-6 text-center md:grid-cols-3 md:items-center md:text-left">
+    // 글래스모피즘: 뒤 배경(히어로 그라데이션 등)이 비치도록 반투명 흰색 + 블러를 쓰고,
+    // 위쪽 테두리와 안쪽 하이라이트로 유리 가장자리를 표현한다.
+    <footer className="relative overflow-hidden rounded-t-[24px] border border-b-0 border-white/70 bg-white/40 shadow-[0_-10px_40px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl backdrop-saturate-150">
+      <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/50 to-white/0" />
+      <div className="relative layout-wide grid gap-3 py-6 text-center md:grid-cols-3 md:items-center md:text-left">
         <div className="justify-self-center md:justify-self-start">
           <Logo />
         </div>

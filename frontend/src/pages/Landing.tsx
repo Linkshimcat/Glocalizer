@@ -69,67 +69,70 @@ export default function Landing() {
       {/* NAV는 Hero와 독립된 흰색 바. gradient는 Hero section 안에서만 보인다. */}
       <Header center={<NavMenu />} sticky />
 
-      <main className="flex w-full flex-1 flex-col">
-        <section className="relative flex w-full flex-1 flex-col justify-center overflow-hidden bg-[image:var(--hero-bg)] bg-cover bg-center">
-          <div className="mx-auto grid w-full max-w-[1600px] content-center gap-10 px-5 py-8 sm:gap-12 sm:px-10 sm:py-14 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center lg:gap-16 lg:px-16 lg:py-10">
-            <div>
-              <h1 className="text-[42px] leading-[1.12] font-extrabold tracking-tight sm:text-5xl md:text-[60px]">
-                {t.heroLine1}
-                <br />
-                {/* 굴러가는 어절은 aria-hidden이라 읽히는 문구를 따로 남긴다. */}
-                <span className="sr-only">{t.heroLine2}</span>
-                <RollingText items={t.heroLine2Roll} per="char" className="text-brand" />
-              </h1>
-              <p className={`mt-6 max-w-[420px] font-medium text-sub sm:text-[17px] ${
-                lang === 'ko' ? 'whitespace-nowrap text-[13px] min-[360px]:text-[14px] lg:whitespace-pre-line' : 'text-[15px]'
-              }`}>
-                {t.heroDesc}
-              </p>
-              <Button size="lg" onClick={() => navigate('/dashboard')} className="mt-7 w-full sm:mt-8 sm:w-auto">
-                {t.heroCta} <span aria-hidden="true">→</span>
-              </Button>
-            </div>
-
-            <div className="flex w-full flex-col gap-6 lg:max-w-[900px] lg:justify-self-end lg:self-center">
-              <div className="overflow-hidden rounded-[24px] border border-black/[0.06] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
-                <video
-                  ref={videoRef}
-                  src={motionGraphic}
-                  className="block aspect-video w-full object-cover"
-                  autoPlay
-                  muted
-                  playsInline
-                  preload="metadata"
-                  aria-label={t.cardTitle}
-                />
+      {/* 푸터가 유리처럼 그라데이션 위에 떠 보이도록 배경을 main과 푸터를 감싼 영역에 깐다. */}
+      <div className="flex flex-1 flex-col bg-[image:var(--hero-bg)] bg-cover bg-center">
+        <main className="flex w-full flex-1 flex-col">
+          <section className="relative flex w-full flex-1 flex-col justify-center overflow-hidden">
+            <div className="mx-auto grid w-full max-w-[1600px] content-center gap-10 px-5 py-8 sm:gap-12 sm:px-10 sm:py-14 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center lg:gap-16 lg:px-16 lg:py-10">
+              <div>
+                <h1 className="text-[42px] leading-[1.12] font-extrabold tracking-tight sm:text-5xl md:text-[60px]">
+                  {t.heroLine1}
+                  <br />
+                  {/* 굴러가는 어절은 aria-hidden이라 읽히는 문구를 따로 남긴다. */}
+                  <span className="sr-only">{t.heroLine2}</span>
+                  <RollingText items={t.heroLine2Roll} per="char" className="text-brand" />
+                </h1>
+                <p className={`mt-6 max-w-[420px] font-medium text-sub sm:text-[17px] ${
+                  lang === 'ko' ? 'whitespace-nowrap text-[13px] min-[360px]:text-[14px] lg:whitespace-pre-line' : 'text-[15px]'
+                }`}>
+                  {t.heroDesc}
+                </p>
+                <Button size="lg" onClick={() => navigate('/dashboard')} className="mt-7 w-full sm:mt-8 sm:w-auto">
+                  {t.heroCta} <span aria-hidden="true">→</span>
+                </Button>
               </div>
-              {/* 타임라인은 전 화면에서 보인다. 되감기 버튼은 좁은 화면에서 이 줄 끝에 붙고,
-                  lg부터는 목업대로 히어로 오른쪽 아래로 빠진다(기준점은 relative인 section). */}
-              <div className="flex items-center gap-3 font-extrabold text-ink sm:gap-4">
-                <span aria-hidden="true" className="text-[13px] sm:text-[15px]">01</span>
-                <span aria-hidden="true" className="relative h-1 flex-1 overflow-hidden rounded-full bg-ink/15">
-                  <span
-                    className="absolute inset-y-0 left-0 rounded-full bg-ink"
-                    style={{ width: `${progress * 100}%` }}
+
+              <div className="flex w-full flex-col gap-6 lg:max-w-[900px] lg:justify-self-end lg:self-center">
+                <div className="overflow-hidden rounded-[24px] border border-black/[0.06] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+                  <video
+                    ref={videoRef}
+                    src={motionGraphic}
+                    className="block aspect-video w-full object-cover"
+                    autoPlay
+                    muted
+                    playsInline
+                    preload="metadata"
+                    aria-label={t.cardTitle}
                   />
-                </span>
-                <span aria-hidden="true" className="text-[13px] sm:text-[15px]">03</span>
-                <button
-                  type="button"
-                  onClick={replayVideo}
-                  aria-label={t.heroReplay}
-                  title={t.heroReplay}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition hover:bg-white focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:outline-none lg:absolute lg:right-6 lg:bottom-6"
-                >
-                  <img src={refreshIcon} alt="" aria-hidden className="h-5 w-5" />
-                </button>
+                </div>
+                {/* 타임라인은 전 화면에서 보인다. 되감기 버튼은 좁은 화면에서 이 줄 끝에 붙고,
+                    lg부터는 목업대로 히어로 오른쪽 아래로 빠진다(기준점은 relative인 section). */}
+                <div className="flex items-center gap-3 font-extrabold text-ink sm:gap-4">
+                  <span aria-hidden="true" className="text-[13px] sm:text-[15px]">01</span>
+                  <span aria-hidden="true" className="relative h-1 flex-1 overflow-hidden rounded-full bg-ink/15">
+                    <span
+                      className="absolute inset-y-0 left-0 rounded-full bg-ink"
+                      style={{ width: `${progress * 100}%` }}
+                    />
+                  </span>
+                  <span aria-hidden="true" className="text-[13px] sm:text-[15px]">03</span>
+                  <button
+                    type="button"
+                    onClick={replayVideo}
+                    aria-label={t.heroReplay}
+                    title={t.heroReplay}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition hover:bg-white focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:outline-none lg:absolute lg:right-6 lg:bottom-6"
+                  >
+                    <img src={refreshIcon} alt="" aria-hidden className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   )
 }
