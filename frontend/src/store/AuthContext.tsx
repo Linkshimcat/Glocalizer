@@ -6,6 +6,8 @@ import {
   loginWithEmail as apiLoginWithEmail,
   loginWithNaver as apiLoginWithNaver,
   signupWithEmail as apiSignupWithEmail,
+  updateProfile as apiUpdateProfile,
+  type ProfileUpdate,
   type AuthUser,
 } from '../lib/authApi'
 
@@ -54,6 +56,7 @@ interface AuthState {
   logout: () => void
   /** 저장된 토큰이 아직 유효한지 서버에 확인해 user 정보를 최신화한다. */
   refreshUser: () => Promise<void>
+  updateProfile: (update: ProfileUpdate) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -103,11 +106,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 토큰 만료/무효화 시에는 조용히 로그아웃 처리한다.
       if (error instanceof AuthApiError) {
         setApiAccountToken(null)
-    setToken(null)
+        setToken(null)
         setUser(null)
         persistSession(null, null)
       }
     }
+  }, [token])
+
+  const updateProfile = useCallback(async (update: ProfileUpdate) => {
+    if (!token) throw new AuthApiError('로그인이 필요해요.')
+    const { user: nextUser } = await apiUpdateProfile(token, update)
+    setUser(nextUser)
+    persistSession(token, nextUser)
   }, [token])
 
   const value = useMemo<AuthState>(() => ({
@@ -119,7 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     completeNaverLogin,
     logout,
     refreshUser,
-  }), [user, token, loginWithEmail, signupWithEmail, completeNaverLogin, logout, refreshUser])
+    updateProfile,
+  }), [user, token, loginWithEmail, signupWithEmail, completeNaverLogin, logout, refreshUser, updateProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

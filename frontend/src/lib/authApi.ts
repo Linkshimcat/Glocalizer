@@ -65,3 +65,17 @@ export function fetchCurrentUser(token: string): Promise<{ user: AuthUser }> {
     headers: { Authorization: `Bearer ${token}` },
   })
 }
+
+export interface ProfileUpdate {
+  name?: string
+  /** data URL. null이면 기본 이미지로 되돌린다. */
+  avatar?: string | null
+}
+
+export function updateProfile(token: string, update: ProfileUpdate): Promise<{ user: AuthUser }> {
+  return authRequest<{ user: AuthUser }>('/auth/me', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(update),
+  })
+}

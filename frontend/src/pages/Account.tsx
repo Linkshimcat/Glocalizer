@@ -1,16 +1,101 @@
-import { useRef } from 'react'
+import { Camera, Loader2 } from 'lucide-react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
+import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
+import type { ProfileUpdate } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
 
+const NAME_MAX_LENGTH = 30
+const PHOTO_MAX_BYTES = 10 * 1024 * 1024
+const PHOTO_EDGE = 512
+
+/** 정사각형으로 가운데를 잘라 줄인 뒤 data URL로 만든다. 서버가 한 번 더 256px WebP로 재인코딩한다. */
+async function toAvatarDataUrl(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file)
+  const side = Math.min(bitmap.width, bitmap.height)
+  const edge = Math.min(PHOTO_EDGE, side)
+  const canvas = document.createElement('canvas')
+  canvas.width = edge
+  canvas.height = edge
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas unavailable')
+  ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, edge, edge)
+  bitmap.close()
+  return canvas.toDataURL('image/jpeg', 0.9)
+}
+
 export default function Account() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, updateProfile } = useAuth()
   const { t } = useSiteLang()
+  const toast = useToast()
   const enteredAuthenticated = useRef(isAuthenticated)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState('')
+  // undefined: 변경 없음, null: 기본 이미지로, string: 새 사진(data URL)
+  const [avatar, setAvatar] = useState<string | null | undefined>(undefined)
+  const [saving, setSaving] = useState(false)
   if (!isAuthenticated || !user) return <Navigate to={enteredAuthenticated.current ? '/' : '/login'} replace />
-  const initial = (user.name ?? user.email ?? '?').trim().charAt(0).toUpperCase() || '?'
+
+  const shownName = editing ? name : user.name ?? ''
+  const shownAvatar = avatar === undefined ? user.avatarUrl : avatar
+  const initial = (shownName || user.email || '?').trim().charAt(0).toUpperCase() || '?'
+
+  const startEditing = () => {
+    setName(user.name ?? '')
+    setAvatar(undefined)
+    setEditing(true)
+  }
+
+  const cancelEditing = () => {
+    setAvatar(undefined)
+    setEditing(false)
+  }
+
+  const onPickPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/') || file.size > PHOTO_MAX_BYTES) {
+      toast(t.accountPhotoInvalid)
+      return
+    }
+    try {
+      setAvatar(await toAvatarDataUrl(file))
+    } catch {
+      toast(t.accountPhotoInvalid)
+    }
+  }
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) {
+      toast(t.accountNameRequired)
+      return
+    }
+    const update: ProfileUpdate = {}
+    if (trimmed !== (user.name ?? '')) update.name = trimmed
+    if (avatar !== undefined) update.avatar = avatar
+    if (Object.keys(update).length === 0) {
+      setEditing(false)
+      return
+    }
+    setSaving(true)
+    try {
+      await updateProfile(update)
+      setAvatar(undefined)
+      setEditing(false)
+      toast(t.accountSaved, 'success')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t.accountSaveFailed)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFBFC]">
@@ -19,19 +104,88 @@ export default function Account() {
         <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{t.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{t.accountDesc}</p>
-        <section className="mt-8 max-w-2xl rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>
-          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-2xl font-extrabold text-brand-dark">
-            {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initial}
-          </div>
-          <dl className="mt-7 divide-y divide-gray-100">
-            {[[t.accountName, user.name], [t.accountEmail, user.email]].map(([label, value]) => (
-              <div key={label} className="py-5 first:pt-0 last:pb-0">
-                <dt className="text-sm font-semibold text-sub">{label}</dt>
-                <dd className="mt-2 break-words text-base font-bold text-ink">{value?.trim() || t.accountMissing}</dd>
+        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative h-20 w-20 shrink-0">
+                <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-brand-soft text-2xl font-extrabold text-brand-dark">
+                  {shownAvatar ? <img src={shownAvatar} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initial}
+                </div>
+                {editing && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label={t.accountChangePhoto}
+                    className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-ink text-white transition-opacity hover:opacity-85"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-            ))}
+              {editing && (
+                <div className="flex flex-col items-start gap-1.5">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm font-bold text-ink hover:underline">
+                    {t.accountChangePhoto}
+                  </button>
+                  {shownAvatar && (
+                    <button type="button" onClick={() => setAvatar(null)} className="text-sm font-semibold text-sub hover:underline">
+                      {t.accountRemovePhoto}
+                    </button>
+                  )}
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={onPickPhoto} />
+            </div>
+            {!editing && (
+              <button type="button" onClick={startEditing} className="shrink-0 rounded-full border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface">
+                {t.accountEdit}
+              </button>
+            )}
+          </div>
+
+          <dl className="mt-7 divide-y divide-gray-100">
+            <div className="pb-5">
+              <dt className="text-sm font-semibold text-sub">
+                <label htmlFor="account-name">{t.accountName}</label>
+              </dt>
+              <dd className="mt-2">
+                {editing ? (
+                  <div className="relative">
+                    <input
+                      id="account-name"
+                      value={name}
+                      onChange={event => setName(event.target.value)}
+                      maxLength={NAME_MAX_LENGTH}
+                      autoFocus
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-16 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                    />
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-sub">
+                      {name.length}/{NAME_MAX_LENGTH}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="break-words text-base font-bold text-ink">{user.name?.trim() || t.accountMissing}</span>
+                )}
+              </dd>
+            </div>
+            <div className="pt-5">
+              <dt className="text-sm font-semibold text-sub">{t.accountEmail}</dt>
+              <dd className="mt-2 break-words text-base font-bold text-ink">{user.email?.trim() || t.accountMissing}</dd>
+            </div>
           </dl>
-        </section>
+
+          {editing && (
+            <div className="mt-8 flex justify-end gap-2">
+              <button type="button" onClick={cancelEditing} disabled={saving} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
+                {t.accountCancel}
+              </button>
+              <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t.accountSave}
+              </button>
+            </div>
+          )}
+        </form>
       </main>
     </div>
   )
