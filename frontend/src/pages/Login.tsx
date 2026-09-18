@@ -14,7 +14,7 @@ type Mode = 'login' | 'signup'
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const returnTo = searchParams.get('next') === '/localize' ? '/localize' : '/dashboard'
+  const returnTo = ['/localize', '/generate'].includes(searchParams.get('next') ?? '') ? searchParams.get('next')! : '/dashboard'
   const { t } = useSiteLang()
   const { loginWithEmail, signupWithEmail } = useAuth()
   const toast = useToast()

@@ -34,7 +34,7 @@ export default function NaverCallback() {
         toast(t.loginSuccessToast, 'success')
         const returnTo = sessionStorage.getItem('glocalizer:loginReturnTo')
         sessionStorage.removeItem('glocalizer:loginReturnTo')
-        navigate(returnTo === '/localize' ? '/localize' : '/dashboard', { replace: true })
+        navigate(returnTo && ['/localize', '/generate'].includes(returnTo) ? returnTo : '/dashboard', { replace: true })
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : t.loginNaverFailed)

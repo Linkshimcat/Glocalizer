@@ -1,4 +1,8 @@
 export const ERROR_CODES = {
+  GENERATION_FORBIDDEN: { status: 403, message: '현재 계정은 이미지 생성 기능을 사용할 수 없습니다.' },
+  GENERATION_DISABLED: { status: 503, message: '이미지 생성 API 활성화와 잔액 확인이 필요합니다.' },
+  GENERATION_LIMIT: { status: 429, message: '생성 횟수 또는 테스트 예산 한도에 도달했습니다.' },
+  GENERATION_FAILED: { status: 502, message: '이미지 생성에 실패했습니다. 이미 생성된 결과는 유지됩니다.' },
   INVALID_REQUEST: { status: 400, message: '요청 데이터가 올바르지 않습니다.' },
   INVALID_FILE_TYPE: { status: 400, message: '지원하지 않는 파일 형식입니다.' },
   FILE_TOO_LARGE: { status: 413, message: '파일 크기가 제한을 초과했습니다.' },

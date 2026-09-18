@@ -58,6 +58,10 @@ export const envSchema = z.object({
   // IoU 0.637) 대비 GPT-5.6 Luna(0.914)가 정확도·안정성·비용 모두 우위였다. PaddleOCR는
   // Luna 호출이 실패하거나 한글을 전혀 찾지 못했을 때의 fallback으로 유지한다.
   OPENAI_API_KEY: z.string().min(1).optional(),
+  ENABLE_IMAGE_GENERATION: z.string().default('false').transform((v) => v === 'true'),
+  IMAGE_GENERATION_OWNER_EMAIL: z.string().email().default('yunjae14278@naver.com'),
+  IMAGE_GENERATION_BUDGET_USD: z.coerce.number().positive().max(10).default(8),
+  IMAGE_GENERATION_RESERVE_USD: z.coerce.number().positive().default(2),
   OPENAI_OCR_MODEL: z.string().default('gpt-5.6-luna'),
   OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
   GEMINI_API_KEY: z.string().min(1).optional(),

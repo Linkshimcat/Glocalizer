@@ -1,3 +1,4 @@
+import { startGenerationWorker, stopGenerationWorker } from './workers/generation-worker.js';
 import type { Server } from 'node:http';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
@@ -20,6 +21,7 @@ function installShutdownHandlers(server: Server): void {
     shuttingDown = true;
     logger.info({ signal }, 'Graceful shutdown 시작');
     stopWorker();
+    void stopGenerationWorker();
     stopExpiredProjectsSweep();
 
     try {
@@ -46,6 +48,7 @@ async function main() {
   });
 
   startWorker();
+  startGenerationWorker();
   startExpiredProjectsSweep();
   installShutdownHandlers(server);
 }

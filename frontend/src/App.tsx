@@ -3,6 +3,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { SiteLangProvider } from './i18n/LanguageContext'
 import Dashboard from './pages/Dashboard'
+import Generate from './pages/Generate'
 import Localize from './pages/Localize'
 import Account from './pages/Account'
 import Archive from './pages/Archive'
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/auth/naver/callback" element={<NaverCallback />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/generate" element={<Generate />} />
                 <Route path="/localize" element={<Localize />} />
                 <Route path="/account" element={<Account />} />
                 <Route path="/archive" element={<Archive />} />
