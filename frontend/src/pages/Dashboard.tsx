@@ -39,7 +39,7 @@ export default function Dashboard() {
                 {!active && <span className="rounded-full bg-surface px-3 py-1 text-xs font-bold text-sub">{t.hubSoon}</span>}
               </div>
               <h2 className="mt-6 text-xl font-extrabold text-ink">{title}</h2>
-              <p className="mb-7 mt-3 flex-1 break-keep text-sm leading-6 text-sub">{description}</p>
+              <p className="mb-7 mt-3 flex-1 break-normal text-sm leading-6 text-sub [overflow-wrap:anywhere]">{description}</p>
               <Button disabled={!active} onClick={() => hasWork ? navigate(resumePath) : startNew()} className="w-full">
                 {active ? hasWork ? t.hubContinue : t.hubStart : t.hubSoon}{active && <ArrowRight className="h-4 w-4" />}
               </Button>
