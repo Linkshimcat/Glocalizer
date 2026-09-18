@@ -1,3 +1,12 @@
+let accountToken: string | null | undefined
+
+export function setApiAccountToken(token: string | null) { accountToken = token }
+
+function currentAccountToken(): string | null {
+  if (accountToken !== undefined) return accountToken
+  try { return localStorage.getItem('glocalizer:authToken') } catch { return null }
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
 
 export interface ApiCandidate {
@@ -87,11 +96,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+  const authToken = currentAccountToken()
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { 'X-Project-Token': token } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...init.headers,
     },
   })
@@ -120,7 +131,9 @@ export async function uploadToSignedUrl(uploadUrl: string, file: File): Promise<
 }
 
 export async function completeUploads(projectId: string, token: string, assetIds: string[]): Promise<void> {
-  await request(`/projects/${projectId}/uploads/complete`, { method: 'POST', body: JSON.stringify({ assetIds }) }, token)
+  const result = await request<{ assets: Array<{ status: string; errorMessage?: string }> }>(`/projects/${projectId}/uploads/complete`, { method: 'POST', body: JSON.stringify({ assetIds }) }, token)
+  const failed = result.assets.find(asset => asset.status === 'failed')
+  if (failed) throw new ApiError(failed.errorMessage ?? '이미지를 저장하지 못했어요.')
 }
 
 export async function startProject(projectId: string, token: string): Promise<void> {
@@ -182,4 +195,37 @@ export async function saveEditorState(
     method: 'PUT',
     body: JSON.stringify({ regionId, languageCode, style }),
   }, token)
+}
+
+export interface CloudProject {
+  id: string
+  name: string
+  status: string
+  resultReady: boolean
+  targetLanguages: string[]
+  imageCount: number
+  createdAt: string
+  updatedAt: string
+  thumbnailUrl: string | null
+}
+export interface CloudWorkspace {
+  projectId: string
+  projectToken: string
+  resultReady: boolean
+  selectedClientIds: string[]
+  files: Array<{ id: string; assetId: string; name: string; type: string; size: number }>
+  results: ProjectResults
+  status: ProjectStatus
+}
+export function listCloudProjects(): Promise<{ projects: CloudProject[] }> {
+  return request('/projects')
+}
+export function restoreCloudProject(id: string): Promise<CloudWorkspace> {
+  return request(`/projects/${id}/workspace`)
+}
+export function finishCloudProject(id: string): Promise<void> {
+  return request(`/projects/${id}/finish`, { method: 'POST' })
+}
+export function saveCloudDraft(id: string | null, files: Array<{ clientId: string; name: string; mimeType: string; size: number }>, targetLanguages: string[], selectedClientIds: string[]): Promise<{ projectId: string; projectToken: string; assets: Array<{ assetId: string; clientId: string; uploadUrl: string | null }> }> {
+  return request(id ? `/projects/${id}/draft` : '/projects/drafts', { method: id ? 'PUT' : 'POST', body: JSON.stringify({ files, targetLanguages, selectedClientIds }) })
 }

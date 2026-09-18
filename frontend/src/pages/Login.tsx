@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import NaverIcon from '../components/NaverIcon'
@@ -13,6 +13,8 @@ type Mode = 'login' | 'signup'
 
 export default function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returnTo = searchParams.get('next') === '/localize' ? '/localize' : '/dashboard'
   const { t } = useSiteLang()
   const { loginWithEmail, signupWithEmail } = useAuth()
   const toast = useToast()
@@ -35,7 +37,7 @@ export default function Login() {
         await signupWithEmail(email, password, name.trim() || undefined)
       }
       toast(t.loginSuccessToast, 'success')
-      navigate('/')
+      navigate(returnTo)
     } catch (err) {
       setError(err instanceof Error ? err.message : '요청에 실패했어요.')
     } finally {
@@ -49,6 +51,7 @@ export default function Login() {
       toast('네이버 로그인이 아직 설정되지 않았어요.')
       return
     }
+    sessionStorage.setItem('glocalizer:loginReturnTo', returnTo)
     window.location.href = url
   }
 

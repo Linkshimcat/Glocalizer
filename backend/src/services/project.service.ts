@@ -25,13 +25,13 @@ interface CreatedAsset {
 interface CreateProjectResult {
   projectId: string;
   projectToken: string;
-  expiresAt: string;
+  expiresAt: string | null;
   assets: CreatedAsset[];
 }
 
-export async function createProject(input: CreateProjectInput): Promise<CreateProjectResult> {
+export async function createProject(input: CreateProjectInput, ownerId?: string, selectedClientIds?: string[]): Promise<CreateProjectResult> {
   const projectToken = generateProjectToken();
-  const expiresAt = new Date(Date.now() + env.PROJECT_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+  const expiresAt = ownerId ? null : new Date(Date.now() + env.PROJECT_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
   let projectId: string | null = null;
 
   try {
@@ -40,6 +40,8 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
       targetLanguages: input.targetLanguages,
       localizationOptions: input.options,
       expiresAt,
+      ownerId,
+      selectedClientIds,
     });
     projectId = project.id;
 

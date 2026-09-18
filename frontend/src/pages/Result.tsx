@@ -1,3 +1,4 @@
+import { useToast } from '../components/Toast'
 import { ArrowLeft, Check, Home } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import sparkleDownload from '../assets/GCFrontendUI/SparkleDownload.svg'
@@ -26,10 +27,12 @@ function StepIndicator() {
 
 export default function Result() {
   const navigate = useNavigate()
+  const toast = useToast()
   const { t } = useSiteLang()
-  const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady } = useUploads()
+  const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady, cloudSaving, flushCloudWork, selectedFileIds } = useUploads()
   const localizationFinished = projectStatus?.status === 'completed' || projectStatus?.status === 'failed'
   // 업로드 → AI 처리 → 에디터 다운로드를 완료하지 않고 주소로 직접 접근하는 경우를 막는다.
+  if (cloudSaving && files.length === 0) return <div role="status" className="p-8 text-center text-sub">{t.cloudLoading}</div>
   if (files.length === 0 || !projectStatus) return <Navigate to="/localize" replace />
   if (!localizationFinished || !resultReady) return <Navigate to="/editor" replace />
   const languages = targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
@@ -91,7 +94,7 @@ export default function Result() {
           </div>
           <div className="mt-4 space-y-7">
             {languages.map(language => {
-              const items = toDemoItems(files, language.code)
+              const items = toDemoItems(files.filter(file => selectedFileIds.includes(file.id)), language.code)
               return (
                 <section key={language.code}>
                   <h3 className="text-sm font-extrabold">{language.flag} {language.label}</h3>
@@ -130,9 +133,9 @@ export default function Result() {
             <Home className="h-4 w-4" /> {t.hubDashboard}
           </Button>
           <Button
-            onClick={() => {
-              resetWorkflow()
-              navigate('/localize')
+            onClick={async () => {
+              try { await flushCloudWork(); resetWorkflow(); navigate('/localize') }
+              catch (error) { toast(error instanceof Error ? error.message : t.cloudSaveFailed) }
             }}
             className="min-h-14 flex-1 md:min-h-0"
             glow

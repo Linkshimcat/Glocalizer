@@ -20,7 +20,7 @@ interface Migration {
 
 function readMigrations(): Migration[] {
   return readdirSync(MIGRATIONS_DIR)
-    .filter((filename) => /^\d{3}_.+\.sql$/.test(filename) && !filename.startsWith('000_'))
+    .filter((filename) => /^(?:\d{3}|\d{14})_.+\.sql$/.test(filename) && !filename.startsWith('000_'))
     .sort()
     .map((filename) => {
       const sql = readFileSync(join(MIGRATIONS_DIR, filename), 'utf-8').trim();

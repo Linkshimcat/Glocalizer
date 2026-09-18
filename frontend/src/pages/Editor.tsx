@@ -247,6 +247,9 @@ export default function Editor() {
     saveStyle,
     recordDownload,
     markResultReady,
+    cloudSaving,
+    cloudError,
+    flushCloudWork,
     projectStatus,
     refreshProject,
     reviseOcr,
@@ -432,13 +435,15 @@ export default function Editor() {
   }, [projectStatus, refreshProject, t.toastAiFailed, t.toastStatusFail, toast])
 
   useEffect(() => {
-    const normalizedBox = activeRegion.normalizedBox
+    if (!current.analysis || !['completed', 'failed'].includes(projectStatus?.status ?? '')) return
     const initializationKey = `${activeStyleKey}:${activeLanguage.code}`
-    if (!normalizedBox || savedStyles[activeStyleKey]?.[activeLanguage.code] || initializedBoxStyleIds.current.has(initializationKey)) return
+    if (initializedBoxStyleIds.current.has(initializationKey)) return
     initializedBoxStyleIds.current.add(initializationKey)
-    // 감지된 원본 글자색(textColor)을 번역 텍스트 기본 색으로 함께 적용한다.
-    setStyle(initialStyleFor(normalizedBox, activeRegion.textColor, activeRegion.suggestions, activeRegion.recommendedFont))
-  }, [activeLanguage.code, activeRegion, activeStyleKey, savedStyles])
+    const saved = savedStyles[activeStyleKey]?.[activeLanguage.code]
+    setStyle(saved ?? (activeRegion.normalizedBox
+      ? initialStyleFor(activeRegion.normalizedBox, activeRegion.textColor, activeRegion.suggestions, activeRegion.recommendedFont)
+      : DEFAULT_STYLE))
+  }, [activeLanguage.code, activeRegion, activeStyleKey, savedStyles, current.analysis, projectStatus?.status])
 
   useEffect(() => {
     if (!textRegions.some(region => region.id === selectedRegionId)) {
@@ -752,7 +757,7 @@ export default function Editor() {
       )
       recordDownload('single', langCode)
       markCurrentDone()
-      markResultReady()
+      await markResultReady()
       navigate('/result')
     } catch (error) {
       toast(error instanceof Error ? error.message : t.toastPngFail)
@@ -775,7 +780,7 @@ export default function Editor() {
       )
       recordDownload('zip')
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
-      markResultReady()
+      await markResultReady()
       navigate('/result')
     } catch (error) {
       toast(error instanceof Error ? error.message : t.toastZipFail)
@@ -799,7 +804,7 @@ export default function Editor() {
       )
       recordDownload('single', langCode)
       markCurrentDone()
-      markResultReady()
+      await markResultReady()
       navigate('/result')
     } catch (error) {
       toast(error instanceof Error ? error.message : t.toastDownloadFail)
@@ -826,6 +831,12 @@ export default function Editor() {
       ? `${value.shadowX}px ${value.shadowY}px ${value.shadowBlur}px ${hexToRgba(value.shadowColor, value.shadowOpacity / 100)}`
       : undefined,
   })
+  useEffect(() => {
+    if (!current.analysis || !['completed', 'failed'].includes(projectStatus?.status ?? '')) return
+    const timer = setTimeout(() => saveStyle(current.id, langCode, style, activeRegion.id), 500)
+    return () => { clearTimeout(timer); saveStyle(current.id, langCode, style, activeRegion.id) }
+  }, [current.id, current.analysis, langCode, style, activeRegion.id, saveStyle, projectStatus?.status])
+
   const canvasOverlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
 
   const cornerHandles = [
@@ -911,6 +922,8 @@ export default function Editor() {
   // 인식·번역이 끝나기 전에는 에디터 화면(상단 바·언어 탭·파일 목록·설정 패널 등)을 전혀
   // 그리지 않고 로딩 화면만 보여준다 — 전에는 로딩 오버레이가 캔버스 영역에만 떠서 나머지
   // UI가 먼저 다 보이는 문제가 있었다.
+  if (cloudSaving && files.length === 0) return <div role="status" className="p-8 text-center text-sub">{t.cloudLoading}</div>
+
   if (files.length === 0 || !projectStatus) {
     return <Navigate to="/localize" replace />
   }
@@ -949,6 +962,7 @@ export default function Editor() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white lg:h-screen">
+      {cloudError && <div role="alert" className="flex flex-wrap items-center gap-3 bg-amber-50 px-4 py-3 text-sm text-amber-800"><span>{cloudError}</span><Button variant="outline" size="sm" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button></div>}
       {/* 상단 바 */}
       <div className="border-b border-gray-100">
         {availableLanguages.length > 1 && (

@@ -67,3 +67,20 @@
 ```
 
 응답은 `202 { "assetId": "…", "status": "reprocessing", "jobId": "…" }`이다. 수정 요청은 OCR 영역만 즉시 저장하고, 번역·cleanup은 background job으로 처리한다. 다른 asset의 결과는 변경하지 않는다.
+
+## Account cloud workspaces
+
+New account workspaces use the existing custom login JWT (`Authorization: Bearer …`), not Supabase Auth. The backend checks `owner_id` for every project request. `X-Project-Token` alone cannot access an owned workspace. Existing anonymous projects retain their token access and expiry; they are not automatically assigned to an account.
+
+- `GET /projects`: returns `{ projects: [{ id, name, status, resultReady, targetLanguages, imageCount, thumbnailUrl, createdAt, updatedAt }] }` for the current account.
+- `POST /projects/drafts`: creates an owned upload draft. Body: existing project options/files metadata, `targetLanguages` (may be empty before selection), and `selectedClientIds`.
+- `PUT /projects/:projectId/draft`: synchronizes files, selection and target languages while the project is `created`; returns signed upload URLs for new/pending files. Empty file manifests are permitted when removing all images.
+- Existing `uploads/complete` validates stored image bytes. The frontend waits for upload/validation before reporting the draft as saved.
+- `GET /projects/:projectId/workspace`: returns current status/results, original file metadata/IDs, selected client IDs and `resultReady`. Each open refreshes private image URLs and restores region editor states.
+- `POST /projects/:projectId/finish`: persists `resultReady` after processing and export; processing projects cannot be finished. The dashboard lists unfinished work, and `/archive` lists finished work.
+
+Owned projects have `expires_at = null` and are excluded from expiry cleanup. Browser storage retains only the selected project ID and account ID as navigation pointers; images and styles are restored from the server. Pending upload/edit writes display errors and can be retried. Editing uses the existing editor-state API and flushes writes before marking a result ready or starting a new task. Concurrent editing in different devices is last-write-wins; no shared live editing is implemented.
+
+### Rollout
+
+Apply `supabase/migrations/20260918174815_account_projects.sql` using the repository migration runner before deploying the backend, then deploy the frontend. The runner accepts existing 3-digit names and Supabase CLI timestamp names. The Docker image currently does not run migrations automatically: run them separately against the configured deployment database. Owned workspaces use backend-only tables with RLS enabled; no public read policies or service-role keys are added to the frontend.

@@ -40,3 +40,10 @@ export const createProjectSchema = z.object({
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const draftProjectSchema = createProjectSchema.extend({
+  targetLanguages: z.array(targetLanguageSchema).max(3).refine(value => new Set(value).size === value.length),
+  files: z.array(uploadFileSchema).max(env.MAX_FILES_PER_PROJECT).refine(value => new Set(value.map(file => file.clientId)).size === value.length),
+  selectedClientIds: z.array(z.string().min(1)).max(env.MAX_FILES_PER_PROJECT),
+}).refine(value => value.selectedClientIds.every(id => value.files.some(file => file.clientId === id)), '선택한 이미지가 초안에 없습니다.');
+export type DraftProjectInput = z.infer<typeof draftProjectSchema>;

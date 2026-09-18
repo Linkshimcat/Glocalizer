@@ -1,3 +1,4 @@
+import { useAuth } from '../store/AuthContext'
 import { Check, ImagePlus, X } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -31,6 +32,7 @@ function StepIndicator() {
 
 export default function Localize() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const {
     files,
     addFiles,
@@ -43,6 +45,10 @@ export default function Localize() {
     toggleTargetLang,
     setTargetLangs,
     startLocalization,
+    cloudSaving,
+    projectStatus,
+    cloudError,
+    saveDraft,
   } = useUploads()
   const [dragging, setDragging] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
@@ -52,6 +58,7 @@ export default function Localize() {
   const { t } = useSiteLang()
 
   const handleFiles = (incoming: File[]) => {
+    if (!isAuthenticated) { navigate('/login?next=/localize'); return }
     const images = incoming.filter(f => f.type === 'image/png' || f.type === 'image/jpeg')
     if (images.length < incoming.length) {
       toast(t.dashToastFormat)
@@ -98,7 +105,7 @@ export default function Localize() {
 
   const selectedCount = files.filter(file => selectedFileIds.includes(file.id)).length
   const hasFiles = files.length > 0
-  const canStart = selectedCount > 0 && targetLangs.length > 0
+  const canStart = isAuthenticated && !cloudSaving && selectedCount > 0 && targetLangs.length > 0
 
   return (
     <div className="min-h-screen bg-white">
@@ -115,6 +122,8 @@ export default function Localize() {
           <UploadSpecBadge />
         </div>
 
+        {!isAuthenticated && <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login?next=/localize')}>{t.navLogin}</Button></div>}
+        {isAuthenticated && (hasFiles || cloudError) && <div role="status" className="mt-5 flex flex-wrap items-center gap-3 text-sm text-sub"><span>{cloudError ?? (cloudSaving || !projectStatus ? t.cloudSaving : t.cloudSaved)}</span>{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}</div>}
         {/* 드롭존 */}
         <div
           data-dragging={dragging}
@@ -124,10 +133,10 @@ export default function Localize() {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => isAuthenticated ? inputRef.current?.click() : navigate('/login?next=/localize')}
           role="button"
           tabIndex={0}
-          onKeyDown={e => e.key === 'Enter' && inputRef.current?.click()}
+          onKeyDown={e => { if (e.key === 'Enter') { if (isAuthenticated) inputRef.current?.click(); else navigate('/login?next=/localize') } }}
           className={`dropzone-aurora relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-[32px] before:bg-[conic-gradient(from_120deg,rgba(34,197,94,0.72),rgba(45,212,191,0.55),rgba(125,211,252,0.5),rgba(244,114,182,0.42),rgba(250,204,21,0.32),rgba(34,197,94,0.72))] before:opacity-0 before:blur-2xl before:transition-opacity before:duration-500 sm:px-8 sm:py-16 ${
             dragging
               ? 'border-brand bg-brand-soft before:opacity-75'
@@ -152,6 +161,7 @@ export default function Localize() {
           <input
             ref={inputRef}
             type="file"
+            disabled={!isAuthenticated}
             accept="image/png,image/jpeg"
             multiple
             className="hidden"

@@ -1,5 +1,5 @@
 import { AppError } from '../errors/app-error.js';
-import { findAssetsByProjectId } from '../repositories/asset.repository.js';
+import { findAssetsByProjectId, setUnselectedAssetsPending } from '../repositories/asset.repository.js';
 import { findActiveJobForProject, insertJob } from '../repositories/job.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import type { AssetStatus } from '../types/asset.js';
@@ -26,6 +26,14 @@ export async function createProcessingJob(
   }
 
   const assets = await findAssetsByProjectId(projectId);
+  const project = await findProjectById(projectId);
+  if (project?.owner_id && project.status === 'created') {
+    const selected = assets.filter(asset => project.selected_client_ids?.includes(asset.client_id ?? ''));
+    if (!project.target_languages.length || !selected.length || selected.some(asset => asset.status !== 'uploaded')) {
+      throw new AppError('UPLOAD_NOT_COMPLETED', undefined, '선택한 이미지가 모두 저장된 뒤 시작해주세요.');
+    }
+    await setUnselectedAssetsPending(projectId, assets.filter(asset => !selected.includes(asset)).map(asset => asset.id));
+  }
   const processableCount = assets.filter((asset) => processableStatuses.includes(asset.status)).length;
   if (processableCount === 0) {
     throw new AppError('UPLOAD_NOT_COMPLETED', { projectId }, '처리할 이미지가 없습니다. 먼저 업로드를 완료해주세요.');

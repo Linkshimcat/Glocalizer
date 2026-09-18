@@ -5,6 +5,7 @@ import { SiteLangProvider } from './i18n/LanguageContext'
 import Dashboard from './pages/Dashboard'
 import Localize from './pages/Localize'
 import Account from './pages/Account'
+import Archive from './pages/Archive'
 import Editor from './pages/Editor'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/localize" element={<Localize />} />
                 <Route path="/account" element={<Account />} />
+                <Route path="/archive" element={<Archive />} />
                 <Route path="/editor" element={<Editor />} />
                 <Route path="/result" element={<Result />} />
                 <Route path="*" element={<NotFound />} />
