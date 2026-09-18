@@ -85,6 +85,24 @@ body {
   will-change: transform, filter, opacity;
 }
 
+/* 한 번만 굴러 올라와 멈추는 버전(RollingText loop={false}). 진입 구간만 떼어 쓴다.
+   both로 두어서 자기 차례(delay) 전에는 아래에 숨어 있다. */
+@keyframes roll-in {
+  from {
+    transform: translateY(90%);
+    filter: blur(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+.animate-roll-in {
+  animation: roll-in 0.6s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
 /* 토스트 등장 애니메이션 */
 @keyframes toast-in {
   from {
@@ -366,7 +384,8 @@ body {
 
   /* 롤링을 멈추고 첫 어절만 정적으로 남긴다. 어절 겹(.roll-layer)에서 가리므로
      글자 단위(per="char")여도 첫 어절이 통째로 남는다. */
-  .animate-roll-word {
+  .animate-roll-word,
+  .animate-roll-in {
     animation: none;
   }
   .roll-layer {

@@ -52,19 +52,42 @@ export async function insertNaverUser(input: InsertNaverUserInput): Promise<User
 
 interface LinkNaverProfileInput {
   naverId: string;
-  name: string | null;
-  avatarUrl: string | null;
+  /** undefined면 기존 값을 유지한다(사용자가 직접 바꾼 프로필 보호). */
+  name?: string | null;
+  avatarUrl?: string | null;
 }
 
 /** naver_id로 기존 행을 찾았을 때의 재로그인(프로필 갱신)과, 이메일로 가입했던 계정에
  *  네이버 계정을 처음 연결하는 경우 둘 다 같은 update라 하나로 합쳤다. */
 export async function linkNaverProfile(userId: string, input: LinkNaverProfileInput): Promise<UserRow> {
+  const patch: Record<string, unknown> = { naver_id: input.naverId, updated_at: new Date().toISOString() };
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.avatarUrl !== undefined) patch.avatar_url = input.avatarUrl;
   const result = await supabase
     .from('users')
-    .update({ naver_id: input.naverId, name: input.name, avatar_url: input.avatarUrl, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq('id', userId)
     .select()
     .single();
 
   return unwrapRow<UserRow>(result, '네이버 로그인 처리에 실패했습니다.');
+}
+
+interface UpdateUserProfileInput {
+  name?: string;
+  avatarUrl?: string | null;
+}
+
+export async function updateUserProfile(userId: string, input: UpdateUserProfileInput): Promise<UserRow> {
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.name !== undefined) {
+    patch.name = input.name;
+    patch.name_customized = true;
+  }
+  if (input.avatarUrl !== undefined) {
+    patch.avatar_url = input.avatarUrl;
+    patch.avatar_customized = true;
+  }
+  const result = await supabase.from('users').update(patch).eq('id', userId).select().single();
+  return unwrapRow<UserRow>(result, '프로필 저장에 실패했습니다.');
 }

@@ -52,6 +52,15 @@ export interface Dict {
   accountEmail: string
   accountMissing: string
   accountMenu: string
+  accountEdit: string
+  accountSave: string
+  accountCancel: string
+  accountChangePhoto: string
+  accountRemovePhoto: string
+  accountNameRequired: string
+  accountSaved: string
+  accountSaveFailed: string
+  accountPhotoInvalid: string
 
   navStart: string
   navService: string
@@ -195,10 +204,19 @@ export const translations: Record<SiteLang, Dict> = {
     hubFailed: '확인 필요',
     accountTitle: '계정 정보',
     accountDesc: 'Glocalizer에 연결된 계정 정보를 확인하세요.',
-    accountName: '이름',
+    accountName: '닉네임',
     accountEmail: '이메일',
     accountMissing: '등록된 정보 없음',
     accountMenu: '프로필 메뉴',
+    accountEdit: '프로필 수정',
+    accountSave: '저장',
+    accountCancel: '취소',
+    accountChangePhoto: '사진 변경',
+    accountRemovePhoto: '기본 이미지로',
+    accountNameRequired: '닉네임을 입력해주세요.',
+    accountSaved: '프로필을 저장했어요.',
+    accountSaveFailed: '프로필 저장에 실패했어요.',
+    accountPhotoInvalid: '이미지 파일만 올릴 수 있어요. (최대 10MB)',
 
     navStart: '시작하기',
     navService: '서비스 소개',
@@ -332,10 +350,19 @@ export const translations: Record<SiteLang, Dict> = {
     hubFailed: 'Needs attention',
     accountTitle: 'Account information',
     accountDesc: 'View your account information connected to Glocalizer.',
-    accountName: 'Name',
+    accountName: 'Nickname',
     accountEmail: 'Email',
     accountMissing: 'No information provided',
     accountMenu: 'Profile menu',
+    accountEdit: 'Edit profile',
+    accountSave: 'Save',
+    accountCancel: 'Cancel',
+    accountChangePhoto: 'Change photo',
+    accountRemovePhoto: 'Use default',
+    accountNameRequired: 'Please enter a nickname.',
+    accountSaved: 'Profile saved.',
+    accountSaveFailed: 'Could not save your profile.',
+    accountPhotoInvalid: 'Only image files up to 10MB are supported.',
 
     navStart: 'Start',
     navService: 'About',
@@ -469,10 +496,19 @@ export const translations: Record<SiteLang, Dict> = {
     hubFailed: '確認が必要',
     accountTitle: 'アカウント情報',
     accountDesc: 'Glocalizerに接続したアカウント情報を確認できます。',
-    accountName: '名前',
+    accountName: 'ニックネーム',
     accountEmail: 'メール',
     accountMissing: '登録情報なし',
     accountMenu: 'プロフィールメニュー',
+    accountEdit: 'プロフィールを編集',
+    accountSave: '保存',
+    accountCancel: 'キャンセル',
+    accountChangePhoto: '写真を変更',
+    accountRemovePhoto: 'デフォルトに戻す',
+    accountNameRequired: 'ニックネームを入力してください。',
+    accountSaved: 'プロフィールを保存しました。',
+    accountSaveFailed: 'プロフィールを保存できませんでした。',
+    accountPhotoInvalid: '10MBまでの画像ファイルのみアップロードできます。',
 
     navStart: 'はじめる',
     navService: 'サービス紹介',
@@ -606,10 +642,19 @@ export const translations: Record<SiteLang, Dict> = {
     hubFailed: '需要检查',
     accountTitle: '账户信息',
     accountDesc: '查看与Glocalizer关联的账户信息。',
-    accountName: '姓名',
+    accountName: '昵称',
     accountEmail: '邮箱',
     accountMissing: '暂无信息',
     accountMenu: '个人资料菜单',
+    accountEdit: '编辑个人资料',
+    accountSave: '保存',
+    accountCancel: '取消',
+    accountChangePhoto: '更换照片',
+    accountRemovePhoto: '恢复默认',
+    accountNameRequired: '请输入昵称。',
+    accountSaved: '个人资料已保存。',
+    accountSaveFailed: '个人资料保存失败。',
+    accountPhotoInvalid: '仅支持10MB以内的图片文件。',
 
     navStart: '开始',
     navService: '服务介绍',
