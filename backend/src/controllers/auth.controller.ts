@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.middleware.js';
-import { getCurrentUser, login, loginWithNaver, signup } from '../services/auth.service.js';
+import { getCurrentUser, login, loginWithNaver, signup, updateProfile } from '../services/auth.service.js';
 
 export async function signupHandler(req: Request, res: Response) {
   const result = await signup(req.body);
@@ -20,5 +20,10 @@ export async function naverCallbackHandler(req: Request, res: Response) {
 
 export async function meHandler(req: Request, res: Response) {
   const user = await getCurrentUser(requireAuth(req).sub);
+  res.status(200).json({ user });
+}
+
+export async function updateProfileHandler(req: Request, res: Response) {
+  const user = await updateProfile(requireAuth(req).sub, req.body);
   res.status(200).json({ user });
 }

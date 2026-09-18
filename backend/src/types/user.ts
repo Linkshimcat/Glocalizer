@@ -5,6 +5,8 @@ export interface UserRow {
   naver_id: string | null;
   name: string | null;
   avatar_url: string | null;
+  name_customized: boolean;
+  avatar_customized: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import {
@@ -7,8 +8,9 @@ import {
   insertEmailUser,
   insertNaverUser,
   linkNaverProfile,
+  updateUserProfile,
 } from '../repositories/user.repository.js';
-import type { LoginInput, SignupInput } from '../schemas/auth.schema.js';
+import type { LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
 import type { PublicUser, UserRow } from '../types/user.js';
 import { signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
@@ -53,6 +55,32 @@ export async function getCurrentUser(userId: string): Promise<PublicUser> {
   const user = await findUserById(userId);
   if (!user) throw new AppError('UNAUTHORIZED');
   return toPublicUser(user);
+}
+
+const AVATAR_SIZE = 256;
+
+/** 업로드된 이미지를 256px 정사각형 WebP로 다시 인코딩해 data URL로 저장한다.
+ *  재인코딩으로 메타데이터/비정상 페이로드를 제거하고, DB에 들어가는 크기를 수십 KB로 묶는다. */
+async function normalizeAvatar(dataUrl: string): Promise<string> {
+  const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+  try {
+    const webp = await sharp(Buffer.from(base64, 'base64'), { limitInputPixels: 40_000_000 })
+      .rotate()
+      .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: 'cover' })
+      .webp({ quality: 85 })
+      .toBuffer();
+    return `data:image/webp;base64,${webp.toString('base64')}`;
+  } catch {
+    throw new AppError('IMAGE_DECODE_FAILED');
+  }
+}
+
+export async function updateProfile(userId: string, input: UpdateProfileInput): Promise<PublicUser> {
+  const user = await findUserById(userId);
+  if (!user) throw new AppError('UNAUTHORIZED');
+
+  const avatarUrl = input.avatar === undefined || input.avatar === null ? input.avatar : await normalizeAvatar(input.avatar);
+  return toPublicUser(await updateUserProfile(userId, { name: input.name, avatarUrl }));
 }
 
 interface NaverTokenResponse {
@@ -105,11 +133,19 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
   // 회원가입 계정과 이메일이 겹치는 순간 제약 위반으로 로그인 자체가 실패한다.
   let user = await findUserByNaverId(profile.id);
   if (user) {
-    user = await linkNaverProfile(user.id, { naverId: profile.id, name, avatarUrl });
+    user = await linkNaverProfile(user.id, {
+      naverId: profile.id,
+      name: user.name_customized ? undefined : name,
+      avatarUrl: user.avatar_customized ? undefined : avatarUrl,
+    });
   } else {
     const existingByEmail = profile.email ? await findUserByEmail(profile.email) : null;
     user = existingByEmail
-      ? await linkNaverProfile(existingByEmail.id, { naverId: profile.id, name: name ?? existingByEmail.name, avatarUrl: avatarUrl ?? existingByEmail.avatar_url })
+      ? await linkNaverProfile(existingByEmail.id, {
+          naverId: profile.id,
+          name: existingByEmail.name_customized ? undefined : name ?? existingByEmail.name,
+          avatarUrl: existingByEmail.avatar_customized ? undefined : avatarUrl ?? existingByEmail.avatar_url,
+        })
       : await insertNaverUser({ naverId: profile.id, email: profile.email ?? null, name, avatarUrl });
   }
 
