@@ -1,5 +1,6 @@
-import { LogOut } from 'lucide-react'
+import { Info, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useAuth } from '../store/AuthContext'
 
@@ -9,6 +10,8 @@ function initialOf(text: string): string {
 
 export default function AccountMenu() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useSiteLang()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -38,6 +41,7 @@ export default function AccountMenu() {
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
+        aria-label={t.accountMenu}
         aria-expanded={open}
         aria-haspopup="true"
         className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -68,11 +72,22 @@ export default function AccountMenu() {
             </div>
           </div>
           <div className="border-t border-gray-100 p-1.5">
+            {[
+              { label: t.hubDashboard, path: '/dashboard', Icon: LayoutDashboard },
+              { label: t.accountTitle, path: '/account', Icon: UserRound },
+              { label: t.navService, path: '/service', Icon: Info },
+            ].map(({ label, path, Icon }) => (
+              <button key={path} type="button" role="menuitem" onClick={() => { setOpen(false); navigate(path) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface">
+                <Icon className="h-4 w-4 text-sub" />{label}
+              </button>
+            ))}
+
             <button
               type="button"
               role="menuitem"
               onClick={() => {
                 setOpen(false)
+                if (location.pathname === '/account') navigate('/', { replace: true })
                 logout()
               }}
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface"

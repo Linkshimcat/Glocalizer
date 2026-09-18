@@ -4,7 +4,7 @@ import LanguageSelect from './LanguageSelect'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useAuth } from '../store/AuthContext'
 
-export default function NavMenu() {
+export default function NavMenu({ workspace = false }: { workspace?: boolean }) {
   const navigate = useNavigate()
   const { t } = useSiteLang()
   const { isAuthenticated } = useAuth()
@@ -15,7 +15,7 @@ export default function NavMenu() {
         onClick={() => navigate('/dashboard')}
         className="rounded-xl px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-surface md:px-4 md:py-2 md:text-sm"
       >
-        {t.navStart}
+        {workspace ? t.hubDashboard : t.navStart}
       </button>
       <button
         type="button"

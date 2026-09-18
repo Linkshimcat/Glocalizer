@@ -30,7 +30,7 @@ export default function Result() {
   const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady } = useUploads()
   const localizationFinished = projectStatus?.status === 'completed' || projectStatus?.status === 'failed'
   // 업로드 → AI 처리 → 에디터 다운로드를 완료하지 않고 주소로 직접 접근하는 경우를 막는다.
-  if (files.length === 0 || !projectStatus) return <Navigate to="/dashboard" replace state={{ preserveWorkflow: true }} />
+  if (files.length === 0 || !projectStatus) return <Navigate to="/localize" replace />
   if (!localizationFinished || !resultReady) return <Navigate to="/editor" replace />
   const languages = targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
 
@@ -123,17 +123,16 @@ export default function Result() {
           <Button
             variant="secondary"
             onClick={() => {
-              resetWorkflow()
-              navigate('/')
+              navigate('/dashboard')
             }}
             className="min-h-14 flex-1 md:min-h-0"
           >
-            <Home className="h-4 w-4" /> {t.resultToMain}
+            <Home className="h-4 w-4" /> {t.hubDashboard}
           </Button>
           <Button
             onClick={() => {
               resetWorkflow()
-              navigate('/dashboard')
+              navigate('/localize')
             }}
             className="min-h-14 flex-1 md:min-h-0"
             glow
