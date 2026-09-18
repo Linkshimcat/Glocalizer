@@ -9,6 +9,21 @@ export const SITE_LANGS: { code: SiteLang; label: string; flag: string; short: s
 ]
 
 export interface Dict {
+  cloudLogin: string
+  cloudSaving: string
+  cloudSaved: string
+  cloudSaveFailed: string
+  cloudRetry: string
+  cloudInProgress: string
+  cloudArchive: string
+  cloudEmptyProgress: string
+  cloudEmptyArchive: string
+  cloudLoading: string
+  cloudListFailed: string
+  cloudOpen: string
+  cloudRecent: string
+  cloudNewConfirm: string
+
   hubDashboard: string
   hubTitle: string
   hubSubtitle: string
@@ -141,6 +156,21 @@ export interface Dict {
 
 export const translations: Record<SiteLang, Dict> = {
   ko: {
+    cloudLogin: '작업을 클라우드에 저장하려면 로그인해주세요.',
+    cloudSaving: '클라우드에 저장 중…',
+    cloudSaved: '계정에 저장됨',
+    cloudSaveFailed: '클라우드 저장에 실패했어요. 다시 시도해주세요.',
+    cloudRetry: '다시 시도',
+    cloudInProgress: '진행 중인 작업',
+    cloudArchive: '작업 아카이브',
+    cloudEmptyProgress: '진행 중인 작업이 없어요. 현지화를 시작해보세요.',
+    cloudEmptyArchive: '완료한 작업이 아직 없어요.',
+    cloudLoading: '작업을 불러오는 중…',
+    cloudListFailed: '작업 목록을 불러오지 못했어요.',
+    cloudOpen: '작업 열기',
+    cloudRecent: '최근 저장',
+    cloudNewConfirm: '현재 작업을 닫고 새 작업을 시작할까요? 클라우드에 저장된 작업은 유지돼요.',
+
     hubDashboard: '대시보드',
     hubTitle: '어떤 작업을 시작할까요?',
     hubSubtitle: '이모티콘의 제작부터 현지화와 출시 준비까지, Glocalizer와 함께해요.',
@@ -263,6 +293,21 @@ export const translations: Record<SiteLang, Dict> = {
     loginSuccessToast: '로그인 완료!',
   },
   en: {
+    cloudLogin: 'Please log in to save your work to the cloud.',
+    cloudSaving: 'Saving to cloud…',
+    cloudSaved: 'Saved to your account',
+    cloudSaveFailed: 'Cloud saving failed. Please try again.',
+    cloudRetry: 'Try again',
+    cloudInProgress: 'Work in progress',
+    cloudArchive: 'Work archive',
+    cloudEmptyProgress: 'No work in progress. Start localizing your emoticons.',
+    cloudEmptyArchive: 'No finished work yet.',
+    cloudLoading: 'Loading your work…',
+    cloudListFailed: 'Could not load your work.',
+    cloudOpen: 'Open work',
+    cloudRecent: 'Last saved',
+    cloudNewConfirm: 'Close this work and start a new task? Work saved to the cloud will remain.',
+
     hubDashboard: 'Dashboard',
     hubTitle: 'What would you like to work on?',
     hubSubtitle: 'Create, localize, and prepare your emoticons for release with Glocalizer.',
@@ -385,6 +430,21 @@ export const translations: Record<SiteLang, Dict> = {
     loginSuccessToast: 'Logged in!',
   },
   ja: {
+    cloudLogin: 'クラウドに保存するにはログインしてください。',
+    cloudSaving: 'クラウドに保存中…',
+    cloudSaved: 'アカウントに保存済み',
+    cloudSaveFailed: 'クラウドへの保存に失敗しました。再試行してください。',
+    cloudRetry: '再試行',
+    cloudInProgress: '進行中の作業',
+    cloudArchive: '作業アーカイブ',
+    cloudEmptyProgress: '進行中の作業はありません。現地化を始めましょう。',
+    cloudEmptyArchive: '完了した作業はまだありません。',
+    cloudLoading: '作業を読み込み中…',
+    cloudListFailed: '作業を読み込めませんでした。',
+    cloudOpen: '作業を開く',
+    cloudRecent: '最終保存',
+    cloudNewConfirm: 'この作業を閉じて新しく始めますか？クラウドに保存した作業は残ります。',
+
     hubDashboard: 'ダッシュボード',
     hubTitle: 'どんな作業を始めますか？',
     hubSubtitle: '制作から翻訳、リリース準備まで、Glocalizerと一緒に。',
@@ -507,6 +567,21 @@ export const translations: Record<SiteLang, Dict> = {
     loginSuccessToast: 'ログイン完了！',
   },
   zh: {
+    cloudLogin: '请登录以将任务保存到云端。',
+    cloudSaving: '正在保存到云端…',
+    cloudSaved: '已保存到账户',
+    cloudSaveFailed: '云端保存失败，请重试。',
+    cloudRetry: '重试',
+    cloudInProgress: '进行中的任务',
+    cloudArchive: '任务归档',
+    cloudEmptyProgress: '没有进行中的任务，开始本地化吧。',
+    cloudEmptyArchive: '暂无已完成的任务。',
+    cloudLoading: '正在加载任务…',
+    cloudListFailed: '无法加载任务列表。',
+    cloudOpen: '打开任务',
+    cloudRecent: '最近保存',
+    cloudNewConfirm: '关闭当前任务并新建任务吗？云端已保存的任务会保留。',
+
     hubDashboard: '控制台',
     hubTitle: '想开始什么工作？',
     hubSubtitle: '与Glocalizer一起制作、本地化表情并准备发布。',

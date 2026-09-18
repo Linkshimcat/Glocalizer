@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { setApiAccountToken } from '../lib/api'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AuthApiError,
   fetchCurrentUser,
@@ -61,7 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(loadStoredToken)
   const [user, setUser] = useState<AuthUser | null>(loadStoredUser)
 
+  useEffect(() => { setApiAccountToken(token) }, [token])
+
   const applySession = useCallback((nextToken: string, nextUser: AuthUser) => {
+    setApiAccountToken(nextToken)
     setToken(nextToken)
     setUser(nextUser)
     persistSession(nextToken, nextUser)
@@ -83,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession])
 
   const logout = useCallback(() => {
+    setApiAccountToken(null)
     setToken(null)
     setUser(null)
     persistSession(null, null)
@@ -97,7 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // 토큰 만료/무효화 시에는 조용히 로그아웃 처리한다.
       if (error instanceof AuthApiError) {
-        setToken(null)
+        setApiAccountToken(null)
+    setToken(null)
         setUser(null)
         persistSession(null, null)
       }

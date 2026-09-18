@@ -85,3 +85,15 @@ export async function updateAsset(assetId: string, patch: AssetUpdate): Promise<
 
   unwrapVoid(result, '이미지 상태를 갱신하지 못했습니다.');
 }
+
+export async function deleteDraftAssets(projectId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const result = await supabase.from('assets').delete().eq('project_id', projectId).in('id', ids);
+  unwrapVoid(result, '초안 이미지 삭제에 실패했습니다.');
+}
+
+export async function setUnselectedAssetsPending(projectId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const result = await supabase.from('assets').update({ status: 'pending_upload' }).eq('project_id', projectId).in('id', ids);
+  unwrapVoid(result, '이미지 선택을 저장하지 못했습니다.');
+}

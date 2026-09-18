@@ -1,3 +1,5 @@
+import { useUploads } from '../store/uploads'
+import { useToast } from './Toast'
 import { Info, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -10,6 +12,8 @@ function initialOf(text: string): string {
 
 export default function AccountMenu() {
   const { user, logout } = useAuth()
+  const { flushCloudWork, cloudSaving } = useUploads()
+  const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useSiteLang()
@@ -74,6 +78,7 @@ export default function AccountMenu() {
           <div className="border-t border-gray-100 p-1.5">
             {[
               { label: t.hubDashboard, path: '/dashboard', Icon: LayoutDashboard },
+              { label: t.cloudArchive, path: '/archive', Icon: LayoutDashboard },
               { label: t.accountTitle, path: '/account', Icon: UserRound },
               { label: t.navService, path: '/service', Icon: Info },
             ].map(({ label, path, Icon }) => (
@@ -85,10 +90,14 @@ export default function AccountMenu() {
             <button
               type="button"
               role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                if (location.pathname === '/account') navigate('/', { replace: true })
-                logout()
+              disabled={cloudSaving}
+              onClick={async () => {
+                try {
+                  await flushCloudWork()
+                  setOpen(false)
+                  if (['/account', '/archive'].includes(location.pathname)) navigate('/', { replace: true })
+                  logout()
+                } catch (error) { toast(error instanceof Error ? error.message : t.cloudSaveFailed) }
               }}
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface"
             >

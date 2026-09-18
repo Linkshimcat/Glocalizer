@@ -1,9 +1,13 @@
+import { useAuth } from './AuthContext'
+import { useSiteLang } from '../i18n/LanguageContext'
+import { restoreCloudProject, saveCloudDraft, finishCloudProject, type CloudWorkspace } from '../lib/api'
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -12,7 +16,6 @@ import type { NormalizedRect } from '../lib/style'
 import { pickFontByStyle } from '../data/demo'
 import {
   ApiError,
-  createProject,
   getProjectResults,
   getProjectStatus,
   startProject,
@@ -32,7 +35,8 @@ import {
 export interface UploadFile {
   id: string
   name: string
-  /** 업로드된 이미지의 data URL (새로고침에도 유지되도록 저장 가능한 형식) */
+  size?: number
+  /** 업로드 전 미리보기 data URL 또는 클라우드에서 갱신한 이미지 URL */
   url?: string
   /** MIME 타입 (예: image/gif) — 다운로드 형식 제한에 사용 */
   type?: string
@@ -90,7 +94,7 @@ export const LANGUAGES: Language[] = [
   { code: 'zh', flag: '🇨🇳', label: '中文 (简体)' },
 ]
 
-/* ── 세션 유지 (새로고침해도 업로드/편집 내용 보존) ─────────────── */
+/* ── 클라우드 작업 포인터 및 이전 탭 저장 데이터 정리 ─────────────── */
 
 const SESSION_PREFIX = 'glocalizer:'
 const WORKFLOW_SESSION_KEYS = [
@@ -122,15 +126,7 @@ function saveSession(key: string, value: unknown) {
   }
 }
 
-function loadStyles(): StylesByLanguage {
-  const stored = loadSession<Record<string, Style | Record<string, Style>>>('styles', {})
-  return Object.fromEntries(Object.entries(stored).map(([assetId, value]) => {
-    if ('suggestion' in value) return [assetId, { en: value }]
-    return [assetId, value]
-  }))
-}
-
-/** File → data URL (새로고침에도 살아남는 문자열) */
+/** 업로드 전 미리보기용 File → data URL */
 function readAsDataURL(file: File): Promise<string> {
   return new Promise(resolve => {
     const reader = new FileReader()
@@ -154,7 +150,12 @@ interface UploadState {
   setTargetLangs: (langs: Language[]) => void
   resetWorkflow: () => void
   resultReady: boolean
-  markResultReady: () => void
+  markResultReady: () => Promise<void>
+  openCloudProject: (id: string) => Promise<string>
+  saveDraft: () => Promise<string>
+  flushCloudWork: () => Promise<void>
+  cloudSaving: boolean
+  cloudError: string | null
   /** 파일·언어별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
   styles: StylesByLanguage
   saveStyle: (id: string, languageCode: string, style: Style, regionId?: string | null) => void
@@ -174,25 +175,32 @@ interface UploadState {
 const UploadContext = createContext<UploadState | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
-  // 초기값을 sessionStorage에서 복원 → 새로고침해도 유지
-  const [files, setFiles] = useState<UploadFile[]>(() => loadSession('files', []))
-  const [selectedFileIds, setSelectedFileIds] = useState<string[]>(() => {
-    const saved = loadSession<string[] | null>('selectedFileIds', null)
-    return saved ?? loadSession<UploadFile[]>('files', []).map(file => file.id)
-  })
-  const [targetLangs, setTargetLangs] = useState<Language[]>(() => {
-    const savedFiles = loadSession<UploadFile[]>('files', [])
-    return savedFiles.length > 0 ? loadSession('targetLangs', []) : []
-  })
-  const [styles, setStyles] = useState<StylesByLanguage>(loadStyles)
-  const [projectId, setProjectId] = useState<string | null>(() => loadSession('projectId', null))
-  const [projectToken, setProjectToken] = useState<string | null>(() => loadSession('projectToken', null))
-  const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(() => loadSession('projectStatus', null))
-  const [projectResults, setProjectResults] = useState<ProjectResults | null>(() => loadSession('projectResults', null))
-  const [resultReady, setResultReady] = useState(() => loadSession('resultReady', false))
+  const { user, token } = useAuth()
+  const { t } = useSiteLang()
+  const [cloudSaving, setCloudSaving] = useState(() => Boolean(user && loadSession('cloudOwnerId', null) === user.id && loadSession('cloudProjectId', null)))
+  const [pendingStyleSaves, setPendingStyleSaves] = useState(0)
+  const [cloudError, setCloudError] = useState<string | null>(null)
+  const epoch = useRef(0)
+  const cloudDraft = useRef<{ id: string | null; fingerprint: string }>({ id: null, fingerprint: '' })
+  const draftQueue = useRef<Promise<unknown>>(Promise.resolve())
+  const initializedOwner = useRef<string | null | undefined>(undefined)
+
+  const [files, setFiles] = useState<UploadFile[]>([])
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>([])
+  const [targetLangs, setTargetLangs] = useState<Language[]>([])
+  const [styles, setStyles] = useState<StylesByLanguage>({})
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [projectToken, setProjectToken] = useState<string | null>(null)
+  const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(null)
+  const [projectResults, setProjectResults] = useState<ProjectResults | null>(null)
+  const [resultReady, setResultReady] = useState(false)
   const [processingError, setProcessingError] = useState<string | null>(null)
 
   const resetWorkflow = useCallback(() => {
+    epoch.current += 1
+    cloudDraft.current = { id: null, fingerprint: '' }
+    pendingStyles.current.clear()
+    setCloudError(null)
     setFiles([])
     setSelectedFileIds([])
     setTargetLangs([])
@@ -204,27 +212,36 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setResultReady(false)
     setProcessingError(null)
     try {
-      for (const key of WORKFLOW_SESSION_KEYS) sessionStorage.removeItem(SESSION_PREFIX + key)
+      for (const key of [...WORKFLOW_SESSION_KEYS, 'cloudProjectId']) sessionStorage.removeItem(SESSION_PREFIX + key)
     } catch {
       // 저장소 접근이 막힌 환경에서도 메모리 상태 초기화는 유지한다.
     }
   }, [])
 
-  // 상태 변경 시 세션에 저장
-  useEffect(() => saveSession('files', files), [files])
-  useEffect(() => saveSession('selectedFileIds', selectedFileIds), [selectedFileIds])
-  useEffect(() => saveSession('targetLangs', targetLangs), [targetLangs])
-  useEffect(() => saveSession('styles', styles), [styles])
-  useEffect(() => saveSession('projectId', projectId), [projectId])
-  useEffect(() => saveSession('projectToken', projectToken), [projectToken])
-  useEffect(() => saveSession('projectStatus', projectStatus), [projectStatus])
-  useEffect(() => saveSession('projectResults', projectResults), [projectResults])
-  useEffect(() => saveSession('resultReady', resultReady), [resultReady])
+  useEffect(() => {
+    if (user && initializedOwner.current === user.id) {
+      saveSession('cloudOwnerId', user.id)
+      saveSession('cloudProjectId', projectId)
+    }
+  }, [user, projectId])
 
-  const markResultReady = useCallback(() => {
-    setResultReady(true)
-    saveSession('resultReady', true)
+  const styleQueue = useRef<Promise<unknown>>(Promise.resolve())
+  const pendingStyles = useRef(new Map<string, { projectId: string; token: string; assetId: string; regionId: string; languageCode: string; style: Style }>())
+  const flushEdits = useCallback(async () => {
+    await styleQueue.current.catch(() => undefined)
+    for (const [key, write] of pendingStyles.current) {
+      await saveEditorState(write.projectId, write.token, write.assetId, write.regionId, write.languageCode, write.style)
+      if (pendingStyles.current.get(key) === write) pendingStyles.current.delete(key)
+    }
+    setCloudError(null)
   }, [])
+
+  const markResultReady = useCallback(async () => {
+    if (!projectId || !token) throw new ApiError(t.cloudLogin)
+    await flushEdits()
+    await finishCloudProject(projectId)
+    setResultReady(true)
+  }, [projectId, token, t.cloudLogin, flushEdits])
 
   const saveStyle = useCallback((id: string, languageCode: string, style: Style, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === id)
@@ -232,10 +249,21 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const styleKey = styleKeyForRegion(id, targetRegionId, file?.analysis?.regionId)
     setStyles(prev => ({ ...prev, [styleKey]: { ...prev[styleKey], [languageCode]: style } }))
     if (!projectId || !projectToken || !file?.assetId || !targetRegionId || !languageCode) return
-    void saveEditorState(projectId, projectToken, file.assetId, targetRegionId, languageCode, style).catch(() => {
-      // 로컬 세션에는 이미 저장됐다. 다음 변경 시 서버 저장을 다시 시도한다.
-    })
-  }, [files, projectId, projectToken])
+    const saveEpoch = epoch.current
+    const key = `${file.assetId}:${targetRegionId}:${languageCode}`
+    const write = { projectId, token: projectToken, assetId: file.assetId, regionId: targetRegionId, languageCode, style }
+    pendingStyles.current.set(key, write)
+    setPendingStyleSaves(value => value + 1)
+    const previous = styleQueue.current.catch(() => undefined)
+    styleQueue.current = previous.then(async () => {
+      if (saveEpoch !== epoch.current || pendingStyles.current.get(key) !== write) return
+      await saveEditorState(projectId, projectToken, file.assetId!, targetRegionId, languageCode, style)
+      if (pendingStyles.current.get(key) === write) pendingStyles.current.delete(key)
+      if (saveEpoch === epoch.current && !pendingStyles.current.size) setCloudError(null)
+    }).catch(() => {
+      if (saveEpoch === epoch.current) setCloudError(t.cloudSaveFailed)
+    }).finally(() => { setPendingStyleSaves(value => Math.max(0, value - 1)) })
+  }, [files, projectId, projectToken, t.cloudSaveFailed])
 
   const recordDownload = useCallback((kind: 'single' | 'zip', languageCode?: string) => {
     if (!projectId || !projectToken) return
@@ -245,15 +273,18 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   }, [projectId, projectToken])
 
   const addFiles = useCallback((incoming: File[]) => {
+    const addingEpoch = epoch.current
     const imgs = incoming.filter(f => f.type.startsWith('image/'))
     const ids = imgs.map(() => crypto.randomUUID())
     // data URL 변환 후 순서 유지하며 한 번에 추가
     Promise.all(imgs.map(readAsDataURL)).then(urls => {
+      if (addingEpoch !== epoch.current) return
       setFiles(prev => [
         ...prev,
         ...urls.map((url, i) => ({
           id: ids[i],
           name: imgs[i].name,
+          size: imgs[i].size,
           type: imgs[i].type,
           url,
         })),
@@ -291,20 +322,24 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
-  const refreshProject = useCallback(async (): Promise<ProjectStatus | null> => {
-    if (!projectId || !projectToken) return null
-    const status = await getProjectStatus(projectId, projectToken)
+  const refreshProject = useCallback(async (workspace?: CloudWorkspace): Promise<ProjectStatus | null> => {
+    const activeId = workspace?.projectId ?? projectId
+    const activeToken = workspace?.projectToken ?? projectToken
+    const activeFiles: UploadFile[] = workspace?.files ?? files
+    const activeLanguages = workspace ? LANGUAGES.filter(language => workspace.results.targetLanguages.includes(language.code)) : targetLangs
+    if (!activeId || !activeToken) return null
+    const status = workspace?.status ?? await getProjectStatus(activeId, activeToken)
     setProjectStatus(status)
     // 부분 실패·전체 실패여도 실제 OCR 결과와 오류 상태를 복원해야 Editor가 데모 문구로
     // 대체하지 않고 사용자의 OCR 수정·수동 cleanup을 이어갈 수 있다.
     if (status.status === 'completed' || status.status === 'failed') {
-      const results = await getProjectResults(projectId, projectToken)
+      const results = workspace?.results ?? await getProjectResults(activeId, activeToken)
       setProjectResults(results)
       setStyles(previous => {
         const restored = { ...previous }
-        for (const file of files) {
+        for (const file of activeFiles) {
           const asset = results.assets.find(result => result.id === file.assetId)
-          for (const language of targetLangs) {
+          for (const language of activeLanguages) {
             for (const region of asset?.ocr.regions ?? []) {
               const savedStyle = asset?.regionEditorStates?.[region.id]?.[language.code]
               if (!savedStyle) continue
@@ -315,7 +350,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         }
         return restored
       })
-      setFiles(previous => previous.map(file => {
+      setFiles(previous => (workspace ? activeFiles : previous).map(file => {
         const asset = results.assets.find(result => result.id === file.assetId)
         if (!asset) return file
         return {
@@ -325,7 +360,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           url: asset.cleanedUrl ?? asset.originalUrl ?? file.url,
           analysis: {
             korean: asset.ocr.fullText ?? '',
-            localizations: Object.fromEntries(targetLangs.map(language => {
+            localizations: Object.fromEntries(activeLanguages.map(language => {
               const localization = asset.localizations[language.code]
               // 원본 글자 시각 분석(font-style-vision.service.ts)이 있으면 그걸로 유사 폰트를
               // 찾고, 실패했을 때만 번역 LLM이 텍스트 뉘앙스로 찍은 카테고리로 대체한다.
@@ -353,7 +388,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               id: region.id,
               korean: region.text,
               normalizedBox: region.normalizedBox,
-              localizations: Object.fromEntries(targetLangs.map(language => {
+              localizations: Object.fromEntries(activeLanguages.map(language => {
                 const localization = region.localizations[language.code]
                 const suggestedFont = region.fontStyle
                   ? pickFontByStyle(region.fontStyle, region.id)
@@ -375,39 +410,129 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     return status
   }, [files, projectId, projectToken, targetLangs])
 
-  const startLocalization = useCallback(async () => {
-    const selected = files.filter(file => selectedFileIds.includes(file.id))
-    if (selected.length === 0 || targetLangs.length === 0) {
-      throw new ApiError('번역할 이미지와 언어를 선택해주세요.')
+  const openCloudProject = useCallback(async (id: string): Promise<string> => {
+    const openingEpoch = ++epoch.current
+    setCloudSaving(true)
+    setCloudError(null)
+    try {
+      const workspace = await restoreCloudProject(id)
+      if (openingEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+      cloudDraft.current = { id: workspace.status.status === 'created' ? id : null, fingerprint: '' }
+      pendingStyles.current.clear()
+      setProjectId(id)
+      setProjectToken('account')
+      setFiles(workspace.files.map(file => ({ ...file, url: workspace.results.assets.find(asset => asset.id === file.assetId)?.originalUrl ?? undefined })))
+      setSelectedFileIds(workspace.selectedClientIds)
+      setTargetLangs(LANGUAGES.filter(language => workspace.results.targetLanguages.includes(language.code)))
+      setStyles({})
+      setProjectResults(null)
+      setProjectStatus(workspace.status)
+      setResultReady(workspace.resultReady)
+      setProcessingError(null)
+      if (['completed', 'failed'].includes(workspace.status.status)) await refreshProject(workspace)
+      return workspace.status.status === 'created' ? '/localize' : workspace.resultReady ? '/result' : '/editor'
+    } catch (error) {
+      setCloudError(error instanceof Error ? error.message : t.cloudSaveFailed)
+      throw error
+    } finally { setCloudSaving(false) }
+  }, [refreshProject, t.cloudSaveFailed])
+
+  const saveDraft = useCallback(async (): Promise<string> => {
+    if (!user || !token) throw new ApiError(t.cloudLogin)
+    if (files.length === 0 && !cloudDraft.current.id) throw new ApiError(t.dashHintNoFile)
+    if (projectStatus && projectStatus.status !== 'created') throw new ApiError(t.cloudSaveFailed)
+    const saveEpoch = epoch.current
+    const fingerprint = JSON.stringify([files.map(file => file.id), selectedFileIds, targetLangs.map(language => language.code)])
+    const operation = draftQueue.current.catch(() => undefined).then(async () => {
+      if (saveEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+      if (cloudDraft.current.id && cloudDraft.current.fingerprint === fingerprint) return cloudDraft.current.id
+      setCloudSaving(true)
+      setCloudError(null)
+      try {
+        const metadata = await Promise.all(files.map(async file => {
+          const size = file.size ?? (await fileToUploadFile(file)).size
+          return { clientId: file.id, name: file.name, mimeType: file.type ?? 'image/png', size }
+        }))
+        const draft = await saveCloudDraft(cloudDraft.current.id, metadata, targetLangs.map(language => language.code), selectedFileIds)
+        // Preserve the draft ID on failed uploads so retry never creates duplicate projects.
+        if (saveEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+        cloudDraft.current.id = draft.projectId
+        const uploads = draft.assets.filter(asset => asset.uploadUrl)
+        await Promise.all(uploads.map(async asset => {
+          const file = files.find(file => file.id === asset.clientId)!
+          await uploadToSignedUrl(asset.uploadUrl!, await fileToUploadFile(file))
+        }))
+        if (draft.assets.length) await completeUploads(draft.projectId, 'account', draft.assets.map(asset => asset.assetId))
+        if (saveEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+        cloudDraft.current.fingerprint = fingerprint
+        setProjectId(draft.projectId)
+        setProjectToken('account')
+        setProjectStatus({ projectId: draft.projectId, status: 'created', stage: null, progress: 0, message: '', assets: [] })
+        setFiles(previous => previous.map(file => ({ ...file, assetId: draft.assets.find(asset => asset.clientId === file.id)?.assetId ?? file.assetId, size: metadata.find(item => item.clientId === file.id)?.size ?? file.size })))
+        return draft.projectId
+      } catch (error) {
+        if (saveEpoch === epoch.current) setCloudError(error instanceof Error ? error.message : t.cloudSaveFailed)
+        throw error
+      } finally { if (saveEpoch === epoch.current) setCloudSaving(false) }
+    })
+    draftQueue.current = operation
+    return operation
+  }, [files, selectedFileIds, targetLangs, user, token, projectStatus, t.cloudLogin, t.cloudSaveFailed, t.dashHintNoFile])
+
+  useEffect(() => {
+    if (!user || !token || (!files.length && !cloudDraft.current.id) || (projectStatus && projectStatus.status !== 'created')) return
+    const timer = setTimeout(() => { void saveDraft().catch(() => undefined) }, 700)
+    return () => clearTimeout(timer)
+  }, [user, token, files, selectedFileIds, targetLangs, projectStatus, saveDraft])
+
+  useEffect(() => {
+    const owner = user?.id ?? null
+    if (initializedOwner.current === owner) return
+    const first = initializedOwner.current === undefined
+    initializedOwner.current = owner
+    const savedOwner = loadSession<string | null>('cloudOwnerId', null)
+    const savedId = loadSession<string | null>('cloudProjectId', null)
+    resetWorkflow()
+    if (first && owner && savedOwner === owner && savedId) {
+      void openCloudProject(savedId).catch(() => undefined)
     }
+    if (!owner || savedOwner !== owner) {
+      saveSession('cloudOwnerId', owner)
+      saveSession('cloudProjectId', null)
+    }
+  }, [user, resetWorkflow, openCloudProject])
+
+  const flushCloudWork = useCallback(async () => {
+    if (!user || !token) return
+    if ((!projectStatus || projectStatus.status === 'created') && files.length) await saveDraft()
+    await flushEdits()
+  }, [user, token, projectStatus, files.length, saveDraft, flushEdits])
+
+  useEffect(() => {
+    const fingerprint = JSON.stringify([files.map(file => file.id), selectedFileIds, targetLangs.map(language => language.code)])
+    const dirtyDraft = Boolean(user && (files.length || cloudDraft.current.id) && (!projectStatus || projectStatus.status === 'created') && fingerprint !== cloudDraft.current.fingerprint)
+    if (!dirtyDraft && !pendingStyles.current.size && !(cloudSaving && files.length)) return
+    const warnUnsaved = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warnUnsaved)
+    return () => window.removeEventListener('beforeunload', warnUnsaved)
+  }, [user, files, selectedFileIds, targetLangs, projectStatus, cloudSaving, pendingStyleSaves, cloudError])
+
+  const startLocalization = useCallback(async () => {
+    if (!user || !token) throw new ApiError(t.cloudLogin)
+    if (selectedFileIds.length === 0 || targetLangs.length === 0) throw new ApiError(t.dashHintNoLang)
     setProcessingError(null)
     setResultReady(false)
-    try {
-      const uploadFiles = await Promise.all(selected.map(fileToUploadFile))
-      const created = await createProject(uploadFiles, targetLangs.map(language => language.code))
-      const orderedUploads = created.assets.map((asset, index) => ({ asset, file: uploadFiles[index] }))
-      await Promise.all(orderedUploads.map(({ asset, file }) => uploadToSignedUrl(asset.uploadUrl, file)))
-      await completeUploads(created.projectId, created.projectToken, created.assets.map(asset => asset.assetId))
-      await startProject(created.projectId, created.projectToken)
-      setProjectId(created.projectId)
-      setProjectToken(created.projectToken)
-      setProjectStatus({ projectId: created.projectId, status: 'processing', stage: 'validating', progress: 0, message: '이미지를 준비하고 있어요', assets: [] })
-      setProjectResults(null)
-      setFiles(previous => previous.map(file => {
-        const selectedIndex = selected.findIndex(item => item.id === file.id)
-        const asset = created.assets.find(candidate => candidate.clientId === String(selectedIndex))
-        return asset ? { ...file, assetId: asset.assetId } : file
-      }))
-    } catch (error) {
-      setProcessingError(error instanceof Error ? error.message : '업로드를 시작하지 못했어요.')
-      throw error
-    }
-  }, [files, selectedFileIds, targetLangs])
+    const id = await saveDraft()
+    await startProject(id, 'account')
+    setProjectStatus({ projectId: id, status: 'processing', stage: 'validating', progress: 0, message: '', assets: [] })
+    setProjectResults(null)
+  }, [user, token, selectedFileIds, targetLangs, saveDraft, t.cloudLogin, t.dashHintNoLang])
 
   const reviseAssetOcr = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
     await reviseOcr(projectId, projectToken, file.assetId, text, normalizedBox, regionId ?? undefined)
+    setResultReady(false)
     setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
   }, [files, projectId, projectToken])
 
@@ -421,6 +546,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
     await createOcrRegion(projectId, projectToken, file.assetId, text, normalizedBox)
+    setResultReady(false)
     setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
   }, [files, projectId, projectToken])
 
@@ -432,6 +558,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      cloudSaving: cloudSaving || pendingStyleSaves > 0,
+      cloudError,
+      flushCloudWork,
+      openCloudProject,
+      saveDraft,
       files,
       selectedFileIds,
       addFiles,
@@ -459,6 +590,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       retryTranslation: retryAssetTranslation,
     }),
     [
+      cloudSaving,
+      pendingStyleSaves,
+      flushCloudWork,
+      cloudError,
+      openCloudProject,
+      saveDraft,
       files,
       selectedFileIds,
       addFiles,
