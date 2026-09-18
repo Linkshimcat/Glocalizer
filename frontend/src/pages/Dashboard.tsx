@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
+import RollingText from '../components/RollingText'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useUploads } from '../store/uploads'
 import { useAuth } from '../store/AuthContext'
@@ -35,7 +36,11 @@ export default function Dashboard() {
       <Header center={<NavMenu workspace />} sticky />
       <main className="layout-app py-10 sm:py-16">
         <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
-        <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{t.hubTitle}</h1>
+        <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">
+          {/* 굴러 올라오는 글자는 aria-hidden이라 읽히는 제목을 따로 둔다. */}
+          <span className="sr-only">{t.hubTitle}</span>
+          <RollingText items={[t.hubTitle]} loop={false} />
+        </h1>
         <p className="mt-3 max-w-2xl break-keep text-base leading-relaxed text-sub">{t.hubSubtitle}</p>
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
           {cards.map(({ title, description, Icon, active }) => (
