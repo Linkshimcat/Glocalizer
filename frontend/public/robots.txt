@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /dashboard
+Disallow: /generate
+Disallow: /localize
+Disallow: /account
+Disallow: /archive
+Disallow: /editor
+Disallow: /result
+Disallow: /auth/
+
+Sitemap: https://glocalizer.vercel.app/sitemap.xml
