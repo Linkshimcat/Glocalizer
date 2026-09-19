@@ -374,50 +374,62 @@ export default function Account() {
       </main>
 
       {deleteModalOpen && (
-        <Modal onClose={() => setDeleteModalOpen(false)} labelledBy="delete-account-title" closeLabel={t.commonClose}>
-          <h2 id="delete-account-title" className="text-lg font-extrabold text-ink">{t.accountDeleteModalTitle}</h2>
-          <p className="mt-2 text-sm text-sub">{t.accountDeleteConfirm}</p>
+        <Modal
+          onClose={() => { if (!deletingAccount) setDeleteModalOpen(false) }}
+          labelledBy="delete-account-title"
+          closeLabel={t.commonClose}
+        >
+          {deletingAccount ? (
+            <div className="flex flex-col items-center py-6 text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+              <h2 id="delete-account-title" className="mt-4 text-lg font-extrabold text-ink">{t.accountDeleteProcessingTitle}</h2>
+              <p className="mt-2 text-sm text-sub">{t.accountDeleteProcessingDesc}</p>
+            </div>
+          ) : (
+            <>
+              <h2 id="delete-account-title" className="text-lg font-extrabold text-ink">{t.accountDeleteModalTitle}</h2>
+              <p className="mt-2 text-sm text-sub">{t.accountDeleteConfirm}</p>
 
-          <div className="mt-5 space-y-3">
-            <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
-              <input
-                type="checkbox"
-                checked={ackDataLoss}
-                onChange={event => setAckDataLoss(event.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
-              />
-              {t.accountDeleteAckData}
-            </label>
-            <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
-              <input
-                type="checkbox"
-                checked={ackResignup}
-                onChange={event => setAckResignup(event.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
-              />
-              {t.accountDeleteAckResignup}
-            </label>
-          </div>
+              <div className="mt-5 space-y-3">
+                <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
+                  <input
+                    type="checkbox"
+                    checked={ackDataLoss}
+                    onChange={event => setAckDataLoss(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  {t.accountDeleteAckData}
+                </label>
+                <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
+                  <input
+                    type="checkbox"
+                    checked={ackResignup}
+                    onChange={event => setAckResignup(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  {t.accountDeleteAckResignup}
+                </label>
+              </div>
 
-          <div className="mt-6 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setDeleteModalOpen(false)}
-              disabled={deletingAccount}
-              className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50"
-            >
-              {t.accountCancel}
-            </button>
-            <button
-              type="button"
-              disabled={!ackDataLoss || !ackResignup || deletingAccount}
-              onClick={() => { void onConfirmDelete() }}
-              className="flex items-center gap-1.5 rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {deletingAccount && <Loader2 className="h-4 w-4 animate-spin" />}
-              {t.accountDeleteConfirmCta}
-            </button>
-          </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalOpen(false)}
+                  className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface"
+                >
+                  {t.accountCancel}
+                </button>
+                <button
+                  type="button"
+                  disabled={!ackDataLoss || !ackResignup}
+                  onClick={() => { void onConfirmDelete() }}
+                  className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {t.accountDeleteConfirmCta}
+                </button>
+              </div>
+            </>
+          )}
         </Modal>
       )}
     </div>
