@@ -62,6 +62,27 @@ async function generateNonce(): Promise<[string, string]> {
   return [nonce, hashedNonce]
 }
 
+// renderButton()은 호출이 끝났다고 버튼이 바로 클릭 가능한 게 아니라, 내부적으로 iframe을
+// 비동기로 불러와 그린다. 이 완료를 기다리지 않으면 로그인 페이지 진입 직후 빠르게 클릭했을 때
+// (특히 콜드 캐시) div[role="button"]이 아직 없어 "설정 안 됨"으로 잘못 실패한다.
+function waitForRenderedButton(container: HTMLElement, timeoutMs = 8000): Promise<void> {
+  if (container.querySelector('div[role="button"]')) return Promise.resolve()
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {
+      observer.disconnect()
+      resolve()
+    }, timeoutMs)
+    const observer = new MutationObserver(() => {
+      if (container.querySelector('div[role="button"]')) {
+        observer.disconnect()
+        clearTimeout(timer)
+        resolve()
+      }
+    })
+    observer.observe(container, { childList: true, subtree: true })
+  })
+}
+
 function ensureHiddenButtonContainer(): HTMLElement {
   let container = document.getElementById('google-gsi-hidden-button')
   if (!container) {
@@ -120,6 +141,7 @@ function prepareGoogleLogin(): Promise<boolean> {
     const container = ensureHiddenButtonContainer()
     container.innerHTML = ''
     window.google!.accounts.id.renderButton(container, { type: 'standard' })
+    await waitForRenderedButton(container)
 
     return true
   })()
