@@ -50,6 +50,10 @@ export interface Dict {
   accountDesc: string
   accountName: string
   accountEmail: string
+  accountSignupMethod: string
+  accountEmailLogin: string
+  accountNaverLogin: string
+  accountChecking: string
   accountMissing: string
   accountMenu: string
   accountEdit: string
@@ -206,6 +210,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDesc: 'Glocalizer에 연결된 계정 정보를 확인하세요.',
     accountName: '닉네임',
     accountEmail: '이메일',
+    accountSignupMethod: '가입 방식',
+    accountEmailLogin: '이메일 로그인',
+    accountNaverLogin: '네이버 로그인',
+    accountChecking: '확인 중',
     accountMissing: '등록된 정보 없음',
     accountMenu: '프로필 메뉴',
     accountEdit: '프로필 수정',
@@ -352,6 +360,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDesc: 'View your account information connected to Glocalizer.',
     accountName: 'Nickname',
     accountEmail: 'Email',
+    accountSignupMethod: 'Sign-up method',
+    accountEmailLogin: 'Email login',
+    accountNaverLogin: 'Naver login',
+    accountChecking: 'Checking',
     accountMissing: 'No information provided',
     accountMenu: 'Profile menu',
     accountEdit: 'Edit profile',
@@ -498,6 +510,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDesc: 'Glocalizerに接続したアカウント情報を確認できます。',
     accountName: 'ニックネーム',
     accountEmail: 'メール',
+    accountSignupMethod: '登録方法',
+    accountEmailLogin: 'メールログイン',
+    accountNaverLogin: 'NAVERログイン',
+    accountChecking: '確認中',
     accountMissing: '登録情報なし',
     accountMenu: 'プロフィールメニュー',
     accountEdit: 'プロフィールを編集',
@@ -644,6 +660,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDesc: '查看与Glocalizer关联的账户信息。',
     accountName: '昵称',
     accountEmail: '邮箱',
+    accountSignupMethod: '注册方式',
+    accountEmailLogin: '邮箱登录',
+    accountNaverLogin: 'Naver 登录',
+    accountChecking: '正在确认',
     accountMissing: '暂无信息',
     accountMenu: '个人资料菜单',
     accountEdit: '编辑个人资料',

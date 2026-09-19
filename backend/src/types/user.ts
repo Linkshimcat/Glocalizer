@@ -16,4 +16,5 @@ export interface PublicUser {
   email: string | null;
   name: string | null;
   avatarUrl: string | null;
+  signupMethod: 'email' | 'naver';
 }
