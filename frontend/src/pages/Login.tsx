@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
@@ -9,7 +9,7 @@ import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useAuth } from '../store/AuthContext'
 import { buildNaverAuthUrl } from '../lib/naverAuth'
-import { startGoogleLogin } from '../lib/googleAuth'
+import { preloadGoogleLogin, startGoogleLogin } from '../lib/googleAuth'
 
 type Mode = 'login' | 'signup'
 
@@ -27,6 +27,10 @@ export default function Login() {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    preloadGoogleLogin()
+  }, [])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
