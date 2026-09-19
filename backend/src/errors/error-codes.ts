@@ -17,6 +17,8 @@ export const ERROR_CODES = {
   NAVER_LOGIN_FAILED: { status: 502, message: '네이버 로그인에 실패했습니다.' },
   GOOGLE_LOGIN_FAILED: { status: 401, message: 'Google 로그인 인증에 실패했습니다.' },
   GOOGLE_ACCOUNT_CONFLICT: { status: 409, message: '이미 다른 Google 계정과 연결된 이메일입니다.' },
+  FEEDBACK_NOT_CONFIGURED: { status: 503, message: '피드백 기능이 아직 설정되어 있지 않습니다.' },
+  FEEDBACK_SUBMIT_FAILED: { status: 502, message: '피드백 전송에 실패했습니다.' },
   UPLOAD_NOT_COMPLETED: { status: 409, message: '업로드가 완료되지 않았습니다.' },
   PROCESS_ALREADY_RUNNING: { status: 409, message: '이미 처리 중인 프로젝트입니다.' },
   OCR_TEXT_NOT_FOUND: { status: 422, message: '이미지에서 텍스트를 찾지 못했습니다.' },

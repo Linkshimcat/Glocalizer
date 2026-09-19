@@ -36,6 +36,13 @@ export const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value ? value : undefined)),
+  // GitHub 저장소에 이슈를 생성할 권한만 가진 fine-grained PAT. 미설정 시 피드백 API만 503으로
+  // 비활성화되고 나머지는 정상 동작한다. (Settings > Developer settings > Fine-grained tokens,
+  // 이 repo만 선택하고 Issues: Read and write 권한만 부여)
+  GITHUB_FEEDBACK_TOKEN: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 

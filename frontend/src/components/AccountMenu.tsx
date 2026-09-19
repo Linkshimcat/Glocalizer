@@ -1,17 +1,28 @@
 import { useUploads } from '../store/uploads'
 import { useToast } from './Toast'
-import { Info, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { LayoutDashboard, Loader2, LogOut, MessageSquare, UserRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSiteLang } from '../i18n/LanguageContext'
+import type { Dict } from '../i18n/translations'
+import { submitFeedback, type FeedbackCategory } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
+import Modal from './Modal'
+
+const FEEDBACK_MIN_LENGTH = 10
+const FEEDBACK_CATEGORIES: FeedbackCategory[] = ['bug', 'feature', 'other']
+const FEEDBACK_CATEGORY_LABEL_KEYS: Record<FeedbackCategory, keyof Dict> = {
+  bug: 'feedbackCategoryBug',
+  feature: 'feedbackCategoryFeature',
+  other: 'feedbackCategoryOther',
+}
 
 function initialOf(text: string): string {
   return text.trim().charAt(0).toUpperCase() || '?'
 }
 
 export default function AccountMenu() {
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
   const { flushCloudWork, cloudSaving } = useUploads()
   const toast = useToast()
   const navigate = useNavigate()
@@ -19,6 +30,10 @@ export default function AccountMenu() {
   const { t } = useSiteLang()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('bug')
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [feedbackSending, setFeedbackSending] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -39,6 +54,32 @@ export default function AccountMenu() {
   if (!user) return null
 
   const displayName = user.name ?? user.email ?? '사용자'
+
+  const openFeedback = () => {
+    setOpen(false)
+    setFeedbackCategory('bug')
+    setFeedbackMessage('')
+    setFeedbackOpen(true)
+  }
+
+  const onSubmitFeedback = async () => {
+    if (!token) return
+    const trimmed = feedbackMessage.trim()
+    if (trimmed.length < FEEDBACK_MIN_LENGTH) {
+      toast(t.feedbackTooShort)
+      return
+    }
+    setFeedbackSending(true)
+    try {
+      await submitFeedback(token, feedbackCategory, trimmed)
+      toast(t.feedbackSuccess, 'success')
+      setFeedbackOpen(false)
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t.feedbackFailed)
+    } finally {
+      setFeedbackSending(false)
+    }
+  }
 
   return (
     <div ref={rootRef} className="relative">
@@ -80,12 +121,15 @@ export default function AccountMenu() {
               { label: t.hubDashboard, path: '/dashboard', Icon: LayoutDashboard },
               { label: t.cloudArchive, path: '/archive', Icon: LayoutDashboard },
               { label: t.accountTitle, path: '/account', Icon: UserRound },
-              { label: t.navService, path: '/service', Icon: Info },
             ].map(({ label, path, Icon }) => (
               <button key={path} type="button" role="menuitem" onClick={() => { setOpen(false); navigate(path) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface">
                 <Icon className="h-4 w-4 text-sub" />{label}
               </button>
             ))}
+
+            <button type="button" role="menuitem" onClick={openFeedback} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface">
+              <MessageSquare className="h-4 w-4 text-sub" />{t.feedbackMenuLabel}
+            </button>
 
             <button
               type="button"
@@ -106,6 +150,46 @@ export default function AccountMenu() {
             </button>
           </div>
         </div>
+      )}
+
+      {feedbackOpen && (
+        <Modal onClose={() => setFeedbackOpen(false)} labelledBy="feedback-title" closeLabel={t.commonClose}>
+          <h2 id="feedback-title" className="text-lg font-extrabold text-ink">{t.feedbackModalTitle}</h2>
+          <p className="mt-2 text-sm text-sub">{t.feedbackModalDesc}</p>
+
+          <div className="mt-4 flex rounded-xl bg-surface p-1">
+            {FEEDBACK_CATEGORIES.map(category => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setFeedbackCategory(category)}
+                className={`h-9 flex-1 rounded-lg text-sm font-bold transition-colors ${
+                  feedbackCategory === category ? 'bg-white text-ink shadow-sm' : 'text-sub hover:text-ink'
+                }`}
+              >
+                {t[FEEDBACK_CATEGORY_LABEL_KEYS[category]]}
+              </button>
+            ))}
+          </div>
+
+          <textarea
+            value={feedbackMessage}
+            onChange={event => setFeedbackMessage(event.target.value)}
+            placeholder={t.feedbackPlaceholder}
+            rows={5}
+            autoFocus
+            className="mt-4 w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-ink outline-none transition-colors focus:border-brand"
+          />
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" onClick={() => setFeedbackOpen(false)} disabled={feedbackSending} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
+              {t.accountCancel}
+            </button>
+            <button type="button" onClick={onSubmitFeedback} disabled={feedbackSending} className="flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+              {feedbackSending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {feedbackSending ? t.feedbackSending : t.feedbackSubmit}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )

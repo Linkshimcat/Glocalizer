@@ -34,6 +34,9 @@ function toPublicUser(user: UserRow): PublicUser {
     name: user.name,
     avatarUrl: user.avatar_url,
     signupMethod: user.signup_method,
+    hasPassword: user.password_hash !== null,
+    hasNaver: user.naver_id !== null,
+    hasGoogle: user.supabase_auth_id !== null,
   };
 }
 

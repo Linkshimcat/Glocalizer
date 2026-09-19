@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { Navigate } from 'react-router-dom'
 import Header from '../components/Header'
 import GoogleIcon from '../components/GoogleIcon'
+import Modal from '../components/Modal'
 import NavMenu from '../components/NavMenu'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -39,6 +40,14 @@ export default function Account() {
   // undefined: 변경 없음, null: 기본 이미지로, string: 새 사진(data URL)
   const [avatar, setAvatar] = useState<string | null | undefined>(undefined)
   const [saving, setSaving] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [ackDataLoss, setAckDataLoss] = useState(false)
+  const [ackNoLogin, setAckNoLogin] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated) void refreshUser()
@@ -101,6 +110,51 @@ export default function Account() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const startChangingPassword = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setChangingPassword(true)
+  }
+
+  const cancelChangingPassword = () => setChangingPassword(false)
+
+  const onChangePassword = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!currentPassword) {
+      toast(t.accountPasswordCurrentRequired)
+      return
+    }
+    if (newPassword.length < 8) {
+      toast(t.accountPasswordTooShort)
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast(t.accountPasswordMismatch)
+      return
+    }
+    setPasswordSaving(true)
+    try {
+      // TODO: 백엔드 비밀번호 변경 API 연결 후 실제 요청으로 교체
+      toast(t.accountPasswordNotReady)
+      setChangingPassword(false)
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
+
+  const openDeleteModal = () => {
+    setAckDataLoss(false)
+    setAckNoLogin(false)
+    setDeleteModalOpen(true)
+  }
+
+  const onConfirmDelete = () => {
+    // TODO: 백엔드 탈퇴 API 연결 후 실제 요청으로 교체
+    toast(t.accountDeleteNotReady)
+    setDeleteModalOpen(false)
   }
 
   return (
@@ -180,24 +234,30 @@ export default function Account() {
             </div>
             <div className="pt-5">
               <dt className="text-sm font-semibold text-sub">{t.accountSignupMethod}</dt>
-              <dd className="mt-2 flex items-center gap-2 text-base font-bold text-ink">
-                {user.signupMethod === 'google' ? (
-                  <>
-                    <GoogleIcon className="h-5 w-5" />
-                    <span>{t.accountGoogleLogin}</span>
-                  </>
-                ) : user.signupMethod === 'naver' ? (
-                  <>
-                    <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-md bg-[#03C75A] text-xs font-black text-white">N</span>
-                    <span>{t.accountNaverLogin}</span>
-                  </>
-                ) : user.signupMethod === 'email' ? (
-                  <>
-                    <Mail aria-hidden="true" className="h-5 w-5 text-sub" />
-                    <span>{t.accountEmailLogin}</span>
-                  </>
+              <dd className="mt-2 flex flex-col gap-2">
+                {user.hasPassword === undefined && user.hasNaver === undefined && user.hasGoogle === undefined ? (
+                  <span className="text-base font-bold text-sub">{t.accountChecking}</span>
                 ) : (
-                  <span className="text-sub">{t.accountChecking}</span>
+                  <>
+                    {user.hasPassword && (
+                      <span className="flex items-center gap-2 text-base font-bold text-ink">
+                        <Mail aria-hidden="true" className="h-5 w-5 text-sub" />
+                        {t.accountEmailLogin}
+                      </span>
+                    )}
+                    {user.hasNaver && (
+                      <span className="flex items-center gap-2 text-base font-bold text-ink">
+                        <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-md bg-[#03C75A] text-xs font-black text-white">N</span>
+                        {t.accountNaverLogin}
+                      </span>
+                    )}
+                    {user.hasGoogle && (
+                      <span className="flex items-center gap-2 text-base font-bold text-ink">
+                        <GoogleIcon className="h-5 w-5" />
+                        {t.accountGoogleLogin}
+                      </span>
+                    )}
+                  </>
                 )}
               </dd>
             </div>
@@ -215,7 +275,139 @@ export default function Account() {
             </div>
           )}
         </form>
+
+        {user.hasPassword && (
+          <section className="mt-6 max-w-2xl rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountSecurityTitle}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-extrabold text-ink">{t.accountSecurityTitle}</h2>
+                <p className="mt-1 text-sm text-sub">{t.accountSecurityDesc}</p>
+              </div>
+              {!changingPassword && (
+                <button
+                  type="button"
+                  onClick={startChangingPassword}
+                  className="shrink-0 rounded-full border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface"
+                >
+                  {t.accountPasswordChangeCta}
+                </button>
+              )}
+            </div>
+
+            {changingPassword && (
+              <form onSubmit={onChangePassword} className="mt-5 space-y-4">
+                <div>
+                  <label htmlFor="current-password" className="text-sm font-semibold text-sub">
+                    {t.accountPasswordCurrentLabel}
+                  </label>
+                  <input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={event => setCurrentPassword(event.target.value)}
+                    autoFocus
+                    autoComplete="current-password"
+                    className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-password" className="text-sm font-semibold text-sub">
+                    {t.accountPasswordNewLabel}
+                  </label>
+                  <input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={event => setNewPassword(event.target.value)}
+                    autoComplete="new-password"
+                    className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="confirm-password" className="text-sm font-semibold text-sub">
+                    {t.accountPasswordConfirmLabel}
+                  </label>
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={event => setConfirmPassword(event.target.value)}
+                    autoComplete="new-password"
+                    className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <button type="button" onClick={cancelChangingPassword} disabled={passwordSaving} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
+                    {t.accountCancel}
+                  </button>
+                  <button type="submit" disabled={passwordSaving} className="flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+                    {passwordSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {t.accountPasswordSubmit}
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
+        )}
+
+        <section className="mt-6 max-w-2xl rounded-[28px] border border-red-200 bg-red-50/40 p-6 sm:p-8" aria-label={t.accountDangerZoneTitle}>
+          <h2 className="text-lg font-extrabold text-red-600">{t.accountDangerZoneTitle}</h2>
+          <p className="mt-2 text-sm text-red-900/70">{t.accountDangerZoneDesc}</p>
+          <button
+            type="button"
+            onClick={openDeleteModal}
+            className="mt-5 rounded-full border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
+          >
+            {t.accountDeleteButton}
+          </button>
+        </section>
       </main>
+
+      {deleteModalOpen && (
+        <Modal onClose={() => setDeleteModalOpen(false)} labelledBy="delete-account-title" closeLabel={t.commonClose}>
+          <h2 id="delete-account-title" className="text-lg font-extrabold text-ink">{t.accountDeleteModalTitle}</h2>
+          <p className="mt-2 text-sm text-sub">{t.accountDeleteConfirm}</p>
+
+          <div className="mt-5 space-y-3">
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
+              <input
+                type="checkbox"
+                checked={ackDataLoss}
+                onChange={event => setAckDataLoss(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
+              />
+              {t.accountDeleteAckData}
+            </label>
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
+              <input
+                type="checkbox"
+                checked={ackNoLogin}
+                onChange={event => setAckNoLogin(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
+              />
+              {t.accountDeleteAckNoLogin}
+            </label>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setDeleteModalOpen(false)}
+              className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface"
+            >
+              {t.accountCancel}
+            </button>
+            <button
+              type="button"
+              disabled={!ackDataLoss || !ackNoLogin}
+              onClick={onConfirmDelete}
+              className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {t.accountDeleteConfirmCta}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
