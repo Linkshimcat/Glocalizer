@@ -181,9 +181,22 @@ export default function Localize() {
               <span className="whitespace-nowrap">{t.dashDropMulti}</span>
             </p>
           </div>
-          <Button size="sm" onClick={e => e.stopPropagation()} className="pointer-events-none">
-            {t.dashSelectFile}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={e => e.stopPropagation()} className="pointer-events-none">
+              {t.dashSelectFile}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={e => {
+                e.stopPropagation()
+                isAuthenticated ? setShowSamplePicker(true) : navigate('/login?next=/localize')
+              }}
+            >
+              {t.sampleTryLabel}
+            </Button>
+          </div>
           <input
             ref={inputRef}
             type="file"
@@ -196,16 +209,6 @@ export default function Localize() {
               e.target.value = ''
             }}
           />
-        </div>
-
-        <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={() => (isAuthenticated ? setShowSamplePicker(true) : navigate('/login?next=/localize'))}
-            className="text-sm font-semibold text-brand-dark hover:underline"
-          >
-            {t.sampleTryLabel}
-          </button>
         </div>
 
         {showSamplePicker && (
