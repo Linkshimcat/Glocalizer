@@ -80,8 +80,36 @@ const ZOOMS = [50, 100, 200]
 const DEFAULT_ZOOM = 100
 /** 브러시 지우기 마스크 해상도(정사각형, px). 실제 이미지 크기·비율과 무관한 고정값. */
 const BRUSH_MASK_RESOLUTION = 512
-/** 브러시로 칠한 영역의 화면 미리보기 색(반투명 빨강) — 실제 지우기 모드(투명/단색)와 무관하게 통일. */
-const BRUSH_PREVIEW_COLOR = 'rgba(239, 68, 68, 0.55)'
+/** 체커보드 타일 한 칸 크기(마스크 해상도 기준) — index.css의 .checkerboard(20px 타일)와
+ *  거의 같은 비율로 보이도록 미리보기 캔버스 표시 크기(~340px) 대비로 잡았다. */
+const CHECKERBOARD_TILE_SIZE = BRUSH_MASK_RESOLUTION / 16
+let checkerboardTile: HTMLCanvasElement | null = null
+function getCheckerboardPattern(ctx: CanvasRenderingContext2D): CanvasPattern {
+  if (!checkerboardTile) {
+    const tile = document.createElement('canvas')
+    tile.width = tile.height = CHECKERBOARD_TILE_SIZE
+    const tileCtx = tile.getContext('2d')!
+    const half = CHECKERBOARD_TILE_SIZE / 2
+    tileCtx.fillStyle = '#ffffff'
+    tileCtx.fillRect(0, 0, CHECKERBOARD_TILE_SIZE, CHECKERBOARD_TILE_SIZE)
+    tileCtx.fillStyle = '#e9ecef'
+    tileCtx.fillRect(0, 0, half, half)
+    tileCtx.fillRect(half, half, half, half)
+    checkerboardTile = tile
+  }
+  return ctx.createPattern(checkerboardTile, 'repeat')!
+}
+/** 브러시로 칠한 영역을 실제 지우기 모드(투명/단색)와 같은 모양으로 화면에 즉시 보여준다 —
+ *  사각형 도구가 이미 하는 것과 동일하게, "빨간 하이라이트"가 아니라 실제 결과를 그대로 미리 보여준다. */
+function paintBrushPreview(previewCtx: CanvasRenderingContext2D, maskSource: CanvasImageSource, mode: 'transparent' | 'solid', color: string) {
+  const { width, height } = previewCtx.canvas
+  previewCtx.clearRect(0, 0, width, height)
+  previewCtx.drawImage(maskSource, 0, 0, width, height)
+  previewCtx.globalCompositeOperation = 'source-in'
+  previewCtx.fillStyle = mode === 'transparent' ? getCheckerboardPattern(previewCtx) : color
+  previewCtx.fillRect(0, 0, width, height)
+  previewCtx.globalCompositeOperation = 'source-over'
+}
 
 type MobileTab = '번역' | '폰트' | '스타일'
 type MobileCanvasTab = '원본' | '미리보기'
@@ -730,10 +758,12 @@ export default function Editor() {
 
   /* ── 브러시로 자유롭게 지우기 ─────────────────────────────────
    * 실제 내보내기용 마스크(흰색 스트로크)는 화면에 없는 오프스크린 캔버스에 그리고,
-   * 화면에 보이는 캔버스에는 모드와 무관하게 반투명 빨간색으로 같은 스트로크를 따라 그려
-   * "여기가 지워진다"를 직관적으로 보여준다. 두 캔버스 다 정사각형 고정 해상도라
-   * 실제 이미지 비율과 무관하게 항상 같은 좌표계를 쓴다(기존 사각형 도구와 동일한 단순화). */
+   * 화면에 보이는 캔버스에는 실제 지우기 모드(투명이면 체커보드, 단색이면 그 색)를 그대로
+   * 그려 "지워지는 처리"가 그 자리에서 바로 보이게 한다(사각형 도구와 동일한 방식).
+   * 두 캔버스 다 정사각형 고정 해상도라 실제 이미지 비율과 무관하게 항상 같은 좌표계를 쓴다. */
   const brushSize = manualCleanup?.brushSize ?? 8
+  const brushMode = manualCleanup?.mode ?? 'transparent'
+  const brushColor = manualCleanup?.color ?? '#FFFFFF'
   useEffect(() => {
     if (!brushMaskCanvasRef.current) {
       const canvas = document.createElement('canvas')
@@ -757,16 +787,10 @@ export default function Editor() {
     const img = new Image()
     img.onload = () => {
       maskCtx.drawImage(img, 0, 0, maskCanvas.width, maskCanvas.height)
-      if (previewCtx && previewCanvas) {
-        previewCtx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height)
-        previewCtx.globalCompositeOperation = 'source-in'
-        previewCtx.fillStyle = BRUSH_PREVIEW_COLOR
-        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height)
-        previewCtx.globalCompositeOperation = 'source-over'
-      }
+      if (previewCtx && previewCanvas) paintBrushPreview(previewCtx, maskCanvas, brushMode, brushColor)
     }
     img.src = dataUrl
-  }, [manualCleanup?.brushMask])
+  }, [manualCleanup?.brushMask, brushMode, brushColor])
   const brushPointFromEvent = (event: { clientX: number; clientY: number }): { x: number; y: number } | null => {
     const canvas = brushCanvasRef.current
     if (!canvas) return null
@@ -783,9 +807,9 @@ export default function Editor() {
     const previewCtx = brushCanvasRef.current?.getContext('2d')
     if (!maskCanvas || !maskCtx) return
     const radius = (brushSize / 100) * maskCanvas.width / 2
-    const paint = (ctx: CanvasRenderingContext2D, color: string) => {
-      ctx.fillStyle = color
-      ctx.strokeStyle = color
+    const paint = (ctx: CanvasRenderingContext2D, style: string | CanvasPattern) => {
+      ctx.fillStyle = style
+      ctx.strokeStyle = style
       ctx.lineWidth = radius * 2
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
@@ -800,7 +824,7 @@ export default function Editor() {
       ctx.fill()
     }
     paint(maskCtx, '#FFFFFF')
-    if (previewCtx) paint(previewCtx, BRUSH_PREVIEW_COLOR)
+    if (previewCtx) paint(previewCtx, brushMode === 'transparent' ? getCheckerboardPattern(previewCtx) : brushColor)
   }
   const commitBrushMask = () => {
     const maskCanvas = brushMaskCanvasRef.current
@@ -811,7 +835,9 @@ export default function Editor() {
     if (!manualCleanup || preview) return
     event.preventDefault()
     event.stopPropagation()
-    setSelected(false)
+    // 브러시로 칠한다고 선택된 텍스트를 해제하지 않는다 — 텍스트를 고른 채로도 그 주변을
+    // 계속 칠할 수 있어야 하고, 한 번 브러시를 쓰고 나면 다시 선택할 방법이 없어지는 걸 막는다
+    // (선택 해제된 라벨은 브러시 모드에서 pointer-events-none이라 클릭으로 재선택이 안 됨).
     setCleanupSelected(true)
     beginGesture()
     brushDrawingRef.current = true
@@ -1429,10 +1455,15 @@ export default function Editor() {
                     const overlayText = resolveText(overlay.style, overlay.suggestions)
                     const transform = `translate(-50%, -50%) translate(${overlay.style.x}px, ${overlay.style.y}px) rotate(${overlay.style.rotation}deg)`
 
+                    // 브러시 모드에서도 지금 선택돼 드래그/크기조절 박스가 떠 있는 텍스트는 계속
+                    // 조작할 수 있어야 하므로, 그 텍스트만 예외로 pointer-events를 살려둔다.
+                    // 나머지(비활성 라벨)는 그대로 막아서 브러시 스트로크가 캔버스까지 닿게 한다.
+                    const isDraggableBox = !preview && isActive && selected
+                    const blockedByBrush = manualCleanup?.shape === 'brush' && !isDraggableBox
                     return (
                       <div
                         key={overlay.regionId ?? `legacy-${current.id}`}
-                        className={`absolute left-1/2 top-1/2 ${manualCleanup?.shape === 'brush' ? 'pointer-events-none' : ''}`}
+                        className={`absolute left-1/2 top-1/2 ${blockedByBrush ? 'pointer-events-none' : ''}`}
                         style={{ transform }}
                       >
                         {preview || !isActive || !selected ? (
@@ -2030,15 +2061,24 @@ export default function Editor() {
             </p>
             {manualCleanup && (
               // 이 안의 컨트롤을 건드리면 지우기 영역을 선택 상태로 만들어 초록 테두리를 띄운다.
+              // 단, 브러시 모드에서는 텍스트를 계속 드래그/크기조절할 수 있어야 하므로 텍스트
+              // 선택을 강제로 해제하지 않는다(그 상태에서만 브러시 모드가 텍스트 pointer-events를
+              // 살려두기 때문 — 해제해버리면 라벨이 다시 pointer-events-none이 되어 재선택이 막힘).
               <div
-                onPointerDown={() => { setSelected(false); setCleanupSelected(true) }}
+                onPointerDown={() => {
+                  if ((manualCleanup.shape ?? 'rect') !== 'brush') setSelected(false)
+                  setCleanupSelected(true)
+                }}
                 className="mt-3 flex flex-col gap-3"
               >
                 <div className="grid grid-cols-2 gap-2">
                   {(['rect', 'brush'] as const).map(shape => (
                     <button
                       key={shape}
-                      onClick={() => updateManualCleanup({ shape })}
+                      onClick={() => {
+                        updateManualCleanup({ shape })
+                        if (shape === 'brush') setSelected(true)
+                      }}
                       className={`h-10 rounded-xl border-2 text-sm font-bold ${(manualCleanup.shape ?? 'rect') === shape ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-100 text-sub'}`}
                     >
                       {shape === 'rect' ? e.eraseShapeRect : e.eraseShapeBrush}
