@@ -97,9 +97,16 @@ export async function processGenerationImage(job: GenerationImage) {
  }
 }
 /** DB 삭제는 FK cascade(generation_projects -> generation_images)로 처리되지만, Storage 파일은
- *  별도로 지워야 한다. 계정 탈퇴 시 deleteAccount에서 호출한다. */
+ *  별도로 지워야 한다. 계정 탈퇴 시 deleteAccount에서 호출한다.
+ *  이모티콘 생성 기능은 아직 "준비 중"이라 이 테이블 자체가 없는 환경(마이그레이션 미적용)이
+ *  있을 수 있어, 그 경우(42P01 undefined_table)는 정리할 게 없는 것으로 보고 조용히 넘어간다. */
 export async function deleteGenerationsByOwner(ownerId: string): Promise<void> {
- const projects = unwrapList<GenerationProject>(await supabase.from('generation_projects').select().eq('owner_id',ownerId),'생성 작업 조회 실패');
+ const projectsResult = await supabase.from('generation_projects').select().eq('owner_id',ownerId);
+ if (projectsResult.error) {
+  if (projectsResult.error.code === '42P01') return;
+  throw new AppError('INTERNAL_ERROR', { cause: projectsResult.error.message }, '생성 작업 조회 실패');
+ }
+ const projects = projectsResult.data as GenerationProject[];
  if (projects.length === 0) return;
  const projectIds = projects.map(p => p.id);
  const images = unwrapList<GenerationImage>(await supabase.from('generation_images').select().in('project_id',projectIds),'생성 결과 조회 실패');

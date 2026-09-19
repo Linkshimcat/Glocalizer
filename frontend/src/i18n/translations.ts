@@ -73,6 +73,8 @@ export interface Dict {
   accountDeleteConfirm: string
   accountDeleteFailed: string
   accountDeleteSuccess: string
+  accountDeleteProcessingTitle: string
+  accountDeleteProcessingDesc: string
   accountSecurityTitle: string
   accountSecurityDesc: string
   accountPasswordChangeCta: string
@@ -330,7 +332,9 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteButton: '계정 탈퇴',
     accountDeleteConfirm: '정말로 계정을 탈퇴하시겠어요? 저장된 모든 프로젝트와 이미지가 함께 삭제되며, 이 작업은 되돌릴 수 없어요.',
     accountDeleteFailed: '계정 탈퇴에 실패했어요. 잠시 후 다시 시도해주세요.',
-    accountDeleteSuccess: '계정이 삭제됐어요. 그동안 이용해주셔서 감사해요.',
+    accountDeleteSuccess: '탈퇴 완료했어요',
+    accountDeleteProcessingTitle: '계정을 탈퇴하고 있어요',
+    accountDeleteProcessingDesc: '저장된 프로젝트와 이미지를 정리하고 있어요. 잠시만 기다려주세요.',
     accountSecurityTitle: '보안',
     accountSecurityDesc: '이메일로 가입한 계정의 비밀번호를 변경할 수 있어요.',
     accountPasswordChangeCta: '비밀번호 변경',
@@ -580,7 +584,9 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteButton: 'Delete account',
     accountDeleteConfirm: 'Are you sure you want to delete your account? All saved projects and images will be deleted too, and this cannot be undone.',
     accountDeleteFailed: "Couldn't delete your account. Please try again in a moment.",
-    accountDeleteSuccess: 'Your account has been deleted. Thanks for using Glocalizer.',
+    accountDeleteSuccess: 'Account deleted',
+    accountDeleteProcessingTitle: 'Deleting your account',
+    accountDeleteProcessingDesc: 'Removing your saved projects and images. This will just take a moment.',
     accountSecurityTitle: 'Security',
     accountSecurityDesc: 'Change the password for accounts signed up with email.',
     accountPasswordChangeCta: 'Change password',
@@ -830,7 +836,9 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteButton: 'アカウント削除',
     accountDeleteConfirm: '本当にアカウントを削除しますか？保存済みのプロジェクトと画像もすべて削除され、元に戻せません。',
     accountDeleteFailed: 'アカウントを削除できませんでした。しばらくしてから再試行してください。',
-    accountDeleteSuccess: 'アカウントを削除しました。ご利用ありがとうございました。',
+    accountDeleteSuccess: '退会が完了しました',
+    accountDeleteProcessingTitle: 'アカウントを削除しています',
+    accountDeleteProcessingDesc: '保存されたプロジェクトと画像を整理しています。少々お待ちください。',
     accountSecurityTitle: 'セキュリティ',
     accountSecurityDesc: 'メールで登録したアカウントのパスワードを変更できます。',
     accountPasswordChangeCta: 'パスワード変更',
@@ -1080,7 +1088,9 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteButton: '删除账户',
     accountDeleteConfirm: '确定要删除账户吗？已保存的所有项目和图片也会一并删除，且无法恢复。',
     accountDeleteFailed: '账户删除失败,请稍后重试。',
-    accountDeleteSuccess: '账户已删除,感谢您的使用。',
+    accountDeleteSuccess: '账户已删除',
+    accountDeleteProcessingTitle: '正在删除账户',
+    accountDeleteProcessingDesc: '正在清理已保存的项目和图片,请稍候。',
     accountSecurityTitle: '安全',
     accountSecurityDesc: '可以修改通过邮箱注册的账户密码。',
     accountPasswordChangeCta: '修改密码',
