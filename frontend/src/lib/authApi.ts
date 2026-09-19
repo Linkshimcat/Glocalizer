@@ -92,6 +92,13 @@ export function updateProfile(token: string, update: ProfileUpdate): Promise<{ u
   })
 }
 
+export function deleteAccount(token: string): Promise<{ success: true }> {
+  return authRequest<{ success: true }>('/auth/me', {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
 export type FeedbackCategory = 'bug' | 'feature' | 'other'
 
 export function submitFeedback(token: string, category: FeedbackCategory, message: string): Promise<{ issueUrl: string }> {

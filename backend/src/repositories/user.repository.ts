@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { unwrapNullableRow, unwrapRow } from '../utils/db-result.js';
+import { unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 import type { UserRow } from '../types/user.js';
 
 export async function findUserByEmail(email: string): Promise<UserRow | null> {
@@ -20,6 +20,13 @@ export async function findUserBySupabaseAuthId(supabaseAuthId: string): Promise<
 export async function findUserById(id: string): Promise<UserRow | null> {
   const result = await supabase.from('users').select().eq('id', id).maybeSingle();
   return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
+}
+
+/** projects/generation_projects는 owner_id가 ON DELETE CASCADE라 이 행을 지우면 함께
+ *  정리되지만, Storage 파일은 별도 정리가 끝난 뒤에 호출해야 한다 (deleteAccount 참고). */
+export async function deleteUserRow(id: string): Promise<void> {
+  const result = await supabase.from('users').delete().eq('id', id);
+  unwrapVoid(result, '계정 삭제에 실패했습니다.');
 }
 
 interface InsertEmailUserInput {
