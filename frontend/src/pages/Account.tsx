@@ -47,7 +47,7 @@ export default function Account() {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [ackDataLoss, setAckDataLoss] = useState(false)
-  const [ackNoLogin, setAckNoLogin] = useState(false)
+  const [ackResignup, setAckResignup] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated) void refreshUser()
@@ -147,7 +147,7 @@ export default function Account() {
 
   const openDeleteModal = () => {
     setAckDataLoss(false)
-    setAckNoLogin(false)
+    setAckResignup(false)
     setDeleteModalOpen(true)
   }
 
@@ -381,11 +381,11 @@ export default function Account() {
             <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
               <input
                 type="checkbox"
-                checked={ackNoLogin}
-                onChange={event => setAckNoLogin(event.target.checked)}
+                checked={ackResignup}
+                onChange={event => setAckResignup(event.target.checked)}
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
               />
-              {t.accountDeleteAckNoLogin}
+              {t.accountDeleteAckResignup}
             </label>
           </div>
 
@@ -399,7 +399,7 @@ export default function Account() {
             </button>
             <button
               type="button"
-              disabled={!ackDataLoss || !ackNoLogin}
+              disabled={!ackDataLoss || !ackResignup}
               onClick={onConfirmDelete}
               className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >

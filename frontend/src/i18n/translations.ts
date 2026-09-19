@@ -85,7 +85,7 @@ export interface Dict {
   accountPasswordNotReady: string
   accountDeleteModalTitle: string
   accountDeleteAckData: string
-  accountDeleteAckNoLogin: string
+  accountDeleteAckResignup: string
   accountDeleteConfirmCta: string
 
   feedbackMenuLabel: string
@@ -313,7 +313,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordNotReady: '비밀번호 변경 기능은 아직 준비 중이에요. 곧 연결할게요.',
     accountDeleteModalTitle: '계정 탈퇴',
     accountDeleteAckData: '저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되며 복구할 수 없음을 확인했습니다.',
-    accountDeleteAckNoLogin: '탈퇴 후에는 이 계정으로 다시 로그인할 수 없음을 확인했습니다.',
+    accountDeleteAckResignup: '탈퇴 후 같은 이메일/계정으로 다시 가입할 수는 있지만, 이전 데이터는 복구되지 않음을 확인했습니다.',
     accountDeleteConfirmCta: '탈퇴하기',
 
     feedbackMenuLabel: '피드백',
@@ -534,7 +534,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordNotReady: "Password change isn't ready yet. We'll wire it up soon.",
     accountDeleteModalTitle: 'Delete account',
     accountDeleteAckData: 'I understand all saved projects, images, and profile information will be permanently deleted and cannot be recovered.',
-    accountDeleteAckNoLogin: 'I understand I will no longer be able to log in to this account after deletion.',
+    accountDeleteAckResignup: 'I understand I can sign up again with the same email/account, but my previous data will not be restored.',
     accountDeleteConfirmCta: 'Delete my account',
 
     feedbackMenuLabel: 'Feedback',
@@ -755,7 +755,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordNotReady: 'パスワード変更機能は現在準備中です。近日中に対応します。',
     accountDeleteModalTitle: 'アカウント削除',
     accountDeleteAckData: '保存済みのすべてのプロジェクト・画像・プロフィール情報が完全に削除され、復元できないことを理解しました。',
-    accountDeleteAckNoLogin: '削除後はこのアカウントで再度ログインできないことを理解しました。',
+    accountDeleteAckResignup: '削除後は同じメール/アカウントで再登録できますが、以前のデータは復元されないことを理解しました。',
     accountDeleteConfirmCta: '削除する',
 
     feedbackMenuLabel: 'フィードバック',
@@ -976,7 +976,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordNotReady: '修改密码功能尚未开放，我们会尽快接入。',
     accountDeleteModalTitle: '删除账户',
     accountDeleteAckData: '我已了解已保存的所有项目、图片和个人资料信息将被永久删除且无法恢复。',
-    accountDeleteAckNoLogin: '我已了解删除后将无法再用此账户登录。',
+    accountDeleteAckResignup: '我已了解删除后可以用同一邮箱/账号重新注册，但之前的数据不会恢复。',
     accountDeleteConfirmCta: '确认删除',
 
     feedbackMenuLabel: '反馈',
