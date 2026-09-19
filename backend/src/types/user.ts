@@ -19,4 +19,7 @@ export interface PublicUser {
   name: string | null;
   avatarUrl: string | null;
   signupMethod: 'email' | 'naver' | 'google';
+  hasPassword: boolean;
+  hasNaver: boolean;
+  hasGoogle: boolean;
 }

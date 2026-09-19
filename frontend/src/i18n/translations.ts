@@ -23,6 +23,7 @@ export interface Dict {
   cloudOpen: string
   cloudRecent: string
   cloudNewConfirm: string
+  commonClose: string
 
   hubDashboard: string
   hubTitle: string
@@ -66,6 +67,39 @@ export interface Dict {
   accountSaved: string
   accountSaveFailed: string
   accountPhotoInvalid: string
+  accountDangerZoneTitle: string
+  accountDangerZoneDesc: string
+  accountDeleteButton: string
+  accountDeleteConfirm: string
+  accountDeleteNotReady: string
+  accountSecurityTitle: string
+  accountSecurityDesc: string
+  accountPasswordChangeCta: string
+  accountPasswordCurrentLabel: string
+  accountPasswordNewLabel: string
+  accountPasswordConfirmLabel: string
+  accountPasswordSubmit: string
+  accountPasswordCurrentRequired: string
+  accountPasswordTooShort: string
+  accountPasswordMismatch: string
+  accountPasswordNotReady: string
+  accountDeleteModalTitle: string
+  accountDeleteAckData: string
+  accountDeleteAckNoLogin: string
+  accountDeleteConfirmCta: string
+
+  feedbackMenuLabel: string
+  feedbackModalTitle: string
+  feedbackModalDesc: string
+  feedbackPlaceholder: string
+  feedbackSubmit: string
+  feedbackSending: string
+  feedbackSuccess: string
+  feedbackTooShort: string
+  feedbackFailed: string
+  feedbackCategoryBug: string
+  feedbackCategoryFeature: string
+  feedbackCategoryOther: string
 
   navStart: string
   navService: string
@@ -188,6 +222,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: '작업 열기',
     cloudRecent: '최근 저장',
     cloudNewConfirm: '현재 작업을 닫고 새 작업을 시작할까요? 클라우드에 저장된 작업은 유지돼요.',
+    commonClose: '닫기',
 
     hubDashboard: '대시보드',
     hubTitle: '어떤 작업을 시작할까요?',
@@ -211,11 +246,11 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: '편집 중',
     hubResult: '결과 준비 완료',
     hubFailed: '확인 필요',
-    accountTitle: '계정 정보',
-    accountDesc: 'Glocalizer에 연결된 계정 정보를 확인하세요.',
+    accountTitle: '설정',
+    accountDesc: 'Glocalizer 계정 정보를 확인하고 관리하세요.',
     accountName: '닉네임',
     accountEmail: '이메일',
-    accountSignupMethod: '가입 방식',
+    accountSignupMethod: '연결된 로그인 수단',
     accountEmailLogin: '이메일 로그인',
     accountNaverLogin: '네이버 로그인',
     accountGoogleLogin: 'Google 로그인',
@@ -231,6 +266,39 @@ export const translations: Record<SiteLang, Dict> = {
     accountSaved: '프로필을 저장했어요.',
     accountSaveFailed: '프로필 저장에 실패했어요.',
     accountPhotoInvalid: '이미지 파일만 올릴 수 있어요. (최대 10MB)',
+    accountDangerZoneTitle: '위험 구역',
+    accountDangerZoneDesc: '계정을 탈퇴하면 저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되고 되돌릴 수 없어요.',
+    accountDeleteButton: '계정 탈퇴',
+    accountDeleteConfirm: '정말로 계정을 탈퇴하시겠어요? 저장된 모든 프로젝트와 이미지가 함께 삭제되며, 이 작업은 되돌릴 수 없어요.',
+    accountDeleteNotReady: '탈퇴 기능은 아직 준비 중이에요. 곧 연결할게요.',
+    accountSecurityTitle: '보안',
+    accountSecurityDesc: '이메일로 가입한 계정의 비밀번호를 변경할 수 있어요.',
+    accountPasswordChangeCta: '비밀번호 변경',
+    accountPasswordCurrentLabel: '현재 비밀번호',
+    accountPasswordNewLabel: '새 비밀번호',
+    accountPasswordConfirmLabel: '새 비밀번호 확인',
+    accountPasswordSubmit: '변경하기',
+    accountPasswordCurrentRequired: '현재 비밀번호를 입력해주세요.',
+    accountPasswordTooShort: '새 비밀번호는 8자 이상이어야 해요.',
+    accountPasswordMismatch: '새 비밀번호가 일치하지 않아요.',
+    accountPasswordNotReady: '비밀번호 변경 기능은 아직 준비 중이에요. 곧 연결할게요.',
+    accountDeleteModalTitle: '계정 탈퇴',
+    accountDeleteAckData: '저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되며 복구할 수 없음을 확인했습니다.',
+    accountDeleteAckNoLogin: '탈퇴 후에는 이 계정으로 다시 로그인할 수 없음을 확인했습니다.',
+    accountDeleteConfirmCta: '탈퇴하기',
+
+    feedbackMenuLabel: '피드백',
+    feedbackModalTitle: '피드백 보내기',
+    feedbackModalDesc: '불편한 점이나 개선 아이디어를 알려주세요. 저희 GitHub 저장소에 이슈로 등록돼요.',
+    feedbackPlaceholder: '자유롭게 의견을 남겨주세요 (10자 이상)',
+    feedbackSubmit: '보내기',
+    feedbackSending: '보내는 중…',
+    feedbackSuccess: '피드백을 보냈어요. 감사합니다!',
+    feedbackTooShort: '피드백은 10자 이상 입력해주세요.',
+    feedbackFailed: '피드백 전송에 실패했어요. 잠시 후 다시 시도해주세요.',
+    feedbackCategoryBug: '버그',
+    feedbackCategoryFeature: '기능 제안',
+    feedbackCategoryOther: '기타',
 
     navStart: '시작하기',
     navService: '서비스 소개',
@@ -343,6 +411,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: 'Open work',
     cloudRecent: 'Last saved',
     cloudNewConfirm: 'Close this work and start a new task? Work saved to the cloud will remain.',
+    commonClose: 'Close',
 
     hubDashboard: 'Dashboard',
     hubTitle: 'What would you like to work on?',
@@ -366,11 +435,11 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: 'Editing',
     hubResult: 'Results ready',
     hubFailed: 'Needs attention',
-    accountTitle: 'Account information',
-    accountDesc: 'View your account information connected to Glocalizer.',
+    accountTitle: 'Settings',
+    accountDesc: 'View and manage your Glocalizer account.',
     accountName: 'Nickname',
     accountEmail: 'Email',
-    accountSignupMethod: 'Sign-up method',
+    accountSignupMethod: 'Linked login methods',
     accountEmailLogin: 'Email login',
     accountNaverLogin: 'Naver login',
     accountGoogleLogin: 'Google login',
@@ -386,6 +455,39 @@ export const translations: Record<SiteLang, Dict> = {
     accountSaved: 'Profile saved.',
     accountSaveFailed: 'Could not save your profile.',
     accountPhotoInvalid: 'Only image files up to 10MB are supported.',
+    accountDangerZoneTitle: 'Danger zone',
+    accountDangerZoneDesc: 'Deleting your account permanently removes all saved projects, images, and profile information. This cannot be undone.',
+    accountDeleteButton: 'Delete account',
+    accountDeleteConfirm: 'Are you sure you want to delete your account? All saved projects and images will be deleted too, and this cannot be undone.',
+    accountDeleteNotReady: "Account deletion isn't ready yet. We'll wire it up soon.",
+    accountSecurityTitle: 'Security',
+    accountSecurityDesc: 'Change the password for accounts signed up with email.',
+    accountPasswordChangeCta: 'Change password',
+    accountPasswordCurrentLabel: 'Current password',
+    accountPasswordNewLabel: 'New password',
+    accountPasswordConfirmLabel: 'Confirm new password',
+    accountPasswordSubmit: 'Update password',
+    accountPasswordCurrentRequired: 'Please enter your current password.',
+    accountPasswordTooShort: 'New password must be at least 8 characters.',
+    accountPasswordMismatch: "New passwords don't match.",
+    accountPasswordNotReady: "Password change isn't ready yet. We'll wire it up soon.",
+    accountDeleteModalTitle: 'Delete account',
+    accountDeleteAckData: 'I understand all saved projects, images, and profile information will be permanently deleted and cannot be recovered.',
+    accountDeleteAckNoLogin: 'I understand I will no longer be able to log in to this account after deletion.',
+    accountDeleteConfirmCta: 'Delete my account',
+
+    feedbackMenuLabel: 'Feedback',
+    feedbackModalTitle: 'Send feedback',
+    feedbackModalDesc: "Tell us what's bothering you or what could be better. This is posted as an issue on our GitHub repo.",
+    feedbackPlaceholder: 'Share your thoughts freely (at least 10 characters)',
+    feedbackSubmit: 'Send',
+    feedbackSending: 'Sending…',
+    feedbackSuccess: 'Thanks for the feedback!',
+    feedbackTooShort: 'Feedback must be at least 10 characters.',
+    feedbackFailed: 'Failed to send feedback. Please try again shortly.',
+    feedbackCategoryBug: 'Bug',
+    feedbackCategoryFeature: 'Feature request',
+    feedbackCategoryOther: 'Other',
 
     navStart: 'Start',
     navService: 'About',
@@ -498,6 +600,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: '作業を開く',
     cloudRecent: '最終保存',
     cloudNewConfirm: 'この作業を閉じて新しく始めますか？クラウドに保存した作業は残ります。',
+    commonClose: '閉じる',
 
     hubDashboard: 'ダッシュボード',
     hubTitle: 'どんな作業を始めますか？',
@@ -521,11 +624,11 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: '編集中',
     hubResult: '結果の準備完了',
     hubFailed: '確認が必要',
-    accountTitle: 'アカウント情報',
-    accountDesc: 'Glocalizerに接続したアカウント情報を確認できます。',
+    accountTitle: '設定',
+    accountDesc: 'Glocalizerアカウント情報を確認・管理できます。',
     accountName: 'ニックネーム',
     accountEmail: 'メール',
-    accountSignupMethod: '登録方法',
+    accountSignupMethod: '連携中のログイン方法',
     accountEmailLogin: 'メールログイン',
     accountNaverLogin: 'NAVERログイン',
     accountGoogleLogin: 'Googleログイン',
@@ -541,6 +644,39 @@ export const translations: Record<SiteLang, Dict> = {
     accountSaved: 'プロフィールを保存しました。',
     accountSaveFailed: 'プロフィールを保存できませんでした。',
     accountPhotoInvalid: '10MBまでの画像ファイルのみアップロードできます。',
+    accountDangerZoneTitle: '危険ゾーン',
+    accountDangerZoneDesc: 'アカウントを削除すると、保存済みのプロジェクト・画像・プロフィール情報がすべて完全に削除され、元に戻せません。',
+    accountDeleteButton: 'アカウント削除',
+    accountDeleteConfirm: '本当にアカウントを削除しますか？保存済みのプロジェクトと画像もすべて削除され、元に戻せません。',
+    accountDeleteNotReady: '削除機能は現在準備中です。近日中に対応します。',
+    accountSecurityTitle: 'セキュリティ',
+    accountSecurityDesc: 'メールで登録したアカウントのパスワードを変更できます。',
+    accountPasswordChangeCta: 'パスワード変更',
+    accountPasswordCurrentLabel: '現在のパスワード',
+    accountPasswordNewLabel: '新しいパスワード',
+    accountPasswordConfirmLabel: '新しいパスワード（確認）',
+    accountPasswordSubmit: '変更する',
+    accountPasswordCurrentRequired: '現在のパスワードを入力してください。',
+    accountPasswordTooShort: '新しいパスワードは8文字以上にしてください。',
+    accountPasswordMismatch: '新しいパスワードが一致しません。',
+    accountPasswordNotReady: 'パスワード変更機能は現在準備中です。近日中に対応します。',
+    accountDeleteModalTitle: 'アカウント削除',
+    accountDeleteAckData: '保存済みのすべてのプロジェクト・画像・プロフィール情報が完全に削除され、復元できないことを理解しました。',
+    accountDeleteAckNoLogin: '削除後はこのアカウントで再度ログインできないことを理解しました。',
+    accountDeleteConfirmCta: '削除する',
+
+    feedbackMenuLabel: 'フィードバック',
+    feedbackModalTitle: 'フィードバックを送る',
+    feedbackModalDesc: '不便な点や改善アイデアを教えてください。GitHubリポジトリのIssueとして登録されます。',
+    feedbackPlaceholder: 'ご自由にご意見をお書きください（10文字以上）',
+    feedbackSubmit: '送信',
+    feedbackSending: '送信中…',
+    feedbackSuccess: 'フィードバックを送信しました。ありがとうございます！',
+    feedbackTooShort: 'フィードバックは10文字以上入力してください。',
+    feedbackFailed: 'フィードバックの送信に失敗しました。しばらくしてから再度お試しください。',
+    feedbackCategoryBug: 'バグ',
+    feedbackCategoryFeature: '機能提案',
+    feedbackCategoryOther: 'その他',
 
     navStart: 'はじめる',
     navService: 'サービス紹介',
@@ -653,6 +789,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: '打开任务',
     cloudRecent: '最近保存',
     cloudNewConfirm: '关闭当前任务并新建任务吗？云端已保存的任务会保留。',
+    commonClose: '关闭',
 
     hubDashboard: '控制台',
     hubTitle: '想开始什么工作？',
@@ -676,11 +813,11 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: '编辑中',
     hubResult: '结果已就绪',
     hubFailed: '需要检查',
-    accountTitle: '账户信息',
-    accountDesc: '查看与Glocalizer关联的账户信息。',
+    accountTitle: '设置',
+    accountDesc: '查看并管理你的Glocalizer账户信息。',
     accountName: '昵称',
     accountEmail: '邮箱',
-    accountSignupMethod: '注册方式',
+    accountSignupMethod: '已关联的登录方式',
     accountEmailLogin: '邮箱登录',
     accountNaverLogin: 'Naver 登录',
     accountGoogleLogin: 'Google 登录',
@@ -696,6 +833,39 @@ export const translations: Record<SiteLang, Dict> = {
     accountSaved: '个人资料已保存。',
     accountSaveFailed: '个人资料保存失败。',
     accountPhotoInvalid: '仅支持10MB以内的图片文件。',
+    accountDangerZoneTitle: '危险区域',
+    accountDangerZoneDesc: '删除账户后，已保存的所有项目、图片和个人资料信息都会被永久删除，且无法恢复。',
+    accountDeleteButton: '删除账户',
+    accountDeleteConfirm: '确定要删除账户吗？已保存的所有项目和图片也会一并删除，且无法恢复。',
+    accountDeleteNotReady: '删除功能尚未开放，我们会尽快接入。',
+    accountSecurityTitle: '安全',
+    accountSecurityDesc: '可以修改通过邮箱注册的账户密码。',
+    accountPasswordChangeCta: '修改密码',
+    accountPasswordCurrentLabel: '当前密码',
+    accountPasswordNewLabel: '新密码',
+    accountPasswordConfirmLabel: '确认新密码',
+    accountPasswordSubmit: '确认修改',
+    accountPasswordCurrentRequired: '请输入当前密码。',
+    accountPasswordTooShort: '新密码至少需要8个字符。',
+    accountPasswordMismatch: '两次输入的新密码不一致。',
+    accountPasswordNotReady: '修改密码功能尚未开放，我们会尽快接入。',
+    accountDeleteModalTitle: '删除账户',
+    accountDeleteAckData: '我已了解已保存的所有项目、图片和个人资料信息将被永久删除且无法恢复。',
+    accountDeleteAckNoLogin: '我已了解删除后将无法再用此账户登录。',
+    accountDeleteConfirmCta: '确认删除',
+
+    feedbackMenuLabel: '反馈',
+    feedbackModalTitle: '发送反馈',
+    feedbackModalDesc: '告诉我们不方便的地方或改进建议，会作为 Issue 提交到我们的 GitHub 仓库。',
+    feedbackPlaceholder: '请自由留下您的意见（至少10个字）',
+    feedbackSubmit: '发送',
+    feedbackSending: '发送中…',
+    feedbackSuccess: '反馈已发送，谢谢！',
+    feedbackTooShort: '反馈至少需要输入10个字。',
+    feedbackFailed: '反馈发送失败，请稍后重试。',
+    feedbackCategoryBug: '错误',
+    feedbackCategoryFeature: '功能建议',
+    feedbackCategoryOther: '其他',
 
     navStart: '开始',
     navService: '服务介绍',

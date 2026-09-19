@@ -7,6 +7,9 @@ export interface AuthUser {
   avatarUrl: string | null
   /** 이전 버전 localStorage에는 없을 수 있으며, 서버 동기화 후 채워진다. */
   signupMethod?: 'email' | 'naver' | 'google'
+  hasPassword?: boolean
+  hasNaver?: boolean
+  hasGoogle?: boolean
 }
 
 interface AuthResult {
@@ -86,5 +89,15 @@ export function updateProfile(token: string, update: ProfileUpdate): Promise<{ u
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(update),
+  })
+}
+
+export type FeedbackCategory = 'bug' | 'feature' | 'other'
+
+export function submitFeedback(token: string, category: FeedbackCategory, message: string): Promise<{ issueUrl: string }> {
+  return authRequest<{ issueUrl: string }>('/feedback', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ category, message }),
   })
 }
