@@ -12,6 +12,8 @@ export const ERROR_CODES = {
   INVALID_STATS_KEY: { status: 401, message: '통계 조회 인증에 실패했습니다.' },
   EMAIL_ALREADY_REGISTERED: { status: 409, message: '이미 가입된 이메일입니다.' },
   INVALID_CREDENTIALS: { status: 401, message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
+  CURRENT_PASSWORD_INCORRECT: { status: 400, message: '현재 비밀번호가 올바르지 않습니다.' },
+  PASSWORD_CHANGE_UNAVAILABLE: { status: 400, message: '이메일로 가입한 계정만 비밀번호를 변경할 수 있습니다.' },
   UNAUTHORIZED: { status: 401, message: '로그인이 필요합니다.' },
   NAVER_NOT_CONFIGURED: { status: 503, message: '네이버 로그인이 설정되어 있지 않습니다.' },
   NAVER_LOGIN_FAILED: { status: 502, message: '네이버 로그인에 실패했습니다.' },

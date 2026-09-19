@@ -30,7 +30,7 @@ async function toAvatarDataUrl(file: File): Promise<string> {
 }
 
 export default function Account() {
-  const { user, isAuthenticated, refreshUser, updateProfile, deleteAccount } = useAuth()
+  const { user, isAuthenticated, refreshUser, updateProfile, changePassword, deleteAccount } = useAuth()
   const { t } = useSiteLang()
   const toast = useToast()
   const navigate = useNavigate()
@@ -139,9 +139,14 @@ export default function Account() {
     }
     setPasswordSaving(true)
     try {
-      // TODO: 백엔드 비밀번호 변경 API 연결 후 실제 요청으로 교체
-      toast(t.accountPasswordNotReady)
+      await changePassword(currentPassword, newPassword)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
       setChangingPassword(false)
+      toast(t.accountPasswordSuccess, 'success')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t.accountPasswordFailed)
     } finally {
       setPasswordSaving(false)
     }
@@ -315,6 +320,7 @@ export default function Account() {
                     type="password"
                     value={currentPassword}
                     onChange={event => setCurrentPassword(event.target.value)}
+                    maxLength={72}
                     autoFocus
                     autoComplete="current-password"
                     className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
@@ -329,6 +335,8 @@ export default function Account() {
                     type="password"
                     value={newPassword}
                     onChange={event => setNewPassword(event.target.value)}
+                    minLength={8}
+                    maxLength={72}
                     autoComplete="new-password"
                     className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
                   />
@@ -342,6 +350,8 @@ export default function Account() {
                     type="password"
                     value={confirmPassword}
                     onChange={event => setConfirmPassword(event.target.value)}
+                    minLength={8}
+                    maxLength={72}
                     autoComplete="new-password"
                     className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
                   />

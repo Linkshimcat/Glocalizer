@@ -11,6 +11,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, '비밀번호를 입력해주세요.'),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, '현재 비밀번호를 입력해주세요.').max(72),
+  newPassword: z.string().min(8, '새 비밀번호는 8자 이상이어야 합니다.').max(72),
+});
+
 export const naverCallbackSchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
@@ -35,6 +40,7 @@ export const updateProfileSchema = z
 
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type NaverCallbackInput = z.infer<typeof naverCallbackSchema>;
 export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

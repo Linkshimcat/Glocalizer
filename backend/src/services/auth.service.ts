@@ -15,9 +15,10 @@ import {
   insertNaverUser,
   linkGoogleProfile,
   linkNaverProfile,
+  updateUserPassword,
   updateUserProfile,
 } from '../repositories/user.repository.js';
-import type { GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
+import type { ChangePasswordInput, GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
 import type { PublicUser, UserRow } from '../types/user.js';
 import { signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
@@ -99,6 +100,17 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
 
   const avatarUrl = input.avatar === undefined || input.avatar === null ? input.avatar : await normalizeAvatar(input.avatar);
   return toPublicUser(await updateUserProfile(userId, { name: input.name, avatarUrl }));
+}
+
+export async function changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
+  const user = await findUserById(userId);
+  if (!user) throw new AppError('UNAUTHORIZED');
+  if (!user.password_hash) throw new AppError('PASSWORD_CHANGE_UNAVAILABLE');
+  if (!verifyPassword(input.currentPassword, user.password_hash)) {
+    throw new AppError('CURRENT_PASSWORD_INCORRECT');
+  }
+
+  await updateUserPassword(userId, hashPassword(input.newPassword));
 }
 
 /** 현지화 프로젝트·생성 결과의 Storage 파일부터 지운 뒤 계정 행을 지운다 — 순서를 바꾸면

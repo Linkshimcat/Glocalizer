@@ -85,7 +85,8 @@ export interface Dict {
   accountPasswordCurrentRequired: string
   accountPasswordTooShort: string
   accountPasswordMismatch: string
-  accountPasswordNotReady: string
+  accountPasswordSuccess: string
+  accountPasswordFailed: string
   accountDeleteModalTitle: string
   accountDeleteAckData: string
   accountDeleteAckResignup: string
@@ -345,7 +346,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordCurrentRequired: '현재 비밀번호를 입력해주세요.',
     accountPasswordTooShort: '새 비밀번호는 8자 이상이어야 해요.',
     accountPasswordMismatch: '새 비밀번호가 일치하지 않아요.',
-    accountPasswordNotReady: '비밀번호 변경 기능은 아직 준비 중이에요. 곧 연결할게요.',
+    accountPasswordSuccess: '비밀번호를 변경했어요.',
+    accountPasswordFailed: '비밀번호 변경에 실패했어요. 잠시 후 다시 시도해주세요.',
     accountDeleteModalTitle: '계정 탈퇴',
     accountDeleteAckData: '저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되며 복구할 수 없음을 확인했습니다.',
     accountDeleteAckResignup: '탈퇴 후 같은 이메일/계정으로 다시 가입할 수는 있지만, 이전 데이터는 복구되지 않음을 확인했습니다.',
@@ -597,7 +599,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordCurrentRequired: 'Please enter your current password.',
     accountPasswordTooShort: 'New password must be at least 8 characters.',
     accountPasswordMismatch: "New passwords don't match.",
-    accountPasswordNotReady: "Password change isn't ready yet. We'll wire it up soon.",
+    accountPasswordSuccess: 'Password updated.',
+    accountPasswordFailed: "Couldn't update your password. Please try again in a moment.",
     accountDeleteModalTitle: 'Delete account',
     accountDeleteAckData: 'I understand all saved projects, images, and profile information will be permanently deleted and cannot be recovered.',
     accountDeleteAckResignup: 'I understand I can sign up again with the same email/account, but my previous data will not be restored.',
@@ -849,7 +852,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordCurrentRequired: '現在のパスワードを入力してください。',
     accountPasswordTooShort: '新しいパスワードは8文字以上にしてください。',
     accountPasswordMismatch: '新しいパスワードが一致しません。',
-    accountPasswordNotReady: 'パスワード変更機能は現在準備中です。近日中に対応します。',
+    accountPasswordSuccess: 'パスワードを変更しました。',
+    accountPasswordFailed: 'パスワードを変更できませんでした。しばらくしてから再試行してください。',
     accountDeleteModalTitle: 'アカウント削除',
     accountDeleteAckData: '保存済みのすべてのプロジェクト・画像・プロフィール情報が完全に削除され、復元できないことを理解しました。',
     accountDeleteAckResignup: '削除後は同じメール/アカウントで再登録できますが、以前のデータは復元されないことを理解しました。',
@@ -1101,7 +1105,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountPasswordCurrentRequired: '请输入当前密码。',
     accountPasswordTooShort: '新密码至少需要8个字符。',
     accountPasswordMismatch: '两次输入的新密码不一致。',
-    accountPasswordNotReady: '修改密码功能尚未开放，我们会尽快接入。',
+    accountPasswordSuccess: '密码已更新。',
+    accountPasswordFailed: '密码更新失败，请稍后重试。',
     accountDeleteModalTitle: '删除账户',
     accountDeleteAckData: '我已了解已保存的所有项目、图片和个人资料信息将被永久删除且无法恢复。',
     accountDeleteAckResignup: '我已了解删除后可以用同一邮箱/账号重新注册，但之前的数据不会恢复。',

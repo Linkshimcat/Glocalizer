@@ -92,6 +92,14 @@ export function updateProfile(token: string, update: ProfileUpdate): Promise<{ u
   })
 }
 
+export function changePassword(token: string, currentPassword: string, newPassword: string): Promise<{ success: true }> {
+  return authRequest<{ success: true }>('/auth/me/password', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+}
+
 export function deleteAccount(token: string): Promise<{ success: true }> {
   return authRequest<{ success: true }>('/auth/me', {
     method: 'DELETE',

@@ -3,11 +3,12 @@ import request from 'supertest';
 import sharp from 'sharp';
 
 vi.mock('../../src/repositories/user.repository.js', () => ({
-  findUserById: vi.fn(), findUserByEmail: vi.fn(), findUserByNaverId: vi.fn(), findUserBySupabaseAuthId: vi.fn(), insertEmailUser: vi.fn(), insertGoogleUser: vi.fn(), insertNaverUser: vi.fn(), linkGoogleProfile: vi.fn(), linkNaverProfile: vi.fn(), updateUserProfile: vi.fn(),
+  findUserById: vi.fn(), findUserByEmail: vi.fn(), findUserByNaverId: vi.fn(), findUserBySupabaseAuthId: vi.fn(), insertEmailUser: vi.fn(), insertGoogleUser: vi.fn(), insertNaverUser: vi.fn(), linkGoogleProfile: vi.fn(), linkNaverProfile: vi.fn(), updateUserPassword: vi.fn(), updateUserProfile: vi.fn(),
 }));
 const { createApp } = await import('../../src/app.js');
 const users = await import('../../src/repositories/user.repository.js');
 const { signAuthToken } = await import('../../src/utils/jwt.js');
+const { hashPassword, verifyPassword } = await import('../../src/utils/password.js');
 const app = createApp();
 const owner = '00000000-0000-4000-8000-000000000001';
 const auth = `Bearer ${signAuthToken({ sub: owner })}`;
@@ -64,5 +65,53 @@ describe('PATCH /auth/me', () => {
     expect(users.updateUserProfile).toHaveBeenCalledWith(owner, { name: undefined, avatarUrl: null });
     expect((await request(app).patch('/api/v1/auth/me').set('Authorization', auth).send({ avatar: 'data:image/png;base64,AAAA' })).status).toBe(422);
     expect((await request(app).patch('/api/v1/auth/me').set('Authorization', auth).send({ avatar: 'https://evil.example/x.png' })).status).toBe(400);
+  });
+});
+
+describe('PATCH /auth/me/password', () => {
+  it('requires login and validates the new password', async () => {
+    expect((await request(app).patch('/api/v1/auth/me/password').send({ currentPassword: 'old-password', newPassword: 'new-password' })).status).toBe(401);
+    expect((await request(app).patch('/api/v1/auth/me/password').set('Authorization', auth).send({ currentPassword: '', newPassword: 'short' })).status).toBe(400);
+    expect(users.updateUserPassword).not.toHaveBeenCalled();
+  });
+
+  it('rejects a wrong current password', async () => {
+    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: hashPassword('old-password') }));
+
+    const res = await request(app)
+      .patch('/api/v1/auth/me/password')
+      .set('Authorization', auth)
+      .send({ currentPassword: 'wrong-password', newPassword: 'new-password' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('CURRENT_PASSWORD_INCORRECT');
+    expect(users.updateUserPassword).not.toHaveBeenCalled();
+  });
+
+  it('rejects accounts without an email password', async () => {
+    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: null, signup_method: 'google' }));
+
+    const res = await request(app)
+      .patch('/api/v1/auth/me/password')
+      .set('Authorization', auth)
+      .send({ currentPassword: 'old-password', newPassword: 'new-password' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('PASSWORD_CHANGE_UNAVAILABLE');
+  });
+
+  it('stores a new scrypt hash after verifying the current password', async () => {
+    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: hashPassword('old-password') }));
+
+    const res = await request(app)
+      .patch('/api/v1/auth/me/password')
+      .set('Authorization', auth)
+      .send({ currentPassword: 'old-password', newPassword: 'new-password' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    const savedHash = vi.mocked(users.updateUserPassword).mock.calls[0][1];
+    expect(savedHash).not.toBe('new-password');
+    expect(verifyPassword('new-password', savedHash)).toBe(true);
   });
 });

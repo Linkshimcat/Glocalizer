@@ -29,6 +29,14 @@ export async function deleteUserRow(id: string): Promise<void> {
   unwrapVoid(result, '계정 삭제에 실패했습니다.');
 }
 
+export async function updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+  const result = await supabase
+    .from('users')
+    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  unwrapVoid(result, '비밀번호 변경에 실패했습니다.');
+}
+
 interface InsertEmailUserInput {
   email: string;
   passwordHash: string;
