@@ -16,7 +16,7 @@ export default function OgqSamplePicker({ onClose, onSelect, selectingId }: OgqS
 
   useEffect(() => {
     let cancelled = false
-    fetchOgqStickers(12)
+    fetchOgqStickers(24)
       .then(result => { if (!cancelled) setStickers(result) })
       .catch(() => { if (!cancelled) setFailed(true) })
     return () => { cancelled = true }
@@ -32,7 +32,7 @@ export default function OgqSamplePicker({ onClose, onSelect, selectingId }: OgqS
       {!failed && stickers === null && <p className="mt-6 text-sm font-medium text-sub">{t.samplePickerLoading}</p>}
 
       {stickers && stickers.length > 0 && (
-        <div className="mt-5 grid grid-cols-3 gap-3">
+        <div className="mt-5 grid max-h-[420px] grid-cols-3 gap-3 overflow-y-auto pr-1">
           {stickers.map(sticker => (
             <button
               key={sticker.assetId}
