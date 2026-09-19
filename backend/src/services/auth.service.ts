@@ -24,7 +24,14 @@ interface AuthResult {
 }
 
 function toPublicUser(user: UserRow): PublicUser {
-  return { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatar_url };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    avatarUrl: user.avatar_url,
+    // 이메일 계정에 네이버를 나중에 연결할 수 있으므로, 비밀번호 존재 여부로 최초 가입 방식을 판별한다.
+    signupMethod: user.password_hash ? 'email' : 'naver',
+  };
 }
 
 export async function signup(input: SignupInput): Promise<AuthResult> {

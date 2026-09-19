@@ -11,12 +11,28 @@ const { signAuthToken } = await import('../../src/utils/jwt.js');
 const app = createApp();
 const owner = '00000000-0000-4000-8000-000000000001';
 const auth = `Bearer ${signAuthToken({ sub: owner })}`;
-const row = (patch: object = {}) => ({ id: owner, email: 'a@b.com', password_hash: null, naver_id: null, name: '기존', avatar_url: null, name_customized: false, avatar_customized: false, created_at: '', updated_at: '', ...patch });
+const row = (patch: object = {}) => ({ id: owner, email: 'a@b.com', password_hash: 'hash', naver_id: null, name: '기존', avatar_url: null, name_customized: false, avatar_customized: false, created_at: '', updated_at: '', ...patch });
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(users.findUserById).mockResolvedValue(row());
   vi.mocked(users.updateUserProfile).mockImplementation(async (_id, input) => row({ name: input.name ?? '기존', avatar_url: input.avatarUrl ?? null }));
+});
+
+describe('GET /auth/me', () => {
+  it('returns the original email signup method even when Naver is linked', async () => {
+    vi.mocked(users.findUserById).mockResolvedValue(row({ naver_id: 'naver-id' }));
+    const res = await request(app).get('/api/v1/auth/me').set('Authorization', auth);
+    expect(res.status).toBe(200);
+    expect(res.body.user.signupMethod).toBe('email');
+  });
+
+  it('returns the Naver signup method for a social account', async () => {
+    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: null, naver_id: 'naver-id' }));
+    const res = await request(app).get('/api/v1/auth/me').set('Authorization', auth);
+    expect(res.status).toBe(200);
+    expect(res.body.user.signupMethod).toBe('naver');
+  });
 });
 
 describe('PATCH /auth/me', () => {

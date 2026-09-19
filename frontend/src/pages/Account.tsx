@@ -1,5 +1,5 @@
-import { Camera, Loader2 } from 'lucide-react'
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Camera, Loader2, Mail } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
@@ -28,7 +28,7 @@ async function toAvatarDataUrl(file: File): Promise<string> {
 }
 
 export default function Account() {
-  const { user, isAuthenticated, updateProfile } = useAuth()
+  const { user, isAuthenticated, refreshUser, updateProfile } = useAuth()
   const { t } = useSiteLang()
   const toast = useToast()
   const enteredAuthenticated = useRef(isAuthenticated)
@@ -38,6 +38,11 @@ export default function Account() {
   // undefined: 변경 없음, null: 기본 이미지로, string: 새 사진(data URL)
   const [avatar, setAvatar] = useState<string | null | undefined>(undefined)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated) void refreshUser()
+  }, [isAuthenticated, refreshUser])
+
   if (!isAuthenticated || !user) return <Navigate to={enteredAuthenticated.current ? '/' : '/login'} replace />
 
   const shownName = editing ? name : user.name ?? ''
@@ -168,9 +173,27 @@ export default function Account() {
                 )}
               </dd>
             </div>
-            <div className="pt-5">
+            <div className="py-5">
               <dt className="text-sm font-semibold text-sub">{t.accountEmail}</dt>
               <dd className="mt-2 break-words text-base font-bold text-ink">{user.email?.trim() || t.accountMissing}</dd>
+            </div>
+            <div className="pt-5">
+              <dt className="text-sm font-semibold text-sub">{t.accountSignupMethod}</dt>
+              <dd className="mt-2 flex items-center gap-2 text-base font-bold text-ink">
+                {user.signupMethod === 'naver' ? (
+                  <>
+                    <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-md bg-[#03C75A] text-xs font-black text-white">N</span>
+                    <span>{t.accountNaverLogin}</span>
+                  </>
+                ) : user.signupMethod === 'email' ? (
+                  <>
+                    <Mail aria-hidden="true" className="h-5 w-5 text-sub" />
+                    <span>{t.accountEmailLogin}</span>
+                  </>
+                ) : (
+                  <span className="text-sub">{t.accountChecking}</span>
+                )}
+              </dd>
             </div>
           </dl>
 

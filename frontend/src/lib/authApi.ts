@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string | null
   name: string | null
   avatarUrl: string | null
+  /** 이전 버전 localStorage에는 없을 수 있으며, 서버 동기화 후 채워진다. */
+  signupMethod?: 'email' | 'naver'
 }
 
 interface AuthResult {

@@ -113,6 +113,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token])
 
+  useEffect(() => {
+    if (!token) return
+
+    void refreshUser()
+    const refreshOnFocus = () => { void refreshUser() }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshUser()
+    }
+
+    window.addEventListener('focus', refreshOnFocus)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [token, refreshUser])
+
   const updateProfile = useCallback(async (update: ProfileUpdate) => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
     const { user: nextUser } = await apiUpdateProfile(token, update)
