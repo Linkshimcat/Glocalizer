@@ -132,6 +132,7 @@ export interface Dict {
   loadingSub: string
   loadingCancel: string
   toastCleanupManual: string
+  toastOcrManual: string
   toastAiFailed: string
   toastStatusFail: string
   toastPngFail: string
@@ -290,6 +291,7 @@ export const translations: Record<SiteLang, Dict> = {
     loadingSub: 'AI 서버 상황에 따라 최대 몇 분 정도 걸릴 수 있어요',
     loadingCancel: '취소하고 대시보드로 돌아가기',
     toastCleanupManual: '배경이 복잡해서 자동으로 못 지웠어요. "스타일" 탭의 "원문 지우기" 도구로 직접 지워주세요.',
+    toastOcrManual: '인식된 문구를 확인해주세요. "번역" 탭에서 문구를 확인하고 저장하면 다시 처리돼요.',
     toastAiFailed: 'AI 처리에 실패했어요. 새 작업으로 다시 시도해주세요.',
     toastStatusFail: '처리 상태를 확인하지 못했어요.',
     toastPngFail: 'PNG 다운로드에 실패했어요.',
@@ -444,6 +446,7 @@ export const translations: Record<SiteLang, Dict> = {
     loadingSub: 'Depending on AI server load, this can take up to a few minutes',
     loadingCancel: 'Cancel and return to dashboard',
     toastCleanupManual: 'The background is too complex to erase automatically. Use the "Erase original" tool in the "Style" tab.',
+    toastOcrManual: 'Please review the detected text. Confirm it in the "Translate" tab and save to reprocess.',
     toastAiFailed: 'AI processing failed. Please try again with a new project.',
     toastStatusFail: 'Could not check the processing status.',
     toastPngFail: 'PNG download failed.',
@@ -598,6 +601,7 @@ export const translations: Record<SiteLang, Dict> = {
     loadingSub: 'AIサーバーの状況により、最大数分ほどかかることがあります',
     loadingCancel: 'キャンセルしてダッシュボードに戻る',
     toastCleanupManual: '背景が複雑で自動で消せませんでした。「スタイル」タブの「原文消去」ツールで直接消してください。',
+    toastOcrManual: '認識された文言を確認してください。「翻訳」タブで文言を確認して保存すると再処理されます。',
     toastAiFailed: 'AI処理に失敗しました。新しい作業でもう一度お試しください。',
     toastStatusFail: '処理状況を確認できませんでした。',
     toastPngFail: 'PNGのダウンロードに失敗しました。',
@@ -752,6 +756,7 @@ export const translations: Record<SiteLang, Dict> = {
     loadingSub: '视 AI 服务器情况，最多可能需要几分钟',
     loadingCancel: '取消并返回仪表板',
     toastCleanupManual: '背景较复杂，无法自动擦除。请用“样式”标签的“擦除原文”工具手动擦除。',
+    toastOcrManual: '请确认识别到的文字。在"翻译"标签中确认文字并保存即可重新处理。',
     toastAiFailed: 'AI 处理失败。请用新任务重试。',
     toastStatusFail: '无法确认处理状态。',
     toastPngFail: 'PNG 下载失败。',

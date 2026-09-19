@@ -309,9 +309,9 @@ export default function Editor() {
   useEffect(() => {
     if (current.analysis?.needsManualCleanup && manualCleanupWarnedIdRef.current !== current.id) {
       manualCleanupWarnedIdRef.current = current.id
-      toast(t.toastCleanupManual)
+      toast(current.analysis?.needsManualOcrReview ? t.toastOcrManual : t.toastCleanupManual)
     }
-  }, [current.id, current.analysis?.needsManualCleanup, t.toastCleanupManual, toast])
+  }, [current.id, current.analysis?.needsManualCleanup, current.analysis?.needsManualOcrReview, t.toastCleanupManual, t.toastOcrManual, toast])
 
   // 스타일 + undo/redo 히스토리
   const [style, setStyle] = useState<Style>(DEFAULT_STYLE)
@@ -1327,7 +1327,9 @@ export default function Editor() {
               <p className="mt-3 text-center text-xs font-semibold text-sub">
                 {current.url
                   ? current.analysis?.needsManualCleanup
-                    ? e.hintManualBg
+                    ? current.analysis?.needsManualOcrReview
+                      ? e.hintManualOcr
+                      : e.hintManualBg
                     : e.hintComposite
                   : e.hintDrag}
               </p>
@@ -1882,7 +1884,11 @@ export default function Editor() {
               />
             </div>
             <p className="mt-2 text-xs font-semibold text-sub">
-              {current.analysis?.needsManualCleanup ? e.eraseHintManual : e.eraseHintAuto}
+              {current.analysis?.needsManualCleanup
+                ? current.analysis?.needsManualOcrReview
+                  ? e.hintManualOcr
+                  : e.eraseHintManual
+                : e.eraseHintAuto}
             </p>
             {manualCleanup && (
               // 이 안의 컨트롤을 건드리면 지우기 영역을 선택 상태로 만들어 초록 테두리를 띄운다.

@@ -31,6 +31,7 @@ export interface EditorDict {
   enterTextTitle: string
   originalSize: string
   hintManualBg: string
+  hintManualOcr: string
   hintComposite: string
   hintDrag: string
   tabTranslate: string
@@ -111,7 +112,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ 완료', statusEditing: '편집 중', statusWait: '대기', deleteEmoji: '이모티콘 삭제', prev: '이전', next: '다음',
     canvasOriginal: '원본', canvasPreview: '변환 미리보기', original: '원본',
     foundText: '텍스트를 찾았어요', notFoundText: '텍스트를 찾지 못했어요', enterTextTitle: '직접 문구를 입력해보세요', originalSize: '원래 크기',
-    hintManualBg: '복잡한 배경은 수동 보정이 필요할 수 있어요.', hintComposite: 'AI가 정리한 이미지 위에 번역을 합성해요.', hintDrag: '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요',
+    hintManualBg: '복잡한 배경은 수동 보정이 필요할 수 있어요.', hintManualOcr: '인식된 문구를 먼저 확인해주세요.', hintComposite: 'AI가 정리한 이미지 위에 번역을 합성해요.', hintDrag: '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요',
     tabTranslate: '번역', tabFont: '폰트', tabStyle: '스타일',
     ocrEditTitle: '인식 문구 수정', ocrNeedCheck: '· 확인 필요', ocrEditHint: '문구 또는 감지 영역을 확인한 뒤 저장하면 이 이미지 하나만 다시 번역·정리합니다.', ocrResave: '인식 문구 저장 후 재처리', detectedCaptions: '감지된 문구', captionReview: '검수 필요',
     translationMissing: '번역이 누락됐어요. 다시 시도하거나 직접 입력해주세요.', translationNeeded: '번역 필요', retryTranslation: '번역 다시 시도', retryingTranslation: '번역 중…', reselectArea: '영역 다시 지정', addCaption: '누락 문구 추가', selectionHint: '원본 이미지에서 문구 영역을 드래그해주세요.', detectingArea: '선택한 영역을 읽고 있어요…', detectedAreaTitle: '감지된 문구 확인', confirmArea: '확정 후 재처리', cancelArea: '취소',
@@ -133,7 +134,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ Done', statusEditing: 'Editing', statusWait: 'Waiting', deleteEmoji: 'Delete emoji', prev: 'Prev', next: 'Next',
     canvasOriginal: 'Original', canvasPreview: 'Preview', original: 'Original',
     foundText: 'Text found', notFoundText: 'No text found', enterTextTitle: 'Type your own text', originalSize: 'Actual size',
-    hintManualBg: 'Complex backgrounds may need manual touch-up.', hintComposite: 'Translation is composited on the cleaned image.', hintDrag: 'Drag the text to move it; use the corner and top handles to adjust.',
+    hintManualBg: 'Complex backgrounds may need manual touch-up.', hintManualOcr: 'Please review the detected text first.', hintComposite: 'Translation is composited on the cleaned image.', hintDrag: 'Drag the text to move it; use the corner and top handles to adjust.',
     tabTranslate: 'Translate', tabFont: 'Font', tabStyle: 'Style',
     ocrEditTitle: 'Edit detected text', ocrNeedCheck: '· needs review', ocrEditHint: 'Check the text or detected area, then save to re-run just this image.', ocrResave: 'Save & reprocess', detectedCaptions: 'Detected captions', captionReview: 'Review',
     translationMissing: 'Translation is missing. Retry or enter it yourself.', translationNeeded: 'Needs translation', retryTranslation: 'Retry translation', retryingTranslation: 'Translating…', reselectArea: 'Redraw area', addCaption: 'Add missing text', selectionHint: 'Drag over the caption on the original image.', detectingArea: 'Reading the selected area…', detectedAreaTitle: 'Check detected text', confirmArea: 'Confirm & reprocess', cancelArea: 'Cancel',
@@ -155,7 +156,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ 完了', statusEditing: '編集中', statusWait: '待機', deleteEmoji: '絵文字を削除', prev: '前へ', next: '次へ',
     canvasOriginal: '原本', canvasPreview: '変換プレビュー', original: '原本',
     foundText: 'テキストを検出しました', notFoundText: 'テキストが見つかりません', enterTextTitle: '文言を直接入力できます', originalSize: '元のサイズ',
-    hintManualBg: '複雑な背景は手動調整が必要な場合があります。', hintComposite: 'AIが整理した画像に翻訳を合成します。', hintDrag: 'テキストをドラッグして移動し、角と上のハンドルで調整してください。',
+    hintManualBg: '複雑な背景は手動調整が必要な場合があります。', hintManualOcr: '認識された文言をまず確認してください。', hintComposite: 'AIが整理した画像に翻訳を合成します。', hintDrag: 'テキストをドラッグして移動し、角と上のハンドルで調整してください。',
     tabTranslate: '翻訳', tabFont: 'フォント', tabStyle: 'スタイル',
     ocrEditTitle: '認識文言の修正', ocrNeedCheck: '· 要確認', ocrEditHint: '文言または検出領域を確認して保存すると、この画像だけ再翻訳・整理します。', ocrResave: '文言を保存して再処理', detectedCaptions: '検出した文言', captionReview: '要確認',
     translationMissing: '翻訳がありません。再試行するか直接入力してください。', translationNeeded: '翻訳が必要', retryTranslation: '翻訳を再試行', retryingTranslation: '翻訳中…', reselectArea: '範囲を再指定', addCaption: '見落とした文言を追加', selectionHint: '原本画像上で文言の範囲をドラッグしてください。', detectingArea: '選択範囲を読み取っています…', detectedAreaTitle: '検出文言を確認', confirmArea: '確定して再処理', cancelArea: 'キャンセル',
@@ -177,7 +178,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ 完成', statusEditing: '编辑中', statusWait: '等待', deleteEmoji: '删除表情包', prev: '上一张', next: '下一张',
     canvasOriginal: '原图', canvasPreview: '转换预览', original: '原图',
     foundText: '已找到文字', notFoundText: '未找到文字', enterTextTitle: '直接输入文字', originalSize: '原始大小',
-    hintManualBg: '复杂背景可能需要手动修整。', hintComposite: '在 AI 整理后的图片上合成翻译。', hintDrag: '拖动文字移动，用四角和顶部手柄调整。',
+    hintManualBg: '复杂背景可能需要手动修整。', hintManualOcr: '请先确认识别到的文字。', hintComposite: '在 AI 整理后的图片上合成翻译。', hintDrag: '拖动文字移动，用四角和顶部手柄调整。',
     tabTranslate: '翻译', tabFont: '字体', tabStyle: '样式',
     ocrEditTitle: '修改识别文字', ocrNeedCheck: '· 需确认', ocrEditHint: '确认文字或检测区域后保存，将只对这张图片重新翻译整理。', ocrResave: '保存并重新处理', detectedCaptions: '检测到的文字', captionReview: '需确认',
     translationMissing: '翻译缺失，请重试或直接输入。', translationNeeded: '需要翻译', retryTranslation: '重试翻译', retryingTranslation: '翻译中…', reselectArea: '重新框选', addCaption: '添加遗漏文字', selectionHint: '请在原图上拖动框选文字区域。', detectingArea: '正在识别所选区域…', detectedAreaTitle: '确认识别文字', confirmArea: '确认并重新处理', cancelArea: '取消',
