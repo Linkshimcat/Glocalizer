@@ -51,6 +51,16 @@ function overlapRatio(left: RecognizedRegion, right: RecognizedRegion): number {
   return overlapArea / Math.min(areaA, areaB);
 }
 
+/**
+ * PaddleOCR는 문장 끝 말줄임표·느낌표 같은 작은 구두점을 자주 놓친다(실측 확인: "놀자.."을
+ * "놀자"로 읽음). 이런 트레일링 구두점 차이만으로 실제로는 일치하는 Luna 결과를 "불일치"로
+ * 오판해 배경이 단순한데도 검수로 빠지는 사례가 있었다 — 구두점 유무는 진짜 오독과 다르게
+ * 취급해야 한다.
+ */
+function stripTrailingPunctuation(text: string): string {
+  return text.replace(/[.!?~…,]+$/u, '').trim();
+}
+
 export async function crossCheckWithPaddleOcr(regions: ConsensusRegion[], image: Buffer, paddleProvider: OcrProvider): Promise<ConsensusRegion[]> {
   if (regions.length === 0) return regions;
   let paddleRegions: RecognizedRegion[];
@@ -67,7 +77,7 @@ export async function crossCheckWithPaddleOcr(regions: ConsensusRegion[], image:
       .map((candidate) => ({ candidate, overlap: overlapRatio(region, candidate) }))
       .sort((left, right) => right.overlap - left.overlap)[0];
     if (!bestMatch || bestMatch.overlap < CROSS_CHECK_MIN_OVERLAP) return region;
-    const agrees = editSimilarity(region.text, bestMatch.candidate.text) >= CROSS_CHECK_MIN_SIMILARITY;
+    const agrees = editSimilarity(stripTrailingPunctuation(region.text), stripTrailingPunctuation(bestMatch.candidate.text)) >= CROSS_CHECK_MIN_SIMILARITY;
     return agrees ? region : { ...region, needsManualReview: true };
   });
 }
