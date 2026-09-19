@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { SiteLangProvider } from './i18n/LanguageContext'
@@ -44,6 +45,7 @@ function App() {
           </SiteLangProvider>
         </ToastProvider>
       </AppErrorBoundary>
+      <SpeedInsights />
     </BrowserRouter>
   )
 }
