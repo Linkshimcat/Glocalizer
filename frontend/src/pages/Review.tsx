@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
+import OgqSpecChecker from '../components/OgqSpecChecker'
 import { useSiteLang } from '../i18n/LanguageContext'
 import {
   fetchOgqStickers,
@@ -177,6 +178,8 @@ export default function Review() {
                 ))}
               </section>
             )}
+
+            <OgqSpecChecker />
 
             <section className="mt-10 rounded-2xl border border-gray-100 bg-surface p-6">
               <h2 className="text-lg font-bold">{t.reviewChecklistTitle}</h2>
