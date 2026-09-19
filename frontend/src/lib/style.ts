@@ -9,10 +9,16 @@ export interface NormalizedRect {
 
 export interface ManualCleanup {
   mode: 'transparent' | 'solid'
+  /** 'rect'(기존 사각형) | 'brush'(자유롭게 칠해서 지우기). 없으면 'rect'로 취급(구버전 호환). */
+  shape?: 'rect' | 'brush'
   rect: NormalizedRect
   color?: string
   /** 지울 영역의 짧은 변 대비 모서리 둥글기 (0~0.5) */
   radius?: number
+  /** shape='brush' 전용: 지운 자국을 그린 정사각형 PNG data URL (흰색 불투명=지움, 투명=유지) */
+  brushMask?: string
+  /** shape='brush' 전용: 브러시 굵기, 이미지 프레임 폭 대비 % (1~100) */
+  brushSize?: number
 }
 
 /** 에디터 편집 스타일 (undo/redo · 내보내기 단위) */

@@ -95,6 +95,10 @@ export interface EditorDict {
   eraseSolid: string
   bgColor: string
   cornerRound: string
+  eraseShapeRect: string
+  eraseShapeBrush: string
+  brushSize: string
+  brushClear: string
   posX: string
   posY: string
   sizeX: string
@@ -125,6 +129,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     imageSize: '원본 이미지 크기', background: '배경', bgTransparent: '투명', bgWhite: '화이트',
     eraseOriginal: '원문 지우기', eraseHintManual: '자동 정리가 어려운 배경이에요. 지울 영역을 직접 보정해주세요.', eraseHintAuto: '자동 정리 결과가 어색할 때만 직접 보정해주세요.',
     eraseTransparent: '투명 처리', eraseSolid: '배경색 채우기', bgColor: '배경색', cornerRound: '모서리 둥글기',
+    eraseShapeRect: '사각형', eraseShapeBrush: '브러시', brushSize: '브러시 굵기', brushClear: '전체 지우기',
     posX: '가로 위치', posY: '세로 위치', sizeX: '가로 크기', sizeY: '세로 크기', exportTitle: '내보내기', aiLocalizationApplied: 'AI 로컬라이징이 적용됐어요.', download: '다운로드',
   },
   en: {
@@ -147,6 +152,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     imageSize: 'Original image size', background: 'Background', bgTransparent: 'Transparent', bgWhite: 'White',
     eraseOriginal: 'Erase original', eraseHintManual: 'This background is hard to auto-clean. Please adjust the erase area.', eraseHintAuto: 'Only touch up if the auto result looks off.',
     eraseTransparent: 'Transparent', eraseSolid: 'Fill with color', bgColor: 'Fill color', cornerRound: 'Corner radius',
+    eraseShapeRect: 'Rectangle', eraseShapeBrush: 'Brush', brushSize: 'Brush size', brushClear: 'Clear all',
     posX: 'X position', posY: 'Y position', sizeX: 'Width', sizeY: 'Height', exportTitle: 'Export', aiLocalizationApplied: 'AI localization has been applied.', download: 'Download',
   },
   ja: {
@@ -169,6 +175,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     imageSize: '元画像のサイズ', background: '背景', bgTransparent: '透明', bgWhite: '白',
     eraseOriginal: '原文消去', eraseHintManual: '自動整理が難しい背景です。消す領域を直接調整してください。', eraseHintAuto: '自動整理の結果が不自然なときだけ調整してください。',
     eraseTransparent: '透明処理', eraseSolid: '背景色で塗る', bgColor: '背景色', cornerRound: '角の丸み',
+    eraseShapeRect: '四角形', eraseShapeBrush: 'ブラシ', brushSize: 'ブラシの太さ', brushClear: 'すべて消去',
     posX: '横位置', posY: '縦位置', sizeX: '横サイズ', sizeY: '縦サイズ', exportTitle: '書き出し', aiLocalizationApplied: 'AIローカライズを適用しました。', download: 'ダウンロード',
   },
   zh: {
@@ -191,6 +198,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     imageSize: '原图大小', background: '背景', bgTransparent: '透明', bgWhite: '白色',
     eraseOriginal: '擦除原文', eraseHintManual: '此背景难以自动清理，请手动调整擦除区域。', eraseHintAuto: '仅当自动清理效果不佳时再手动调整。',
     eraseTransparent: '透明处理', eraseSolid: '填充背景色', bgColor: '背景色', cornerRound: '圆角程度',
+    eraseShapeRect: '矩形', eraseShapeBrush: '画笔', brushSize: '画笔粗细', brushClear: '全部清除',
     posX: '横向位置', posY: '纵向位置', sizeX: '横向大小', sizeY: '纵向大小', exportTitle: '导出', aiLocalizationApplied: '已应用 AI 本地化。', download: '下载',
   },
 }

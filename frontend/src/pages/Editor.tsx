@@ -78,6 +78,10 @@ const ALIGN_X = { left: -95, center: 0, right: 95 } as const
 const ALIGN_Y = { top: -105, middle: 0, bottom: 105 } as const
 const ZOOMS = [50, 100, 200]
 const DEFAULT_ZOOM = 100
+/** 브러시 지우기 마스크 해상도(정사각형, px). 실제 이미지 크기·비율과 무관한 고정값. */
+const BRUSH_MASK_RESOLUTION = 512
+/** 브러시로 칠한 영역의 화면 미리보기 색(반투명 빨강) — 실제 지우기 모드(투명/단색)와 무관하게 통일. */
+const BRUSH_PREVIEW_COLOR = 'rgba(239, 68, 68, 0.55)'
 
 type MobileTab = '번역' | '폰트' | '스타일'
 type MobileCanvasTab = '원본' | '미리보기'
@@ -486,6 +490,10 @@ export default function Editor() {
   const boxRef = useRef<HTMLDivElement>(null)
   const cleanupPreviewRef = useRef<HTMLDivElement>(null)
   const originalFrameRef = useRef<HTMLDivElement>(null)
+  const brushCanvasRef = useRef<HTMLCanvasElement>(null)
+  const brushMaskCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const brushDrawingRef = useRef(false)
+  const brushLastPointRef = useRef<{ x: number; y: number } | null>(null)
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null)
   // 취소한 뒤 늦게 도착한 OCR 응답이 사라진 선택을 되살리지 않도록 실행 회차를 센다.
   const selectionRunRef = useRef(0)
@@ -719,6 +727,123 @@ export default function Editor() {
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
+
+  /* ── 브러시로 자유롭게 지우기 ─────────────────────────────────
+   * 실제 내보내기용 마스크(흰색 스트로크)는 화면에 없는 오프스크린 캔버스에 그리고,
+   * 화면에 보이는 캔버스에는 모드와 무관하게 반투명 빨간색으로 같은 스트로크를 따라 그려
+   * "여기가 지워진다"를 직관적으로 보여준다. 두 캔버스 다 정사각형 고정 해상도라
+   * 실제 이미지 비율과 무관하게 항상 같은 좌표계를 쓴다(기존 사각형 도구와 동일한 단순화). */
+  const brushSize = manualCleanup?.brushSize ?? 8
+  useEffect(() => {
+    if (!brushMaskCanvasRef.current) {
+      const canvas = document.createElement('canvas')
+      canvas.width = BRUSH_MASK_RESOLUTION
+      canvas.height = BRUSH_MASK_RESOLUTION
+      brushMaskCanvasRef.current = canvas
+    }
+  }, [])
+  useEffect(() => {
+    if (brushDrawingRef.current) return
+    const maskCanvas = brushMaskCanvasRef.current
+    const previewCanvas = brushCanvasRef.current
+    if (!maskCanvas) return
+    const maskCtx = maskCanvas.getContext('2d')
+    const previewCtx = previewCanvas?.getContext('2d')
+    if (!maskCtx) return
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height)
+    if (previewCtx && previewCanvas) previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height)
+    const dataUrl = manualCleanup?.brushMask
+    if (!dataUrl) return
+    const img = new Image()
+    img.onload = () => {
+      maskCtx.drawImage(img, 0, 0, maskCanvas.width, maskCanvas.height)
+      if (previewCtx && previewCanvas) {
+        previewCtx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height)
+        previewCtx.globalCompositeOperation = 'source-in'
+        previewCtx.fillStyle = BRUSH_PREVIEW_COLOR
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height)
+        previewCtx.globalCompositeOperation = 'source-over'
+      }
+    }
+    img.src = dataUrl
+  }, [manualCleanup?.brushMask])
+  const brushPointFromEvent = (event: { clientX: number; clientY: number }): { x: number; y: number } | null => {
+    const canvas = brushCanvasRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return null
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+    }
+  }
+  const drawBrushSegment = (from: { x: number; y: number } | null, to: { x: number; y: number }) => {
+    const maskCanvas = brushMaskCanvasRef.current
+    const maskCtx = maskCanvas?.getContext('2d')
+    const previewCtx = brushCanvasRef.current?.getContext('2d')
+    if (!maskCanvas || !maskCtx) return
+    const radius = (brushSize / 100) * maskCanvas.width / 2
+    const paint = (ctx: CanvasRenderingContext2D, color: string) => {
+      ctx.fillStyle = color
+      ctx.strokeStyle = color
+      ctx.lineWidth = radius * 2
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      if (from) {
+        ctx.beginPath()
+        ctx.moveTo(from.x, from.y)
+        ctx.lineTo(to.x, to.y)
+        ctx.stroke()
+      }
+      ctx.beginPath()
+      ctx.arc(to.x, to.y, radius, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    paint(maskCtx, '#FFFFFF')
+    if (previewCtx) paint(previewCtx, BRUSH_PREVIEW_COLOR)
+  }
+  const commitBrushMask = () => {
+    const maskCanvas = brushMaskCanvasRef.current
+    if (!maskCanvas || !manualCleanup) return
+    live({ manualCleanup: { ...manualCleanup, brushMask: maskCanvas.toDataURL('image/png') } })
+  }
+  const startBrushStroke = (event: ReactPointerEvent) => {
+    if (!manualCleanup || preview) return
+    event.preventDefault()
+    event.stopPropagation()
+    setSelected(false)
+    setCleanupSelected(true)
+    beginGesture()
+    brushDrawingRef.current = true
+    const point = brushPointFromEvent(event)
+    brushLastPointRef.current = point
+    if (point) drawBrushSegment(null, point)
+    commitBrushMask()
+    const onMove = (moveEvent: PointerEvent) => {
+      const next = brushPointFromEvent(moveEvent)
+      if (!next) return
+      drawBrushSegment(brushLastPointRef.current, next)
+      brushLastPointRef.current = next
+      commitBrushMask()
+    }
+    const onUp = () => {
+      brushDrawingRef.current = false
+      brushLastPointRef.current = null
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+  const clearBrushMask = () => {
+    if (!manualCleanup) return
+    const maskCanvas = brushMaskCanvasRef.current
+    const previewCanvas = brushCanvasRef.current
+    maskCanvas?.getContext('2d')?.clearRect(0, 0, maskCanvas.width, maskCanvas.height)
+    if (previewCanvas) previewCanvas.getContext('2d')?.clearRect(0, 0, previewCanvas.width, previewCanvas.height)
+    update({ manualCleanup: { ...manualCleanup, brushMask: undefined } })
+  }
+
   const canvasZoomStyle = {
     transform: `scale(${zoom / 100})`,
     transformOrigin: 'center center',
@@ -1269,7 +1394,16 @@ export default function Editor() {
                   ) : (
                     <span className="select-none text-[120px]" style={{ transform: `scale(${style.imageScale / 100})` }}>{current.emoji}</span>
                   )}
-                  {cleanupBox && manualCleanup && (
+                  {manualCleanup && manualCleanup.shape === 'brush' && (
+                    <canvas
+                      ref={brushCanvasRef}
+                      width={BRUSH_MASK_RESOLUTION}
+                      height={BRUSH_MASK_RESOLUTION}
+                      onPointerDown={preview ? undefined : startBrushStroke}
+                      className={`absolute inset-0 h-full w-full ${preview ? 'pointer-events-none' : 'cursor-crosshair'}`}
+                    />
+                  )}
+                  {cleanupBox && manualCleanup && (!manualCleanup.shape || manualCleanup.shape === 'rect') && (
                     <span
                       onPointerDown={preview ? undefined : event => {
                         setSelected(false)
@@ -1296,7 +1430,11 @@ export default function Editor() {
                     const transform = `translate(-50%, -50%) translate(${overlay.style.x}px, ${overlay.style.y}px) rotate(${overlay.style.rotation}deg)`
 
                     return (
-                      <div key={overlay.regionId ?? `legacy-${current.id}`} className="absolute left-1/2 top-1/2" style={{ transform }}>
+                      <div
+                        key={overlay.regionId ?? `legacy-${current.id}`}
+                        className={`absolute left-1/2 top-1/2 ${manualCleanup?.shape === 'brush' ? 'pointer-events-none' : ''}`}
+                        style={{ transform }}
+                      >
                         {preview || !isActive || !selected ? (
                           <span
                             onPointerDown={preview ? undefined : event => {
@@ -1897,6 +2035,17 @@ export default function Editor() {
                 className="mt-3 flex flex-col gap-3"
               >
                 <div className="grid grid-cols-2 gap-2">
+                  {(['rect', 'brush'] as const).map(shape => (
+                    <button
+                      key={shape}
+                      onClick={() => updateManualCleanup({ shape })}
+                      className={`h-10 rounded-xl border-2 text-sm font-bold ${(manualCleanup.shape ?? 'rect') === shape ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-100 text-sub'}`}
+                    >
+                      {shape === 'rect' ? e.eraseShapeRect : e.eraseShapeBrush}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
                   {(['transparent', 'solid'] as const).map(mode => (
                     <button
                       key={mode}
@@ -1913,11 +2062,25 @@ export default function Editor() {
                     <input type="color" value={manualCleanup.color ?? '#FFFFFF'} onChange={event => updateManualCleanup({ color: event.target.value })} />
                   </label>
                 )}
-                <RangeRow label={e.cornerRound} min={0} max={50} value={Math.round((manualCleanup.radius ?? 0) * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualCleanup({ radius: value / 100 })} />
-                <RangeRow label={e.posX} min={0} max={100} value={Math.round(manualCleanup.rect.x * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ x: value / 100 })} />
-                <RangeRow label={e.posY} min={0} max={100} value={Math.round(manualCleanup.rect.y * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ y: value / 100 })} />
-                <RangeRow label={e.sizeX} min={1} max={100} value={Math.round(manualCleanup.rect.width * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ width: value / 100 })} />
-                <RangeRow label={e.sizeY} min={1} max={100} value={Math.round(manualCleanup.rect.height * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ height: value / 100 })} />
+                {manualCleanup.shape === 'brush' ? (
+                  <>
+                    <RangeRow label={e.brushSize} min={2} max={40} value={Math.round(brushSize)} suffix="%" onBegin={beginGesture} onLive={value => updateManualCleanup({ brushSize: value })} />
+                    <button
+                      onClick={clearBrushMask}
+                      className="h-10 rounded-xl border-2 border-gray-100 text-sm font-bold text-sub"
+                    >
+                      {e.brushClear}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <RangeRow label={e.cornerRound} min={0} max={50} value={Math.round((manualCleanup.radius ?? 0) * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualCleanup({ radius: value / 100 })} />
+                    <RangeRow label={e.posX} min={0} max={100} value={Math.round(manualCleanup.rect.x * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ x: value / 100 })} />
+                    <RangeRow label={e.posY} min={0} max={100} value={Math.round(manualCleanup.rect.y * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ y: value / 100 })} />
+                    <RangeRow label={e.sizeX} min={1} max={100} value={Math.round(manualCleanup.rect.width * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ width: value / 100 })} />
+                    <RangeRow label={e.sizeY} min={1} max={100} value={Math.round(manualCleanup.rect.height * 100)} suffix="%" onBegin={beginGesture} onLive={value => updateManualRect({ height: value / 100 })} />
+                  </>
+                )}
               </div>
             )}
           </section>
