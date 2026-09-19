@@ -28,7 +28,9 @@ export async function submitFeedback(userId: string, input: FeedbackInput): Prom
   }
 
   const user = await findUserById(userId);
-  const submitter = user?.email ?? userId;
+  const name = user?.name?.trim() || undefined;
+  const email = user?.email ?? undefined;
+  const submitter = name && email ? `${name} (${email})` : (name ?? email ?? userId);
   const title = input.message.length > TITLE_MAX_LENGTH ? `${input.message.slice(0, TITLE_MAX_LENGTH)}…` : input.message;
 
   const response = await fetch(`https://api.github.com/repos/${FEEDBACK_REPO}/issues`, {

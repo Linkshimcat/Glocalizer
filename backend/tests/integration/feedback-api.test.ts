@@ -62,8 +62,21 @@ describe('POST /feedback', () => {
     );
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.title).toBe('[기능 제안] 개선했으면 하는 부분이 있어요');
-    expect(body.body).toContain('a@b.com');
+    expect(body.body).toContain('제출자: 기존 (a@b.com)');
     expect(body.labels).toEqual(['feedback', 'enhancement']);
+  });
+
+  it('falls back to email alone when the profile has no nickname', async () => {
+    (env as { GITHUB_FEEDBACK_TOKEN?: string }).GITHUB_FEEDBACK_TOKEN = 'token';
+    vi.mocked(users.findUserById).mockResolvedValue(row({ name: null }));
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ html_url: 'https://github.com/Linkshimcat/Glocalizer/issues/1' }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await request(app).post('/api/v1/feedback').set('Authorization', auth).send({ category: 'other', message: '개선했으면 하는 부분이 있어요' });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.body).toContain('제출자: a@b.com');
+    expect(body.body).not.toContain('기존');
   });
 
   it('surfaces a failure when GitHub rejects the request', async () => {
