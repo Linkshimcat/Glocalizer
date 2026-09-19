@@ -1,4 +1,5 @@
 import githubMark from '../assets/github-mark.svg'
+import InstagramIcon from './InstagramIcon'
 import Logo from './Logo'
 
 export default function Footer() {
@@ -11,16 +12,28 @@ export default function Footer() {
         <div className="justify-self-center md:justify-self-start">
           <Logo />
         </div>
-        <a
-          href="https://github.com/Linkshimcat/Glocalizer"
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Glocalizer GitHub 저장소 열기"
-          title="GitHub"
-          className="justify-self-center p-1 text-ink transition-opacity hover:opacity-60"
-        >
-          <img src={githubMark} alt="" aria-hidden className="h-5 w-5" />
-        </a>
+        <div className="flex items-center justify-center gap-3">
+          <a
+            href="https://github.com/Linkshimcat/Glocalizer"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Glocalizer GitHub 저장소 열기"
+            title="GitHub"
+            className="p-1 text-ink transition-opacity hover:opacity-60"
+          >
+            <img src={githubMark} alt="" aria-hidden className="h-5 w-5" />
+          </a>
+          <a
+            href="https://www.instagram.com/glocalizer__ogq/"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Glocalizer Instagram 계정 열기"
+            title="Instagram"
+            className="p-1 text-ink transition-opacity hover:opacity-60"
+          >
+            <InstagramIcon className="h-5 w-5" />
+          </a>
+        </div>
         <div className="text-xs font-bold leading-relaxed text-sub sm:text-sm md:justify-self-end md:text-right">
           <p>Naver OGQ 공모전 · 박소연 | 이윤재 | 장예나 | 김래원</p>
           <p className="mt-1">
