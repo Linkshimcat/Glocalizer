@@ -1,6 +1,6 @@
 import { Camera, Loader2, Mail } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import GoogleIcon from '../components/GoogleIcon'
 import Modal from '../components/Modal'
@@ -30,9 +30,10 @@ async function toAvatarDataUrl(file: File): Promise<string> {
 }
 
 export default function Account() {
-  const { user, isAuthenticated, refreshUser, updateProfile } = useAuth()
+  const { user, isAuthenticated, refreshUser, updateProfile, deleteAccount } = useAuth()
   const { t } = useSiteLang()
   const toast = useToast()
+  const navigate = useNavigate()
   const enteredAuthenticated = useRef(isAuthenticated)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [editing, setEditing] = useState(false)
@@ -48,6 +49,7 @@ export default function Account() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [ackDataLoss, setAckDataLoss] = useState(false)
   const [ackResignup, setAckResignup] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated) void refreshUser()
@@ -151,10 +153,18 @@ export default function Account() {
     setDeleteModalOpen(true)
   }
 
-  const onConfirmDelete = () => {
-    // TODO: 백엔드 탈퇴 API 연결 후 실제 요청으로 교체
-    toast(t.accountDeleteNotReady)
-    setDeleteModalOpen(false)
+  const onConfirmDelete = async () => {
+    setDeletingAccount(true)
+    try {
+      await deleteAccount()
+      setDeleteModalOpen(false)
+      toast(t.accountDeleteSuccess, 'success')
+      navigate('/')
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t.accountDeleteFailed)
+    } finally {
+      setDeletingAccount(false)
+    }
   }
 
   return (
@@ -393,16 +403,18 @@ export default function Account() {
             <button
               type="button"
               onClick={() => setDeleteModalOpen(false)}
-              className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface"
+              disabled={deletingAccount}
+              className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50"
             >
               {t.accountCancel}
             </button>
             <button
               type="button"
-              disabled={!ackDataLoss || !ackResignup}
-              onClick={onConfirmDelete}
-              className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!ackDataLoss || !ackResignup || deletingAccount}
+              onClick={() => { void onConfirmDelete() }}
+              className="flex items-center gap-1.5 rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
+              {deletingAccount && <Loader2 className="h-4 w-4 animate-spin" />}
               {t.accountDeleteConfirmCta}
             </button>
           </div>

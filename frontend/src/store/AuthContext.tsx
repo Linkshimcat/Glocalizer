@@ -2,6 +2,7 @@ import { setApiAccountToken } from '../lib/api'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AuthApiError,
+  deleteAccount as apiDeleteAccount,
   fetchCurrentUser,
   loginWithGoogle as apiLoginWithGoogle,
   loginWithEmail as apiLoginWithEmail,
@@ -59,6 +60,7 @@ interface AuthState {
   /** 저장된 토큰이 아직 유효한지 서버에 확인해 user 정보를 최신화한다. */
   refreshUser: () => Promise<void>
   updateProfile: (update: ProfileUpdate) => Promise<void>
+  deleteAccount: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -144,6 +146,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistSession(token, nextUser)
   }, [token])
 
+  const deleteAccount = useCallback(async () => {
+    if (!token) throw new AuthApiError('로그인이 필요해요.')
+    await apiDeleteAccount(token)
+    setApiAccountToken(null)
+    setToken(null)
+    setUser(null)
+    persistSession(null, null)
+  }, [token])
+
   const value = useMemo<AuthState>(() => ({
     user,
     token,
@@ -155,7 +166,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     refreshUser,
     updateProfile,
-  }), [user, token, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile])
+    deleteAccount,
+  }), [user, token, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile, deleteAccount])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

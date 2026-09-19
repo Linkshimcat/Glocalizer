@@ -1,8 +1,11 @@
 import sharp from 'sharp';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
+import { findProjectsByOwner } from '../repositories/project.repository.js';
 import {
+  deleteUserRow,
   findUserByEmail,
   findUserById,
   findUserByNaverId,
@@ -18,6 +21,8 @@ import type { GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } fr
 import type { PublicUser, UserRow } from '../types/user.js';
 import { signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
+import { deleteGenerationsByOwner } from './generation.service.js';
+import { deleteProjectAndAssets } from './project.service.js';
 
 const NAVER_TOKEN_URL = 'https://nid.naver.com/oauth2.0/token';
 const NAVER_PROFILE_URL = 'https://openapi.naver.com/v1/nid/me';
@@ -94,6 +99,28 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
 
   const avatarUrl = input.avatar === undefined || input.avatar === null ? input.avatar : await normalizeAvatar(input.avatar);
   return toPublicUser(await updateUserProfile(userId, { name: input.name, avatarUrl }));
+}
+
+/** 현지화 프로젝트·생성 결과의 Storage 파일부터 지운 뒤 계정 행을 지운다 — 순서를 바꾸면
+ *  users 행 삭제가 먼저 FK cascade로 projects/generation_projects를 지워버려 Storage 파일이
+ *  고아로 남는다. Google 연동 계정이면 Supabase Auth 사용자도 함께 정리한다. */
+export async function deleteAccount(userId: string): Promise<void> {
+  const user = await findUserById(userId);
+  if (!user) throw new AppError('UNAUTHORIZED');
+
+  const projects = await findProjectsByOwner(userId);
+  for (const project of projects) {
+    await deleteProjectAndAssets(project.id);
+  }
+
+  await deleteGenerationsByOwner(userId);
+
+  if (user.supabase_auth_id) {
+    const { error } = await supabase.auth.admin.deleteUser(user.supabase_auth_id);
+    if (error) logger.warn({ err: error, userId }, 'Supabase Auth 사용자 삭제 실패 (앱 계정 삭제는 계속 진행)');
+  }
+
+  await deleteUserRow(userId);
 }
 
 function identityString(value: unknown): string | null {

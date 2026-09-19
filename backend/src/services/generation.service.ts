@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { env } from '../config/env.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
-import { createSignedUrl, downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
+import { createSignedUrl, downloadFromStorage, removeFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 
 export interface GenerationProject { id: string; owner_id: string; prompt: string; reference_path: string | null; confirmed: boolean; created_at: string; day: string }
@@ -95,4 +95,15 @@ export async function processGenerationImage(job: GenerationImage) {
  } catch(error) {
   unwrapVoid(await supabase.from('generation_images').update({status:'failed',error:error instanceof AppError?error.message:'이미지 생성이 중단됐습니다. 선택 재생성으로 다시 시도해주세요.',elapsed_ms:Date.now()-started}).eq('id',job.id),'실패 상태 저장 실패');
  }
+}
+/** DB 삭제는 FK cascade(generation_projects -> generation_images)로 처리되지만, Storage 파일은
+ *  별도로 지워야 한다. 계정 탈퇴 시 deleteAccount에서 호출한다. */
+export async function deleteGenerationsByOwner(ownerId: string): Promise<void> {
+ const projects = unwrapList<GenerationProject>(await supabase.from('generation_projects').select().eq('owner_id',ownerId),'생성 작업 조회 실패');
+ if (projects.length === 0) return;
+ const projectIds = projects.map(p => p.id);
+ const images = unwrapList<GenerationImage>(await supabase.from('generation_images').select().in('project_id',projectIds),'생성 결과 조회 실패');
+ const paths = [...projects.map(p => p.reference_path), ...images.map(i => i.path)].filter((path): path is string => Boolean(path));
+ await removeFromStorage(paths);
+ unwrapVoid(await supabase.from('generation_projects').delete().eq('owner_id',ownerId),'생성 작업 삭제 실패');
 }

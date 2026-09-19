@@ -71,7 +71,8 @@ export interface Dict {
   accountDangerZoneDesc: string
   accountDeleteButton: string
   accountDeleteConfirm: string
-  accountDeleteNotReady: string
+  accountDeleteFailed: string
+  accountDeleteSuccess: string
   accountSecurityTitle: string
   accountSecurityDesc: string
   accountPasswordChangeCta: string
@@ -328,7 +329,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountDangerZoneDesc: '계정을 탈퇴하면 저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되고 되돌릴 수 없어요.',
     accountDeleteButton: '계정 탈퇴',
     accountDeleteConfirm: '정말로 계정을 탈퇴하시겠어요? 저장된 모든 프로젝트와 이미지가 함께 삭제되며, 이 작업은 되돌릴 수 없어요.',
-    accountDeleteNotReady: '탈퇴 기능은 아직 준비 중이에요. 곧 연결할게요.',
+    accountDeleteFailed: '계정 탈퇴에 실패했어요. 잠시 후 다시 시도해주세요.',
+    accountDeleteSuccess: '계정이 삭제됐어요. 그동안 이용해주셔서 감사해요.',
     accountSecurityTitle: '보안',
     accountSecurityDesc: '이메일로 가입한 계정의 비밀번호를 변경할 수 있어요.',
     accountPasswordChangeCta: '비밀번호 변경',
@@ -577,7 +579,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountDangerZoneDesc: 'Deleting your account permanently removes all saved projects, images, and profile information. This cannot be undone.',
     accountDeleteButton: 'Delete account',
     accountDeleteConfirm: 'Are you sure you want to delete your account? All saved projects and images will be deleted too, and this cannot be undone.',
-    accountDeleteNotReady: "Account deletion isn't ready yet. We'll wire it up soon.",
+    accountDeleteFailed: "Couldn't delete your account. Please try again in a moment.",
+    accountDeleteSuccess: 'Your account has been deleted. Thanks for using Glocalizer.',
     accountSecurityTitle: 'Security',
     accountSecurityDesc: 'Change the password for accounts signed up with email.',
     accountPasswordChangeCta: 'Change password',
@@ -826,7 +829,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountDangerZoneDesc: 'アカウントを削除すると、保存済みのプロジェクト・画像・プロフィール情報がすべて完全に削除され、元に戻せません。',
     accountDeleteButton: 'アカウント削除',
     accountDeleteConfirm: '本当にアカウントを削除しますか？保存済みのプロジェクトと画像もすべて削除され、元に戻せません。',
-    accountDeleteNotReady: '削除機能は現在準備中です。近日中に対応します。',
+    accountDeleteFailed: 'アカウントを削除できませんでした。しばらくしてから再試行してください。',
+    accountDeleteSuccess: 'アカウントを削除しました。ご利用ありがとうございました。',
     accountSecurityTitle: 'セキュリティ',
     accountSecurityDesc: 'メールで登録したアカウントのパスワードを変更できます。',
     accountPasswordChangeCta: 'パスワード変更',
@@ -1075,7 +1079,8 @@ export const translations: Record<SiteLang, Dict> = {
     accountDangerZoneDesc: '删除账户后，已保存的所有项目、图片和个人资料信息都会被永久删除，且无法恢复。',
     accountDeleteButton: '删除账户',
     accountDeleteConfirm: '确定要删除账户吗？已保存的所有项目和图片也会一并删除，且无法恢复。',
-    accountDeleteNotReady: '删除功能尚未开放，我们会尽快接入。',
+    accountDeleteFailed: '账户删除失败,请稍后重试。',
+    accountDeleteSuccess: '账户已删除,感谢您的使用。',
     accountSecurityTitle: '安全',
     accountSecurityDesc: '可以修改通过邮箱注册的账户密码。',
     accountPasswordChangeCta: '修改密码',
