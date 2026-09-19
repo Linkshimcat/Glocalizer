@@ -12,6 +12,11 @@ export async function findUserByNaverId(naverId: string): Promise<UserRow | null
   return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
 }
 
+export async function findUserBySupabaseAuthId(supabaseAuthId: string): Promise<UserRow | null> {
+  const result = await supabase.from('users').select().eq('supabase_auth_id', supabaseAuthId).maybeSingle();
+  return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
+}
+
 export async function findUserById(id: string): Promise<UserRow | null> {
   const result = await supabase.from('users').select().eq('id', id).maybeSingle();
   return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
@@ -26,7 +31,7 @@ interface InsertEmailUserInput {
 export async function insertEmailUser(input: InsertEmailUserInput): Promise<UserRow> {
   const result = await supabase
     .from('users')
-    .insert({ email: input.email, password_hash: input.passwordHash, name: input.name ?? null })
+    .insert({ email: input.email, password_hash: input.passwordHash, name: input.name ?? null, signup_method: 'email' })
     .select()
     .single();
 
@@ -43,7 +48,7 @@ interface InsertNaverUserInput {
 export async function insertNaverUser(input: InsertNaverUserInput): Promise<UserRow> {
   const result = await supabase
     .from('users')
-    .insert({ naver_id: input.naverId, email: input.email, name: input.name, avatar_url: input.avatarUrl })
+    .insert({ naver_id: input.naverId, email: input.email, name: input.name, avatar_url: input.avatarUrl, signup_method: 'naver' })
     .select()
     .single();
 
@@ -71,6 +76,40 @@ export async function linkNaverProfile(userId: string, input: LinkNaverProfileIn
     .single();
 
   return unwrapRow<UserRow>(result, '네이버 로그인 처리에 실패했습니다.');
+}
+
+interface GoogleProfileInput {
+  supabaseAuthId: string;
+  email: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+export async function insertGoogleUser(input: GoogleProfileInput): Promise<UserRow> {
+  const result = await supabase
+    .from('users')
+    .insert({
+      supabase_auth_id: input.supabaseAuthId,
+      email: input.email,
+      name: input.name,
+      avatar_url: input.avatarUrl,
+      signup_method: 'google',
+    })
+    .select()
+    .single();
+
+  return unwrapRow<UserRow>(result, 'Google 로그인 처리에 실패했습니다.');
+}
+
+export async function linkGoogleProfile(user: UserRow, input: GoogleProfileInput): Promise<UserRow> {
+  const patch: Record<string, unknown> = {
+    supabase_auth_id: input.supabaseAuthId,
+    updated_at: new Date().toISOString(),
+  };
+  if (!user.name_customized) patch.name = input.name;
+  if (!user.avatar_customized) patch.avatar_url = input.avatarUrl;
+  const result = await supabase.from('users').update(patch).eq('id', user.id).select().single();
+  return unwrapRow<UserRow>(result, 'Google 로그인 처리에 실패했습니다.');
 }
 
 interface UpdateUserProfileInput {

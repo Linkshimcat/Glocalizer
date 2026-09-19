@@ -2,6 +2,7 @@ import { Camera, Loader2, Mail } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import Header from '../components/Header'
+import GoogleIcon from '../components/GoogleIcon'
 import NavMenu from '../components/NavMenu'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -180,7 +181,12 @@ export default function Account() {
             <div className="pt-5">
               <dt className="text-sm font-semibold text-sub">{t.accountSignupMethod}</dt>
               <dd className="mt-2 flex items-center gap-2 text-base font-bold text-ink">
-                {user.signupMethod === 'naver' ? (
+                {user.signupMethod === 'google' ? (
+                  <>
+                    <GoogleIcon className="h-5 w-5" />
+                    <span>{t.accountGoogleLogin}</span>
+                  </>
+                ) : user.signupMethod === 'naver' ? (
                   <>
                     <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-md bg-[#03C75A] text-xs font-black text-white">N</span>
                     <span>{t.accountNaverLogin}</span>

@@ -1,0 +1,117 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string
+            callback: (response: { credential: string }) => void
+            nonce?: string
+            use_fedcm_for_prompt?: boolean
+          }) => void
+          renderButton: (parent: HTMLElement, options: { type: 'standard' }) => void
+        }
+      }
+    }
+  }
+}
+
+let clientPromise: Promise<SupabaseClient | null> | undefined
+
+function googleAuthClient(): Promise<SupabaseClient | null> {
+  if (clientPromise) return clientPromise
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  clientPromise = url && key
+    ? import('@supabase/supabase-js').then(({ createClient }) =>
+        createClient(url, key, {
+          auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: false, detectSessionInUrl: false },
+        }),
+      )
+    : Promise.resolve(null)
+  return clientPromise
+}
+
+let gsiScriptPromise: Promise<void> | undefined
+
+function loadGoogleIdentityScript(): Promise<void> {
+  if (gsiScriptPromise) return gsiScriptPromise
+  gsiScriptPromise = new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Google 로그인 스크립트를 불러오지 못했어요.'))
+    document.head.appendChild(script)
+  })
+  return gsiScriptPromise
+}
+
+// Google에는 해시된 nonce를 보내고, Supabase에는 원본 nonce를 보내 재전송 공격을 막는다.
+async function generateNonce(): Promise<[string, string]> {
+  const nonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))))
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce))
+  const hashedNonce = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+  return [nonce, hashedNonce]
+}
+
+// 커스텀 버튼 클릭을 Google 위젯의 계정 선택 팝업으로 그대로 이어주기 위한 숨김 버튼.
+function clickHiddenGoogleButton(): boolean {
+  let container = document.getElementById('google-gsi-hidden-button')
+  if (!container) {
+    container = document.createElement('div')
+    container.id = 'google-gsi-hidden-button'
+    container.style.position = 'fixed'
+    container.style.top = '-9999px'
+    container.style.left = '-9999px'
+    document.body.appendChild(container)
+  }
+  container.innerHTML = ''
+  window.google!.accounts.id.renderButton(container, { type: 'standard' })
+  const button = container.querySelector<HTMLElement>('div[role="button"]')
+  if (!button) return false
+  button.click()
+  return true
+}
+
+// Google Identity Services로 ID 토큰을 직접 받아 Supabase 세션을 발급받는다.
+// signInWithOAuth 리다이렉트 방식과 달리 Supabase 콜백 도메인을 거치지 않아 우리 서비스 도메인만 노출된다.
+export async function startGoogleLogin(): Promise<string | false> {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const supabase = await googleAuthClient()
+  if (!supabase || !clientId) return false
+
+  await loadGoogleIdentityScript()
+  const [nonce, hashedNonce] = await generateNonce()
+
+  return new Promise((resolve, reject) => {
+    window.google!.accounts.id.initialize({
+      client_id: clientId,
+      nonce: hashedNonce,
+      use_fedcm_for_prompt: true,
+      callback: (response) => {
+        supabase.auth
+          .signInWithIdToken({ provider: 'google', token: response.credential, nonce })
+          .then(({ data, error }) => {
+            if (error || !data.session?.access_token) {
+              reject(error ?? new Error('Google 로그인 세션을 확인할 수 없어요.'))
+              return
+            }
+            resolve(data.session.access_token)
+          })
+          .catch(reject)
+      },
+    })
+
+    if (!clickHiddenGoogleButton()) {
+      reject(new Error('Google 로그인 버튼을 표시하지 못했어요.'))
+    }
+  })
+}

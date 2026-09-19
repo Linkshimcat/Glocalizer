@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   AuthApiError,
   fetchCurrentUser,
+  loginWithGoogle as apiLoginWithGoogle,
   loginWithEmail as apiLoginWithEmail,
   loginWithNaver as apiLoginWithNaver,
   signupWithEmail as apiSignupWithEmail,
@@ -53,6 +54,7 @@ interface AuthState {
   loginWithEmail: (email: string, password: string) => Promise<void>
   signupWithEmail: (email: string, password: string, name?: string) => Promise<void>
   completeNaverLogin: (code: string, state: string) => Promise<void>
+  completeGoogleLogin: (accessToken: string) => Promise<void>
   logout: () => void
   /** 저장된 토큰이 아직 유효한지 서버에 확인해 user 정보를 최신화한다. */
   refreshUser: () => Promise<void>
@@ -86,6 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const completeNaverLogin = useCallback(async (code: string, state: string) => {
     const result = await apiLoginWithNaver(code, state)
+    applySession(result.token, result.user)
+  }, [applySession])
+
+  const completeGoogleLogin = useCallback(async (accessToken: string) => {
+    const result = await apiLoginWithGoogle(accessToken)
     applySession(result.token, result.user)
   }, [applySession])
 
@@ -144,10 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithEmail,
     signupWithEmail,
     completeNaverLogin,
+    completeGoogleLogin,
     logout,
     refreshUser,
     updateProfile,
-  }), [user, token, loginWithEmail, signupWithEmail, completeNaverLogin, logout, refreshUser, updateProfile])
+  }), [user, token, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

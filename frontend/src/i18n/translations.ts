@@ -53,6 +53,7 @@ export interface Dict {
   accountSignupMethod: string
   accountEmailLogin: string
   accountNaverLogin: string
+  accountGoogleLogin: string
   accountChecking: string
   accountMissing: string
   accountMenu: string
@@ -158,12 +159,15 @@ export interface Dict {
   loginSubmitSignup: string
   loginDivider: string
   loginNaverCta: string
+  loginGoogleCta: string
+  loginGoogleNotConfigured: string
   loginSwitchToSignup: string
   loginSwitchToLogin: string
   loginBackHome: string
   loginNaverProcessing: string
   loginNaverFailed: string
   loginNaverBack: string
+  loginGoogleFailed: string
   loginSuccessToast: string
 }
 
@@ -213,6 +217,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountSignupMethod: '가입 방식',
     accountEmailLogin: '이메일 로그인',
     accountNaverLogin: '네이버 로그인',
+    accountGoogleLogin: 'Google 로그인',
     accountChecking: '확인 중',
     accountMissing: '등록된 정보 없음',
     accountMenu: '프로필 메뉴',
@@ -310,12 +315,15 @@ export const translations: Record<SiteLang, Dict> = {
     loginSubmitSignup: '회원가입',
     loginDivider: '또는',
     loginNaverCta: '네이버 아이디로 로그인',
+    loginGoogleCta: 'Google로 계속하기',
+    loginGoogleNotConfigured: 'Google 로그인이 아직 설정되지 않았어요.',
     loginSwitchToSignup: '계정이 없으신가요? 회원가입',
     loginSwitchToLogin: '이미 계정이 있으신가요? 로그인',
     loginBackHome: '홈으로',
     loginNaverProcessing: '네이버 로그인 처리 중이에요…',
     loginNaverFailed: '네이버 로그인에 실패했어요.',
     loginNaverBack: '로그인 화면으로 돌아가기',
+    loginGoogleFailed: 'Google 로그인에 실패했어요.',
     loginSuccessToast: '로그인 완료!',
   },
   en: {
@@ -363,6 +371,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountSignupMethod: 'Sign-up method',
     accountEmailLogin: 'Email login',
     accountNaverLogin: 'Naver login',
+    accountGoogleLogin: 'Google login',
     accountChecking: 'Checking',
     accountMissing: 'No information provided',
     accountMenu: 'Profile menu',
@@ -460,12 +469,15 @@ export const translations: Record<SiteLang, Dict> = {
     loginSubmitSignup: 'Sign up',
     loginDivider: 'or',
     loginNaverCta: 'Continue with Naver',
+    loginGoogleCta: 'Continue with Google',
+    loginGoogleNotConfigured: 'Google login is not configured yet.',
     loginSwitchToSignup: "Don't have an account? Sign up",
     loginSwitchToLogin: 'Already have an account? Log in',
     loginBackHome: 'Home',
     loginNaverProcessing: 'Signing you in with Naver…',
     loginNaverFailed: 'Naver login failed.',
     loginNaverBack: 'Back to login',
+    loginGoogleFailed: 'Google login failed.',
     loginSuccessToast: 'Logged in!',
   },
   ja: {
@@ -513,6 +525,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountSignupMethod: '登録方法',
     accountEmailLogin: 'メールログイン',
     accountNaverLogin: 'NAVERログイン',
+    accountGoogleLogin: 'Googleログイン',
     accountChecking: '確認中',
     accountMissing: '登録情報なし',
     accountMenu: 'プロフィールメニュー',
@@ -610,12 +623,15 @@ export const translations: Record<SiteLang, Dict> = {
     loginSubmitSignup: '新規登録',
     loginDivider: 'または',
     loginNaverCta: 'NAVERアカウントでログイン',
+    loginGoogleCta: 'Googleで続行',
+    loginGoogleNotConfigured: 'Googleログインはまだ設定されていません。',
     loginSwitchToSignup: 'アカウントをお持ちでないですか？ 新規登録',
     loginSwitchToLogin: 'すでにアカウントをお持ちですか？ ログイン',
     loginBackHome: 'ホームへ',
     loginNaverProcessing: 'NAVERログインを処理しています…',
     loginNaverFailed: 'NAVERログインに失敗しました。',
     loginNaverBack: 'ログイン画面に戻る',
+    loginGoogleFailed: 'Googleログインに失敗しました。',
     loginSuccessToast: 'ログイン完了！',
   },
   zh: {
@@ -663,6 +679,7 @@ export const translations: Record<SiteLang, Dict> = {
     accountSignupMethod: '注册方式',
     accountEmailLogin: '邮箱登录',
     accountNaverLogin: 'Naver 登录',
+    accountGoogleLogin: 'Google 登录',
     accountChecking: '正在确认',
     accountMissing: '暂无信息',
     accountMenu: '个人资料菜单',
@@ -760,12 +777,15 @@ export const translations: Record<SiteLang, Dict> = {
     loginSubmitSignup: '注册',
     loginDivider: '或',
     loginNaverCta: '使用 NAVER 账号登录',
+    loginGoogleCta: '使用 Google 继续',
+    loginGoogleNotConfigured: '尚未配置 Google 登录。',
     loginSwitchToSignup: '还没有账号？去注册',
     loginSwitchToLogin: '已有账号？去登录',
     loginBackHome: '返回首页',
     loginNaverProcessing: '正在处理 NAVER 登录…',
     loginNaverFailed: 'NAVER 登录失败。',
     loginNaverBack: '返回登录页',
+    loginGoogleFailed: 'Google 登录失败。',
     loginSuccessToast: '登录成功！',
   },
 }

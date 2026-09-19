@@ -3,7 +3,7 @@ import request from 'supertest';
 import sharp from 'sharp';
 
 vi.mock('../../src/repositories/user.repository.js', () => ({
-  findUserById: vi.fn(), findUserByEmail: vi.fn(), findUserByNaverId: vi.fn(), insertEmailUser: vi.fn(), insertNaverUser: vi.fn(), linkNaverProfile: vi.fn(), updateUserProfile: vi.fn(),
+  findUserById: vi.fn(), findUserByEmail: vi.fn(), findUserByNaverId: vi.fn(), findUserBySupabaseAuthId: vi.fn(), insertEmailUser: vi.fn(), insertGoogleUser: vi.fn(), insertNaverUser: vi.fn(), linkGoogleProfile: vi.fn(), linkNaverProfile: vi.fn(), updateUserProfile: vi.fn(),
 }));
 const { createApp } = await import('../../src/app.js');
 const users = await import('../../src/repositories/user.repository.js');
@@ -11,7 +11,7 @@ const { signAuthToken } = await import('../../src/utils/jwt.js');
 const app = createApp();
 const owner = '00000000-0000-4000-8000-000000000001';
 const auth = `Bearer ${signAuthToken({ sub: owner })}`;
-const row = (patch: object = {}) => ({ id: owner, email: 'a@b.com', password_hash: 'hash', naver_id: null, name: '기존', avatar_url: null, name_customized: false, avatar_customized: false, created_at: '', updated_at: '', ...patch });
+const row = (patch: object = {}) => ({ id: owner, email: 'a@b.com', password_hash: 'hash', naver_id: null, supabase_auth_id: null, signup_method: 'email' as const, name: '기존', avatar_url: null, name_customized: false, avatar_customized: false, created_at: '', updated_at: '', ...patch });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,7 +28,7 @@ describe('GET /auth/me', () => {
   });
 
   it('returns the Naver signup method for a social account', async () => {
-    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: null, naver_id: 'naver-id' }));
+    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: null, naver_id: 'naver-id', signup_method: 'naver' }));
     const res = await request(app).get('/api/v1/auth/me').set('Authorization', auth);
     expect(res.status).toBe(200);
     expect(res.body.user.signupMethod).toBe('naver');
