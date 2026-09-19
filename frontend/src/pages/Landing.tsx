@@ -106,8 +106,7 @@ export default function Landing() {
                     aria-label={t.cardTitle}
                   />
                 </div>
-                {/* 타임라인은 전 화면에서 보인다. 되감기 버튼은 좁은 화면에서 이 줄 끝에 붙고,
-                    lg부터는 목업대로 히어로 오른쪽 아래로 빠진다(기준점은 relative인 section). */}
+                {/* 타임라인과 되감기 버튼은 한 줄에 함께 배치한다. */}
                 <div className="flex items-center gap-3 font-extrabold text-ink sm:gap-4">
                   <span aria-hidden="true" className="text-[13px] sm:text-[15px]">01</span>
                   <span aria-hidden="true" className="relative h-1 flex-1 overflow-hidden rounded-full bg-ink/15">
@@ -122,7 +121,7 @@ export default function Landing() {
                     onClick={replayVideo}
                     aria-label={t.heroReplay}
                     title={t.heroReplay}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition hover:bg-white focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:outline-none lg:absolute lg:right-6 lg:bottom-6"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition hover:bg-white focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:outline-none"
                   >
                     <img src={refreshIcon} alt="" aria-hidden className="h-5 w-5" />
                   </button>
