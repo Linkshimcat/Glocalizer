@@ -183,6 +183,18 @@ export async function recordDownload(projectId: string, token: string, kind: 'si
   await request(`/projects/${projectId}/downloads`, { method: 'POST', body: JSON.stringify({ kind, languageCode }) }, token)
 }
 
+export interface OgqSticker {
+  assetId: string
+  title: string | null
+  thumbnailUrl: string
+  animated: boolean
+}
+
+export async function fetchOgqStickers(limit: number): Promise<OgqSticker[]> {
+  const { stickers } = await request<{ stickers: OgqSticker[] }>(`/ogq/stickers?limit=${limit}`)
+  return stickers
+}
+
 export async function saveEditorState(
   projectId: string,
   token: string,

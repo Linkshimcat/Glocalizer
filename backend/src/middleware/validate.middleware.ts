@@ -10,7 +10,12 @@ export function validate(schema: ZodType, part: RequestPart = 'body') {
       next(result.error);
       return;
     }
-    req[part] = result.data;
+    // Express 5에서 req.query는 getter만 있어 직접 대입하면 strict mode(ESM)에서 TypeError가 난다.
+    if (part === 'query') {
+      Object.defineProperty(req, 'query', { value: result.data, writable: true, configurable: true });
+    } else {
+      req[part] = result.data;
+    }
     next();
   };
 }

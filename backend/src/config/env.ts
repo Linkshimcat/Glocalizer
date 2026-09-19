@@ -43,6 +43,10 @@ export const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value ? value : undefined)),
+  // 대회 사무국이 제공한 OGQ 마켓 API 키. 미설정 시 OGQ 연동 기능만 503으로 비활성화되고
+  // 나머지는 정상 동작한다. 절대 프론트엔드로 내려보내지 않는다(서버 사이드 프록시 전용).
+  OGQ_API_KEY: z.string().min(1).optional(),
+  OGQ_API_BASE_URL: z.string().url().default('https://4th-ai-ogq.competition.ogq.me'),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 

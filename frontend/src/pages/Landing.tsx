@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import RollingText from '../components/RollingText'
+import OgqStickerGallery from '../components/OgqStickerGallery'
 import heroGradient from '../assets/LendingPage/GreenBackground-web.webp'
 import motionGraphic from '../assets/LendingPage/MotionGrap.mp4'
 import refreshIcon from '../assets/LendingPage/refreshButton.svg'
@@ -129,6 +130,8 @@ export default function Landing() {
               </div>
             </div>
           </section>
+
+          <OgqStickerGallery />
         </main>
 
         <Footer />
