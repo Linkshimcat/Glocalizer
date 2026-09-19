@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import type { DemoItem } from '../data/demo'
-import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type Style } from './style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type Style } from './style'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 512px 캔버스로 합성 */
 const CANVAS_SIZE = 512
@@ -80,9 +80,37 @@ function drawMultilineText(ctx: CanvasRenderingContext2D, text: string, style: S
   })
 }
 
-function applyManualCleanup(ctx: CanvasRenderingContext2D, style: Style, frame: DrawnImageFrame) {
+/** 브러시 마스크(정사각형 PNG)를 이미지 프레임 크기로 늘려 합성한다. 단색 모드는 마스크 모양
+ * 그대로 색을 입혀야 해서, 메인 캔버스를 더럽히지 않도록 오프스크린에서 먼저 만든다. */
+function applyBrushCleanup(ctx: CanvasRenderingContext2D, cleanup: ManualCleanup, frame: DrawnImageFrame, maskImg: HTMLImageElement) {
+  if (cleanup.mode === 'transparent') {
+    ctx.save()
+    ctx.globalCompositeOperation = 'destination-out'
+    ctx.drawImage(maskImg, frame.x, frame.y, frame.width, frame.height)
+    ctx.restore()
+    return
+  }
+  const layer = document.createElement('canvas')
+  layer.width = maskImg.width
+  layer.height = maskImg.height
+  const layerCtx = layer.getContext('2d')
+  if (!layerCtx) return
+  layerCtx.drawImage(maskImg, 0, 0)
+  layerCtx.globalCompositeOperation = 'source-in'
+  layerCtx.fillStyle = cleanup.color ?? '#FFFFFF'
+  layerCtx.fillRect(0, 0, layer.width, layer.height)
+  ctx.drawImage(layer, frame.x, frame.y, frame.width, frame.height)
+}
+
+async function applyManualCleanup(ctx: CanvasRenderingContext2D, style: Style, frame: DrawnImageFrame) {
   const cleanup = style.manualCleanup
   if (!cleanup) return
+  if (cleanup.shape === 'brush') {
+    if (!cleanup.brushMask) return
+    const maskImg = await loadImage(cleanup.brushMask)
+    applyBrushCleanup(ctx, cleanup, frame, maskImg)
+    return
+  }
   const x = frame.x + cleanup.rect.x * frame.width
   const y = frame.y + cleanup.rect.y * frame.height
   const width = cleanup.rect.width * frame.width
@@ -139,7 +167,7 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
     const frame = { x: (CANVAS_SIZE - w) / 2, y: (CANVAS_SIZE - h) / 2, width: w, height: h }
     ctx.drawImage(img, frame.x, frame.y, frame.width, frame.height)
     for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style }]) {
-      applyManualCleanup(ctx, overlay.style, frame)
+      await applyManualCleanup(ctx, overlay.style, frame)
     }
     try {
       ctx.getImageData(0, 0, 1, 1)
