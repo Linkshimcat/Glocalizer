@@ -116,6 +116,17 @@ export interface Dict {
   cardTitle: string
   beforeLabel: string
   afterLabel: string
+  // OGQ 마켓 연동 — 랜딩 예시 갤러리
+  ogqGalleryTitle: string
+  ogqGalleryDesc: string
+  ogqGalleryCredit: string
+  // OGQ 마켓 연동 — 업로드 페이지 샘플 체험
+  sampleTryLabel: string
+  samplePickerTitle: string
+  samplePickerDesc: string
+  samplePickerLoading: string
+  samplePickerError: string
+  samplePickerEmpty: string
   langCountSuffix: string // "{n}개 언어" 뒤에 붙는 문구
   langCountUnit: string // 숫자 뒤 단위 ("개 언어" 등)
   // 진행 단계 (헤더 공통)
@@ -313,6 +324,15 @@ export const translations: Record<SiteLang, Dict> = {
     cardTitle: '한글 밈이 현지 표현이 돼요',
     beforeLabel: 'Before · 원본',
     afterLabel: 'After · 변환',
+    ogqGalleryTitle: 'OGQ 마켓의 인기 스티커들',
+    ogqGalleryDesc: '이런 이모티콘 속 한글도 Glocalizer로 손쉽게 현지화할 수 있어요.',
+    ogqGalleryCredit: 'OGQ 마켓 제공 무료 스티커',
+    sampleTryLabel: '샘플로 체험하기',
+    samplePickerTitle: '샘플 이모티콘 선택',
+    samplePickerDesc: 'OGQ 마켓의 무료 스티커로 먼저 체험해보세요.',
+    samplePickerLoading: '샘플을 불러오는 중...',
+    samplePickerError: '샘플을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
+    samplePickerEmpty: '지금은 사용할 수 있는 샘플이 없어요.',
     langCountUnit: '개 언어',
     langCountSuffix: '로 바로 바꿔보세요',
     stepUpload: '업로드',
@@ -502,6 +522,15 @@ export const translations: Record<SiteLang, Dict> = {
     cardTitle: 'Korean memes become local expressions',
     beforeLabel: 'Before · Original',
     afterLabel: 'After · Localized',
+    ogqGalleryTitle: 'Popular stickers from OGQ Market',
+    ogqGalleryDesc: 'Emoticons like these can be localized in seconds with Glocalizer.',
+    ogqGalleryCredit: 'Free stickers provided by OGQ Market',
+    sampleTryLabel: 'Try a sample',
+    samplePickerTitle: 'Choose a sample emoticon',
+    samplePickerDesc: 'Try it out first with a free sticker from OGQ Market.',
+    samplePickerLoading: 'Loading samples...',
+    samplePickerError: "Couldn't load samples. Please try again.",
+    samplePickerEmpty: 'No samples are available right now.',
     langCountUnit: ' languages',
     langCountSuffix: ' at your fingertips',
     stepUpload: 'Upload',
@@ -691,6 +720,15 @@ export const translations: Record<SiteLang, Dict> = {
     cardTitle: '韓国のミームがローカル表現になります',
     beforeLabel: 'Before · 原文',
     afterLabel: 'After · 変換',
+    ogqGalleryTitle: 'OGQマーケットの人気スティッカー',
+    ogqGalleryDesc: 'こんな絵文字の韓国語も、Glocalizerで簡単にローカライズできます。',
+    ogqGalleryCredit: 'OGQマーケット提供の無料スティッカー',
+    sampleTryLabel: 'サンプルで体験する',
+    samplePickerTitle: 'サンプル絵文字を選択',
+    samplePickerDesc: 'OGQマーケットの無料スティッカーでまず体験してみましょう。',
+    samplePickerLoading: 'サンプルを読み込み中...',
+    samplePickerError: 'サンプルを読み込めませんでした。しばらくしてから再試行してください。',
+    samplePickerEmpty: '現在利用できるサンプルがありません。',
     langCountUnit: '言語',
     langCountSuffix: 'にすぐ変換できます',
     stepUpload: 'アップロード',
@@ -880,6 +918,15 @@ export const translations: Record<SiteLang, Dict> = {
     cardTitle: '韩国梗变成本地表达',
     beforeLabel: 'Before · 原文',
     afterLabel: 'After · 转换',
+    ogqGalleryTitle: 'OGQ市场的热门贴纸',
+    ogqGalleryDesc: '像这样的表情包也能用 Glocalizer 轻松本地化。',
+    ogqGalleryCredit: 'OGQ市场提供的免费贴纸',
+    sampleTryLabel: '用样例体验',
+    samplePickerTitle: '选择样例表情',
+    samplePickerDesc: '先用 OGQ 市场的免费贴纸体验一下吧。',
+    samplePickerLoading: '正在加载样例...',
+    samplePickerError: '样例加载失败，请稍后重试。',
+    samplePickerEmpty: '目前没有可用的样例。',
     langCountUnit: '种语言',
     langCountSuffix: '一键转换',
     stepUpload: '上传',

@@ -5,8 +5,10 @@ import { useNavigate } from 'react-router-dom'
 import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
 import Header from '../components/Header'
+import OgqSamplePicker from '../components/OgqSamplePicker'
 import UploadSpecBadge from '../components/UploadSpecBadge'
 import { useToast } from '../components/Toast'
+import type { OgqSticker } from '../lib/api'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import usFlag from '../assets/GCFrontendUI/USA (us).svg'
@@ -53,6 +55,8 @@ export default function Localize() {
   const [dragging, setDragging] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
   const [showAllLangs, setShowAllLangs] = useState(false)
+  const [showSamplePicker, setShowSamplePicker] = useState(false)
+  const [selectingSampleId, setSelectingSampleId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
   const { t } = useSiteLang()
@@ -65,6 +69,28 @@ export default function Localize() {
     }
     // 새로 올린 이모티콘은 자동으로 선택됨
     addFiles(images)
+  }
+
+  // thumbnailUrl은 인증 없이 바로 fetch할 수 있어(OGQ API 문서 기준), 프론트에서 바로 받아
+  // File로 감싼 뒤 handleFiles에 흘려보내면 업로드와 완전히 동일한 파이프라인을 탄다.
+  // (asset.imageUrl은 OGQ 검색 API에서 리사이즈 format 파라미터 없이 내려와 CDN이 400을
+  // 반환하는 걸 실측으로 확인해 쓰지 않는다 — thumbnailUrl만 신뢰한다.)
+  const handleSelectSample = async (sticker: OgqSticker) => {
+    setSelectingSampleId(sticker.assetId)
+    try {
+      const response = await fetch(sticker.thumbnailUrl)
+      if (!response.ok) throw new Error('OGQ 샘플 이미지를 불러오지 못했습니다.')
+      const blob = await response.blob()
+      // OGQ CDN이 image/png 대신 application/octet-stream으로 응답해(실측 확인), blob.type을
+      // 믿지 않고 OGQ 스티커는 항상 PNG라는 사실(API 문서 기준)을 그대로 명시한다.
+      const file = new File([blob], `ogq-${sticker.assetId}.png`, { type: 'image/png' })
+      handleFiles([file])
+      setShowSamplePicker(false)
+    } catch {
+      toast(t.samplePickerError)
+    } finally {
+      setSelectingSampleId(null)
+    }
   }
 
   const beginLocalization = async () => {
@@ -171,6 +197,24 @@ export default function Localize() {
             }}
           />
         </div>
+
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={() => (isAuthenticated ? setShowSamplePicker(true) : navigate('/login?next=/localize'))}
+            className="text-sm font-semibold text-brand-dark hover:underline"
+          >
+            {t.sampleTryLabel}
+          </button>
+        </div>
+
+        {showSamplePicker && (
+          <OgqSamplePicker
+            onClose={() => setShowSamplePicker(false)}
+            onSelect={sticker => { void handleSelectSample(sticker) }}
+            selectingId={selectingSampleId}
+          />
+        )}
 
         {/* 업로드 진행률 */}
         {progress !== null && (
