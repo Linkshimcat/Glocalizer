@@ -188,10 +188,13 @@ export interface OgqSticker {
   title: string | null
   thumbnailUrl: string
   animated: boolean
+  categories: Array<{ krName: string; enName: string }>
 }
 
-export async function fetchOgqStickers(limit: number): Promise<OgqSticker[]> {
-  const { stickers } = await request<{ stickers: OgqSticker[] }>(`/ogq/stickers?limit=${limit}`)
+export async function fetchOgqStickers(limit: number, query?: string): Promise<OgqSticker[]> {
+  const search = new URLSearchParams({ limit: String(limit) })
+  if (query) search.set('query', query)
+  const { stickers } = await request<{ stickers: OgqSticker[] }>(`/ogq/stickers?${search}`)
   return stickers
 }
 
