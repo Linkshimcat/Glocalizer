@@ -69,6 +69,27 @@ describe('crossCheckWithPaddleOcr', () => {
     expect(result[0].needsManualReview).toBe(true);
   });
 
+  it('트레일링 구두점 차이만 있으면(PaddleOCR가 말줄임표를 놓친 경우) 검수로 넘기지 않는다', async () => {
+    // 실사용 재현(2026-09-19): Luna "놀자.." vs PaddleOCR "놀자" — 배경은 단순한 흰색인데도
+    // 이 구두점 차이 때문에 needsManualReview가 켜져서 클린업이 통째로 건너뛰어졌다.
+    // 사용자에게는 "복잡한 배경이라 안 된다"는 엉뚱한 메시지로 보였다.
+    const luna = [consensusRegion('놀자..')];
+    const paddle = paddleProviderReturning([{ text: '놀자', confidence: 0.97, polygon: box(50, 15, 130, 45) }]);
+
+    const result = await crossCheckWithPaddleOcr(luna, Buffer.from('image'), paddle);
+
+    expect(result[0].needsManualReview).toBe(false);
+  });
+
+  it('구두점을 지워도 실제 텍스트가 다르면 여전히 검수로 넘긴다', async () => {
+    const luna = [consensusRegion('놀자!')];
+    const paddle = paddleProviderReturning([{ text: '자자.', confidence: 0.9, polygon: box(50, 15, 130, 45) }]);
+
+    const result = await crossCheckWithPaddleOcr(luna, Buffer.from('image'), paddle);
+
+    expect(result[0].needsManualReview).toBe(true);
+  });
+
   it('PaddleOCR 호출이 실패하면 기존 결과를 그대로 유지한다', async () => {
     const luna = [consensusRegion('완전 좋아')];
     const paddle: OcrProvider = { name: 'paddle', recognize: vi.fn().mockRejectedValue(new Error('bridge down')) };
