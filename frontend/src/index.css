@@ -49,6 +49,105 @@ body {
   animation: float 4s ease-in-out 2s infinite;
 }
 
+/* OGQ 랜딩 갤러리 — 2D 스티커 평면을 원근감 있게 눕히고 포인터에 반응시킨다. */
+.ogq-tilt-mask {
+  height: clamp(320px, 72vw, 470px);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
+}
+
+.ogq-tilt-scene {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  height: 100%;
+  padding: 18px 2px 96px;
+  perspective: 1200px;
+  perspective-origin: 50% 100%;
+}
+
+.ogq-tilt-plane {
+  position: relative;
+  top: -90px;
+  transform-origin: center bottom;
+  transform-style: preserve-3d;
+  transform: rotateX(48deg);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.ogq-tilt-card {
+  position: relative;
+  box-shadow:
+    0 18px 26px rgba(25, 31, 40, 0.1),
+    0 4px 10px rgba(25, 31, 40, 0.05);
+  transform: translateZ(0);
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 280ms ease;
+  backface-visibility: hidden;
+}
+
+.ogq-gallery-base {
+  height: 110px;
+  margin: -118px 5% 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(234, 251, 241, 0.72) 0%,
+    rgba(220, 248, 234, 0.38) 46%,
+    transparent 76%
+  );
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ogq-tilt-plane {
+    transform:
+      rotateX(calc(48deg + var(--tilt-x)))
+      rotateY(var(--tilt-y));
+  }
+
+  .ogq-tilt-card:hover {
+    z-index: 10;
+    box-shadow:
+      0 32px 42px rgba(25, 31, 40, 0.18),
+      0 8px 16px rgba(25, 31, 40, 0.08);
+    transform: translateZ(54px) scale(1.04);
+  }
+}
+
+@media (min-width: 768px) {
+  .ogq-tilt-mask {
+    height: clamp(300px, 32vw, 430px);
+  }
+
+  .ogq-tilt-scene {
+    padding-inline: 12px;
+  }
+
+  .ogq-tilt-plane {
+    top: -140px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ogq-tilt-plane,
+  .ogq-tilt-card {
+    transition: none;
+  }
+
+  .ogq-tilt-plane {
+    transform: rotateX(48deg);
+    will-change: auto;
+  }
+
+  .ogq-tilt-card:hover {
+    transform: none;
+  }
+}
+
 /* 히어로 롤링 텍스트 — 어절이 아래에서 올라와 머물다 위로 빠진다.
    진입·퇴장 구간에만 블러가 걸리므로 매 프레임 블러를 다시 계산하지 않는다.
 
