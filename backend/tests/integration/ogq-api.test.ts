@@ -7,7 +7,7 @@ const { createApp } = await import('../../src/app.js');
 const service = await import('../../src/services/ogq.service.js');
 const app = createApp();
 
-const sticker = { assetId: 'a1', title: '웃는 얼굴', thumbnailUrl: 'https://cdn.test/a1-thumb.png', animated: false };
+const sticker = { assetId: 'a1', title: '웃는 얼굴', thumbnailUrl: 'https://cdn.test/a1-thumb.png', animated: false, categories: [{ krName: '감정', enName: 'Emotion' }] };
 
 describe('GET /api/v1/ogq/stickers', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -19,7 +19,7 @@ describe('GET /api/v1/ogq/stickers', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ stickers: [sticker] });
-    expect(service.fetchOgqStickers).toHaveBeenCalledWith(12);
+    expect(service.fetchOgqStickers).toHaveBeenCalledWith(12, undefined);
   });
 
   it('limit 쿼리를 그대로 서비스에 넘긴다', async () => {
@@ -27,7 +27,15 @@ describe('GET /api/v1/ogq/stickers', () => {
 
     await request(app).get('/api/v1/ogq/stickers?limit=5');
 
-    expect(service.fetchOgqStickers).toHaveBeenCalledWith(5);
+    expect(service.fetchOgqStickers).toHaveBeenCalledWith(5, undefined);
+  });
+
+  it('query 쿼리를 그대로 서비스에 넘긴다(OGQ 출시 검토의 캡션 검색용)', async () => {
+    vi.mocked(service.fetchOgqStickers).mockResolvedValue([]);
+
+    await request(app).get('/api/v1/ogq/stickers?limit=6&query=고마워');
+
+    expect(service.fetchOgqStickers).toHaveBeenCalledWith(6, '고마워');
   });
 
   it('범위를 벗어난 limit은 400으로 거부한다', async () => {

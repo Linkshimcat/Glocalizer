@@ -127,6 +127,24 @@ export interface Dict {
   samplePickerLoading: string
   samplePickerError: string
   samplePickerEmpty: string
+  // OGQ 마켓 연동 — 출시 검토(Review) 페이지
+  reviewPickProjectTitle: string
+  reviewPickProjectDesc: string
+  reviewProjectsLoading: string
+  reviewProjectsEmpty: string
+  reviewProjectsEmptyCta: string
+  reviewProjectsFailed: string
+  reviewLoadingWorkspace: string
+  reviewWorkspaceFailed: string
+  reviewSimilarTitle: string
+  reviewSimilarDesc: string
+  reviewNoKeywords: string
+  reviewKeywordEmpty: string
+  reviewKeywordFailed: string
+  reviewAnimatedBadge: string
+  reviewChecklistTitle: string
+  reviewChecklistItems: string[]
+  reviewChecklistDisclaimer: string
   langCountSuffix: string // "{n}개 언어" 뒤에 붙는 문구
   langCountUnit: string // 숫자 뒤 단위 ("개 언어" 등)
   // 진행 단계 (헤더 공통)
@@ -333,6 +351,29 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: '샘플을 불러오는 중...',
     samplePickerError: '샘플을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
     samplePickerEmpty: '지금은 사용할 수 있는 샘플이 없어요.',
+    reviewPickProjectTitle: '검토할 프로젝트를 선택하세요',
+    reviewPickProjectDesc: '번역이 완료된 프로젝트의 문구로 OGQ 마켓에 비슷한 스티커가 있는지 찾아드려요.',
+    reviewProjectsLoading: '완료된 프로젝트를 불러오는 중...',
+    reviewProjectsEmpty: '아직 검토할 수 있는 완료된 프로젝트가 없어요.',
+    reviewProjectsEmptyCta: '이모티콘 현지화하러 가기',
+    reviewProjectsFailed: '프로젝트 목록을 불러오지 못했어요.',
+    reviewLoadingWorkspace: '프로젝트 문구를 분석하는 중...',
+    reviewWorkspaceFailed: '프로젝트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
+    reviewSimilarTitle: '비슷한 기존 스티커',
+    reviewSimilarDesc: '이미 이런 이모티콘이 있는지 참고해보세요. 출시 전 차별점을 점검하는 데 도움이 돼요.',
+    reviewNoKeywords: '프로젝트에서 검색에 쓸 문구를 찾지 못했어요.',
+    reviewKeywordEmpty: '비슷한 스티커를 찾지 못했어요.',
+    reviewKeywordFailed: '검색에 실패했어요.',
+    reviewAnimatedBadge: '움직임',
+    reviewChecklistTitle: 'OGQ 마켓 출시 체크리스트',
+    reviewChecklistItems: [
+      '이미지는 투명 배경 PNG로 준비하세요 (기준 캔버스 740×640px, 파일당 1MB 이하)',
+      '세트 안 이미지들이 동일한 캐릭터·화풍·색감을 유지하는지 확인하세요',
+      '검색 노출을 위해 제목과 태그에 실제 감정·상황을 나타내는 키워드를 포함하세요',
+      '저작권이 있는 캐릭터·폰트·이미지를 무단으로 사용하지 않았는지 확인하세요',
+      '선정적이거나 폭력적인 표현이 없는지 확인하세요',
+    ],
+    reviewChecklistDisclaimer: '정확한 최신 출시 규정은 OGQ 크리에이터 스튜디오의 공식 안내를 확인해주세요. 이 체크리스트는 참고용입니다.',
     langCountUnit: '개 언어',
     langCountSuffix: '로 바로 바꿔보세요',
     stepUpload: '업로드',
@@ -531,6 +572,29 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: 'Loading samples...',
     samplePickerError: "Couldn't load samples. Please try again.",
     samplePickerEmpty: 'No samples are available right now.',
+    reviewPickProjectTitle: 'Choose a project to review',
+    reviewPickProjectDesc: 'We search OGQ Market for stickers similar to the captions in your finished project.',
+    reviewProjectsLoading: 'Loading finished projects...',
+    reviewProjectsEmpty: "You don't have any finished projects to review yet.",
+    reviewProjectsEmptyCta: 'Go localize an emoticon',
+    reviewProjectsFailed: "Couldn't load your projects.",
+    reviewLoadingWorkspace: 'Analyzing project captions...',
+    reviewWorkspaceFailed: "Couldn't load the project. Please try again.",
+    reviewSimilarTitle: 'Similar existing stickers',
+    reviewSimilarDesc: 'See what already exists on OGQ Market — useful for checking what makes yours different before you launch.',
+    reviewNoKeywords: "We couldn't find any captions to search with in this project.",
+    reviewKeywordEmpty: 'No similar stickers found.',
+    reviewKeywordFailed: 'Search failed.',
+    reviewAnimatedBadge: 'Animated',
+    reviewChecklistTitle: 'OGQ Market launch checklist',
+    reviewChecklistItems: [
+      'Prepare transparent-background PNGs (reference canvas 740×640px, under 1MB per file)',
+      'Keep the same character, art style, and color palette consistent across the set',
+      'Include keywords that reflect the actual emotion or situation in your title and tags for discoverability',
+      "Make sure you're not using copyrighted characters, fonts, or images without permission",
+      'Check that there is no sexual or violent content',
+    ],
+    reviewChecklistDisclaimer: 'For the current official submission requirements, please check OGQ Creator Studio directly — this checklist is for reference only.',
     langCountUnit: ' languages',
     langCountSuffix: ' at your fingertips',
     stepUpload: 'Upload',
@@ -729,6 +793,29 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: 'サンプルを読み込み中...',
     samplePickerError: 'サンプルを読み込めませんでした。しばらくしてから再試行してください。',
     samplePickerEmpty: '現在利用できるサンプルがありません。',
+    reviewPickProjectTitle: 'レビューするプロジェクトを選んでください',
+    reviewPickProjectDesc: '翻訳が完了したプロジェクトの文言で、OGQマーケットに似たスティッカーがあるか探します。',
+    reviewProjectsLoading: '完了したプロジェクトを読み込み中...',
+    reviewProjectsEmpty: 'まだレビューできる完了プロジェクトがありません。',
+    reviewProjectsEmptyCta: '絵文字をローカライズしに行く',
+    reviewProjectsFailed: 'プロジェクト一覧を読み込めませんでした。',
+    reviewLoadingWorkspace: 'プロジェクトの文言を分析中...',
+    reviewWorkspaceFailed: 'プロジェクトを読み込めませんでした。しばらくしてから再試行してください。',
+    reviewSimilarTitle: '似ている既存スティッカー',
+    reviewSimilarDesc: '既にこんな絵文字があるか参考にしてみましょう。リリース前の差別化ポイントの確認に役立ちます。',
+    reviewNoKeywords: 'プロジェクトから検索に使える文言が見つかりませんでした。',
+    reviewKeywordEmpty: '似ているスティッカーが見つかりませんでした。',
+    reviewKeywordFailed: '検索に失敗しました。',
+    reviewAnimatedBadge: 'アニメーション',
+    reviewChecklistTitle: 'OGQマーケットリリースチェックリスト',
+    reviewChecklistItems: [
+      '透明背景のPNGで準備してください(基準キャンバス740×640px、ファイルごと1MB以下)',
+      'セット内の画像が同じキャラクター・画風・色味を保っているか確認してください',
+      '検索露出のためタイトルとタグに実際の感情・状況を表すキーワードを含めてください',
+      '著作権のあるキャラクター・フォント・画像を無断使用していないか確認してください',
+      '性的または暴力的な表現がないか確認してください',
+    ],
+    reviewChecklistDisclaimer: '正確な最新のリリース規定はOGQクリエイタースタジオの公式案内をご確認ください。このチェックリストは参考用です。',
     langCountUnit: '言語',
     langCountSuffix: 'にすぐ変換できます',
     stepUpload: 'アップロード',
@@ -927,6 +1014,29 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: '正在加载样例...',
     samplePickerError: '样例加载失败，请稍后重试。',
     samplePickerEmpty: '目前没有可用的样例。',
+    reviewPickProjectTitle: '选择要检查的项目',
+    reviewPickProjectDesc: '用已完成项目里的文案，在 OGQ 市场里找找有没有类似的贴纸。',
+    reviewProjectsLoading: '正在加载已完成的项目...',
+    reviewProjectsEmpty: '还没有可以检查的已完成项目。',
+    reviewProjectsEmptyCta: '去本地化表情包',
+    reviewProjectsFailed: '项目列表加载失败。',
+    reviewLoadingWorkspace: '正在分析项目文案...',
+    reviewWorkspaceFailed: '项目加载失败，请稍后重试。',
+    reviewSimilarTitle: '类似的现有贴纸',
+    reviewSimilarDesc: '看看市场上是否已经有类似的表情包，帮你在上架前检查差异点。',
+    reviewNoKeywords: '没能在这个项目里找到可用于搜索的文案。',
+    reviewKeywordEmpty: '没有找到类似的贴纸。',
+    reviewKeywordFailed: '搜索失败。',
+    reviewAnimatedBadge: '动图',
+    reviewChecklistTitle: 'OGQ 市场上架检查清单',
+    reviewChecklistItems: [
+      '准备透明背景的 PNG 图片(参考画布 740×640px,单张文件 1MB 以内)',
+      '确认整套图片保持相同的角色、画风和配色',
+      '为提高搜索曝光,在标题和标签中加入能体现真实情绪或场景的关键词',
+      '确认没有未经授权使用有版权的角色、字体或图片',
+      '确认没有色情或暴力内容',
+    ],
+    reviewChecklistDisclaimer: '准确的最新上架规定请以 OGQ 创作者工作室的官方说明为准,此清单仅供参考。',
     langCountUnit: '种语言',
     langCountSuffix: '一键转换',
     stepUpload: '上传',

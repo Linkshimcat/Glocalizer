@@ -20,6 +20,7 @@ const Login = lazy(() => import('./pages/Login'))
 const NaverCallback = lazy(() => import('./pages/NaverCallback'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Result = lazy(() => import('./pages/Result'))
+const Review = lazy(() => import('./pages/Review'))
 const ServiceIntro = lazy(() => import('./pages/ServiceIntro'))
 
 function RouteFallback() {
@@ -51,6 +52,7 @@ function App() {
                     <Route path="/archive" element={<Archive />} />
                     <Route path="/editor" element={<Editor />} />
                     <Route path="/result" element={<Result />} />
+                    <Route path="/review" element={<Review />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

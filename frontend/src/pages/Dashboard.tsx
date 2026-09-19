@@ -27,7 +27,7 @@ export default function Dashboard() {
   }
   const cards = [
     { title: t.hubLocalize, description: t.hubLocalizeDesc, Icon: Globe2, active: true },
-    { title: t.hubReview, description: t.hubReviewDesc, Icon: ShieldCheck, active: false },
+    { title: t.hubReview, description: t.hubReviewDesc, Icon: ShieldCheck, active: true },
     { title: t.hubGenerate, description: t.hubGenerateDesc, Icon: Sparkles, active: canGenerate },
   ]
 
@@ -51,7 +51,7 @@ export default function Dashboard() {
               </div>
               <h2 className="mt-6 text-xl font-extrabold text-ink">{title}</h2>
               <p className="mb-7 mt-3 flex-1 break-normal text-sm leading-6 text-sub [overflow-wrap:anywhere]">{description}</p>
-              <Button disabled={!active || cloudSaving} onClick={() => Icon === Sparkles ? navigate('/generate') : hasWork ? navigate(resumePath) : startNew()} className="w-full">
+              <Button disabled={!active || cloudSaving} onClick={() => Icon === Sparkles ? navigate('/generate') : Icon === ShieldCheck ? navigate('/review') : hasWork ? navigate(resumePath) : startNew()} className="w-full">
                 {active ? hasWork && Icon === Globe2 ? t.hubContinue : t.hubStart : t.hubSoon}{active && <ArrowRight className="h-4 w-4" />}
               </Button>
               {active && hasWork && Icon === Globe2 && <Button variant="ghost" onClick={startNew} className="mt-2 w-full">{t.hubNew}</Button>}

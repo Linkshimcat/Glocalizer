@@ -6,6 +6,8 @@ export interface OgqSticker {
   title: string | null;
   thumbnailUrl: string;
   animated: boolean;
+  // 프론트가 사이트 언어에 맞춰 고를 수 있도록 원본 그대로 내려준다(OGQ는 ko/en만 제공).
+  categories: Array<{ krName: string; enName: string }>;
 }
 
 interface OgqAssetElement {
@@ -15,6 +17,7 @@ interface OgqAssetElement {
   // asset.imageUrl은 OGQ 검색 API 응답에서 리사이즈 format 파라미터가 빠진 채로 내려와
   // CDN이 400을 반환한다(실측 확인, 2026-09-19). thumbnailUrl(?format=c240_240 포함)만 신뢰한다.
   animated: boolean;
+  categories?: Array<{ categoryId: string; krName: string; enName: string }>;
 }
 
 interface OgqSearchResponse {
@@ -30,10 +33,12 @@ interface OgqSearchResponse {
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const cache = new Map<string, { expiresAt: number; data: OgqSticker[] }>();
 
-export async function fetchOgqStickers(limit: number): Promise<OgqSticker[]> {
+// query가 있으면 랜딩 갤러리·샘플 선택기가 아니라 "OGQ 출시 검토" 기능이 창작자의 OCR
+// 캡션으로 비슷한 기존 스티커를 찾는 용도다(제목/설명/태그/작성자 닉네임 부분일치).
+export async function fetchOgqStickers(limit: number, query?: string): Promise<OgqSticker[]> {
   if (!env.OGQ_API_KEY) throw new AppError('OGQ_NOT_CONFIGURED');
 
-  const cacheKey = String(limit);
+  const cacheKey = `${query ?? ''}:${limit}`;
   const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.data;
 
@@ -42,6 +47,7 @@ export async function fetchOgqStickers(limit: number): Promise<OgqSticker[]> {
     ordering: 'POPULAR',
     pageSize: String(limit),
   });
+  if (query) search.set('query', query);
 
   const response = await fetch(`${env.OGQ_API_BASE_URL}/v1/assets?${search}`, {
     headers: { 'X-OGQ-API-KEY': env.OGQ_API_KEY },
@@ -55,6 +61,7 @@ export async function fetchOgqStickers(limit: number): Promise<OgqSticker[]> {
     title: element.title,
     thumbnailUrl: element.thumbnailUrl,
     animated: element.animated,
+    categories: (element.categories ?? []).map((category) => ({ krName: category.krName, enName: category.enName })),
   }));
 
   cache.set(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL_MS });
