@@ -17,6 +17,26 @@ export default function Modal({ onClose, children, labelledBy, closeLabel }: Mod
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  // 모달이 떠 있는 동안 배경 페이지 스크롤을 막는다. iOS Safari는 overflow:hidden만으로는
+  // 텍스트 입력창 포커스 시 키보드가 뜨면서 배경 페이지를 스크롤시켜버리는 경우가 있어,
+  // body를 아예 fixed로 고정해 스크롤 자체가 불가능하게 만든다.
+  useEffect(() => {
+    const scrollY = window.scrollY
+    const { body } = document
+    const prevStyle = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow }
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+    return () => {
+      body.style.position = prevStyle.position
+      body.style.top = prevStyle.top
+      body.style.width = prevStyle.width
+      body.style.overflow = prevStyle.overflow
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+
   return (
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
