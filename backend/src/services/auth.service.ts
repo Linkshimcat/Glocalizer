@@ -1,16 +1,20 @@
 import sharp from 'sharp';
 import { env } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
 import {
   findUserByEmail,
   findUserById,
   findUserByNaverId,
+  findUserBySupabaseAuthId,
   insertEmailUser,
+  insertGoogleUser,
   insertNaverUser,
+  linkGoogleProfile,
   linkNaverProfile,
   updateUserProfile,
 } from '../repositories/user.repository.js';
-import type { LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
+import type { GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
 import type { PublicUser, UserRow } from '../types/user.js';
 import { signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
@@ -29,8 +33,7 @@ function toPublicUser(user: UserRow): PublicUser {
     email: user.email,
     name: user.name,
     avatarUrl: user.avatar_url,
-    // 이메일 계정에 네이버를 나중에 연결할 수 있으므로, 비밀번호 존재 여부로 최초 가입 방식을 판별한다.
-    signupMethod: user.password_hash ? 'email' : 'naver',
+    signupMethod: user.signup_method,
   };
 }
 
@@ -90,6 +93,39 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
   return toPublicUser(await updateUserProfile(userId, { name: input.name, avatarUrl }));
 }
 
+function identityString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResult> {
+  const { data, error } = await supabase.auth.getUser(input.accessToken);
+  const authUser = data.user;
+  const googleIdentity = authUser?.identities?.find((identity) => identity.provider === 'google');
+  const email = authUser?.email?.trim().toLowerCase();
+
+  if (error || !authUser || !googleIdentity || !email || !authUser.email_confirmed_at) {
+    throw new AppError('GOOGLE_LOGIN_FAILED');
+  }
+
+  const identityData = googleIdentity.identity_data ?? {};
+  const name = identityString(identityData.name) ?? identityString(identityData.full_name);
+  const avatarUrl = identityString(identityData.avatar_url) ?? identityString(identityData.picture);
+  const profile = { supabaseAuthId: authUser.id, email, name, avatarUrl };
+
+  let user = await findUserBySupabaseAuthId(authUser.id);
+  if (user) {
+    user = await linkGoogleProfile(user, profile);
+  } else {
+    const existingByEmail = await findUserByEmail(email);
+    if (existingByEmail?.supabase_auth_id && existingByEmail.supabase_auth_id !== authUser.id) {
+      throw new AppError('GOOGLE_ACCOUNT_CONFLICT');
+    }
+    user = existingByEmail ? await linkGoogleProfile(existingByEmail, profile) : await insertGoogleUser(profile);
+  }
+
+  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+}
+
 interface NaverTokenResponse {
   access_token?: string;
   error?: string;
@@ -132,6 +168,7 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
   }
 
   const profile = profileJson.response;
+  const email = profile.email?.trim().toLowerCase() ?? null;
   const name = profile.name ?? null;
   const avatarUrl = profile.profile_image ?? null;
 
@@ -146,14 +183,14 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
       avatarUrl: user.avatar_customized ? undefined : avatarUrl,
     });
   } else {
-    const existingByEmail = profile.email ? await findUserByEmail(profile.email) : null;
+    const existingByEmail = email ? await findUserByEmail(email) : null;
     user = existingByEmail
       ? await linkNaverProfile(existingByEmail.id, {
           naverId: profile.id,
           name: existingByEmail.name_customized ? undefined : name ?? existingByEmail.name,
           avatarUrl: existingByEmail.avatar_customized ? undefined : avatarUrl ?? existingByEmail.avatar_url,
         })
-      : await insertNaverUser({ naverId: profile.id, email: profile.email ?? null, name, avatarUrl });
+      : await insertNaverUser({ naverId: profile.id, email, name, avatarUrl });
   }
 
   return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };

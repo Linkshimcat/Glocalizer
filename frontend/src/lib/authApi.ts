@@ -6,7 +6,7 @@ export interface AuthUser {
   name: string | null
   avatarUrl: string | null
   /** 이전 버전 localStorage에는 없을 수 있으며, 서버 동기화 후 채워진다. */
-  signupMethod?: 'email' | 'naver'
+  signupMethod?: 'email' | 'naver' | 'google'
 }
 
 interface AuthResult {
@@ -59,6 +59,13 @@ export function loginWithNaver(code: string, state: string): Promise<AuthResult>
   return authRequest<AuthResult>('/auth/naver/callback', {
     method: 'POST',
     body: JSON.stringify({ code, state }),
+  })
+}
+
+export function loginWithGoogle(accessToken: string): Promise<AuthResult> {
+  return authRequest<AuthResult>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ accessToken }),
   })
 }
 

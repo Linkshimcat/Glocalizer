@@ -3,6 +3,8 @@ export interface UserRow {
   email: string | null;
   password_hash: string | null;
   naver_id: string | null;
+  supabase_auth_id: string | null;
+  signup_method: 'email' | 'naver' | 'google';
   name: string | null;
   avatar_url: string | null;
   name_customized: boolean;
@@ -16,5 +18,5 @@ export interface PublicUser {
   email: string | null;
   name: string | null;
   avatarUrl: string | null;
-  signupMethod: 'email' | 'naver';
+  signupMethod: 'email' | 'naver' | 'google';
 }

@@ -4,10 +4,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import NaverIcon from '../components/NaverIcon'
+import GoogleIcon from '../components/GoogleIcon'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useAuth } from '../store/AuthContext'
 import { buildNaverAuthUrl } from '../lib/naverAuth'
+import { startGoogleLogin } from '../lib/googleAuth'
 
 type Mode = 'login' | 'signup'
 
@@ -16,7 +18,7 @@ export default function Login() {
   const [searchParams] = useSearchParams()
   const returnTo = ['/localize', '/generate'].includes(searchParams.get('next') ?? '') ? searchParams.get('next')! : '/dashboard'
   const { t } = useSiteLang()
-  const { loginWithEmail, signupWithEmail } = useAuth()
+  const { loginWithEmail, signupWithEmail, completeGoogleLogin } = useAuth()
   const toast = useToast()
 
   const [mode, setMode] = useState<Mode>('login')
@@ -53,6 +55,21 @@ export default function Login() {
     }
     sessionStorage.setItem('glocalizer:loginReturnTo', returnTo)
     window.location.href = url
+  }
+
+  const handleGoogleLogin = async () => {
+    try {
+      const accessToken = await startGoogleLogin()
+      if (!accessToken) {
+        toast(t.loginGoogleNotConfigured)
+        return
+      }
+      await completeGoogleLogin(accessToken)
+      toast(t.loginSuccessToast, 'success')
+      navigate(returnTo)
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t.loginGoogleFailed)
+    }
   }
 
   const inputClass =
@@ -160,10 +177,16 @@ export default function Login() {
             <span className="h-px flex-1 bg-gray-100" />
           </div>
 
-          <Button type="button" variant="naver" size="lg" onClick={handleNaverLogin} className="w-full">
-            <NaverIcon className="h-4 w-4" />
-            {t.loginNaverCta}
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button type="button" variant="outline" size="lg" onClick={handleGoogleLogin} className="w-full">
+              <GoogleIcon className="h-5 w-5" />
+              {t.loginGoogleCta}
+            </Button>
+            <Button type="button" variant="naver" size="lg" onClick={handleNaverLogin} className="w-full">
+              <NaverIcon className="h-4 w-4" />
+              {t.loginNaverCta}
+            </Button>
+          </div>
 
           <p className="mt-6 text-center text-[13px] font-semibold text-sub">
             <button
