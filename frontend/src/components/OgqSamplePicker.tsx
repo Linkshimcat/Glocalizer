@@ -32,7 +32,7 @@ export default function OgqSamplePicker({ onClose, onSelect, selectingId }: OgqS
       {!failed && stickers === null && <p className="mt-6 text-sm font-medium text-sub">{t.samplePickerLoading}</p>}
 
       {stickers && stickers.length > 0 && (
-        <div className="mt-5 grid max-h-[420px] grid-cols-3 gap-3 overflow-y-auto pr-1">
+        <div className="mt-5 grid max-h-[420px] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3">
           {stickers.map(sticker => (
             <button
               key={sticker.assetId}
