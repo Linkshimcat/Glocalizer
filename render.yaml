@@ -44,6 +44,11 @@ services:
         value: luna
       - key: OPENAI_API_KEY
         sync: false
+      # 대회 사무국이 제공한 OGQ 마켓 API 키. 값은 Render 대시보드 → glocalizer-api →
+      # Environment에서 직접 입력해야 한다(이 파일에는 실제 키를 적지 않는다). 미설정 시
+      # OGQ 연동 기능(랜딩 예시 갤러리·샘플 체험·출시 검토)만 503으로 비활성화된다.
+      - key: OGQ_API_KEY
+        sync: false
       # Render Starter 플랜(512MB)에서 PaddleOCR의 메모리 급증을 제한한다.
       - key: AI_CONCURRENCY
         value: 1
