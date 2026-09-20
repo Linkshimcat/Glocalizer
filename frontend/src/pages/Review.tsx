@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
-import OgqSpecChecker from '../components/OgqSpecChecker'
+import OgqSpecChecker, { type OgqProjectImage } from '../components/OgqSpecChecker'
 import { useSiteLang } from '../i18n/LanguageContext'
 import {
   fetchOgqStickers,
@@ -12,6 +12,7 @@ import {
   type CloudProject,
   type OgqSticker,
 } from '../lib/api'
+import { generationRequest, type GenerationProject } from '../lib/generationApi'
 import { useAuth } from '../store/AuthContext'
 
 // 프로젝트 하나에 캡션이 아무리 많아도, 검색 요청 수를 합리적인 범위로 제한한다.
@@ -24,14 +25,19 @@ interface KeywordResult {
   failed: boolean
 }
 
+type ReviewProject =
+  | { key: string; kind: 'localization'; project: CloudProject }
+  | { key: string; kind: 'generation'; project: GenerationProject; completedImages: GenerationProject['images'] }
+
 export default function Review() {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, token, user } = useAuth()
   const { t, lang } = useSiteLang()
 
-  const [projects, setProjects] = useState<CloudProject[] | null>(null)
+  const [projects, setProjects] = useState<ReviewProject[] | null>(null)
   const [projectsFailed, setProjectsFailed] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([])
+  const [projectImages, setProjectImages] = useState<OgqProjectImage[]>([])
   const [loadingWorkspace, setLoadingWorkspace] = useState(false)
   const [workspaceFailed, setWorkspaceFailed] = useState(false)
   const [keywordResults, setKeywordResults] = useState<KeywordResult[] | null>(null)
@@ -39,42 +45,83 @@ export default function Review() {
   useEffect(() => {
     if (!isAuthenticated) return
     let active = true
-    listCloudProjects()
-      .then(result => { if (active) setProjects(result.projects.filter(project => project.resultReady)) })
-      .catch(() => { if (active) setProjectsFailed(true) })
-    return () => { active = false }
-  }, [isAuthenticated])
+    const loadLocalization = listCloudProjects().then(result => result.projects
+      .filter(project => project.resultReady)
+      .map((project): ReviewProject => ({ key: `localization:${project.id}`, kind: 'localization', project })))
+    const loadGeneration = token && user?.email?.toLowerCase() === 'yunjae14278@naver.com'
+      ? generationRequest<{ projects: GenerationProject[] }>(token, '/projects').then(result => result.projects.flatMap(project => {
+          const completedImages = project.images.filter(image => image.status === 'completed' && image.url)
+          return completedImages.length > 0
+            ? [{ key: `generation:${project.id}`, kind: 'generation' as const, project, completedImages }]
+            : []
+        }))
+      : Promise.resolve<ReviewProject[]>([])
 
-  const selectProject = async (id: string) => {
-    setSelectedId(id)
+    Promise.allSettled([loadLocalization, loadGeneration]).then(results => {
+      if (!active) return
+      const loaded = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
+      setProjects(loaded)
+      setProjectsFailed(results.every(result => result.status === 'rejected'))
+    })
+    return () => { active = false }
+  }, [isAuthenticated, token, user?.email])
+
+  useEffect(() => {
+    if (!projects || selectedKeys.length === 0) {
+      setKeywordResults(null)
+      setProjectImages([])
+      return
+    }
+    let active = true
+    const selected = projects.filter(project => selectedKeys.includes(project.key))
     setLoadingWorkspace(true)
     setWorkspaceFailed(false)
     setKeywordResults(null)
-    try {
-      const workspace = await restoreCloudProject(id)
-      const keywords = Array.from(new Set(
-        workspace.results.assets.flatMap(asset => asset.ocr.regions.map(region => region.text.trim())).filter(Boolean),
-      )).slice(0, MAX_KEYWORDS)
-
-      if (keywords.length === 0) {
-        setKeywordResults([])
-        return
-      }
-
-      const results = await Promise.all(keywords.map(async (keyword): Promise<KeywordResult> => {
-        try {
-          const stickers = await fetchOgqStickers(STICKERS_PER_KEYWORD, keyword)
-          return { keyword, stickers, failed: false }
-        } catch {
-          return { keyword, stickers: [], failed: true }
+    Promise.all(selected.map(async selectedProject => {
+      if (selectedProject.kind === 'generation') {
+        return {
+          keywords: [selectedProject.project.prompt, ...selectedProject.completedImages.map(image => image.caption)].filter(Boolean),
+          images: selectedProject.completedImages.flatMap(image => image.url ? [{
+            id: `generation:${image.id}`,
+            name: `${selectedProject.project.prompt}-${image.slot}.png`,
+            url: image.url,
+          }] : []),
         }
-      }))
-      setKeywordResults(results)
-    } catch {
-      setWorkspaceFailed(true)
-    } finally {
-      setLoadingWorkspace(false)
-    }
+      }
+      const workspace = await restoreCloudProject(selectedProject.project.id)
+      return {
+        keywords: workspace.results.assets.flatMap(asset => asset.ocr.regions.map(region => region.text.trim())).filter(Boolean),
+        images: workspace.results.assets.flatMap(asset => {
+          const url = asset.cleanedUrl ?? asset.originalUrl
+          return url ? [{ id: `localization:${asset.id}`, name: asset.name, url }] : []
+        }),
+      }
+    }))
+      .then(async loaded => {
+        if (!active) return
+        setProjectImages(Array.from(new Map(loaded.flatMap(result => result.images).map(image => [image.id, image])).values()))
+        const keywords = Array.from(new Set(loaded.flatMap(result => result.keywords))).slice(0, MAX_KEYWORDS)
+        if (keywords.length === 0) {
+          setKeywordResults([])
+          return
+        }
+        const results = await Promise.all(keywords.map(async (keyword): Promise<KeywordResult> => {
+          try {
+            const stickers = await fetchOgqStickers(STICKERS_PER_KEYWORD, keyword)
+            return { keyword, stickers, failed: false }
+          } catch {
+            return { keyword, stickers: [], failed: true }
+          }
+        }))
+        if (active) setKeywordResults(results)
+      })
+      .catch(() => { if (active) setWorkspaceFailed(true) })
+      .finally(() => { if (active) setLoadingWorkspace(false) })
+    return () => { active = false }
+  }, [projects, selectedKeys])
+
+  const toggleProject = (key: string) => {
+    setSelectedKeys(previous => previous.includes(key) ? previous.filter(value => value !== key) : [...previous, key])
   }
 
   return (
@@ -110,29 +157,36 @@ export default function Review() {
               )}
               {projects !== null && projects.length > 0 && (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {projects.map(project => (
+                  {projects.map(reviewProject => {
+                    const selected = selectedKeys.includes(reviewProject.key)
+                    const projectName = reviewProject.kind === 'localization' ? reviewProject.project.name : reviewProject.project.prompt
+                    const imageCount = reviewProject.kind === 'localization' ? reviewProject.project.imageCount : reviewProject.completedImages.length
+                    const thumbnailUrl = reviewProject.kind === 'localization' ? reviewProject.project.thumbnailUrl : reviewProject.completedImages[0]?.url
+                    return (
                     <button
-                      key={project.id}
+                      key={reviewProject.key}
                       type="button"
-                      onClick={() => { void selectProject(project.id) }}
+                      onClick={() => toggleProject(reviewProject.key)}
+                      aria-pressed={selected}
                       className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-colors ${
-                        selectedId === project.id ? 'border-brand bg-brand-soft' : 'border-gray-100 bg-white hover:border-gray-200'
+                        selected ? 'border-brand bg-brand-soft' : 'border-gray-100 bg-white hover:border-gray-200'
                       }`}
                     >
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
-                        {project.thumbnailUrl ? <img src={project.thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
+                        {thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate font-bold">{project.name}</p>
-                        <p className="mt-1 text-sm text-sub">{t.hubFiles.replace('{n}', String(project.imageCount))}</p>
+                        <p className="truncate font-bold">{projectName}</p>
+                        <p className="mt-1 text-sm text-sub">{t.hubFiles.replace('{n}', String(imageCount))}</p>
                       </div>
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </section>
 
-            {selectedId && (
+            {selectedKeys.length > 0 && (
               <section className="mt-10">
                 <h2 className="text-lg font-bold">{t.reviewSimilarTitle}</h2>
                 <p className="mt-1 text-sm font-medium text-sub">{t.reviewSimilarDesc}</p>
@@ -179,7 +233,7 @@ export default function Review() {
               </section>
             )}
 
-            <OgqSpecChecker />
+            <OgqSpecChecker projectImages={projectImages} />
 
             <section className="mt-10 rounded-2xl border border-gray-100 bg-surface p-6">
               <h2 className="text-lg font-bold">{t.reviewChecklistTitle}</h2>

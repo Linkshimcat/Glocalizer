@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, ImagePlus, Loader2, X, XCircle } from 'lucide-react'
-import { useRef, useState, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import type { Dict } from '../i18n/translations'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { checkOgqSpec, type OgqSpecCheckItem, type OgqSpecCheckResult } from '../lib/ogqSpecCheck'
@@ -101,13 +101,49 @@ function ResultCard({ result }: { result: OgqSpecCheckResult }) {
   )
 }
 
-export default function OgqSpecChecker() {
+export interface OgqProjectImage {
+  id: string
+  name: string
+  url: string
+}
+
+export default function OgqSpecChecker({ projectImages = [] }: { projectImages?: OgqProjectImage[] }) {
   const { t } = useSiteLang()
   const toast = useToast()
   const [results, setResults] = useState<OgqSpecCheckResult[]>([])
+  const [projectResults, setProjectResults] = useState<OgqSpecCheckResult[]>([])
   const [checking, setChecking] = useState(false)
+  const [checkingProjects, setCheckingProjects] = useState(false)
+  const [projectCheckFailed, setProjectCheckFailed] = useState(false)
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    let active = true
+    setProjectCheckFailed(false)
+    setCheckingProjects(projectImages.length > 0)
+    Promise.allSettled(projectImages.map(async image => {
+      const response = await fetch(image.url)
+      if (!response.ok) throw new Error(`Image fetch failed (${response.status})`)
+      const blob = await response.blob()
+      const type = blob.type || (image.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg')
+      return checkOgqSpec(new File([blob], image.name, { type }))
+    }))
+      .then(outcomes => {
+        const checked = outcomes.flatMap(outcome => outcome.status === 'fulfilled' ? [outcome.value] : [])
+        if (!active) {
+          checked.forEach(result => URL.revokeObjectURL(result.previewUrl))
+          return
+        }
+        setProjectCheckFailed(outcomes.some(outcome => outcome.status === 'rejected'))
+        setProjectResults(previous => {
+          previous.forEach(result => URL.revokeObjectURL(result.previewUrl))
+          return checked
+        })
+      })
+      .finally(() => { if (active) setCheckingProjects(false) })
+    return () => { active = false }
+  }, [projectImages])
 
   const handleFiles = async (incoming: File[]) => {
     const images = incoming.filter(f => f.type === 'image/png' || f.type === 'image/jpeg')
@@ -137,6 +173,20 @@ export default function OgqSpecChecker() {
 
   return (
     <section className="mt-10">
+      {projectImages.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold">{t.reviewProjectCheckTitle}</h2>
+          <p className="mt-1 text-sm font-medium text-sub">{t.reviewProjectCheckDesc.replace('{n}', String(projectImages.length))}</p>
+          {checkingProjects && <p role="status" className="mt-4 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.reviewProjectCheckLoading}</p>}
+          {projectCheckFailed && <p role="alert" className="mt-4 text-sm text-red-600">{t.reviewProjectCheckFailed}</p>}
+          {projectResults.length > 0 && (
+            <div className="mt-5 flex flex-col gap-4">
+              {projectResults.map((result, index) => <ResultCard key={`${result.fileName}-${index}`} result={result} />)}
+            </div>
+          )}
+        </div>
+      )}
+
       <h2 className="text-lg font-bold">{t.reviewUploadTitle}</h2>
       <p className="mt-1 text-sm font-medium text-sub">{t.reviewUploadDesc}</p>
 
