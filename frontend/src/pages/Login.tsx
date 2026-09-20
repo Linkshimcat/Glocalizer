@@ -12,6 +12,7 @@ import { buildNaverAuthUrl } from '../lib/naverAuth'
 import { preloadGoogleLogin, startGoogleLogin } from '../lib/googleAuth'
 
 type Mode = 'login' | 'signup'
+const LOGIN_AUTO_RELOAD_KEY = 'glocalizer:loginAutoReload:v1'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -31,6 +32,18 @@ export default function Login() {
   const [googleSubmitting, setGoogleSubmitting] = useState(false)
 
   useEffect(() => {
+    try {
+      if (!sessionStorage.getItem(LOGIN_AUTO_RELOAD_KEY)) {
+        // Google Identity Services가 첫 진입에서 늦게 준비되는 배포 환경을 위해 탭당 한 번만 새로고침한다.
+        // reload 전에 표시를 저장해 React StrictMode에서도 반복 새로고침되지 않게 한다.
+        sessionStorage.setItem(LOGIN_AUTO_RELOAD_KEY, 'done')
+        window.location.reload()
+        return
+      }
+    } catch {
+      // sessionStorage가 차단된 환경에서는 새로고침 없이 기존 사전 로딩·재시도 흐름을 사용한다.
+    }
+
     let active = true
     preloadGoogleLogin()
       .catch(() => false)
