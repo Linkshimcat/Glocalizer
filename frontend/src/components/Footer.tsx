@@ -1,4 +1,5 @@
 import githubMark from '../assets/github-mark.svg'
+import { Link } from 'react-router-dom'
 import InstagramIcon from './InstagramIcon'
 import Logo from './Logo'
 
@@ -8,7 +9,7 @@ export default function Footer() {
     // 위쪽 테두리와 안쪽 하이라이트로 유리 가장자리를 표현한다.
     <footer className="relative overflow-hidden rounded-t-[24px] border border-b-0 border-white/70 bg-white/40 shadow-[0_-10px_40px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl backdrop-saturate-150">
       <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/50 to-white/0" />
-      <div className="relative layout-wide grid gap-3 py-6 text-center md:grid-cols-3 md:items-center md:text-left">
+      <div className="relative layout-wide grid gap-3 py-5 text-center md:grid-cols-3 md:items-center md:text-left">
         <div className="justify-self-center md:justify-self-start">
           <Logo />
         </div>
@@ -47,16 +48,10 @@ export default function Footer() {
               라이센스: Apache License 2.0
             </a>
           </p>
-          <p className="mt-1 font-medium">
-            <a
-              href="https://www.magnific.com"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2 transition-colors hover:text-ink"
-            >
-              designed by rawpixel.com - Magnific.com
-            </a>
-          </p>
+          <nav aria-label="정책" className="mt-1 flex justify-center gap-4 text-xs font-bold md:justify-end">
+            <Link to="/privacy" className="underline underline-offset-2 transition-colors hover:text-ink">개인정보처리방침</Link>
+            <Link to="/terms" className="underline underline-offset-2 transition-colors hover:text-ink">서비스 이용약관</Link>
+          </nav>
         </div>
       </div>
     </footer>

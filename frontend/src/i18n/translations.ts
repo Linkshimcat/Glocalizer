@@ -91,6 +91,10 @@ export interface Dict {
   accountDeleteAckData: string
   accountDeleteAckResignup: string
   accountDeleteConfirmCta: string
+  accountPolicyTitle: string
+  accountPolicyDesc: string
+  privacyPolicy: string
+  termsOfService: string
 
   feedbackMenuLabel: string
   feedbackModalTitle: string
@@ -257,6 +261,8 @@ export interface Dict {
   loginDivider: string
   loginNaverCta: string
   loginGoogleCta: string
+  loginGooglePreparing: string
+  loginGoogleProcessing: string
   loginGoogleNotConfigured: string
   loginSwitchToSignup: string
   loginSwitchToLogin: string
@@ -352,6 +358,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteAckData: '저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되며 복구할 수 없음을 확인했습니다.',
     accountDeleteAckResignup: '탈퇴 후 같은 이메일/계정으로 다시 가입할 수는 있지만, 이전 데이터는 복구되지 않음을 확인했습니다.',
     accountDeleteConfirmCta: '탈퇴하기',
+    accountPolicyTitle: '정책 및 약관',
+    accountPolicyDesc: '개인정보 처리와 서비스 이용 조건을 확인하세요.',
+    privacyPolicy: '개인정보처리방침',
+    termsOfService: '서비스 이용약관',
 
     feedbackMenuLabel: '피드백',
     feedbackModalTitle: '피드백 보내기',
@@ -512,6 +522,8 @@ export const translations: Record<SiteLang, Dict> = {
     loginDivider: '또는',
     loginNaverCta: '네이버 아이디로 로그인',
     loginGoogleCta: 'Google로 계속하기',
+    loginGooglePreparing: 'Google 로그인 준비 중…',
+    loginGoogleProcessing: 'Google 로그인 처리 중…',
     loginGoogleNotConfigured: 'Google 로그인이 아직 설정되지 않았어요.',
     loginSwitchToSignup: '계정이 없으신가요? 회원가입',
     loginSwitchToLogin: '이미 계정이 있으신가요? 로그인',
@@ -605,6 +617,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteAckData: 'I understand all saved projects, images, and profile information will be permanently deleted and cannot be recovered.',
     accountDeleteAckResignup: 'I understand I can sign up again with the same email/account, but my previous data will not be restored.',
     accountDeleteConfirmCta: 'Delete my account',
+    accountPolicyTitle: 'Policies and terms',
+    accountPolicyDesc: 'Review how your information is handled and the service terms.',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
 
     feedbackMenuLabel: 'Feedback',
     feedbackModalTitle: 'Send feedback',
@@ -765,6 +781,8 @@ export const translations: Record<SiteLang, Dict> = {
     loginDivider: 'or',
     loginNaverCta: 'Continue with Naver',
     loginGoogleCta: 'Continue with Google',
+    loginGooglePreparing: 'Preparing Google login…',
+    loginGoogleProcessing: 'Signing you in with Google…',
     loginGoogleNotConfigured: 'Google login is not configured yet.',
     loginSwitchToSignup: "Don't have an account? Sign up",
     loginSwitchToLogin: 'Already have an account? Log in',
@@ -858,6 +876,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteAckData: '保存済みのすべてのプロジェクト・画像・プロフィール情報が完全に削除され、復元できないことを理解しました。',
     accountDeleteAckResignup: '削除後は同じメール/アカウントで再登録できますが、以前のデータは復元されないことを理解しました。',
     accountDeleteConfirmCta: '削除する',
+    accountPolicyTitle: 'ポリシーと利用規約',
+    accountPolicyDesc: '個人情報の取り扱いとサービス利用条件を確認できます。',
+    privacyPolicy: 'プライバシーポリシー',
+    termsOfService: '利用規約',
 
     feedbackMenuLabel: 'フィードバック',
     feedbackModalTitle: 'フィードバックを送る',
@@ -1018,6 +1040,8 @@ export const translations: Record<SiteLang, Dict> = {
     loginDivider: 'または',
     loginNaverCta: 'NAVERアカウントでログイン',
     loginGoogleCta: 'Googleで続行',
+    loginGooglePreparing: 'Googleログインを準備中…',
+    loginGoogleProcessing: 'Googleログインを処理中…',
     loginGoogleNotConfigured: 'Googleログインはまだ設定されていません。',
     loginSwitchToSignup: 'アカウントをお持ちでないですか？ 新規登録',
     loginSwitchToLogin: 'すでにアカウントをお持ちですか？ ログイン',
@@ -1111,6 +1135,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteAckData: '我已了解已保存的所有项目、图片和个人资料信息将被永久删除且无法恢复。',
     accountDeleteAckResignup: '我已了解删除后可以用同一邮箱/账号重新注册，但之前的数据不会恢复。',
     accountDeleteConfirmCta: '确认删除',
+    accountPolicyTitle: '政策与条款',
+    accountPolicyDesc: '查看个人信息处理方式和服务使用条件。',
+    privacyPolicy: '隐私政策',
+    termsOfService: '服务条款',
 
     feedbackMenuLabel: '反馈',
     feedbackModalTitle: '发送反馈',
@@ -1271,6 +1299,8 @@ export const translations: Record<SiteLang, Dict> = {
     loginDivider: '或',
     loginNaverCta: '使用 NAVER 账号登录',
     loginGoogleCta: '使用 Google 继续',
+    loginGooglePreparing: '正在准备 Google 登录…',
+    loginGoogleProcessing: '正在处理 Google 登录…',
     loginGoogleNotConfigured: '尚未配置 Google 登录。',
     loginSwitchToSignup: '还没有账号？去注册',
     loginSwitchToLogin: '已有账号？去登录',

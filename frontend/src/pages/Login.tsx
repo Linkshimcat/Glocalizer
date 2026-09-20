@@ -27,9 +27,17 @@ export default function Login() {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [googlePreparing, setGooglePreparing] = useState(true)
+  const [googleSubmitting, setGoogleSubmitting] = useState(false)
 
   useEffect(() => {
+    let active = true
     preloadGoogleLogin()
+      .catch(() => false)
+      .finally(() => {
+        if (active) setGooglePreparing(false)
+      })
+    return () => { active = false }
   }, [])
 
   const handleSubmit = async (event: FormEvent) => {
@@ -62,6 +70,8 @@ export default function Login() {
   }
 
   const handleGoogleLogin = async () => {
+    if (googleSubmitting) return
+    setGoogleSubmitting(true)
     try {
       const accessToken = await startGoogleLogin()
       if (!accessToken) {
@@ -73,6 +83,8 @@ export default function Login() {
       navigate(returnTo)
     } catch (err) {
       toast(err instanceof Error ? err.message : t.loginGoogleFailed)
+    } finally {
+      setGoogleSubmitting(false)
     }
   }
 
@@ -182,9 +194,19 @@ export default function Login() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button type="button" variant="outline" size="lg" onClick={handleGoogleLogin} className="w-full">
-              <GoogleIcon className="h-5 w-5" />
-              {t.loginGoogleCta}
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={handleGoogleLogin}
+              disabled={googlePreparing || googleSubmitting}
+              aria-busy={googlePreparing || googleSubmitting}
+              className="w-full"
+            >
+              {googlePreparing || googleSubmitting
+                ? <Loader2 className="h-5 w-5 animate-spin" />
+                : <GoogleIcon className="h-5 w-5" />}
+              {googlePreparing ? t.loginGooglePreparing : googleSubmitting ? t.loginGoogleProcessing : t.loginGoogleCta}
             </Button>
             <Button type="button" variant="naver" size="lg" onClick={handleNaverLogin} className="w-full">
               <NaverIcon className="h-4 w-4" />
