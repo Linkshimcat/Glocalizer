@@ -48,7 +48,11 @@ function loadGoogleIdentityScript(): Promise<void> {
     script.async = true
     script.defer = true
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Google 로그인 스크립트를 불러오지 못했어요.'))
+    script.onerror = () => {
+      gsiScriptPromise = undefined
+      script.remove()
+      reject(new Error('Google 로그인 스크립트를 불러오지 못했어요.'))
+    }
     document.head.appendChild(script)
   })
   return gsiScriptPromise
@@ -67,10 +71,10 @@ async function generateNonce(): Promise<[string, string]> {
 // (특히 콜드 캐시) div[role="button"]이 아직 없어 "설정 안 됨"으로 잘못 실패한다.
 function waitForRenderedButton(container: HTMLElement, timeoutMs = 8000): Promise<void> {
   if (container.querySelector('div[role="button"]')) return Promise.resolve()
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       observer.disconnect()
-      resolve()
+      reject(new Error('Google 로그인 준비 시간이 초과됐어요. 다시 시도해주세요.'))
     }, timeoutMs)
     const observer = new MutationObserver(() => {
       if (container.querySelector('div[role="button"]')) {
@@ -109,7 +113,7 @@ let preparePromise: Promise<boolean> | undefined
 // 그래서 스크립트 로딩·초기화 같은 무거운 준비는 버튼을 누르기 전에 미리 끝내둔다.
 function prepareGoogleLogin(): Promise<boolean> {
   if (preparePromise) return preparePromise
-  preparePromise = (async () => {
+  const attempt = (async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     const supabase = await googleAuthClient()
     if (!supabase || !clientId) return false
@@ -145,12 +149,16 @@ function prepareGoogleLogin(): Promise<boolean> {
 
     return true
   })()
-  return preparePromise
+  preparePromise = attempt
+  attempt.catch(() => {
+    if (preparePromise === attempt) preparePromise = undefined
+  })
+  return attempt
 }
 
 // 로그인 페이지 진입 시 미리 호출해두면 버튼 클릭 시점엔 팝업만 즉시 열면 되어 모바일에서도 안전하다.
-export function preloadGoogleLogin(): void {
-  prepareGoogleLogin().catch(() => undefined)
+export function preloadGoogleLogin(): Promise<boolean> {
+  return prepareGoogleLogin()
 }
 
 // Google Identity Services로 ID 토큰을 직접 받아 Supabase 세션을 발급받는다.
@@ -167,7 +175,49 @@ export async function startGoogleLogin(): Promise<string | false> {
   if (!button) return false
 
   return new Promise((resolve, reject) => {
-    pendingLogin = { resolve, reject }
+    let sawWindowBlur = false
+    let focusTimer: ReturnType<typeof setTimeout> | undefined
+
+    const cleanup = () => {
+      window.removeEventListener('blur', onWindowBlur)
+      window.removeEventListener('focus', onWindowFocus)
+      if (focusTimer) clearTimeout(focusTimer)
+      clearTimeout(loginTimeout)
+    }
+    const current: PendingLogin = {
+      resolve: (accessToken) => {
+        cleanup()
+        resolve(accessToken)
+      },
+      reject: (error) => {
+        cleanup()
+        reject(error)
+      },
+    }
+    const cancelIfPending = (message: string) => {
+      if (pendingLogin !== current) return
+      pendingLogin = null
+      current.reject(new Error(message))
+    }
+    function onWindowBlur() {
+      sawWindowBlur = true
+    }
+    function onWindowFocus() {
+      if (!sawWindowBlur) return
+      // Google credential callback과 창 focus 이벤트의 순서는 브라우저마다 다르다.
+      // 성공 callback에 먼저 처리할 짧은 여유를 준 뒤, 응답이 없으면 팝업을 닫은 것으로 본다.
+      focusTimer = setTimeout(() => {
+        cancelIfPending('Google 로그인이 취소됐어요. 다시 시도해주세요.')
+      }, 500)
+    }
+
+    const loginTimeout = setTimeout(() => {
+      cancelIfPending('Google 로그인 응답 시간이 초과됐어요. 다시 시도해주세요.')
+    }, 2 * 60 * 1000)
+
+    window.addEventListener('blur', onWindowBlur)
+    window.addEventListener('focus', onWindowFocus)
+    pendingLogin = current
     button.click()
   })
 }

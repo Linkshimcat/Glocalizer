@@ -1,4 +1,4 @@
-import { Camera, Loader2, Mail } from 'lucide-react'
+import { Camera, ChevronRight, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
@@ -369,6 +369,23 @@ export default function Account() {
             )}
           </section>
         )}
+
+        <section className="mt-6 max-w-2xl rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPolicyTitle}>
+          <h2 className="text-lg font-extrabold text-ink">{t.accountPolicyTitle}</h2>
+          <p className="mt-1 text-sm text-sub">{t.accountPolicyDesc}</p>
+          <div className="mt-5 divide-y divide-gray-100">
+            <button type="button" onClick={() => navigate('/privacy')} className="flex w-full items-center gap-3 py-4 text-left font-bold text-ink transition-colors hover:text-brand-dark">
+              <ShieldCheck aria-hidden="true" className="h-5 w-5 text-brand-dark" />
+              <span className="flex-1">{t.privacyPolicy}</span>
+              <ChevronRight aria-hidden="true" className="h-5 w-5 text-sub" />
+            </button>
+            <button type="button" onClick={() => navigate('/terms')} className="flex w-full items-center gap-3 py-4 text-left font-bold text-ink transition-colors hover:text-brand-dark">
+              <FileText aria-hidden="true" className="h-5 w-5 text-brand-dark" />
+              <span className="flex-1">{t.termsOfService}</span>
+              <ChevronRight aria-hidden="true" className="h-5 w-5 text-sub" />
+            </button>
+          </div>
+        </section>
 
         <section className="mt-6 max-w-2xl rounded-[28px] border border-red-200 bg-red-50/40 p-6 sm:p-8" aria-label={t.accountDangerZoneTitle}>
           <h2 className="text-lg font-extrabold text-red-600">{t.accountDangerZoneTitle}</h2>
