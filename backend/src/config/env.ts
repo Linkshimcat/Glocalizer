@@ -56,7 +56,12 @@ export const envSchema = z.object({
   GROQ_MODEL: z.string().default('qwen/qwen3.8-27b'),
   GROQ_BASE_URL: z.string().url().default('https://api.groq.com/openai/v1'),
   TRANSLATION_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
-  TRANSLATION_PROVIDER: z.enum(['groq']).default('groq'),
+  TRANSLATION_PROVIDER: z.enum(['groq', 'openai']).default('groq'),
+  // TRANSLATION_PROVIDER=openai일 때 사용(OPENAI_API_KEY 필요, GROQ_API_KEY가 있으면 실패 시 fallback).
+  // 번역 벤치마크(73캡션 중 25개, judge gpt-5.6): baseline Groq 3.74 → gpt-5.6 4.88 / luna 4.79.
+  OPENAI_TRANSLATION_MODEL: z.string().default('gpt-5.6'),
+  OPENAI_TRANSLATION_REASONING_EFFORT: z.enum(['none', 'low', 'medium', 'high']).default('low'),
+  OPENAI_TRANSLATION_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
 
   OCR_PROVIDER: z.enum(['paddle', 'openvino-npu', 'luna']).default('paddle'),
   OCR_SHADOW_PROVIDER: z.enum(['none', 'openvino-npu']).default('none'),
