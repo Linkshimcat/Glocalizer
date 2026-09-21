@@ -64,4 +64,22 @@ describe('applySolidColorCleanup', () => {
     // 오염된 원본 잉크색(10,10,10)이 아니라 대표 배경색 쪽으로 나와야 한다.
     expect(data[base]).toBeGreaterThan(100);
   });
+
+  it('박스가 말풍선 테두리에 붙어 있어도 테두리 색이 채움색에 번지지 않는다', async () => {
+    const w = 30;
+    const h = 20;
+    const bubbleBox = { x: 6, y: 5, width: 18, height: 10 };
+    const pixels = Buffer.alloc(w * h * 4);
+    for (let i = 0; i < w * h; i += 1) pixels.set([255, 255, 255, 255], i * 4);
+    // 박스 바로 위·아래 참조점(y=3, y=16)에 걸리는 말풍선의 검은 테두리
+    for (let x = 0; x < w; x += 1) { pixels.set([0, 0, 0, 255], (3 * w + x) * 4); pixels.set([0, 0, 0, 255], (16 * w + x) * 4); }
+    for (let y = 8; y < 12; y += 1) for (let x = 12; x < 18; x += 1) pixels.set([20, 20, 20, 255], (y * w + x) * 4); // 글자
+    const mask = new Uint8Array(w * h).fill(255);
+    for (let y = 8; y < 12; y += 1) for (let x = 12; x < 18; x += 1) mask[y * w + x] = 0;
+    const source = await sharp(pixels, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+
+    const cleaned = await applySolidColorCleanup(source, bubbleBox, { r: 255, g: 255, b: 255 }, w, h, { data: mask, width: w, height: h, roi: bubbleBox });
+    const { data } = await sharp(cleaned).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (let y = 8; y < 12; y += 1) for (let x = 12; x < 18; x += 1) expect(data[(y * w + x) * 4]).toBeGreaterThan(245);
+  });
 });

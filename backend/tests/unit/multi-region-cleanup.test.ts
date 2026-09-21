@@ -49,7 +49,7 @@ const cleanupQuality = await import('../../src/image/cleanup-quality.js');
 const { runCleanupForAsset } = await import('../../src/image/cleanup.service.js');
 
 const regions = [
-  { id: 'region-review', contains_korean: true, needs_manual_review: true, is_primary: true, bbox: { x: 1, y: 1, width: 3, height: 2 } },
+  { id: 'region-review', contains_korean: true, needs_manual_review: true, agreement_score: 0.99, is_primary: true, bbox: { x: 1, y: 1, width: 3, height: 2 } },
   { id: 'region-success', contains_korean: true, needs_manual_review: false, is_primary: false, bbox: { x: 1, y: 4, width: 3, height: 2 } },
   { id: 'region-failure', contains_korean: true, needs_manual_review: false, is_primary: false, bbox: { x: 5, y: 4, width: 3, height: 2 } },
 ];
@@ -61,9 +61,10 @@ describe('runCleanupForAsset multi-region behavior', () => {
     vi.mocked(projectRepo.findProjectById).mockResolvedValue({ target_languages: ['en'] } as never);
     vi.mocked(translationRepo.findTranslationsByOcrRegionIds).mockResolvedValue(regions.map((region) => ({ ocr_region_id: region.id, language_code: 'en' })) as never);
     vi.mocked(storageRepo.downloadFromStorage).mockResolvedValue(Buffer.from('source'));
-    vi.mocked(solidCleanup.applySolidColorCleanup)
-      .mockResolvedValueOnce(Buffer.from('cleaned-success'))
-      .mockRejectedValueOnce(new Error('one region failed'));
+    vi.mocked(solidCleanup.applySolidColorCleanup).mockImplementation(async (_buffer, box) => {
+      if (box.x === 5) throw new Error('one region failed');
+      return Buffer.from('cleaned-success');
+    });
     vi.mocked(adaptiveMask.generateAdaptiveTextMask).mockResolvedValue({
       mask: { data: new Uint8Array(100), width: 10, height: 10, roi: { x: 1, y: 4, width: 3, height: 2 } },
       confidence: 0.9,
@@ -82,9 +83,10 @@ describe('runCleanupForAsset multi-region behavior', () => {
       height: 10,
     } as never);
 
-    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(2);
+    // OCR 검수 플래그가 있어도 단색 배경이면 자동 정리한다(검수는 에디터에서 별도로 안내).
+    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(3);
     expect(storageRepo.uploadToStorage).toHaveBeenCalledTimes(1);
-    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: null, needsManualCleanup: true });
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: { r: 20, g: 20, b: 20 }, needsManualCleanup: false });
     expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-success', { textColor: { r: 20, g: 20, b: 20 }, needsManualCleanup: false });
     expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-failure', { textColor: null, needsManualCleanup: true });
     expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', expect.objectContaining({
@@ -94,6 +96,45 @@ describe('runCleanupForAsset multi-region behavior', () => {
       cleanedPath: 'projects/project-1/cleaned/asset-1.png',
     }));
     expect(result).toMatchObject({ method: 'manual-required', quality: 'low', needsManualCleanup: true });
+  });
+
+  it('글자 판독만 엇갈려 검수 플래그가 붙은 영역(합의 점수 높음)은 단색 배경이면 자동으로 정리한다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[0]] as never);
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(1);
+    expect(storageRepo.uploadToStorage).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ method: 'solid-color-fill', needsManualCleanup: false });
+  });
+
+  it('OCR 위치 합의 점수가 낮아 검수 플래그가 붙은 영역은 단색 배경이어도 원본을 보존한다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([{ ...regions[0], agreement_score: 0.4 }] as never);
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(solidCleanup.applySolidColorCleanup).not.toHaveBeenCalled();
+    expect(storageRepo.uploadToStorage).not.toHaveBeenCalled();
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: null, needsManualCleanup: true });
+    expect(result).toMatchObject({ method: 'manual-required', needsManualCleanup: true });
+  });
+
+  it('OCR 검수 플래그가 있고 배경이 복잡하면 원본을 보존한다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[0]] as never);
+    vi.mocked(cleanupQuality.decideCleanupMethod).mockReturnValue('directional-inpaint');
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(directionalCleanup.applyDirectionalInpaint).not.toHaveBeenCalled();
+    expect(storageRepo.uploadToStorage).not.toHaveBeenCalled();
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-review', { textColor: null, needsManualCleanup: true });
+    expect(result).toMatchObject({ method: 'manual-required', needsManualCleanup: true });
   });
 
   it('복잡한 배경도 신뢰도 높은 글자 마스크가 있으면 해당 픽셀만 인페인트한다', async () => {

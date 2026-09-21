@@ -336,12 +336,14 @@ export default function Editor() {
   const { t, lang } = useSiteLang()
   const e = editorDict[lang]
 
-  // AI 자동 배경 정리가 안 된 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도 알려준다.
+  // AI 자동 배경 정리가 안 됐거나 OCR 문구 확인이 필요한 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도
+  // 알려준다. OCR 검수 대상이어도 단색·투명 배경은 자동 정리되므로, 정리 실패와 별개로 검수 안내를 띄운다.
   const manualCleanupWarnedIdRef = useRef<string | null>(null)
   useEffect(() => {
-    if (current.analysis?.needsManualCleanup && manualCleanupWarnedIdRef.current !== current.id) {
+    const needsOcrReview = current.analysis?.needsManualOcrReview ?? false
+    if ((current.analysis?.needsManualCleanup || needsOcrReview) && manualCleanupWarnedIdRef.current !== current.id) {
       manualCleanupWarnedIdRef.current = current.id
-      toast(current.analysis?.needsManualOcrReview ? t.toastOcrManual : t.toastCleanupManual)
+      toast(needsOcrReview ? t.toastOcrManual : t.toastCleanupManual)
     }
   }, [current.id, current.analysis?.needsManualCleanup, current.analysis?.needsManualOcrReview, t.toastCleanupManual, t.toastOcrManual, toast])
 
