@@ -2,6 +2,11 @@ import type { PixelBox } from '../utils/bbox.js';
 import { sampleBorderPixelsFromDecoded, type BorderStats, type DecodedImage } from './background-sampler.js';
 import { decideCleanupMethod } from './cleanup-quality.js';
 import type { CleanupMethod } from '../types/cleanup.js';
+import { detectsPeriodicPattern } from './pattern-detector.js';
+
+/** 이보다 색 편차가 작은 단색 배경은 주기 무늬일 수 없어 무늬 검사를 건너뛴다. */
+const PATTERN_CHECK_STDDEV = 14;
+const PERIODIC_VOTE_RATIO = 0.7;
 
 const SHIFT_X = 0.03;
 const SHIFT_Y = 0.04;
@@ -40,7 +45,7 @@ export function perturbedBoxes(box: PixelBox, imageWidth: number, imageHeight: n
  * 1~2px만 달라도 판정이 뒤집혀 같은 이미지가 어떨 땐 되고 어떨 땐 안 됐다. 다수결은 그 뒤집힘을 흡수한다.
  * 동률이면 원래 박스의 판정을 따른다. 반환하는 통계는 다수 판정에 동의한 박스 중 원래 박스에 가까운 것의 것이다.
  */
-export function decideStableCleanup(decoded: DecodedImage, box: PixelBox): { method: CleanupMethod; stats: BorderStats } {
+export function decideStableCleanup(decoded: DecodedImage, box: PixelBox): { method: CleanupMethod; stats: BorderStats; periodic: boolean } {
   const votes = perturbedBoxes(box, decoded.width, decoded.height).map((candidate) => {
     const stats = sampleBorderPixelsFromDecoded(decoded, candidate);
     return { stats, method: decideCleanupMethod(stats) };
@@ -51,5 +56,21 @@ export function decideStableCleanup(decoded: DecodedImage, box: PixelBox): { met
   const leaders = [...tally.entries()].filter(([, count]) => count === top).map(([method]) => method);
   const method = leaders.includes(votes[0].method) ? votes[0].method : leaders[0];
   const chosen = votes.find((vote) => vote.method === method) ?? votes[0];
-  return { method, stats: chosen.stats };
+
+  // 주기 무늬 판정도 다수결로 한다. 박스가 조금만 달라져도 글자 아랫부분이 무늬 검사 패치에 섞여 오탐이 나기 때문이다.
+  // 무늬가 문제 되는 경우(복잡한 배경 인페인팅, 색 편차가 큰 단색 채우기)에만 검사한다.
+  // 단, 깨끗한 단색 변이 3개 이상 일치하면(무늬가 있다면 위아래·좌우가 같은 색일 수 없다) 무늬가 아니다 —
+  // 이때 검사 패치(글자 아래 영역)에 든 캐릭터를 무늬로 오탐하는 것을 막는다(강아지 스티커, 2026-09-21 실측).
+  const sides = chosen.stats.sidesBackground;
+  const mostSidesClean = sides?.kind === 'solid' && sides.cleanSides >= 3;
+  const patternRelevant = method === 'directional-inpaint'
+    || (method === 'solid-color-fill' && chosen.stats.colorStdDev > PATTERN_CHECK_STDDEV && !mostSidesClean);
+  let periodic = false;
+  if (patternRelevant) {
+    const boxes = perturbedBoxes(box, decoded.width, decoded.height);
+    const periodicVotes = boxes.filter((candidate) => detectsPeriodicPattern(decoded, candidate)).length;
+    // 진짜 반복 무늬는 흔든 박스 거의 전부에서 잡힌다(줄무늬 8/8). 캐릭터가 검사 패치에 섞인 오탐은 과반 근처라 70%를 요구한다.
+    periodic = periodicVotes >= Math.ceil(boxes.length * PERIODIC_VOTE_RATIO);
+  }
+  return { method, stats: chosen.stats, periodic };
 }

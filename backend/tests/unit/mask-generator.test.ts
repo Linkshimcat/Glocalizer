@@ -85,4 +85,29 @@ describe('generateTextEraseMask', () => {
       expect(mask.data[110 * w + 30]).toBeGreaterThan(240);
     });
   });
+
+  describe('박스에 걸친 큰 덩어리(캐릭터)', () => {
+    const w = 120;
+    const h = 100;
+    const box = { x: 30, y: 60, width: 60, height: 20 };
+
+    function withCharacterTouchingText(): Promise<Buffer> {
+      const raw = Buffer.alloc(w * h * 4);
+      for (let i = 0; i < w * h; i += 1) raw.set([0, 0, 0, 0], i * 4);
+      // 박스 윗변(y=60)에 아랫부분이 살짝 걸친 큰 캐릭터(y 10~61). 스캔 범위 안에서는 몇 행만 보인다.
+      // (폭이 스캔 폭의 85% 미만이라 기존 고밀도 행 절단에는 걸리지 않는다.)
+      for (let y = 10; y < 62; y += 1) for (let x = 36; x < 84; x += 1) raw.set([17, 17, 17, 255], (y * w + x) * 4);
+      // 캐릭터 바로 밑에서 이어지는 글자 획(외곽선이 캐릭터에 닿은 경우) + 떨어진 글자 획.
+      for (let y = 62; y < 76; y += 1) for (let x = 40; x < 44; x += 1) raw.set([30, 30, 30, 255], (y * w + x) * 4);
+      for (let y = 66; y < 76; y += 1) for (let x = 60; x < 64; x += 1) raw.set([30, 30, 30, 255], (y * w + x) * 4);
+      return sharp(raw, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+    }
+
+    it('글자 획에 이어진 큰 캐릭터의 박스 안팎 조각을 글자로 지우지 않는다', async () => {
+      const mask = await generateTextEraseMask(await withCharacterTouchingText(), box, w, h, { mode: 'transparent' });
+      expect(mask.data[57 * w + 75]).toBeGreaterThan(240); // 캐릭터 아래쪽 (박스 위)
+      expect(mask.data[61 * w + 75]).toBeGreaterThan(240); // 박스 안으로 걸친 조각(글자 획에서 먼 곳)
+      expect(mask.data[70 * w + 62]).toBeLessThan(40); // 떨어진 글자 획은 지운다
+    });
+  });
 });
