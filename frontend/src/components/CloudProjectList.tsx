@@ -1,17 +1,18 @@
-import { ArrowRight, Globe2, Loader2 } from 'lucide-react'
+import { ArrowRight, Globe2, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from './Button'
+import Modal from './Modal'
 import { useToast } from './Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
-import { listCloudProjects, type CloudProject } from '../lib/api'
+import { deleteCloudProject, listCloudProjects, type CloudProject } from '../lib/api'
 import { useAuth } from '../store/AuthContext'
 import { LANGUAGES, useUploads } from '../store/uploads'
 
 export default function CloudProjectList({ archive }: { archive: boolean }) {
   const { user, token } = useAuth()
   const { t, lang } = useSiteLang()
-  const { openCloudProject, resultReady, cloudSaving, flushCloudWork } = useUploads()
+  const { openCloudProject, resultReady, cloudSaving, flushCloudWork, projectStatus, resetWorkflow } = useUploads()
   const navigate = useNavigate()
   const toast = useToast()
   const [projects, setProjects] = useState<CloudProject[]>([])
@@ -19,6 +20,8 @@ export default function CloudProjectList({ archive }: { archive: boolean }) {
   const [error, setError] = useState(false)
   const [retry, setRetry] = useState(0)
   const [opening, setOpening] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CloudProject | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -39,6 +42,22 @@ export default function CloudProjectList({ archive }: { archive: boolean }) {
     finally { setOpening(null) }
   }
 
+  const remove = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteCloudProject(deleteTarget.id)
+      setProjects(current => current.filter(project => project.id !== deleteTarget.id))
+      if (projectStatus?.projectId === deleteTarget.id) resetWorkflow()
+      setDeleteTarget(null)
+      toast(t.cloudDeleteSuccess)
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t.cloudDeleteFailed)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (!user) return <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
   if (loading) return <p role="status" className="mt-5 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.cloudLoading}</p>
   if (error) return <div role="alert" className="mt-5"><p className="text-sm text-sub">{t.cloudListFailed}</p><Button variant="outline" className="mt-3" onClick={() => setRetry(value => value + 1)}>{t.cloudRetry}</Button></div>
@@ -57,8 +76,22 @@ export default function CloudProjectList({ archive }: { archive: boolean }) {
             <p className="mt-1 text-xs text-sub">{t.cloudRecent} · {new Date(project.updatedAt).toLocaleDateString(lang)}</p>
           </div>
         </div>
-        <Button disabled={opening !== null || cloudSaving} onClick={() => { void open(project.id) }}>{opening === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{archive ? t.cloudOpen : t.hubContinue}</Button>
+        <div className="flex gap-2 sm:shrink-0">
+          {!archive ? <Button variant="outline" aria-label={`${project.name} ${t.cloudDelete}`} disabled={opening !== null || cloudSaving} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
+          <Button disabled={opening !== null || cloudSaving} onClick={() => { void open(project.id) }} className="flex-1 sm:flex-none">{opening === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{archive ? t.cloudOpen : t.hubContinue}</Button>
+        </div>
       </article>
     })}
+    {deleteTarget ? <Modal onClose={() => { if (!deleting) setDeleteTarget(null) }} labelledBy="delete-project-title" closeLabel={t.commonClose}>
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600"><Trash2 className="h-6 w-6" /></div>
+      <h2 id="delete-project-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudDeleteTitle}</h2>
+      <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudDeleteDescription.replace('{name}', deleteTarget.name)}</p>
+      <div className="mt-7 flex gap-3">
+        <Button variant="secondary" disabled={deleting} onClick={() => setDeleteTarget(null)} className="flex-1">{t.cloudDeleteCancel}</Button>
+        <Button disabled={deleting} onClick={() => { void remove() }} className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-100 disabled:text-red-400">
+          {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{t.cloudDeleteConfirm}
+        </Button>
+      </div>
+    </Modal> : null}
   </div>
 }
