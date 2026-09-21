@@ -5,7 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { SiteLangProvider } from './i18n/LanguageContext'
-import Landing from './pages/Landing'
+import LandingRemake from './pages/LandingRemake'
 import { AuthProvider } from './store/AuthContext'
 import { UploadProvider } from './store/uploads'
 
@@ -17,6 +17,7 @@ const Account = lazy(() => import('./pages/Account'))
 const Archive = lazy(() => import('./pages/Archive'))
 const Editor = lazy(() => import('./pages/Editor'))
 const Login = lazy(() => import('./pages/Login'))
+const Landing = lazy(() => import('./pages/Landing'))
 const NaverCallback = lazy(() => import('./pages/NaverCallback'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Privacy = lazy(() => import('./pages/Privacy'))
@@ -43,7 +44,9 @@ function App() {
               <UploadProvider>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                    <Route path="/" element={<Landing />} />
+                    <Route path="/" element={<LandingRemake />} />
+                    <Route path="/landing-remake" element={<LandingRemake />} />
+                    <Route path="/landing-legacy" element={<Landing />} />
                     <Route path="/service" element={<ServiceIntro />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/privacy" element={<Privacy />} />
