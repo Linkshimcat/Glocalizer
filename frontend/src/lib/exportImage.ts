@@ -232,7 +232,9 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.appendChild(a)
   a.click()
   a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  // iOS WebKit은 시스템 다운로드가 Blob URL을 읽는 동안 URL이 폐기되면
+  // WebKitBlobResource 오류(모바일 Chrome의 "Load failed")를 표시할 수 있다.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 function baseName(name: string) {

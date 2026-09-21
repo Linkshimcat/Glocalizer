@@ -883,6 +883,7 @@ export default function Editor() {
   /* ── 다운로드 ─────────────────────────────────────────────────── */
 
   const [busy, setBusy] = useState(false)
+  const completingDownloadRef = useRef(false)
   const langCode = activeLanguage.code
 
   const selectLanguage = (languageCode: string) => {
@@ -899,18 +900,20 @@ export default function Editor() {
 
   const downloadCurrentPng = async () => {
     setBusy(true)
+    completingDownloadRef.current = true
     try {
       saveActiveStyle(langCode)
       const overlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
-      downloadBlob(
-        await renderItemToPng(current, style, overlays),
-        exportFileName(current.name, langCode, 'png'),
-      )
+      const blob = await renderItemToPng(current, style, overlays)
+      // 모바일 브라우저는 시스템 다운로드 UI가 열린 뒤 후속 fetch를 중단할 수 있다.
+      // 편집 상태와 완료 표시를 먼저 저장한 뒤 다운로드를 시작해야 완료 페이지 이동이 안정적이다.
+      await markResultReady()
+      downloadBlob(blob, exportFileName(current.name, langCode, 'png'))
       recordDownload('single', langCode)
       markCurrentDone()
-      await markResultReady()
       navigate('/result')
     } catch (error) {
+      completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastPngFail)
     } finally {
       setBusy(false)
@@ -919,21 +922,21 @@ export default function Editor() {
 
   const downloadAllZip = async () => {
     setBusy(true)
+    completingDownloadRef.current = true
     try {
       saveActiveStyle(langCode)
       const stylesMap = { ...savedStyles, [activeStyleKey]: { ...savedStyles[activeStyleKey], [langCode]: style } }
-      downloadBlob(
-        await zipLocalizedItems(
-          availableLanguages.map(language => ({ languageCode: language.code, items: toDemoItems(editorFiles, language.code).filter(item => !removedDemoIds.includes(item.id)) })),
-          stylesMap,
-        ),
-        `${exportName.trim() || 'glocalizer_export'}.zip`,
+      const blob = await zipLocalizedItems(
+        availableLanguages.map(language => ({ languageCode: language.code, items: toDemoItems(editorFiles, language.code).filter(item => !removedDemoIds.includes(item.id)) })),
+        stylesMap,
       )
+      await markResultReady()
+      downloadBlob(blob, `${exportName.trim() || 'glocalizer_export'}.zip`)
       recordDownload('zip')
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
-      await markResultReady()
       navigate('/result')
     } catch (error) {
+      completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastZipFail)
     } finally {
       setBusy(false)
@@ -946,18 +949,18 @@ export default function Editor() {
       return
     }
     setBusy(true)
+    completingDownloadRef.current = true
     try {
       saveActiveStyle(langCode)
       const overlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
-      downloadBlob(
-        await renderItemToPng(current, style, overlays),
-        exportFileName(current.name, langCode, 'png'),
-      )
+      const blob = await renderItemToPng(current, style, overlays)
+      await markResultReady()
+      downloadBlob(blob, exportFileName(current.name, langCode, 'png'))
       recordDownload('single', langCode)
       markCurrentDone()
-      await markResultReady()
       navigate('/result')
     } catch (error) {
+      completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastDownloadFail)
     } finally {
       setBusy(false)
@@ -984,8 +987,15 @@ export default function Editor() {
   })
   useEffect(() => {
     if (!current.analysis || !['completed', 'failed'].includes(projectStatus?.status ?? '')) return
-    const timer = setTimeout(() => saveStyle(current.id, langCode, style, activeRegion.id), 500)
-    return () => { clearTimeout(timer); saveStyle(current.id, langCode, style, activeRegion.id) }
+    const timer = setTimeout(() => {
+      if (!completingDownloadRef.current) saveStyle(current.id, langCode, style, activeRegion.id)
+    }, 500)
+    return () => {
+      clearTimeout(timer)
+      // 다운로드 완료 흐름은 명시적으로 최신 스타일을 저장하고 flush한 뒤 이동한다.
+      // 언마운트 cleanup에서 같은 요청을 다시 보내면 모바일 다운로드 UI가 열린 뒤 실패할 수 있다.
+      if (!completingDownloadRef.current) saveStyle(current.id, langCode, style, activeRegion.id)
+    }
   }, [current.id, current.analysis, langCode, style, activeRegion.id, saveStyle, projectStatus?.status])
 
   const canvasOverlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
