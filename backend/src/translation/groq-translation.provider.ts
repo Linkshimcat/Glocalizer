@@ -4,6 +4,7 @@ import type { LocalizationBatchInput } from '../ai/localization/localization-pro
 import type { TranslationProvider } from './translation-provider.types.js';
 import { parseTranslationResponse } from './translation-response.parser.js';
 import { withRetry } from '../utils/retry.js';
+import { buildTranslationMessages } from './translation-prompt.js';
 
 const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 15_000;
 const MAX_RATE_LIMIT_COOLDOWN_MS = 5 * 60_000;
@@ -80,7 +81,7 @@ async function throughProviderQueue<T>(operation: () => Promise<T>): Promise<T> 
   }
 }
 
-function buildPrompt(input: LocalizationBatchInput): string {
+export function buildPrompt(input: LocalizationBatchInput): string {
   const constraints = input.targetLanguages.map((languageCode) => {
     const constraint = input.constraintsByLanguage[languageCode];
     return `${languageCode}: maximum ${constraint?.maxCharacters ?? 18} characters`;
@@ -129,7 +130,7 @@ export const groqTranslationProvider: TranslationProvider = {
           headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: env.GROQ_MODEL,
-            temperature: 0.75,
+            temperature: 0.4,
             // 줄바꿈 병합으로 원문이 길어질 수 있어(merge-recognized-regions.ts), 3개 언어 응답이
             // 잘려서 JSON 파싱이 실패하지 않도록 넉넉히 잡는다.
             max_tokens: 1500,
@@ -137,7 +138,7 @@ export const groqTranslationProvider: TranslationProvider = {
             // max_tokens 예산을 숨겨진 reasoning에 다 쓰고 빈 응답을 반환하는 경우가 있다.
             reasoning_effort: 'none',
             response_format: { type: 'json_object' },
-            messages: [{ role: 'user', content: buildPrompt(input) }],
+            messages: buildTranslationMessages(input),
           }),
           signal: controller.signal,
         });

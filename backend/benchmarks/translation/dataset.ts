@@ -1,0 +1,91 @@
+/**
+ * 번역 품질 벤치마크용 한국어 이모티콘 캡션. 이모티콘·스티커에 실제로 자주 쓰이는 유형을 고르게 담고,
+ * 번역가/심사자가 의도를 오해하지 않도록 note에 뜻·어감을 적었다. 사용자 데이터가 아니라 직접 작성한 문구다.
+ */
+export type CaptionCategory = 'greeting' | 'thanks-apology' | 'encouragement' | 'emotion' | 'slang-meme' | 'short-reaction' | 'invitation' | 'daily-life' | 'food' | 'multi-line' | 'honorific-cultural' | 'mixed';
+
+export interface Caption {
+  id: string;
+  ko: string;
+  category: CaptionCategory;
+  /** 뜻·어감·주의점. 심사자와 프롬프트 평가에만 쓰고 번역 입력에는 넣지 않는다. */
+  note: string;
+}
+
+const c = (id: string, ko: string, category: CaptionCategory, note: string): Caption => ({ id, ko, category, note });
+
+export const CAPTIONS: Caption[] = [
+  c('g1', '안녕!', 'greeting', 'casual hello'),
+  c('g2', '안뇽~', 'greeting', 'cutesy, playful misspelling of 안녕 (hi~), soft and childlike'),
+  c('g3', '좋은 아침!', 'greeting', 'good morning, cheerful'),
+  c('g4', '잘 자요~', 'greeting', 'good night, gentle and polite-warm'),
+  c('g5', '반가워요', 'greeting', 'nice to meet you, polite-warm'),
+  c('g6', '내일 봐!', 'greeting', 'see you tomorrow, casual'),
+  c('t1', '고마워요', 'thanks-apology', 'thank you, polite-warm'),
+  c('t2', '감사합니다', 'thanks-apology', 'thank you, formal polite'),
+  c('t3', '고마워 ㅠㅠ', 'thanks-apology', 'thanks with teary emotion, touched'),
+  c('t4', '미안해..', 'thanks-apology', 'sorry, casual, guilty/sad tone, trailing ellipsis'),
+  c('t5', '죄송합니다', 'thanks-apology', 'formal apology (I am sorry) — serious, NOT a joke'),
+  c('t6', '괜찮아요', 'thanks-apology', "it's okay / no worries, reassuring polite"),
+  c('e1', '화이팅!', 'encouragement', "cheering: 'you can do it / go!' (Konglish 파이팅)"),
+  c('e2', '힘내요', 'encouragement', 'hang in there, cheer up, polite-warm comfort'),
+  c('e3', '수고했어', 'encouragement', "good job today / thanks for your hard work, casual"),
+  c('e4', '오늘도 고생했어', 'encouragement', 'you worked hard again today, warm casual comfort'),
+  c('e5', '잘했어!', 'encouragement', 'well done, praise'),
+  c('m1', '사랑해', 'emotion', 'I love you, sincere'),
+  c('m2', '보고싶어', 'emotion', 'I miss you, sincere longing'),
+  c('m3', '행복해', 'emotion', "I'm happy"),
+  c('m4', '슬퍼 ㅠㅠ', 'emotion', "I'm sad, crying emoticon"),
+  c('m5', '화났어', 'emotion', "I'm angry (sulky/childish rather than furious)"),
+  c('m6', '놀랐잖아!', 'emotion', 'you startled me! (complaining tone)'),
+  c('m7', '피곤해', 'emotion', "I'm tired/exhausted"),
+  c('m8', '배고파', 'emotion', "I'm hungry"),
+  c('m9', '졸려..', 'emotion', "I'm sleepy, drowsy trailing"),
+  c('s1', '킹받네', 'slang-meme', "Gen-Z slang: 'so annoyed/pissed off' (열받다 intensified with 'king'), playful not violent"),
+  c('s2', '실화냐?', 'slang-meme', "'Is this for real?!' disbelief/shock, informal"),
+  c('s3', '갓생 살자', 'slang-meme', "'let's live a productive, disciplined, ambitious life' (god-life), motivational slang"),
+  c('s4', '존버', 'slang-meme', "'hold on / just keep enduring' (from crude 존나 버티기, but used lightly), stoic humor"),
+  c('s5', '아 몰랑~', 'slang-meme', "cutesy pouty 'I dunno~ / whatever~' (몰라 in baby talk), playful deflection"),
+  c('s6', '노잼', 'slang-meme', "'boring / no fun' (no + 재미), dismissive slang"),
+  c('s7', '꿀잼!', 'slang-meme', "'super fun / so entertaining' (honey + fun), enthusiastic slang"),
+  c('s8', '대박!', 'slang-meme', "'awesome / no way / jackpot!' — amazement, can be positive"),
+  c('s9', '헐', 'slang-meme', "'OMG / wow / what' — shocked reaction interjection"),
+  c('s10', '웃프다', 'slang-meme', "'funny but sad' (웃기다+슬프다), bittersweet humor"),
+  c('s11', '어쩔티비', 'slang-meme', "'talk to the hand / so what / whatever' (어쩌라고+TV), sassy dismissal"),
+  c('s12', '럭키비키', 'slang-meme', "'lucky Vicky' — relentless positive thinking 'it all works out for the best', 2024 meme"),
+  c('s13', '찐이야', 'slang-meme', "'it's the real deal / for real' (진짜 -> 찐), approval"),
+  c('r1', '넵', 'short-reaction', "'Yes/roger' — quick, slightly deferential office reply"),
+  c('r2', '헉', 'short-reaction', "'gasp!' — sudden shock"),
+  c('r3', 'ㅇㅋ', 'short-reaction', "'OK' typed as initials, lazy casual"),
+  c('r4', 'ㅋㅋㅋ', 'short-reaction', "typed laughter 'lol/hahaha'"),
+  c('r5', '뭐야', 'short-reaction', "'what the...?/what's that?' bewildered, casual"),
+  c('r6', '굿', 'short-reaction', "'Good!' quick approval"),
+  c('r7', '아니 잠만', 'short-reaction', "'no wait, hold on' — sudden interruption, casual"),
+  c('i1', '놀자..', 'invitation', "'wanna hang out?' — hopeful, slightly pleading, trailing dots"),
+  c('i2', '밥 먹자', 'invitation', "'let's eat' — casual invitation to have a meal"),
+  c('i3', '같이 가자!', 'invitation', "'let's go together!'"),
+  c('i4', '퇴근하고 한잔?', 'invitation', "'a drink after work?' — casual invite, question"),
+  c('d1', '야근 싫어', 'daily-life', "'I hate overtime' — office complaint"),
+  c('d2', '월요일 실화?', 'daily-life', "'Is it really Monday?!' — Monday dread"),
+  c('d3', '시험 망했다', 'daily-life', "'I bombed the exam' — despair, colloquial"),
+  c('d4', '칼퇴 가즈아', 'daily-life', "'let's leave work on the dot!' — 칼퇴(exactly on time)+가즈아(let's gooo, hype meme)"),
+  c('d5', '방학 만세', 'daily-life', "'hooray, school break!'"),
+  c('f1', '치킨 먹고 싶다', 'food', "'I want fried chicken' — craving, Korean chicken culture"),
+  c('f2', '맛있다!', 'food', "'It's delicious!'"),
+  c('f3', '다이어트는 내일부터', 'food', "'Diet starts tomorrow' — classic self-deprecating joke"),
+  c('f4', '라면 먹고 갈래?', 'food', "'wanna have ramyeon before you go?' — famous flirty line in Korean pop culture, playful double meaning"),
+  c('l1', '우리 카페가\n제일 좋아', 'multi-line', "'Our cafe is the best' — two-line caption, cute/proud"),
+  c('l2', '오늘도\n무사히 출근', 'multi-line', "'made it to work safely again today' — tired/relieved office humor, two-line"),
+  c('l3', '그땐 그랬지~', 'multi-line', "'those were the days~' — nostalgic, wistful"),
+  c('h1', '안녕하세요', 'honorific-cultural', 'formal polite hello'),
+  c('h2', '잘 부탁드립니다', 'honorific-cultural', "formal 'please take care of me / I look forward to working with you' — polite set phrase"),
+  c('h3', '새해 복 많이 받으세요', 'honorific-cultural', "New Year greeting: 'may you receive lots of luck/blessings in the new year'"),
+  c('h4', '생일 축하해!', 'honorific-cultural', 'happy birthday, casual'),
+  c('h5', '원샷!', 'honorific-cultural', "'bottoms up! / drink it in one go' — drinking culture cheer"),
+  c('h6', '조심히 들어가', 'honorific-cultural', "'get home safe' — casual farewell caring"),
+  c('x1', '1등이다!', 'mixed', "'I'm number one / first place!' with a number"),
+  c('x2', 'OK 접수!', 'mixed', "'OK, received!/copy that' — snappy acknowledgment, English+Korean mix"),
+  c('x3', 'D-day 왔다', 'mixed', "'D-day is here' — dread/excitement, English+Korean mix"),
+  c('x4', '사랑해 ♥', 'mixed', 'I love you with a heart symbol'),
+  c('x5', '아니 왜 ㅠㅠ', 'mixed', "'no, why?? (crying)' — wailing complaint with typed crying"),
+];

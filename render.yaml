@@ -44,6 +44,10 @@ services:
         value: luna
       - key: OPENAI_API_KEY
         sync: false
+      # 번역 주력 엔진. 벤치마크에서 Groq qwen(3.74) 대비 gpt-5.6(4.88)이 크게 앞서고 Groq 무료
+      # 티어의 처리량 한도도 없다. GROQ_API_KEY가 있으면 OpenAI 실패 시 Groq로 fallback한다.
+      - key: TRANSLATION_PROVIDER
+        value: openai
       # 대회 사무국이 제공한 OGQ 마켓 API 키. 값은 Render 대시보드 → glocalizer-api →
       # Environment에서 직접 입력해야 한다(이 파일에는 실제 키를 적지 않는다). 미설정 시
       # OGQ 연동 기능(랜딩 예시 갤러리·샘플 체험·출시 검토)만 503으로 비활성화된다.
