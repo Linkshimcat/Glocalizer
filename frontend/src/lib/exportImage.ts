@@ -1,11 +1,21 @@
 import JSZip from 'jszip'
 import type { DemoItem } from '../data/demo'
+import { OGQ_CATEGORY_DIMENSIONS } from './ogqSpecCheck'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type Style } from './style'
 
-/** 에디터 화면(340px 기준)의 편집 상태를 512px 캔버스로 합성 */
+/** 에디터 화면(340px 기준)의 편집 상태를 기본 512px 정사각 캔버스로 합성 */
 const CANVAS_SIZE = 512
 const EDITOR_SIZE = 340
-const SCALE = CANVAS_SIZE / EDITOR_SIZE
+
+/** 내보내기 규격. 'default'는 512×512, 나머지는 OGQ 배포 규격(메인·스티커·탭). */
+export type OutputPreset = 'default' | 'ogq-main' | 'ogq-sticker' | 'ogq-tab'
+
+export const OUTPUT_PRESETS: Record<OutputPreset, { width: number; height: number }> = {
+  default: { width: CANVAS_SIZE, height: CANVAS_SIZE },
+  'ogq-main': OGQ_CATEGORY_DIMENSIONS.main,
+  'ogq-sticker': OGQ_CATEGORY_DIMENSIONS.sticker,
+  'ogq-tab': OGQ_CATEGORY_DIMENSIONS.tab,
+}
 
 interface DrawnImageFrame {
   x: number
@@ -48,17 +58,17 @@ export function textOverlaysForItem(
   })
 }
 
-function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number) {
+function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number, scale: number) {
   if (!style.backgroundOn || !text) return
   const lines = text.split(/\r?\n/)
   const measuredWidth = Math.max(...lines.map(line => ctx.measureText(line).width))
   const lineHeight = fontPx * 1.15
-  const padding = style.backgroundPadding * SCALE
+  const padding = style.backgroundPadding * scale
   const width = measuredWidth + padding * 2
   const height = lineHeight * lines.length + padding * 2
   const x = -width / 2
   const y = -height / 2
-  const radius = Math.min(style.backgroundRadius * SCALE, height / 2, width / 2)
+  const radius = Math.min(style.backgroundRadius * scale, height / 2, width / 2)
   ctx.fillStyle = hexToRgba(style.backgroundColor, style.backgroundOpacity / 100)
   ctx.beginPath()
   if (typeof ctx.roundRect === 'function') {
@@ -142,29 +152,37 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   })
 }
 
-/** 원본 이미지 + 번역 텍스트를 합성한 PNG Blob 생성 */
-export async function renderItemToPng(item: DemoItem, style: Style, overlays?: TextOverlay[]): Promise<Blob> {
+/** 원본 이미지 + 번역 텍스트를 합성한 PNG Blob 생성.
+ * 에디터는 정사각형이라, 정사각이 아닌 규격(OGQ 스티커·탭)은 규격 안에 정사각 작업 영역을
+ * 가운데로 맞춰 넣고 남는 좌우 공간은 배경(투명/화이트)으로 둔다. */
+export async function renderItemToPng(item: DemoItem, style: Style, overlays?: TextOverlay[], preset: OutputPreset = 'default'): Promise<Blob> {
+  const { width: outWidth, height: outHeight } = OUTPUT_PRESETS[preset]
+  const size = Math.min(outWidth, outHeight)
+  const scale = size / EDITOR_SIZE
   const canvas = document.createElement('canvas')
-  canvas.width = CANVAS_SIZE
-  canvas.height = CANVAS_SIZE
+  canvas.width = outWidth
+  canvas.height = outHeight
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('캔버스를 만들 수 없어요')
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
 
   if (!style.transparent) {
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    ctx.fillRect(0, 0, outWidth, outHeight)
   }
+  ctx.translate((outWidth - size) / 2, (outHeight - size) / 2)
 
   // 원본 이미지 (에디터와 동일: 캔버스에 꽉 차게 object-contain + 배율)
   const imageScale = (style.imageScale ?? 100) / 100
   if (item.url) {
     const img = await loadImage(item.url)
-    // 캔버스(패딩 2px 제외)에 맞춰 contain
-    const box = CANVAS_SIZE - 8
+    // 캔버스(패딩 약 1.5% 제외)에 맞춰 contain
+    const box = size - size * (8 / CANVAS_SIZE)
     const contain = Math.min(box / img.width, box / img.height) * imageScale
     const w = img.width * contain
     const h = img.height * contain
-    const frame = { x: (CANVAS_SIZE - w) / 2, y: (CANVAS_SIZE - h) / 2, width: w, height: h }
+    const frame = { x: (size - w) / 2, y: (size - h) / 2, width: w, height: h }
     ctx.drawImage(img, frame.x, frame.y, frame.width, frame.height)
     for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style }]) {
       await applyManualCleanup(ctx, overlay.style, frame)
@@ -175,17 +193,17 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
       throw new Error('이미지 보안 설정 때문에 PNG를 만들 수 없어요. Storage CORS 설정을 확인해주세요.')
     }
   } else {
-    ctx.font = `${Math.round(120 * SCALE * imageScale)}px sans-serif`
+    ctx.font = `${Math.round(120 * scale * imageScale)}px sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(item.emoji, CANVAS_SIZE / 2, CANVAS_SIZE / 2)
+    ctx.fillText(item.emoji, size / 2, size / 2)
   }
 
   for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style }]) {
     const overlayStyle = overlay.style
     const text = resolveText(overlayStyle, overlay.suggestions)
     if (!text) continue
-    const fontPx = Math.round(overlayStyle.size * SCALE)
+    const fontPx = Math.max(1, Math.round(overlayStyle.size * scale))
     const fontSpec = `${overlayStyle.weight} ${fontPx}px '${overlayStyle.font}', sans-serif`
     try {
       await document.fonts.load(fontSpec, text)
@@ -194,20 +212,20 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
     }
 
     ctx.save()
-    ctx.translate(CANVAS_SIZE / 2 + overlayStyle.x * SCALE, CANVAS_SIZE / 2 + overlayStyle.y * SCALE)
+    ctx.translate(size / 2 + overlayStyle.x * scale, size / 2 + overlayStyle.y * scale)
     ctx.rotate((overlayStyle.rotation * Math.PI) / 180)
     ctx.font = fontSpec
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    drawTextBackground(ctx, text, overlayStyle, fontPx)
+    drawTextBackground(ctx, text, overlayStyle, fontPx, scale)
     if (overlayStyle.shadowOn) {
       ctx.shadowColor = hexToRgba(overlayStyle.shadowColor, overlayStyle.shadowOpacity / 100)
-      ctx.shadowBlur = overlayStyle.shadowBlur * SCALE
-      ctx.shadowOffsetX = overlayStyle.shadowX * SCALE
-      ctx.shadowOffsetY = overlayStyle.shadowY * SCALE
+      ctx.shadowBlur = overlayStyle.shadowBlur * scale
+      ctx.shadowOffsetX = overlayStyle.shadowX * scale
+      ctx.shadowOffsetY = overlayStyle.shadowY * scale
     }
     if (overlayStyle.strokeOn) {
-      ctx.lineWidth = overlayStyle.strokeWidth * 2 * SCALE
+      ctx.lineWidth = overlayStyle.strokeWidth * 2 * scale
       ctx.strokeStyle = overlayStyle.strokeColor
       ctx.lineJoin = 'round'
     }
@@ -250,13 +268,14 @@ export function exportFileName(name: string, lang: string, ext: string) {
 export async function zipLocalizedItems(
   itemsByLanguage: Array<{ languageCode: string; items: DemoItem[] }>,
   styles: Record<string, Record<string, Style>>,
+  preset: OutputPreset = 'default',
 ): Promise<Blob> {
   const zip = new JSZip()
   for (const { languageCode, items } of itemsByLanguage) {
     for (const item of items) {
       const style = styles[item.id]?.[languageCode] ?? DEFAULT_STYLE
       const overlays = textOverlaysForItem(item, languageCode, styles)
-      zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays))
+      zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays, preset))
     }
   }
   return zip.generateAsync({ type: 'blob' })
