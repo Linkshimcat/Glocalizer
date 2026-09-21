@@ -7,8 +7,10 @@ import type { AssetRow } from '../types/asset.js';
 import type { CleanupResult } from '../types/cleanup.js';
 import { AppError, describeError } from '../errors/app-error.js';
 import { env } from '../config/env.js';
-import { decodeImagePixels, sampleBorderPixelsFromDecoded, sampleTextColorFromDecoded } from './background-sampler.js';
-import { assessCleanupQuality, decideCleanupMethod } from './cleanup-quality.js';
+import { decodeImagePixels, sampleTextColorFromDecoded } from './background-sampler.js';
+import { assessCleanupQuality } from './cleanup-quality.js';
+import { decideStableCleanup } from './cleanup-decision.js';
+import { OCR_AUTO_APPROVE_SCORE } from '../ocr/ocr-consensus.service.js';
 import { applySolidColorCleanup } from './solid-color-cleanup.js';
 import { applyTransparentCleanup } from './transparent-cleanup.js';
 import { generateTextEraseMask } from './mask-generator.js';
@@ -77,7 +79,14 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         await updateRegionCleanupMetadata(region.id, { textColor: null, needsManualCleanup: false });
         continue;
       }
-      if (region.needs_manual_review) {
+      // OCR 검수 플래그가 붙는 이유는 둘로 갈린다. (1) 합의 점수가 자동승인 기준 미만 — 위치 자체가 불확실하다.
+      // (2) 점수는 기준 이상인데 Luna와 Paddle의 글자 판독만 엇갈린다 — 두 엔진의 박스는 이미 겹친다고
+      // 확인된 상태고, 클린업은 글자 내용이 아니라 위치만 쓴다. (2)까지 통째로 막으면 같은 이미지가 Luna 판독
+      // 흔들림 때문에 어떨 땐 되고 어떨 땐 안 됐다(시연3.jpeg, 2026-09-21 실측). 그래서 (1)은 기존처럼 원본을
+      // 보존하고, (2)는 단색·투명 배경에서만 자동 정리한다.
+      const ocrNeedsReview = region.needs_manual_review;
+      const locationUnreliable = ocrNeedsReview && (region.agreement_score ?? 0) < OCR_AUTO_APPROVE_SCORE;
+      if (locationUnreliable) {
         // OCR 문구나 좌표가 확정되지 않은 상태에서 자동 삭제하면 반복 장식 문구·캐릭터를
         // 일부만 지우는 비가역적 결과가 생긴다. 원본을 보존하고 에디터 검수로 넘긴다.
         needsManualCleanup = true;
@@ -87,9 +96,17 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
         continue;
       }
       try {
-        const stats = sampleBorderPixelsFromDecoded(decoded, region.bbox);
-        const method = decideCleanupMethod(stats);
+        const { method, stats } = decideStableCleanup(decoded, region.bbox);
         const quality = assessCleanupQuality(method, stats);
+        if (ocrNeedsReview && method === 'directional-inpaint') {
+          // 복잡한 배경 + 확정되지 않은 OCR은 반복 장식 문구·캐릭터를 일부만 지우는 비가역적 결과를 낳을 수
+          // 있어 원본을 보존하고 에디터 검수로 넘긴다.
+          needsManualCleanup = true;
+          methods.push('manual-required');
+          qualities.push('low');
+          await updateRegionCleanupMetadata(region.id, { textColor: null, needsManualCleanup: true });
+          continue;
+        }
         if (method === 'directional-inpaint' && detectsPeriodicPattern(decoded, region.bbox)) {
           // cv2 Telea 인페인팅은 주변 텍스처를 매끈하게 이어붙이는 방식이라, 물방울무늬·
           // 체크무늬처럼 반복되는 배경에서는 무늬를 재현하지 못하고 얼룩을 남긴다(실측 확인,

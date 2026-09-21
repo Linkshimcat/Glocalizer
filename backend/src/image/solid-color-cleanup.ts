@@ -2,6 +2,8 @@ import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
 import { generateTextEraseMask, type FeatherMask } from './mask-generator.js';
 
+const MAX_REFERENCE_DISTANCE = 60;
+
 interface Rgb {
   r: number;
   g: number;
@@ -49,9 +51,14 @@ function surroundingBackground(
 
   const clampedX = Math.max(left, Math.min(right, x));
   const clampedY = Math.max(top, Math.min(bottom, y));
-  const sample = (sampleX: number, sampleY: number): Rgb => (
-    mask.data[sampleY * width + sampleX] >= 200 ? pixelRgb(data, width, channels, sampleX, sampleY) : fallback
-  );
+  const sample = (sampleX: number, sampleY: number): Rgb => {
+    if (mask.data[sampleY * width + sampleX] < 200) return fallback;
+    const color = pixelRgb(data, width, channels, sampleX, sampleY);
+    // 박스가 말풍선 테두리·캐릭터에 딱 붙어 있으면 참조점이 그 검은 선을 집어 채움색이 회색 얼룩이 된다
+    // (2026-09-21 실측: 흰 말풍선 안 글자가 회색 줄무늬로 남음). 배경색 추정값과 너무 다른 참조점은
+    // 배경이 아니므로 버리고, 완만한 그라데이션을 따라가는 용도로는 충분한 거리만 허용한다.
+    return Math.hypot(color.r - fallback.r, color.g - fallback.g, color.b - fallback.b) <= MAX_REFERENCE_DISTANCE ? color : fallback;
+  };
   const horizontal = mix(
     sample(left, clampedY),
     sample(right, clampedY),
