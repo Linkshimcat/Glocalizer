@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { fetchOgqStickers, type OgqSticker } from '../lib/api'
 import { useSiteLang } from '../i18n/LanguageContext'
 
-export default function OgqStickerGallery() {
+export default function OgqStickerGallery({ fallbackImage }: { fallbackImage?: string }) {
   const { t } = useSiteLang()
   const [stickers, setStickers] = useState<OgqSticker[] | null>(null)
   const sceneRef = useRef<HTMLDivElement>(null)
@@ -47,8 +47,11 @@ export default function OgqStickerGallery() {
     scene.style.setProperty('--tilt-y', '0deg')
   }
 
-  // OGQ 연동이 꺼져 있거나 조회에 실패하면, 랜딩페이지에는 조용히 섹션 자체를 숨긴다.
-  if (stickers !== null && stickers.length === 0) return null
+  // OGQ 연동이 꺼져 있거나 조회에 실패하면 기본 랜딩에서는 조용히 숨기고,
+  // 시각 자료가 전달된 화면에서는 같은 갤러리의 정적 버전을 유지한다.
+  if (stickers !== null && stickers.length === 0) {
+    return fallbackImage ? <img src={fallbackImage} alt={t.ogqGalleryTitle} className="ogq-gallery-fallback" /> : null
+  }
 
   return (
     <section className="mx-auto w-full max-w-[1600px] px-5 py-16 sm:px-10 sm:py-20 lg:px-16">

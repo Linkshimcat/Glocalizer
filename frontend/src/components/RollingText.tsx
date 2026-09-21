@@ -26,6 +26,10 @@ type Props = {
   per?: 'word' | 'char'
   /** false면 items[0]의 글자가 한 번만 굴러 올라와 멈춘다(per는 무시). */
   loop?: boolean
+  /** 첫 글자/어절이 움직이기 전 기다리는 시간(초). 여러 줄을 순서대로 보여줄 때 쓴다. */
+  delaySeconds?: number
+  /** 한 줄 제목처럼 단어 경계에서도 줄바꿈하지 않는다. */
+  nowrap?: boolean
 }
 
 /** 줄바꿈 단위로 자른다. 띄어쓰기가 있으면 공백에서, 없는 일본어·중국어는 Intl.Segmenter의
@@ -47,10 +51,29 @@ function toLines(text: string): string[][] {
 /** 한 문장을 글자 단위로 한 번만 굴려 올린다. 제목처럼 줄바꿈되는 긴 문장용.
  *  단어마다 따로 잘라내서(overflow-hidden) 줄이 바뀌어도 각 단어가 제 자리에서 올라오고,
  *  단어 경계에서만 줄이 바뀐다 — 글자 사이에서 끊기지 않는다. */
-function RollOnce({ text, className }: { text: string; className: string }) {
+function RollOnce({ text, className, delaySeconds, nowrap }: { text: string; className: string; delaySeconds: number; nowrap: boolean }) {
   const charCount = [...text.replace(/\s+/g, '')].length
   const stagger = Math.min(ONCE_STAGGER_SECONDS, ONCE_MAX_SPREAD_SECONDS / Math.max(charCount - 1, 1))
   let charIndex = 0
+
+  if (nowrap) {
+    return (
+      <span aria-hidden="true" className={className}>
+        <span className="-my-[0.12em] inline-block overflow-hidden py-[0.12em] align-top whitespace-nowrap">
+          {[...text].map((char, index) => (
+            <span
+              key={index}
+              className="animate-roll-in inline-block whitespace-pre"
+              style={{ animationDelay: `${delaySeconds + index * stagger}s` }}
+            >
+              {char}
+            </span>
+          ))}
+        </span>
+      </span>
+    )
+  }
+
   return (
     <span aria-hidden="true" className={className}>
       {/* 문구가 바뀌면(언어 전환) 통째로 다시 마운트해서 한 번 더 굴린다. */}
@@ -69,7 +92,7 @@ function RollOnce({ text, className }: { text: string; className: string }) {
                       <span
                         key={index}
                         className="animate-roll-in inline-block"
-                        style={{ animationDelay: `${charIndex++ * stagger}s` }}
+                        style={{ animationDelay: `${delaySeconds + charIndex++ * stagger}s` }}
                       >
                         {char}
                       </span>
@@ -85,8 +108,8 @@ function RollOnce({ text, className }: { text: string; className: string }) {
   )
 }
 
-export default function RollingText({ items, className = '', per = 'word', loop = true }: Props) {
-  if (!loop) return <RollOnce text={items[0] ?? ''} className={className} />
+export default function RollingText({ items, className = '', per = 'word', loop = true, delaySeconds = 0, nowrap = false }: Props) {
+  if (!loop) return <RollOnce text={items[0] ?? ''} className={className} delaySeconds={delaySeconds} nowrap={nowrap} />
 
   return (
     // py/-my: 60px 한글은 overflow-hidden에 받침과 윗선이 잘려서 세로 여유를 주고 되돌린다.
@@ -106,13 +129,13 @@ export default function RollingText({ items, className = '', per = 'word', loop 
                 <span
                   key={charIndex}
                   className="animate-roll-word inline-block whitespace-pre"
-                  style={{ animationDelay: `${delayBase + charIndex * CHAR_STAGGER_SECONDS}s` }}
+                  style={{ animationDelay: `${delaySeconds + delayBase + charIndex * CHAR_STAGGER_SECONDS}s` }}
                 >
                   {char}
                 </span>
               ))
             ) : (
-              <span className="animate-roll-word inline-block" style={{ animationDelay: `${delayBase}s` }}>
+              <span className="animate-roll-word inline-block" style={{ animationDelay: `${delaySeconds + delayBase}s` }}>
                 {item}
               </span>
             )}
