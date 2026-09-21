@@ -235,6 +235,9 @@ export interface CloudWorkspace {
 export function listCloudProjects(): Promise<{ projects: CloudProject[] }> {
   return request('/projects')
 }
+export function deleteCloudProject(id: string): Promise<void> {
+  return request(`/projects/${id}`, { method: 'DELETE' })
+}
 export function restoreCloudProject(id: string): Promise<CloudWorkspace> {
   return request(`/projects/${id}/workspace`)
 }

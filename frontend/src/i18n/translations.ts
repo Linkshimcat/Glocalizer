@@ -23,6 +23,15 @@ export interface Dict {
   cloudOpen: string
   cloudRecent: string
   cloudNewConfirm: string
+  cloudNewTitle: string
+  cloudNewProceed: string
+  cloudDelete: string
+  cloudDeleteTitle: string
+  cloudDeleteDescription: string
+  cloudDeleteConfirm: string
+  cloudDeleteCancel: string
+  cloudDeleteSuccess: string
+  cloudDeleteFailed: string
   commonClose: string
 
   hubDashboard: string
@@ -294,6 +303,15 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: '작업 열기',
     cloudRecent: '최근 저장',
     cloudNewConfirm: '현재 작업을 닫고 새 작업을 시작할까요? 클라우드에 저장된 작업은 유지돼요.',
+    cloudNewTitle: '새 작업을 시작할까요?',
+    cloudNewProceed: '새 작업 시작',
+    cloudDelete: '삭제',
+    cloudDeleteTitle: '작업을 삭제할까요?',
+    cloudDeleteDescription: '“{name}” 작업과 저장된 이미지·편집 내용이 모두 사라져요. 삭제하면 되돌릴 수 없어요.',
+    cloudDeleteConfirm: '영구 삭제',
+    cloudDeleteCancel: '취소',
+    cloudDeleteSuccess: '작업을 삭제했어요.',
+    cloudDeleteFailed: '작업을 삭제하지 못했어요. 다시 시도해주세요.',
     commonClose: '닫기',
 
     hubDashboard: '대시보드',
@@ -557,6 +575,15 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: 'Open work',
     cloudRecent: 'Last saved',
     cloudNewConfirm: 'Close this work and start a new task? Work saved to the cloud will remain.',
+    cloudNewTitle: 'Start a new task?',
+    cloudNewProceed: 'Start new task',
+    cloudDelete: 'Delete',
+    cloudDeleteTitle: 'Delete this work?',
+    cloudDeleteDescription: '“{name}” and all saved images and edits will be permanently deleted. This cannot be undone.',
+    cloudDeleteConfirm: 'Delete permanently',
+    cloudDeleteCancel: 'Cancel',
+    cloudDeleteSuccess: 'Work deleted.',
+    cloudDeleteFailed: 'Could not delete this work. Please try again.',
     commonClose: 'Close',
 
     hubDashboard: 'Dashboard',
@@ -820,6 +847,15 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: '作業を開く',
     cloudRecent: '最終保存',
     cloudNewConfirm: 'この作業を閉じて新しく始めますか？クラウドに保存した作業は残ります。',
+    cloudNewTitle: '新しい作業を始めますか？',
+    cloudNewProceed: '新しい作業を開始',
+    cloudDelete: '削除',
+    cloudDeleteTitle: 'この作業を削除しますか？',
+    cloudDeleteDescription: '「{name}」と保存された画像・編集内容がすべて削除されます。元に戻すことはできません。',
+    cloudDeleteConfirm: '完全に削除',
+    cloudDeleteCancel: 'キャンセル',
+    cloudDeleteSuccess: '作業を削除しました。',
+    cloudDeleteFailed: '作業を削除できませんでした。再試行してください。',
     commonClose: '閉じる',
 
     hubDashboard: 'ダッシュボード',
@@ -1083,6 +1119,15 @@ export const translations: Record<SiteLang, Dict> = {
     cloudOpen: '打开任务',
     cloudRecent: '最近保存',
     cloudNewConfirm: '关闭当前任务并新建任务吗？云端已保存的任务会保留。',
+    cloudNewTitle: '开始新任务？',
+    cloudNewProceed: '开始新任务',
+    cloudDelete: '删除',
+    cloudDeleteTitle: '删除此任务？',
+    cloudDeleteDescription: '“{name}”以及已保存的图片和编辑内容将全部删除，且无法恢复。',
+    cloudDeleteConfirm: '永久删除',
+    cloudDeleteCancel: '取消',
+    cloudDeleteSuccess: '任务已删除。',
+    cloudDeleteFailed: '无法删除任务，请重试。',
     commonClose: '关闭',
 
     hubDashboard: '控制台',
