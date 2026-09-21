@@ -23,7 +23,8 @@
     "ocr:npu:recognize": "cmd.exe /c py -3 python/windows_openvino_ocr.py",
     "test": "vitest run",
     "test:watch": "vitest",
-    "benchmark:translation": "tsx benchmarks/translation/run.ts"
+    "benchmark:translation": "tsx benchmarks/translation/run.ts",
+    "benchmark:cleanup": "tsx benchmarks/cleanup/run.ts"
   },
   "keywords": [],
   "author": "",

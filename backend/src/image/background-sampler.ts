@@ -18,7 +18,7 @@ export interface BorderStats {
    * 글자 옆에 붙은 캐릭터 몸통·윤곽선 몇 픽셀만 섞여도 무너져서, 같은 이미지가 OCR 박스가 조금만 달라도
    * "복잡한 배경"으로 뒤집히던 문제(2026-09-21 실측)를 막는다. 없으면 null.
    */
-  sidesBackground: { kind: 'transparent' } | { kind: 'solid'; color: { r: number; g: number; b: number } } | null;
+  sidesBackground: { kind: 'transparent' } | { kind: 'solid'; color: { r: number; g: number; b: number }; cleanSides: number; totalSides: number } | null;
   /** 링 픽셀 중 투명(알파 < 24)한 비율. */
   ringTransparentRatio: number;
   /** 이미지 바깥 가장자리가 거의 투명한가 — 배경이 투명한 스티커 PNG인지 보는 전역 단서. */
@@ -158,7 +158,7 @@ function detectSidesBackground(image: DecodedImage, strips: Rect[]): BorderStats
     g: Math.round(agreeing.reduce((sum, side) => sum + side.dominantColor!.g, 0) / agreeing.length),
     b: Math.round(agreeing.reduce((sum, side) => sum + side.dominantColor!.b, 0) / agreeing.length),
   };
-  return { kind: 'solid', color };
+  return { kind: 'solid', color, cleanSides: agreeing.length, totalSides: sides.length };
 }
 
 const EDGE_TRANSPARENT_RATIO = 0.9;
