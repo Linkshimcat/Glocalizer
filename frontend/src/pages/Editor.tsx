@@ -40,9 +40,11 @@ import {
 import {
   downloadBlob,
   exportFileName,
+  OUTPUT_PRESETS,
   renderItemToPng,
   textOverlaysForItem,
   zipLocalizedItems,
+  type OutputPreset,
 } from '../lib/exportImage'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
@@ -393,6 +395,8 @@ export default function Editor() {
   const [isLoading, setIsLoading] = useState(true)
   const [exportName, setExportName] = useState('glocalizer_export')
   const [exportFormat, setExportFormat] = useState<'PNG' | 'ZIP'>('ZIP')
+  // 내보내기 규격은 프로젝트 전체(모든 이미지·언어)에 공통으로 적용한다.
+  const [outputPreset, setOutputPreset] = useState<OutputPreset>('default')
   const [ocrDraft, setOcrDraft] = useState('')
   const [selectionMode, setSelectionMode] = useState<SelectionMode | null>(null)
   const [selectionRect, setSelectionRect] = useState<NormalizedRect | null>(null)
@@ -906,7 +910,7 @@ export default function Editor() {
     try {
       saveActiveStyle(langCode)
       const overlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
-      const blob = await renderItemToPng(current, style, overlays)
+      const blob = await renderItemToPng(current, style, overlays, outputPreset)
       // 모바일 브라우저는 시스템 다운로드 UI가 열린 뒤 후속 fetch를 중단할 수 있다.
       // 편집 상태와 완료 표시를 먼저 저장한 뒤 다운로드를 시작해야 완료 페이지 이동이 안정적이다.
       await markResultReady()
@@ -931,6 +935,7 @@ export default function Editor() {
       const blob = await zipLocalizedItems(
         availableLanguages.map(language => ({ languageCode: language.code, items: toDemoItems(editorFiles, language.code).filter(item => !removedDemoIds.includes(item.id)) })),
         stylesMap,
+        outputPreset,
       )
       await markResultReady()
       downloadBlob(blob, `${exportName.trim() || 'glocalizer_export'}.zip`)
@@ -955,7 +960,7 @@ export default function Editor() {
     try {
       saveActiveStyle(langCode)
       const overlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
-      const blob = await renderItemToPng(current, style, overlays)
+      const blob = await renderItemToPng(current, style, overlays, outputPreset)
       await markResultReady()
       downloadBlob(blob, exportFileName(current.name, langCode, 'png'))
       recordDownload('single', langCode)
@@ -2003,6 +2008,40 @@ export default function Editor() {
                 })}
               </div>
             </div>
+          </section>
+
+          {/* 출력 규격 (OGQ 배포용) */}
+          <section className={tabClass('스타일')}>
+            <PanelTitle>{e.outputSpec}</PanelTitle>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {(
+                [
+                  ['default', e.outputDefault],
+                  ['ogq-main', e.outputOgqMain],
+                  ['ogq-sticker', e.outputOgqSticker],
+                  ['ogq-tab', e.outputOgqTab],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  onClick={() => setOutputPreset(value)}
+                  aria-pressed={outputPreset === value}
+                  className={`flex h-14 flex-col items-center justify-center rounded-xl border-2 text-sm font-bold transition-colors ${
+                    outputPreset === value
+                      ? 'border-brand bg-brand-soft text-brand-dark'
+                      : 'border-gray-100 bg-white text-sub hover:border-gray-200'
+                  }`}
+                >
+                  {label}
+                  <span className="text-[10px] font-semibold opacity-70">{OUTPUT_PRESETS[value].width}×{OUTPUT_PRESETS[value].height}</span>
+                </button>
+              ))}
+            </div>
+            {outputPreset !== 'default' && (
+              <p className="mt-2 text-[11px] font-semibold leading-relaxed text-sub">
+                {style.transparent ? e.outputOgqHint : e.outputOgqOpaqueWarn}
+              </p>
+            )}
           </section>
 
           {/* 원본 이미지 크기 */}

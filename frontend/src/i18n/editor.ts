@@ -85,6 +85,13 @@ export interface EditorDict {
   alignTop: string
   alignBottom: string
   imageSize: string
+  outputSpec: string
+  outputDefault: string
+  outputOgqMain: string
+  outputOgqSticker: string
+  outputOgqTab: string
+  outputOgqHint: string
+  outputOgqOpaqueWarn: string
   background: string
   bgTransparent: string
   bgWhite: string
@@ -126,7 +133,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     textColor: '글자 색', pickColor: '원하는 색 직접 고르기', textBg: '글자 배경', opacity: '불투명도', padding: '여백', corner: '모서리',
     stroke: '테두리', shadow: '그림자', blur: '흐림', horizontal: '가로', vertical: '세로', transparency: '투명도',
     align: '정렬', alignLeft: '좌', alignCenter: '가운데', alignRight: '우', alignTop: '상', alignBottom: '하',
-    imageSize: '원본 이미지 크기', background: '배경', bgTransparent: '투명', bgWhite: '화이트',
+    imageSize: '원본 이미지 크기', outputSpec: '출력 규격', outputDefault: '기본', outputOgqMain: 'OGQ 메인', outputOgqSticker: 'OGQ 스티커', outputOgqTab: 'OGQ 탭', outputOgqHint: 'OGQ 배포 규격 크기로 내보내요. 남는 공간은 배경으로 채워져요.', outputOgqOpaqueWarn: 'OGQ는 투명 배경이 필요해요. 배경을 투명으로 바꿔주세요.', background: '배경', bgTransparent: '투명', bgWhite: '화이트',
     eraseOriginal: '원문 지우기', eraseHintManual: '자동 정리가 어려운 배경이에요. 지울 영역을 직접 보정해주세요.', eraseHintAuto: '자동 정리 결과가 어색할 때만 직접 보정해주세요.',
     eraseTransparent: '투명 처리', eraseSolid: '배경색 채우기', bgColor: '배경색', cornerRound: '모서리 둥글기',
     eraseShapeRect: '사각형', eraseShapeBrush: '브러시', brushSize: '브러시 굵기', brushClear: '전체 지우기',
@@ -149,7 +156,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     textColor: 'Text color', pickColor: 'Pick a custom color', textBg: 'Text background', opacity: 'Opacity', padding: 'Padding', corner: 'Corner',
     stroke: 'Stroke', shadow: 'Shadow', blur: 'Blur', horizontal: 'X', vertical: 'Y', transparency: 'Transparency',
     align: 'Align', alignLeft: 'L', alignCenter: 'C', alignRight: 'R', alignTop: 'T', alignBottom: 'B',
-    imageSize: 'Original image size', background: 'Background', bgTransparent: 'Transparent', bgWhite: 'White',
+    imageSize: 'Original image size', outputSpec: 'Output size', outputDefault: 'Default', outputOgqMain: 'OGQ Main', outputOgqSticker: 'OGQ Sticker', outputOgqTab: 'OGQ Tab', outputOgqHint: 'Exports at the OGQ publishing size. Leftover space is filled with the background.', outputOgqOpaqueWarn: 'OGQ requires a transparent background. Switch the background to transparent.', background: 'Background', bgTransparent: 'Transparent', bgWhite: 'White',
     eraseOriginal: 'Erase original', eraseHintManual: 'This background is hard to auto-clean. Please adjust the erase area.', eraseHintAuto: 'Only touch up if the auto result looks off.',
     eraseTransparent: 'Transparent', eraseSolid: 'Fill with color', bgColor: 'Fill color', cornerRound: 'Corner radius',
     eraseShapeRect: 'Rectangle', eraseShapeBrush: 'Brush', brushSize: 'Brush size', brushClear: 'Clear all',
@@ -172,7 +179,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     textColor: '文字色', pickColor: '好きな色を選ぶ', textBg: '文字背景', opacity: '不透明度', padding: '余白', corner: '角',
     stroke: '縁取り', shadow: '影', blur: 'ぼかし', horizontal: '横', vertical: '縦', transparency: '透明度',
     align: '配置', alignLeft: '左', alignCenter: '中央', alignRight: '右', alignTop: '上', alignBottom: '下',
-    imageSize: '元画像のサイズ', background: '背景', bgTransparent: '透明', bgWhite: '白',
+    imageSize: '元画像のサイズ', outputSpec: '出力サイズ', outputDefault: '標準', outputOgqMain: 'OGQ メイン', outputOgqSticker: 'OGQ スタンプ', outputOgqTab: 'OGQ タブ', outputOgqHint: 'OGQ 配信規格のサイズで書き出します。余った部分は背景で埋められます。', outputOgqOpaqueWarn: 'OGQ には透明な背景が必要です。背景を透明にしてください。', background: '背景', bgTransparent: '透明', bgWhite: '白',
     eraseOriginal: '原文消去', eraseHintManual: '自動整理が難しい背景です。消す領域を直接調整してください。', eraseHintAuto: '自動整理の結果が不自然なときだけ調整してください。',
     eraseTransparent: '透明処理', eraseSolid: '背景色で塗る', bgColor: '背景色', cornerRound: '角の丸み',
     eraseShapeRect: '四角形', eraseShapeBrush: 'ブラシ', brushSize: 'ブラシの太さ', brushClear: 'すべて消去',
@@ -195,7 +202,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     textColor: '文字颜色', pickColor: '自选颜色', textBg: '文字背景', opacity: '不透明度', padding: '内边距', corner: '圆角',
     stroke: '描边', shadow: '阴影', blur: '模糊', horizontal: '横', vertical: '纵', transparency: '透明度',
     align: '对齐', alignLeft: '左', alignCenter: '居中', alignRight: '右', alignTop: '上', alignBottom: '下',
-    imageSize: '原图大小', background: '背景', bgTransparent: '透明', bgWhite: '白色',
+    imageSize: '原图大小', outputSpec: '输出规格', outputDefault: '默认', outputOgqMain: 'OGQ 主图', outputOgqSticker: 'OGQ 贴图', outputOgqTab: 'OGQ 标签', outputOgqHint: '按 OGQ 发布规格的尺寸导出，多出的空间会用背景填充。', outputOgqOpaqueWarn: 'OGQ 需要透明背景，请将背景改为透明。', background: '背景', bgTransparent: '透明', bgWhite: '白色',
     eraseOriginal: '擦除原文', eraseHintManual: '此背景难以自动清理，请手动调整擦除区域。', eraseHintAuto: '仅当自动清理效果不佳时再手动调整。',
     eraseTransparent: '透明处理', eraseSolid: '填充背景色', bgColor: '背景色', cornerRound: '圆角程度',
     eraseShapeRect: '矩形', eraseShapeBrush: '画笔', brushSize: '画笔粗细', brushClear: '全部清除',
