@@ -50,4 +50,39 @@ describe('generateTextEraseMask', () => {
     expect(mask.data[4 * width + 4]).toBeGreaterThan(240);
     expect(mask.data[10 * width + 10]).toBeLessThan(40);
   });
+
+  describe('OCR 박스 밖으로 삐져나간 글자 획', () => {
+    const w = 60;
+    const h = 140;
+    const box = { x: 20, y: 20, width: 20, height: 40 };
+    const bg = { r: 255, g: 255, b: 255 };
+
+    function image(paint: (set: (x: number, y: number) => void) => void): Promise<Buffer> {
+      const raw = Buffer.alloc(w * h * 4);
+      for (let i = 0; i < w * h; i += 1) raw.set([255, 255, 255, 255], i * 4);
+      paint((x, y) => raw.set([0, 0, 0, 255], (y * w + x) * 4));
+      return sharp(raw, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+    }
+
+    it('박스 아래로 5px 삐져나온 획의 끝까지 지운다(스캔 범위 3px 밖)', async () => {
+      const buffer = await image(set => { for (let y = 25; y < 65; y += 1) for (let x = 28; x < 32; x += 1) set(x, y); });
+      const mask = await generateTextEraseMask(buffer, box, w, h, { mode: 'solid', backgroundColor: bg });
+      expect(mask.data[64 * w + 30]).toBeLessThan(40);
+    });
+
+    it('삐져나간 획과 떨어진 아래쪽 성분(캐릭터)은 보존한다', async () => {
+      const buffer = await image(set => {
+        for (let y = 25; y < 65; y += 1) for (let x = 28; x < 32; x += 1) set(x, y);
+        for (let y = 72; y < 90; y += 1) for (let x = 20; x < 40; x += 1) set(x, y);
+      });
+      const mask = await generateTextEraseMask(buffer, box, w, h, { mode: 'solid', backgroundColor: bg });
+      expect(mask.data[80 * w + 30]).toBeGreaterThan(240);
+    });
+
+    it('글자에 이어진 긴 몸통이라도 제한 거리 밖은 지우지 않는다', async () => {
+      const buffer = await image(set => { for (let y = 25; y < 120; y += 1) for (let x = 28; x < 32; x += 1) set(x, y); });
+      const mask = await generateTextEraseMask(buffer, box, w, h, { mode: 'solid', backgroundColor: bg });
+      expect(mask.data[110 * w + 30]).toBeGreaterThan(240);
+    });
+  });
 });

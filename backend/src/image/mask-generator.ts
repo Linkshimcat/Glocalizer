@@ -110,6 +110,51 @@ export function keepComponentsTouchingBox(
 }
 
 /**
+ * OCR bbox가 둥근 글자 획의 위·아래끝을 잘라내면(실측 2026-09-21: 큰 글자에서 획이 박스 밖으로
+ * 6px 삐져나옴) 그 조각이 스캔 범위 밖이라 지워지지 않고 자투리로 남는다. 스캔 범위 안에서 이미
+ * 글자로 확정된 픽셀에 8-이웃으로 이어진 글자색 픽셀만 위·아래로 maxGrow px까지 따라가 추가한다.
+ * 이어진 획만 따라가고 거리도 제한하므로, 떨어져 있는 캐릭터·말풍선은 건드리지 않는다. in-place.
+ */
+export function growTextBeyondScan(
+  foreground: Uint8Array,
+  width: number,
+  height: number,
+  scanRoi: PixelBox,
+  isTextPixel: (pixelIndex: number) => boolean,
+  maxGrow: number,
+): void {
+  const left = Math.max(0, Math.floor(scanRoi.x));
+  const right = Math.min(width, Math.ceil(scanRoi.x + scanRoi.width));
+  const scanTop = Math.max(0, Math.floor(scanRoi.y));
+  const scanBottom = Math.min(height, Math.ceil(scanRoi.y + scanRoi.height));
+  const limitTop = Math.max(0, scanTop - maxGrow);
+  const limitBottom = Math.min(height, scanBottom + maxGrow);
+  const stack: number[] = [];
+  for (const y of [scanTop, scanBottom - 1]) {
+    if (y < 0 || y >= height) continue;
+    for (let x = left; x < right; x += 1) if (foreground[y * width + x] === 255) stack.push(y * width + x);
+  }
+  while (stack.length > 0) {
+    const pixel = stack.pop() as number;
+    const px = pixel % width;
+    const py = (pixel - px) / width;
+    for (let dy = -1; dy <= 1; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = px + dx;
+        const ny = py + dy;
+        if (nx < left || nx >= right || ny < limitTop || ny >= limitBottom) continue;
+        if (ny >= scanTop && ny < scanBottom) continue; // 스캔 범위 안은 이미 판정을 마쳤다.
+        const index = ny * width + nx;
+        if (foreground[index] === 255 || !isTextPixel(index)) continue;
+        foreground[index] = 255;
+        stack.push(index);
+      }
+    }
+  }
+}
+
+/**
  * OCR bbox 안에서 배경과 다른 실제 글자 픽셀만 골라 erase mask를 만든다.
  * 0=지움, 255=유지라는 기존 FeatherMask 계약을 유지한다.
  */
@@ -147,16 +192,18 @@ export async function generateTextEraseMask(
   const channels = decoded.channels;
   const foreground = new Uint8Array(imageWidth * imageHeight);
   const background = options.backgroundColor;
+  const isTextAt = (pixel: number): boolean => {
+    const base = pixel * channels;
+    const alpha = data[base + 3];
+    return options.mode === 'transparent'
+      ? alpha >= 24
+      : alpha >= 24 && background !== undefined && colorDistance(data[base], data[base + 1], data[base + 2], background) >= MIN_COLOR_DISTANCE;
+  };
 
   for (let y = Math.floor(scanRoi.y); y < Math.ceil(scanRoi.y + scanRoi.height); y += 1) {
     for (let x = Math.floor(scanRoi.x); x < Math.ceil(scanRoi.x + scanRoi.width); x += 1) {
       const pixel = y * imageWidth + x;
-      const base = pixel * channels;
-      const alpha = data[base + 3];
-      const isText = options.mode === 'transparent'
-        ? alpha >= 24
-        : alpha >= 24 && background !== undefined && colorDistance(data[base], data[base + 1], data[base + 2], background) >= MIN_COLOR_DISTANCE;
-      foreground[pixel] = isText ? 255 : 0;
+      foreground[pixel] = isTextAt(pixel) ? 255 : 0;
     }
   }
 
@@ -179,10 +226,23 @@ export async function generateTextEraseMask(
   //   떨어진 캐릭터·말풍선 선은 보존한다. 넓은 padding을 안전하게 쓸 수 있게 하는 핵심.
   keepComponentsTouchingBox(foreground, imageWidth, imageHeight, scanRoi, box);
 
+  // 스캔 범위 위·아래로 삐져나간 획의 끝까지 이어 붙인다. 박스 높이에 비례하되 상한을 둬서
+  // 몸통에 붙은 글자에서도 지나치게 번지지 않게 한다(scan 범위 자체는 캐릭터 보호 때문에 좁게 유지).
+  const maxGrow = Math.max(4, Math.min(12, Math.ceil(box.height * 0.08)));
+  growTextBeyondScan(foreground, imageWidth, imageHeight, scanRoi, isTextAt, maxGrow);
+  const growTop = Math.max(0, scanRoi.y - maxGrow);
+  const growBottom = Math.min(imageHeight, scanRoi.y + scanRoi.height + maxGrow);
+  const grownRoi = { x: scanRoi.x, y: growTop, width: scanRoi.width, height: growBottom - growTop };
+
   // 안티에일리어싱 헤일로(잔상)까지 덮도록 dilation을 조금 더 준다. 분리된 캐릭터는 위의
   // 연결성분 필터가 이미 제거했으므로 확대해도 캐릭터를 갉아먹지 않는다.
   const dilationRadius = Math.max(3, Math.min(7, Math.round(Math.min(box.width, box.height) / 24)));
-  const expanded = dilateMask(foreground, imageWidth, imageHeight, dilationRadius, scanRoi);
+  const expanded = dilateMask(foreground, imageWidth, imageHeight, dilationRadius, {
+    x: grownRoi.x,
+    y: Math.max(0, grownRoi.y - dilationRadius),
+    width: grownRoi.width,
+    height: Math.min(imageHeight, grownRoi.y + grownRoi.height + dilationRadius) - Math.max(0, grownRoi.y - dilationRadius),
+  });
   const { data: blurred, info: blurInfo } = await sharp(Buffer.from(expanded), { raw: { width: imageWidth, height: imageHeight, channels: 1 } })
     .blur(1.2)
     .raw()
@@ -191,5 +251,5 @@ export async function generateTextEraseMask(
   for (let index = 0; index < mask.length; index += 1) {
     mask[index] = 255 - blurred[index * blurInfo.channels];
   }
-  return { data: mask, width: imageWidth, height: imageHeight, roi: scanRoi };
+  return { data: mask, width: imageWidth, height: imageHeight, roi: grownRoi };
 }
