@@ -22,7 +22,8 @@
     "ocr:npu:benchmark-det": "cmd.exe /c py -3 python/windows_openvino_npu_probe.py --model training/ocr/openvino/PP-OCRv5_mobile_det.onnx --static-shape 1,3,1280,1280 --runs 10",
     "ocr:npu:recognize": "cmd.exe /c py -3 python/windows_openvino_ocr.py",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "benchmark:cleanup": "tsx benchmarks/cleanup/run.ts"
   },
   "keywords": [],
   "author": "",

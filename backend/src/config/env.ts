@@ -84,6 +84,16 @@ export const envSchema = z.object({
   // 별도 Vision 호출이 하나 더 붙는 거라, 문제가 생기면 재배포 없이 바로 끌 수 있게 플래그로 뺐다.
   ENABLE_FONT_STYLE_ANALYSIS: z.string().default('true').transform((v) => v === 'true'),
 
+  // 정리한 영역을 OCR로 다시 읽어 글자가 남았는지 확인한다("성공"으로 기록됐는데 글자가 남는 부분 정리를 잡는다).
+  // 검증 호출이 실패하면 통과로 취급한다(검증 때문에 정리 자체가 실패하면 안 된다).
+  ENABLE_CLEANUP_VERIFICATION: z.string().default('true').transform((v) => v === 'true'),
+  CLEANUP_VERIFICATION_TIMEOUT_MS: z.coerce.number().int().positive().default(45_000),
+  // 검증에서 글자가 남은 영역만 이미지 편집 API로 지운다. 유료라 기본은 끈다.
+  ENABLE_CLEANUP_AI_FALLBACK: z.string().default('false').transform((v) => v === 'true'),
+  CLEANUP_AI_MODEL: z.string().default('gpt-image-2.5-sunburst'),
+  CLEANUP_AI_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),
+  CLEANUP_AI_MAX_PER_HOUR: z.coerce.number().int().min(0).default(30),
+
   AI_MAX_RETRIES: z.coerce.number().int().min(1).max(5).default(3),
   AI_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
   CLEANUP_CONCURRENCY: z.coerce.number().int().positive().default(4),
