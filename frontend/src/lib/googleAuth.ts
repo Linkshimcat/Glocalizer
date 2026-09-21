@@ -108,11 +108,27 @@ interface PendingLogin {
 let pendingLogin: PendingLogin | null = null
 let preparePromise: Promise<boolean> | undefined
 
+function getRenderedGoogleButton(): HTMLElement | null {
+  return document
+    .getElementById('google-gsi-hidden-button')
+    ?.querySelector<HTMLElement>('div[role="button"]') ?? null
+}
+
 // 클릭 시점에 async 작업이 끼면 iOS Safari 등 모바일 브라우저가 팝업을 진짜 사용자 제스처로
 // 인정하지 않아 로그인 후 원래 창으로 결과가 돌아오지 못하고 빈 화면만 남는다.
 // 그래서 스크립트 로딩·초기화 같은 무거운 준비는 버튼을 누르기 전에 미리 끝내둔다.
 function prepareGoogleLogin(): Promise<boolean> {
-  if (preparePromise) return preparePromise
+  if (preparePromise) {
+    const prepared = preparePromise
+    return prepared.then((ready) => {
+      if (!ready || getRenderedGoogleButton()) return ready
+
+      // GIS는 로그인 완료 후 기존 버튼 DOM을 iframe 구조로 교체할 수 있다.
+      // 준비 Promise만 재사용하면 재로그인 때 클릭할 대상이 없어지므로 다시 렌더링한다.
+      if (preparePromise === prepared) preparePromise = undefined
+      return prepareGoogleLogin()
+    })
+  }
   const attempt = (async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     const supabase = await googleAuthClient()
@@ -170,8 +186,7 @@ export async function startGoogleLogin(): Promise<string | false> {
   const ready = await prepareGoogleLogin()
   if (!ready) return false
 
-  const container = document.getElementById('google-gsi-hidden-button')
-  const button = container?.querySelector<HTMLElement>('div[role="button"]')
+  const button = getRenderedGoogleButton()
   if (!button) return false
 
   return new Promise((resolve, reject) => {
