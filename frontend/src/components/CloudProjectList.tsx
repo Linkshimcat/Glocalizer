@@ -9,6 +9,32 @@ import { deleteCloudProject, listCloudProjects, type CloudProject } from '../lib
 import { useAuth } from '../store/AuthContext'
 import { LANGUAGES, useUploads } from '../store/uploads'
 
+function ProjectListSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="mt-4 grid gap-4" aria-busy="true">
+      <span className="sr-only">{label}</span>
+      {Array.from({ length: 2 }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className="flex animate-pulse flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6"
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <div className="h-20 w-20 shrink-0 rounded-2xl bg-brand-soft/70" />
+            <div className="min-w-0 flex-1">
+              <div className="h-6 w-16 rounded-full bg-brand-soft" />
+              <div className="mt-3 h-4 w-2/5 rounded-full bg-gray-200" />
+              <div className="mt-3 h-3 w-3/5 rounded-full bg-gray-100" />
+              <div className="mt-2 h-3 w-1/3 rounded-full bg-gray-100" />
+            </div>
+          </div>
+          <div className="h-11 w-full rounded-xl bg-brand-soft sm:w-28 sm:shrink-0" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function CloudProjectList({ archive }: { archive: boolean }) {
   const { user, token } = useAuth()
   const { t, lang } = useSiteLang()
@@ -59,7 +85,7 @@ export default function CloudProjectList({ archive }: { archive: boolean }) {
   }
 
   if (!user) return <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
-  if (loading) return <p role="status" className="mt-5 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.cloudLoading}</p>
+  if (loading) return <ProjectListSkeleton label={t.cloudLoading} />
   if (error) return <div role="alert" className="mt-5"><p className="text-sm text-sub">{t.cloudListFailed}</p><Button variant="outline" className="mt-3" onClick={() => setRetry(value => value + 1)}>{t.cloudRetry}</Button></div>
   if (!projects.length) return <p className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p>
 
