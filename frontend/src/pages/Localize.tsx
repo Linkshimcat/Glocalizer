@@ -131,7 +131,10 @@ export default function Localize() {
 
   const selectedCount = files.filter(file => selectedFileIds.includes(file.id)).length
   const hasFiles = files.length > 0
-  const canStart = isAuthenticated && !cloudSaving && selectedCount > 0 && targetLangs.length > 0
+  // 백그라운드 자동저장(cloudSaving)이 끝나길 기다리지 않는다. startLocalization이 내부에서
+  // saveDraft()를 직접 호출하고, 진행 중인 저장 뒤에 순서대로 이어 붙기 때문에 바로 눌러도 안전하다.
+  // 대신 이미 시작을 눌러 진행 중일 때(progress)는 더블클릭을 막는다.
+  const canStart = isAuthenticated && progress === null && selectedCount > 0 && targetLangs.length > 0
 
   return (
     <div className="min-h-screen bg-white">
