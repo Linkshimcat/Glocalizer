@@ -9,6 +9,7 @@ import { generateTextEraseMask } from './mask-generator.js';
 import { isMaskCoverageSafe, measureMaskCoverage } from './mask-coverage.js';
 import { generateAdaptiveTextMask } from './adaptive-text-mask.js';
 import { applyDirectionalInpaint } from './directional-inpaint.js';
+import { fitBackgroundModel } from './background-model.js';
 
 const ADAPTIVE_MASK_MIN_CONFIDENCE = 0.55;
 
@@ -74,9 +75,11 @@ export async function cleanRegionPixels(input: RegionCleanupInput): Promise<Regi
     return { kind: 'cleaned', method, quality, buffer, textColor };
   }
 
+  // 배경이 강하게 변하거나(그라데이션) 노이즈가 큰(사진) 경우에만 평면 모델을 쓴다. 단색 배경은 null이라 기존 경로 그대로다.
+  const backgroundModel = method === 'solid-color-fill' ? fitBackgroundModel(decoded, bbox) : null;
   const mask = await generateTextEraseMask(
     originalBuffer, bbox, width, height,
-    method === 'transparent-mask' ? { mode: 'transparent' } : { mode: 'solid', backgroundColor: stats.medianColor },
+    method === 'transparent-mask' ? { mode: 'transparent' } : { mode: 'solid', backgroundColor: stats.medianColor, backgroundModel },
     decoded,
   );
   const textColor = sampleTextColorFromDecoded(decoded, bbox, stats.medianColor, mask);
@@ -89,6 +92,6 @@ export async function cleanRegionPixels(input: RegionCleanupInput): Promise<Regi
   }
   const buffer = method === 'transparent-mask'
     ? await applyTransparentCleanup(currentBuffer, bbox, width, height, mask)
-    : await applySolidColorCleanup(currentBuffer, bbox, stats.medianColor, width, height, mask);
+    : await applySolidColorCleanup(currentBuffer, bbox, stats.medianColor, width, height, mask, backgroundModel);
   return { kind: 'cleaned', method, quality, buffer, textColor };
 }
