@@ -106,11 +106,13 @@ export async function evaluateRun(rendered: RenderedScenario, box: PixelBox, cle
   const original = await pixels(rendered.full);
   const truth = await pixels(rendered.clean);
   const result = cleaned ? await pixels(cleaned) : original;
+  // 노이즈 배경은 무엇으로 채워도 정답 노이즈와 픽셀 단위로 일치할 수 없다. 노이즈 폭만큼 허용 오차를 넓힌다(글자와 배경 차이는 이보다 훨씬 크다).
+  const tolerance = RESIDUAL_TOLERANCE + (rendered.scenario.noise ?? 0) * 2;
   let textPixels = 0; let unrestored = 0;
   for (let i = 0; i < WIDTH * HEIGHT; i += 1) {
     if (rendered.textMask[i] !== 255) continue;
     textPixels += 1;
-    if (diff(result, truth, i) > RESIDUAL_TOLERANCE) unrestored += 1;
+    if (diff(result, truth, i) > tolerance) unrestored += 1;
   }
   // 글자 마스크를 6px 팽창한 영역 밖의 변화만 부수 피해로 센다.
   const near = new Uint8Array(WIDTH * HEIGHT);

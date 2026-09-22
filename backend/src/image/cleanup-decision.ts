@@ -4,9 +4,8 @@ import { decideCleanupMethod } from './cleanup-quality.js';
 import type { CleanupMethod } from '../types/cleanup.js';
 import { detectsPeriodicPattern } from './pattern-detector.js';
 
-/** 이보다 색 편차가 작은 단색 배경은 주기 무늬일 수 없어 무늬 검사를 건너뛴다. */
-const PATTERN_CHECK_STDDEV = 14;
 const PERIODIC_VOTE_RATIO = 0.7;
+const UNANIMOUS_VOTE_RATIO = 0.9;
 
 const SHIFT_X = 0.03;
 const SHIFT_Y = 0.04;
@@ -58,19 +57,22 @@ export function decideStableCleanup(decoded: DecodedImage, box: PixelBox): { met
   const chosen = votes.find((vote) => vote.method === method) ?? votes[0];
 
   // 주기 무늬 판정도 다수결로 한다. 박스가 조금만 달라져도 글자 아랫부분이 무늬 검사 패치에 섞여 오탐이 나기 때문이다.
-  // 무늬가 문제 되는 경우(복잡한 배경 인페인팅, 색 편차가 큰 단색 채우기)에만 검사한다.
+  // 무늬가 문제 되는 경우(복잡한 배경 인페인팅, 깨끗한 변이 없는 단색 채우기)에만 검사한다. 점이 드문 물방울무늬는
+  // 링 색 편차가 작아(≤14) 색 편차로는 단색과 구분되지 않는다(2026-09-22 벤치마크: dots-sparse가 박스마다 판정이 갈림).
   // 단, 깨끗한 단색 변이 3개 이상 일치하면(무늬가 있다면 위아래·좌우가 같은 색일 수 없다) 무늬가 아니다 —
   // 이때 검사 패치(글자 아래 영역)에 든 캐릭터를 무늬로 오탐하는 것을 막는다(강아지 스티커, 2026-09-21 실측).
   const sides = chosen.stats.sidesBackground;
   const mostSidesClean = sides?.kind === 'solid' && sides.cleanSides >= 3;
-  const patternRelevant = method === 'directional-inpaint'
-    || (method === 'solid-color-fill' && chosen.stats.colorStdDev > PATTERN_CHECK_STDDEV && !mostSidesClean);
+  const patternRelevant = method === 'directional-inpaint' || method === 'solid-color-fill';
   let periodic = false;
   if (patternRelevant) {
     const boxes = perturbedBoxes(box, decoded.width, decoded.height);
     const periodicVotes = boxes.filter((candidate) => detectsPeriodicPattern(decoded, candidate)).length;
-    // 진짜 반복 무늬는 흔든 박스 거의 전부에서 잡힌다(줄무늬 8/8). 캐릭터가 검사 패치에 섞인 오탐은 과반 근처라 70%를 요구한다.
-    periodic = periodicVotes >= Math.ceil(boxes.length * PERIODIC_VOTE_RATIO);
+    // 진짜 반복 무늬는 흔든 박스 거의 전부에서 잡힌다(줄무늬 8/9, 물방울 9/9). 캐릭터가 검사 패치에 섞인 오탐은 과반 근처라
+    // 70%를 요구하고, 깨끗한 변이 3개 이상이면 만장일치(90%)가 아닌 한 무늬로 보지 않는다. 점이 드문 물방울무늬는 일부 박스에서
+    // 변이 우연히 깨끗해 보이는데, 이때도 무늬 검사는 만장일치로 통과한다(2026-09-22 dots-sparse).
+    const ratio = mostSidesClean ? UNANIMOUS_VOTE_RATIO : PERIODIC_VOTE_RATIO;
+    periodic = periodicVotes >= Math.ceil(boxes.length * ratio);
   }
   return { method, stats: chosen.stats, periodic };
 }

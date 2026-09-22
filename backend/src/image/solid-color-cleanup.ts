@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
 import { generateTextEraseMask, type FeatherMask } from './mask-generator.js';
+import { positionNoise, type BackgroundModel } from './background-model.js';
 
 const MAX_REFERENCE_DISTANCE = 60;
 
@@ -80,6 +81,7 @@ export async function applySolidColorCleanup(
   imageWidth: number,
   imageHeight: number,
   existingMask?: FeatherMask,
+  backgroundModel?: BackgroundModel | null,
 ): Promise<Buffer> {
   const mask = existingMask ?? await generateTextEraseMask(buffer, box, imageWidth, imageHeight, { mode: 'solid', backgroundColor: fillColor });
 
@@ -94,10 +96,20 @@ export async function applySolidColorCleanup(
     const base = i * channels;
     const x = i % imageWidth;
     const y = (i - x) / imageWidth;
-    const fill = surroundingBackground(data, imageWidth, imageHeight, channels, box, x, y, fillColor, mask);
-    const fillChannels = [fill.r, fill.g, fill.b];
+    let fillChannels: number[];
+    if (backgroundModel) {
+      // 그라데이션은 위치별 평면 예측으로, 노이즈 배경은 같은 크기의 노이즈를 얹어 평평한 얼룩이 티 나지 않게 한다.
+      const predicted = backgroundModel.at(x, y);
+      // 사진 노이즈는 대개 세 채널이 함께 움직이는 밝기 노이즈라, 채널 상관만큼 공통 성분을 섞어 색 얼룩이 생기지 않게 한다.
+      const { correlation } = backgroundModel;
+      const shared = positionNoise(x, y, 0);
+      fillChannels = predicted.map((value, c) => value + (Math.sqrt(correlation) * shared + Math.sqrt(1 - correlation) * positionNoise(x, y, c + 1)) * backgroundModel.channelSigma[c]);
+    } else {
+      const fill = surroundingBackground(data, imageWidth, imageHeight, channels, box, x, y, fillColor, mask);
+      fillChannels = [fill.r, fill.g, fill.b];
+    }
     for (let c = 0; c < 3; c += 1) {
-      out[base + c] = Math.round(out[base + c] * keepWeight + fillChannels[c] * (1 - keepWeight));
+      out[base + c] = Math.max(0, Math.min(255, Math.round(out[base + c] * keepWeight + fillChannels[c] * (1 - keepWeight))));
     }
   }
 

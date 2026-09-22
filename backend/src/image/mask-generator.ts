@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import type { PixelBox } from '../utils/bbox.js';
 import type { DecodedImage } from './background-sampler.js';
 import { padAndClampBox } from '../utils/bbox.js';
+import type { BackgroundModel } from './background-model.js';
 
 export interface FeatherMask {
   /** width*height 길이의 그레이스케일 값. 0 = box 안(완전히 지움), 255 = box 밖(원본 유지). */
@@ -15,6 +16,11 @@ export interface FeatherMask {
 export interface TextMaskOptions {
   mode: 'transparent' | 'solid';
   backgroundColor?: { r: number; g: number; b: number };
+  /**
+   * 강한 그라데이션·노이즈 배경에서 위치별 배경 추정값과 노이즈 크기를 준다. 없으면 backgroundColor 하나와의
+   * 거리로 글자를 가른다(단색 배경). 전역 대표색은 배경이 크게 변하면 배경 자체를 글자로 오인한다.
+   */
+  backgroundModel?: BackgroundModel | null;
 }
 
 // PNG 안티에일리어싱/JPEG 노이즈와 완만한 그라데이션까지 글자로 오인하면 OCR 박스
@@ -272,12 +278,20 @@ export async function generateTextEraseMask(
   const channels = decoded.channels;
   const foreground = new Uint8Array(imageWidth * imageHeight);
   const background = options.backgroundColor;
+  const model = options.mode === 'solid' ? options.backgroundModel ?? null : null;
+  // 노이즈 자체가 글자로 잡히지 않도록 임계값을 노이즈 크기의 약 3배로 올린다(가우시안 3σ).
+  const textDistance = model ? Math.max(MIN_COLOR_DISTANCE, 3 * model.noiseSigma) : MIN_COLOR_DISTANCE;
   const isTextAt = (pixel: number): boolean => {
     const base = pixel * channels;
     const alpha = data[base + 3];
-    return options.mode === 'transparent'
-      ? alpha >= 24
-      : alpha >= 24 && background !== undefined && colorDistance(data[base], data[base + 1], data[base + 2], background) >= MIN_COLOR_DISTANCE;
+    if (options.mode === 'transparent') return alpha >= 24;
+    if (alpha < 24) return false;
+    if (model) {
+      const x = pixel % imageWidth;
+      const expected = model.at(x, (pixel - x) / imageWidth);
+      return colorDistance(data[base], data[base + 1], data[base + 2], { r: expected[0], g: expected[1], b: expected[2] }) >= textDistance;
+    }
+    return background !== undefined && colorDistance(data[base], data[base + 1], data[base + 2], background) >= MIN_COLOR_DISTANCE;
   };
 
   for (let y = Math.floor(scanRoi.y); y < Math.ceil(scanRoi.y + scanRoi.height); y += 1) {
