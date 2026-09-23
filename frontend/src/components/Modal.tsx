@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ModalProps {
   onClose: () => void
@@ -37,7 +38,10 @@ export default function Modal({ onClose, children, labelledBy, closeLabel }: Mod
     }
   }, [])
 
-  return (
+  // 조상에 transform·filter가 걸려 있으면 position:fixed의 기준이 뷰포트가 아니라 그 조상이
+  // 된다. iOS에서 오버레이가 화면 아래를 덮지 못해 흰 canvas가 드러나던 원인이라, body로
+  // 포털해 조상 영향을 끊는다.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
       onClick={onClose}
@@ -63,6 +67,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel }: Mod
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
