@@ -1,6 +1,6 @@
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { Router } from 'express';
-import { createProjectHandler, deleteProjectHandler, createDraftHandler, updateDraftHandler, listWorkspacesHandler, restoreWorkspaceHandler, finishWorkspaceHandler } from '../controllers/project.controller.js';
+import { createProjectHandler, deleteProjectHandler, createDraftHandler, updateDraftHandler, listWorkspacesHandler, renameProjectHandler, restoreWorkspaceHandler, finishWorkspaceHandler } from '../controllers/project.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { createProjectSchema, draftProjectSchema } from '../schemas/project.schema.js';
@@ -19,6 +19,8 @@ projectRouter.delete(
 );
 
 projectRouter.get('/projects', authMiddleware, asyncHandler(listWorkspacesHandler));
+projectRouter.patch('/projects/:projectId', authMiddleware, validate(projectParamsSchema, 'params'), projectAuthMiddleware, asyncHandler(renameProjectHandler));
+
 projectRouter.post('/projects/drafts', authMiddleware, validate(draftProjectSchema), asyncHandler(createDraftHandler));
 projectRouter.put('/projects/:projectId/draft', authMiddleware, validate(projectParamsSchema, 'params'), projectAuthMiddleware, validate(draftProjectSchema), asyncHandler(updateDraftHandler));
 projectRouter.get('/projects/:projectId/workspace', authMiddleware, validate(projectParamsSchema, 'params'), projectAuthMiddleware, asyncHandler(restoreWorkspaceHandler));

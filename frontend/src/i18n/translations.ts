@@ -33,6 +33,13 @@ export interface Dict {
   cloudDeleteSuccess: string
   cloudDeleteFailed: string
   commonClose: string
+  cloudRename: string
+  cloudRenameTitle: string
+  cloudRenameLabel: string
+  cloudRenameHint: string
+  cloudRenameSave: string
+  cloudRenameSuccess: string
+  cloudRenameFailed: string
 
   hubDashboard: string
   hubTitle: string
@@ -324,6 +331,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudDeleteSuccess: '작업을 삭제했어요.',
     cloudDeleteFailed: '작업을 삭제하지 못했어요. 다시 시도해주세요.',
     commonClose: '닫기',
+    cloudRename: '이름 변경', cloudRenameTitle: '작업 이름 바꾸기', cloudRenameLabel: '작업 이름', cloudRenameHint: '비워두면 기본 이름으로 돌아가요. 최대 60자.', cloudRenameSave: '저장', cloudRenameSuccess: '이름을 바꿨어요.', cloudRenameFailed: '이름을 바꾸지 못했어요. 다시 시도해주세요.',
 
     hubDashboard: '대시보드',
     hubTitle: '어떤 작업을 시작할까요?',
@@ -607,6 +615,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudDeleteSuccess: 'Work deleted.',
     cloudDeleteFailed: 'Could not delete this work. Please try again.',
     commonClose: 'Close',
+    cloudRename: 'Rename', cloudRenameTitle: 'Rename this work', cloudRenameLabel: 'Work name', cloudRenameHint: 'Leave empty to restore the default name. Up to 60 characters.', cloudRenameSave: 'Save', cloudRenameSuccess: 'Name updated.', cloudRenameFailed: 'Could not rename this work. Please try again.',
 
     hubDashboard: 'Dashboard',
     hubTitle: 'What would you like to work on?',
@@ -890,6 +899,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudDeleteSuccess: '作業を削除しました。',
     cloudDeleteFailed: '作業を削除できませんでした。再試行してください。',
     commonClose: '閉じる',
+    cloudRename: '名前を変更', cloudRenameTitle: '作業名を変更', cloudRenameLabel: '作業名', cloudRenameHint: '空にすると既定の名前に戻ります。最大60文字。', cloudRenameSave: '保存', cloudRenameSuccess: '名前を変更しました。', cloudRenameFailed: '名前を変更できませんでした。もう一度お試しください。',
 
     hubDashboard: 'ダッシュボード',
     hubTitle: 'どんな作業を始めますか？',
@@ -1173,6 +1183,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudDeleteSuccess: '任务已删除。',
     cloudDeleteFailed: '无法删除任务，请重试。',
     commonClose: '关闭',
+    cloudRename: '重命名', cloudRenameTitle: '重命名任务', cloudRenameLabel: '任务名称', cloudRenameHint: '留空将恢复默认名称，最多60个字符。', cloudRenameSave: '保存', cloudRenameSuccess: '名称已更新。', cloudRenameFailed: '无法重命名，请重试。',
 
     hubDashboard: '控制台',
     hubTitle: '想开始什么工作？',

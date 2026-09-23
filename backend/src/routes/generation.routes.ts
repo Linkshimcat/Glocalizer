@@ -9,7 +9,7 @@ import { authMiddleware, requireAuth } from '../middleware/auth.middleware.js';
 import { findUserById } from '../repositories/user.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import { asyncHandler } from '../utils/async-handler.js';
-import { unwrapList, unwrapNullableRow, unwrapRow } from '../utils/db-result.js';
+import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 import { captionSticker, deleteGenerationProject, enqueueGeneration, generationWorkspace, ownedGeneration, saveBatchCaptions, saveGeneratedCaption, saveGenerationPlan, saveSampleCaptions, suggestStickerCaptions, suggestStickerPlan, type GenerationProject, type GenerationImage } from '../services/generation.service.js';
 
 export const generationRouter=Router();
@@ -106,6 +106,13 @@ generationRouter.post('/generation/projects/:id/complete',asyncHandler(async(req
   if(result.error.message.includes('INCOMPLETE')) throw new AppError('INVALID_REQUEST',undefined,'24장 생성을 모두 완료해주세요.');
   throw new AppError(result.error.message.includes('NOT_FOUND')?'NOT_FOUND':'INVALID_REQUEST');
  }
+ res.status(204).end();
+}));
+generationRouter.patch('/generation/projects/:id',asyncHandler(async(req,res)=>{
+ const id=z.uuid().parse(req.params.id);await ownedGeneration(id,requireAuth(req).sub);
+ // 빈 문자열이면 null로 되돌려 프롬프트를 제목으로 쓰던 기본 동작으로 돌아간다.
+ const name=z.object({name:z.string().trim().max(60)}).parse(req.body).name||null;
+ unwrapVoid(await supabase.from('generation_projects').update({name}).eq('id',id),'작업 이름 저장 실패');
  res.status(204).end();
 }));
 generationRouter.delete('/generation/projects/:id',asyncHandler(async(req,res)=>{

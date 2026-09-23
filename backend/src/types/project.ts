@@ -23,6 +23,7 @@ export interface ProjectRow {
   updated_at: string;
   expires_at: string | null;
   owner_id?: string | null;
+  name?: string | null;
   selected_client_ids?: string[] | null;
   result_ready?: boolean;
 }

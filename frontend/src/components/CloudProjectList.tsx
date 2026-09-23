@@ -1,11 +1,11 @@
-import { ArrowRight, Globe2, Loader2, Trash2 } from 'lucide-react'
+import { ArrowRight, Globe2, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from './Button'
 import Modal from './Modal'
 import { useToast } from './Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
-import { deleteCloudProject, listCloudProjects, type CloudProject } from '../lib/api'
+import { deleteCloudProject, listCloudProjects, renameCloudProject, type CloudProject } from '../lib/api'
 import { useAuth } from '../store/AuthContext'
 import { LANGUAGES, useUploads } from '../store/uploads'
 
@@ -51,6 +51,9 @@ export default function CloudProjectList({ archive, onCount }: { archive: boolea
   const [opening, setOpening] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CloudProject | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [renameTarget, setRenameTarget] = useState<CloudProject | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -89,6 +92,22 @@ export default function CloudProjectList({ archive, onCount }: { archive: boolea
     }
   }
 
+  const rename = async () => {
+    if (!renameTarget) return
+    setRenaming(true)
+    try {
+      const name = renameValue.trim().slice(0, 60)
+      await renameCloudProject(renameTarget.id, name)
+      setRetry(value => value + 1)
+      setRenameTarget(null)
+      toast(t.cloudRenameSuccess)
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t.cloudRenameFailed)
+    } finally {
+      setRenaming(false)
+    }
+  }
+
   if (!user) return <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
   if (loading) return <ProjectListSkeleton label={t.cloudLoading} />
   if (error) return <div role="alert" className="mt-5"><p className="text-sm text-sub">{t.cloudListFailed}</p><Button variant="outline" className="mt-3" onClick={() => setRetry(value => value + 1)}>{t.cloudRetry}</Button></div>
@@ -108,7 +127,8 @@ export default function CloudProjectList({ archive, onCount }: { archive: boolea
           </div>
         </div>
         <div className="flex min-w-0 gap-2 sm:shrink-0">
-          {!archive ? <Button variant="outline" aria-label={`${project.name} ${t.cloudDelete}`} disabled={opening !== null || cloudSaving} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
+          <Button variant="outline" aria-label={`${project.name} ${t.cloudRename}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => { setRenameTarget(project); setRenameValue(project.name) }}><Pencil className="h-4 w-4" />{t.cloudRename}</Button>
+          {!archive ? <Button variant="outline" aria-label={`${project.name} ${t.cloudDelete}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
           <Button disabled={opening !== null || cloudSaving} onClick={() => { void open(project.id) }} className="flex-1 sm:flex-none">{opening === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{archive ? t.cloudOpen : t.hubContinue}</Button>
         </div>
       </article>
@@ -122,6 +142,16 @@ export default function CloudProjectList({ archive, onCount }: { archive: boolea
         <Button disabled={deleting} onClick={() => { void remove() }} className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-100 disabled:text-red-400">
           {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{t.cloudDeleteConfirm}
         </Button>
+      </div>
+    </Modal> : null}
+    {renameTarget ? <Modal onClose={() => { if (!renaming) setRenameTarget(null) }} labelledBy="rename-project-title" closeLabel={t.commonClose}>
+      <h2 id="rename-project-title" className="pr-8 text-xl font-extrabold text-ink">{t.cloudRenameTitle}</h2>
+      <label htmlFor="rename-project-input" className="mt-5 block text-sm font-bold">{t.cloudRenameLabel}</label>
+      <input id="rename-project-input" value={renameValue} maxLength={60} autoFocus disabled={renaming} onChange={event => setRenameValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !renaming) { void rename() } }} className="mt-2 w-full rounded-xl border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-brand" />
+      <p className="mt-2 text-xs leading-5 text-sub">{t.cloudRenameHint}</p>
+      <div className="mt-6 flex gap-3">
+        <Button variant="secondary" disabled={renaming} onClick={() => setRenameTarget(null)} className="flex-1">{t.cloudDeleteCancel}</Button>
+        <Button disabled={renaming} onClick={() => { void rename() }} className="flex-1">{renaming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{t.cloudRenameSave}</Button>
       </div>
     </Modal> : null}
   </div>
