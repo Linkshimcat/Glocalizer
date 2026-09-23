@@ -84,17 +84,17 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
       const completedImages = latestCompletedImages(project)
       const thumbnail = completedImages[0]
       const pending = project.images.some(image => image.status === 'queued' || image.status === 'running')
-      return <article key={project.id} className="flex flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
+      return <article key={project.id} className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <img src={thumbnail.url} alt="" loading="lazy" className="h-full w-full object-contain" /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
           <div className="min-w-0">
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{archive ? g.statusCompleted : pending ? g.aiWorking : g.statusActive}</span>
-            <h3 className="mt-2 truncate font-bold">{project.prompt}</h3>
+            <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{project.prompt}</h3>
             <p className="mt-1 text-sm text-sub">{completedImages.length}/24 {g.progress}</p>
             <p className="mt-1 text-xs text-sub">{project.day}</p>
           </div>
         </div>
-        <div className="flex gap-2 sm:shrink-0">
+        <div className="flex min-w-0 gap-2 sm:shrink-0">
           {!archive ? <Button variant="outline" aria-label={`${project.prompt} ${t.cloudDelete}`} disabled={deleting} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
           <Button onClick={() => navigate(`/generate?project=${project.id}`)} className="flex-1 sm:flex-none"><ArrowRight className="h-4 w-4" />{archive ? t.cloudOpen : t.hubContinue}</Button>
         </div>

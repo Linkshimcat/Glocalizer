@@ -97,17 +97,17 @@ export default function CloudProjectList({ archive, onCount }: { archive: boolea
   return <div className="mt-4 grid gap-4">
     {projects.map(project => {
       const status = project.resultReady ? t.hubResult : project.status === 'created' ? t.hubUpload : project.status === 'processing' ? t.hubProcessing : project.status === 'failed' ? t.hubFailed : t.hubEditing
-      return <article key={project.id} className="flex flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
+      return <article key={project.id} className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface">{project.thumbnailUrl ? <img src={project.thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Globe2 className="h-7 w-7 text-sub" />}</div>
           <div className="min-w-0">
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{status}</span>
-            <h3 className="mt-2 truncate font-bold">{project.name}</h3>
+            <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{project.name}</h3>
             <p className="mt-1 break-words text-sm text-sub">{t.hubFiles.replace('{n}', String(project.imageCount))}{project.targetLanguages.length > 0 && ` · ${LANGUAGES.filter(language => project.targetLanguages.includes(language.code)).map(language => language.label).join(' · ')}`}</p>
             <p className="mt-1 text-xs text-sub">{t.cloudRecent} · {new Date(project.updatedAt).toLocaleDateString(lang)}</p>
           </div>
         </div>
-        <div className="flex gap-2 sm:shrink-0">
+        <div className="flex min-w-0 gap-2 sm:shrink-0">
           {!archive ? <Button variant="outline" aria-label={`${project.name} ${t.cloudDelete}`} disabled={opening !== null || cloudSaving} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
           <Button disabled={opening !== null || cloudSaving} onClick={() => { void open(project.id) }} className="flex-1 sm:flex-none">{opening === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{archive ? t.cloudOpen : t.hubContinue}</Button>
         </div>
