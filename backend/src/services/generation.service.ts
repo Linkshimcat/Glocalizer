@@ -198,6 +198,16 @@ export async function processGenerationImage(job: GenerationImage) {
   unwrapVoid(await supabase.from('generation_images').update({status:'failed',error:error instanceof AppError?error.message:'이미지 생성이 중단됐습니다. 선택 재생성으로 다시 시도해주세요.',elapsed_ms:Date.now()-started}).eq('id',job.id),'실패 상태 저장 실패');
  }
 }
+/** 프로젝트 하나를 지운다. generation_images는 FK cascade로 따라 지워지지만 Storage 파일은
+ *  남으므로 참조 이미지와 결과 PNG 경로를 먼저 모아 함께 삭제한다. 생성이 진행 중이면 이미
+ *  비용이 발생한 호출의 결과를 버리게 되므로 거절한다. */
+export async function deleteGenerationProject(project: GenerationProject) {
+ const images=unwrapList<GenerationImage>(await supabase.from('generation_images').select().eq('project_id',project.id),'생성 결과 조회 실패');
+ if(images.some(image=>image.status==='queued'||image.status==='running')) throw new AppError('PROCESS_ALREADY_RUNNING');
+ const paths=[project.reference_path,...images.map(image=>image.path)].filter((path):path is string=>Boolean(path));
+ if(paths.length) await removeFromStorage(paths);
+ unwrapVoid(await supabase.from('generation_projects').delete().eq('id',project.id),'생성 작업 삭제 실패');
+}
 /** DB 삭제는 FK cascade(generation_projects -> generation_images)로 처리되지만, Storage 파일은
  *  별도로 지워야 한다. 계정 탈퇴 시 deleteAccount에서 호출한다.
  *  생성 기능 마이그레이션이 아직 적용되지 않은 환경에서는 정리할 생성 데이터도 없으므로

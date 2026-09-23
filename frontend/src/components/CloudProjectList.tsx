@@ -35,7 +35,10 @@ function ProjectListSkeleton({ label }: { label: string }) {
   )
 }
 
-export default function CloudProjectList({ archive }: { archive: boolean }) {
+/** onCount를 받으면 제목과 빈 상태를 부모가 책임진다. 생성 목록과 한 섹션에 나란히 놓일 때
+ *  "작업 없음" 문구가 두 번 뜨지 않게 하기 위함이고, 불러오지 못했을 때는 null을 올려보내
+ *  부모가 작업이 없다고 잘못 단정하지 않게 한다. */
+export default function CloudProjectList({ archive, onCount }: { archive: boolean; onCount?: (count: number | null) => void }) {
   const { user, token } = useAuth()
   const { t, lang } = useSiteLang()
   const { openCloudProject, resultReady, cloudSaving, flushCloudWork, projectStatus, resetWorkflow } = useUploads()
@@ -60,6 +63,8 @@ export default function CloudProjectList({ archive }: { archive: boolean }) {
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [user, token, archive, retry, resultReady, cloudSaving])
+
+  useEffect(() => { if (!loading) onCount?.(error ? null : projects.length) }, [loading, error, projects.length, onCount])
 
   const open = async (id: string) => {
     setOpening(id)
@@ -87,7 +92,7 @@ export default function CloudProjectList({ archive }: { archive: boolean }) {
   if (!user) return <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
   if (loading) return <ProjectListSkeleton label={t.cloudLoading} />
   if (error) return <div role="alert" className="mt-5"><p className="text-sm text-sub">{t.cloudListFailed}</p><Button variant="outline" className="mt-3" onClick={() => setRetry(value => value + 1)}>{t.cloudRetry}</Button></div>
-  if (!projects.length) return <p className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p>
+  if (!projects.length) return onCount ? null : <p className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p>
 
   return <div className="mt-4 grid gap-4">
     {projects.map(project => {
