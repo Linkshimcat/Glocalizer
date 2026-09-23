@@ -13,16 +13,18 @@ const auth = `Bearer ${signAuthToken({ sub: owner })}`;
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(users.findUserById).mockResolvedValue({ id: owner, email: 'yunjae14278@naver.com' } as never); });
 describe('private generation API', () => {
   it('requires JWT authentication', async () => { expect((await request(app).get('/api/v1/generation/config')).status).toBe(401); });
-  it('rejects other accounts before data access', async () => {
+  it('allows any existing logged-in account', async () => {
     vi.mocked(users.findUserById).mockResolvedValue({ id: owner, email: 'other@example.com' } as never);
-    expect((await request(app).get(`/api/v1/generation/projects/${id}`).set('Authorization', auth)).status).toBe(403);
-    expect(service.ownedGeneration).not.toHaveBeenCalled();
+    vi.mocked(service.ownedGeneration).mockResolvedValue({ id } as never);
+    vi.mocked(service.generationWorkspace).mockResolvedValue({ id } as never);
+    expect((await request(app).get(`/api/v1/generation/projects/${id}`).set('Authorization', auth)).status).toBe(200);
+    expect(service.ownedGeneration).toHaveBeenCalledWith(id, owner);
   });
   it('rejects deleted accounts with still-valid tokens', async () => {
     vi.mocked(users.findUserById).mockResolvedValue(null);
     expect((await request(app).get('/api/v1/generation/config').set('Authorization', auth)).status).toBe(401);
   });
-  it('returns configuration for the allowed account', async () => { expect((await request(app).get('/api/v1/generation/config').set('Authorization', auth)).body.model).toBe('gpt-image-2.5-sunburst'); });
+  it('returns configuration for a logged-in account', async () => { expect((await request(app).get('/api/v1/generation/config').set('Authorization', auth)).body.model).toBe('gpt-image-2.5-sunburst'); });
   it('validates requests before any paid call', async () => {
     expect((await request(app).post(`/api/v1/generation/projects/${id}/images`).set('Authorization', auth).send({ slot: 24, prompt: 'invalid' })).status).toBe(400);
     expect(service.enqueueGeneration).not.toHaveBeenCalled();

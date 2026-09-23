@@ -16,7 +16,6 @@ export const generationRouter=Router();
 generationRouter.use('/generation',authMiddleware,asyncHandler(async(req,_res,next)=>{
  const user=await findUserById(requireAuth(req).sub);
  if(!user) throw new AppError('UNAUTHORIZED');
- if(user.email?.toLowerCase()!==env.IMAGE_GENERATION_OWNER_EMAIL.toLowerCase()) throw new AppError('GENERATION_FORBIDDEN');
  next();
 }));
 generationRouter.get('/generation/config',asyncHandler(async(_req,res)=>{res.json({enabled:env.ENABLE_IMAGE_GENERATION&&!!env.OPENAI_API_KEY,budgetUsd:env.IMAGE_GENERATION_BUDGET_USD,model:'gpt-image-2.5-sunburst'});}));

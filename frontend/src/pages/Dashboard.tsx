@@ -9,7 +9,6 @@ import NavMenu from '../components/NavMenu'
 import RollingText from '../components/RollingText'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useUploads } from '../store/uploads'
-import { useAuth } from '../store/AuthContext'
 import GenerationList from '../components/GenerationList'
 import Modal from '../components/Modal'
 
@@ -17,10 +16,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t } = useSiteLang()
-  const { user } = useAuth()
   const [newTaskOpen, setNewTaskOpen] = useState(false)
   const [startingNew, setStartingNew] = useState(false)
-  const canGenerate = user?.email?.toLowerCase() === 'yunjae14278@naver.com'
   const { files, projectStatus, resultReady, resetWorkflow, flushCloudWork, cloudSaving } = useUploads()
   const hasWork = files.length > 0
   const resumePath = !projectStatus || projectStatus.status === 'created' ? '/localize' : resultReady && ['completed', 'failed'].includes(projectStatus.status) ? '/result' : '/editor'
@@ -41,7 +38,7 @@ export default function Dashboard() {
   const cards = [
     { title: t.hubLocalize, description: t.hubLocalizeDesc, Icon: Globe2, active: true },
     { title: t.hubReview, description: t.hubReviewDesc, Icon: ShieldCheck, active: true },
-    { title: t.hubGenerate, description: t.hubGenerateDesc, Icon: Sparkles, active: canGenerate },
+    { title: t.hubGenerate, description: t.hubGenerateDesc, Icon: Sparkles, active: true },
   ]
 
   return (

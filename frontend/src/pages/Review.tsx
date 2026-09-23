@@ -34,7 +34,7 @@ type ReviewProject =
 
 export default function Review() {
   const navigate = useNavigate()
-  const { isAuthenticated, token, user } = useAuth()
+  const { isAuthenticated, token } = useAuth()
   const { t, lang } = useSiteLang()
 
   const [projects, setProjects] = useState<ReviewProject[] | null>(null)
@@ -54,7 +54,7 @@ export default function Review() {
     const loadLocalization = listCloudProjects().then(result => result.projects
       .filter(project => project.resultReady)
       .map((project): ReviewProject => ({ key: `localization:${project.id}`, kind: 'localization', project })))
-    const loadGeneration = token && user?.email?.toLowerCase() === 'yunjae14278@naver.com'
+    const loadGeneration = token
       ? generationRequest<{ projects: GenerationProject[] }>(token, '/projects').then(result => result.projects.flatMap(project => {
           const completedImages = project.images.filter(image => image.status === 'completed' && image.url)
           return completedImages.length > 0
@@ -70,7 +70,7 @@ export default function Review() {
       setProjectsFailed(results.every(result => result.status === 'rejected'))
     })
     return () => { active = false }
-  }, [isAuthenticated, token, user?.email])
+  }, [isAuthenticated, token])
 
   useEffect(() => {
     if (!projects || selectedKeys.length === 0) {
