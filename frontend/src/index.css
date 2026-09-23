@@ -19,6 +19,8 @@
 
 html {
   font-family: var(--font-sans);
+  /* 모달이 body를 fixed로 고정하는 동안 드러나는 canvas가 흰색으로 튀지 않게 한다. */
+  background-color: #fafbfc;
 }
 
 body {
