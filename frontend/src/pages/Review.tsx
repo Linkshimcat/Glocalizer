@@ -14,7 +14,8 @@ import {
   type DeepReviewFeedback,
   type OgqSticker,
 } from '../lib/api'
-import { generationRequest, latestCompletedImages, type GenerationProject } from '../lib/generationApi'
+import StickerThumbnail from '../components/StickerThumbnail'
+import { generationRequest, latestCompletedImages, type GenerationImage, type GenerationProject } from '../lib/generationApi'
 import { useAuth } from '../store/AuthContext'
 
 // 프로젝트 하나에 캡션이 아무리 많아도, 검색 요청 수를 합리적인 범위로 제한한다.
@@ -205,7 +206,10 @@ export default function Review() {
                     const selected = selectedKeys.includes(reviewProject.key)
                     const projectName = reviewProject.kind === 'localization' ? reviewProject.project.name : reviewProject.project.name || reviewProject.project.prompt
                     const imageCount = reviewProject.kind === 'localization' ? reviewProject.project.imageCount : reviewProject.completedImages.length
-                    const thumbnailUrl = reviewProject.kind === 'localization' ? reviewProject.project.thumbnailUrl : reviewProject.completedImages[0]?.url
+                    const thumbnailUrl = reviewProject.kind === 'localization' ? reviewProject.project.thumbnailUrl : null
+                    const thumbnailSticker: GenerationImage | undefined = reviewProject.kind === 'generation'
+                      ? reviewProject.completedImages.find(image => image.caption) ?? reviewProject.completedImages[0]
+                      : undefined
                     return (
                     <button
                       key={reviewProject.key}
@@ -217,7 +221,7 @@ export default function Review() {
                       }`}
                     >
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
-                        {thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
+                        {thumbnailSticker?.url ? <StickerThumbnail image={thumbnailSticker} /> : thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-bold">{projectName}</p>

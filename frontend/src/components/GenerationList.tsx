@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from './Button'
 import Modal from './Modal'
+import StickerThumbnail from './StickerThumbnail'
 import { useToast } from './Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { generationCopy } from '../i18n/generation'
-import { deleteGenerationProject, generationRequest, latestCompletedImages, renameGenerationProject, type GenerationProject } from '../lib/generationApi'
+import { deleteGenerationProject, generationRequest, latestCompletedImages, renameGenerationProject, thumbnailImage, type GenerationProject } from '../lib/generationApi'
 import { useAuth } from '../store/AuthContext'
 
 function GenerationListSkeleton({ label }: { label: string }) {
@@ -101,11 +102,11 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
   return <div className="mt-4 grid gap-4">
     {visibleProjects.map(project => {
       const completedImages = latestCompletedImages(project)
-      const thumbnail = completedImages[0]
+      const thumbnail = thumbnailImage(project)
       const pending = project.images.some(image => image.status === 'queued' || image.status === 'running')
       return <article key={project.id} className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
         <div className="flex min-w-0 flex-1 items-center gap-4">
-          <div className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <img src={thumbnail.url} alt="" loading="lazy" className="h-full w-full object-contain" /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
+          <div className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
           <div className="min-w-0">
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{archive ? g.statusCompleted : pending ? g.aiWorking : g.statusActive}</span>
             <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{project.name || project.prompt}</h3>
