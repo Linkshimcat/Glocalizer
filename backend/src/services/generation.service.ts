@@ -9,7 +9,8 @@ import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/d
 
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
 export interface GenerationProject { id: string; owner_id: string; prompt: string; name: string | null; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
-export interface GenerationImage { id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
+export interface CaptionStyle { anchor: string; size: number; color: string; stroke: string }
+export interface GenerationImage { id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; caption_style: CaptionStyle | null; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
 export async function ownedGeneration(id: string, owner: string) {
  const row = unwrapNullableRow<GenerationProject>(await supabase.from('generation_projects').select().eq('id',id).eq('owner_id',owner).maybeSingle(), '생성 작업 조회 실패');
  if (!row) throw new AppError('NOT_FOUND');
@@ -153,10 +154,58 @@ export async function normalizeSticker(input: Buffer): Promise<Buffer> {
  return png;
 }
 function escapeXml(text: string) { return text.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!)); }
-export async function captionSticker(image: Buffer, caption: string) {
+// 9분할 앵커를 740x640 캔버스 좌표로 푼다. 백엔드 SVG와 프런트 미리보기가 같은 규칙을 쓴다.
+export const CAPTION_ANCHOR_X: Record<string,number> = {left:48,center:370,right:692};
+export const CAPTION_ANCHOR_Y: Record<string,number> = {top:56,middle:340,bottom:612};
+const CAPTION_TEXT_ANCHOR: Record<string,string> = {left:'start',center:'middle',right:'end'};
+export const CAPTION_SIZES=[30,38,46,56];
+export function defaultCaptionStyle(caption: string): CaptionStyle {
+ return {anchor:'top-center',size:Array.from(caption).length<=10?46:38,color:'#202630',stroke:'#ffffff'};
+}
+/** 평균 색을 그대로 쓰면 흐린 파스텔이라 글자가 읽히지 않는다. 색상은 남기되 가장 밝은
+ *  채널을 끌어내려 충분히 어둡게 만든다. 거의 무채색이면 기본 잉크색을 쓴다. */
+function captionColor(r: number, g: number, b: number) {
+ const max=Math.max(r,g,b),min=Math.min(r,g,b);
+ if(max-min<24||max<8) return '#202630';
+ const scale=104/max;
+ const channel=(value: number)=>Math.round(Math.min(255,Math.max(0,value*scale))).toString(16).padStart(2,'0');
+ return `#${channel(r)}${channel(g)}${channel(b)}`;
+}
+/** 캐릭터가 비운 위·아래 여백을 재서 문구를 덜 가리는 쪽에 놓고, 캐릭터 색으로 글자색을
+ *  맞춘다. 알파 채널만 보므로 API 호출도 추가 비용도 없다. normalizeSticker가 캐릭터에
+ *  흰 테두리를 두르므로 거의 흰 픽셀은 색 평균에서 뺀다. */
+export async function autoCaptionStyle(png: Buffer, caption: string): Promise<CaptionStyle> {
+ const base=defaultCaptionStyle(caption);
+ try {
+  const {data,info}=await sharp(png).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  const {width,height}=info;
+  let top=height,bottom=-1,red=0,green=0,blue=0,count=0;
+  for(let y=0;y<height;y++) for(let x=0;x<width;x++) {
+   const index=(y*width+x)*4;
+   if(data[index+3]<48) continue;
+   if(y<top) top=y;
+   if(y>bottom) bottom=y;
+   if(data[index]>228&&data[index+1]>228&&data[index+2]>228) continue;
+   red+=data[index];green+=data[index+1];blue+=data[index+2];count++;
+  }
+  if(bottom<0) return base;
+  const needed=base.size*1.5;
+  const bottomGap=height-1-bottom;
+  const anchor=bottomGap>top&&bottomGap>=needed?'bottom-center':'top-center';
+  return {...base,anchor,color:count?captionColor(red/count,green/count,blue/count):base.color};
+ } catch(error) {
+  logger.warn({err:error},'Caption placement analysis failed; using defaults');
+  return base;
+ }
+}
+export async function captionSticker(image: Buffer, caption: string, style?: CaptionStyle | null) {
  if(!caption) return image;
- const fontSize=Array.from(caption).length<=10?42:34;
- const svg=Buffer.from(`<svg width="740" height="640" xmlns="http://www.w3.org/2000/svg"><text x="370" y="55" text-anchor="middle" font-family="Noto Sans CJK KR, sans-serif" font-size="${fontSize}" font-weight="900" fill="#202630" stroke="white" stroke-width="7" paint-order="stroke" stroke-linejoin="round">${escapeXml(caption)}</text></svg>`);
+ const resolved=style??defaultCaptionStyle(caption);
+ const [vertical,horizontal]=resolved.anchor.split('-');
+ const x=CAPTION_ANCHOR_X[horizontal]??CAPTION_ANCHOR_X.center;
+ const y=CAPTION_ANCHOR_Y[vertical]??CAPTION_ANCHOR_Y.top;
+ const textAnchor=CAPTION_TEXT_ANCHOR[horizontal]??'middle';
+ const svg=Buffer.from(`<svg width="740" height="640" xmlns="http://www.w3.org/2000/svg"><text x="${x}" y="${y}" text-anchor="${textAnchor}" font-family="Noto Sans CJK KR, sans-serif" font-size="${resolved.size}" font-weight="900" fill="${resolved.color}" stroke="${resolved.stroke}" stroke-width="7" paint-order="stroke" stroke-linejoin="round">${escapeXml(caption)}</text></svg>`);
  const result=await sharp(image).composite([{input:svg}]).withMetadata({density:72}).png({compressionLevel:9}).toBuffer();
  if(result.length>1_000_000) throw new AppError('FILE_TOO_LARGE');
  return result;
@@ -193,7 +242,8 @@ export async function processGenerationImage(job: GenerationImage) {
   const png=await normalizeSticker(Buffer.from(payload.data[0].b64_json,'base64'));
   const path=`generation/${project.owner_id}/${project.id}/${job.id}.png`;
   await uploadToStorage(path,png,'image/png');
-  unwrapVoid(await supabase.from('generation_images').update({status:'completed',path,elapsed_ms:Date.now()-started}).eq('id',job.id),'결과 저장 실패');
+  const style=await autoCaptionStyle(png,job.caption);
+  unwrapVoid(await supabase.from('generation_images').update({status:'completed',path,caption_style:style,elapsed_ms:Date.now()-started}).eq('id',job.id),'결과 저장 실패');
  } catch(error) {
   unwrapVoid(await supabase.from('generation_images').update({status:'failed',error:error instanceof AppError?error.message:'이미지 생성이 중단됐습니다. 선택 재생성으로 다시 시도해주세요.',elapsed_ms:Date.now()-started}).eq('id',job.id),'실패 상태 저장 실패');
  }
