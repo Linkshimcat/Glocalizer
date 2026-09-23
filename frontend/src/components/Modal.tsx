@@ -25,15 +25,20 @@ export default function Modal({ onClose, children, labelledBy, closeLabel }: Mod
     const scrollY = window.scrollY
     const { body } = document
     const prevStyle = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow }
+    const root = document.documentElement
+    const prevRootBackground = root.style.backgroundColor
     body.style.position = 'fixed'
     body.style.top = `-${scrollY}px`
     body.style.width = '100%'
     body.style.overflow = 'hidden'
+    // bg-black/40을 앱 배경(#fafbfc) 위에 얹은 색. 오버레이가 닿지 못한 띠도 딤처럼 보인다.
+    root.style.backgroundColor = '#969797'
     return () => {
       body.style.position = prevStyle.position
       body.style.top = prevStyle.top
       body.style.width = prevStyle.width
       body.style.overflow = prevStyle.overflow
+      root.style.backgroundColor = prevRootBackground
       window.scrollTo(0, scrollY)
     }
   }, [])
@@ -43,7 +48,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel }: Mod
   // 포털해 조상 영향을 끊는다.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 min-h-[100dvh] overflow-y-auto bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       {/* min-h-full + 이 wrapper에서 중앙 정렬해야, 모달이 화면보다 커도 위쪽이 잘리지 않고

@@ -126,10 +126,10 @@ export default function CloudProjectList({ archive, onCount }: { archive: boolea
             <p className="mt-1 text-xs text-sub">{t.cloudRecent} · {new Date(project.updatedAt).toLocaleDateString(lang)}</p>
           </div>
         </div>
-        <div className="flex min-w-0 gap-2 sm:shrink-0">
-          <Button variant="outline" aria-label={`${project.name} ${t.cloudRename}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => { setRenameTarget(project); setRenameValue(project.name) }}><Pencil className="h-4 w-4" />{t.cloudRename}</Button>
-          {!archive ? <Button variant="outline" aria-label={`${project.name} ${t.cloudDelete}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
-          <Button disabled={opening !== null || cloudSaving} onClick={() => { void open(project.id) }} className="flex-1 sm:flex-none">{opening === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{archive ? t.cloudOpen : t.hubContinue}</Button>
+        <div className="flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
+          <Button variant="outline" aria-label={`${project.name} ${t.cloudRename}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => { setRenameTarget(project); setRenameValue(project.name) }} className="flex-1 sm:flex-none"><Pencil className="h-4 w-4" />{t.cloudRename}</Button>
+          {!archive ? <Button variant="outline" aria-label={`${project.name} ${t.cloudDelete}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => setDeleteTarget(project)} className="flex-1 text-red-600 hover:bg-red-50 sm:flex-none"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
+          <Button disabled={opening !== null || cloudSaving} onClick={() => { void open(project.id) }} className="w-full sm:w-auto sm:flex-none">{opening === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{archive ? t.cloudOpen : t.hubContinue}</Button>
         </div>
       </article>
     })}
