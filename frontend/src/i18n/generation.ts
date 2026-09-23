@@ -11,6 +11,7 @@ const copy = {
   imageError: ['PNG·JPG·WebP 이미지 1장(최대 10MB)을 사용해주세요. 복잡한 이미지는 크기를 줄여주세요.', 'Use one PNG, JPG or WebP image up to 10MB. Reduce the size of complex images.', '最大10MBのPNG・JPG・WebPを1枚使用してください。複雑な画像は小さくしてください。', '请使用1张不超过10MB的PNG、JPG或WebP，复杂图片请缩小尺寸。'],
   title: ['어떤 이모티콘을 만들까요?', 'What sticker would you like to create?', 'どんなスタンプを作りますか？', '想生成什么表情贴纸？'],
   subtitle: ['아이디어를 캐릭터로, 캐릭터를 다양한 표정으로.', 'Turn an idea into a character, then explore expressions.', 'アイデアをキャラクターに、様々な表情に。', '将创意变成角色，再赋予不同表情。'],
+  aiGenerated: ['AI로 생성됨', 'Generated with AI', 'AIで生成', '由 AI 生成'],
   sample: ['대표 캐릭터 + 표정 23장 · OGQ 24장 프로젝트', 'Character + 23 expressions · 24-image project', 'キャラクター＋表情23枚・24枚プロジェクト', '角色＋23张表情 · 24张项目'],
   prompt: ['캐릭터와 그림체를 설명해주세요', 'Describe your character and style', 'キャラクターと画風を説明してください', '请描述角色与画风'],
   placeholder: ['동그란 크림색 고양이. 굵은 선과 파스텔 색상의 귀여운 캐릭터.', 'A round cream-colored cat, bold outlines and pastel colors.', '丸いクリーム色の猫。太い線とパステルカラー。', '圆圆的奶油色猫，粗线条和柔和配色。'],

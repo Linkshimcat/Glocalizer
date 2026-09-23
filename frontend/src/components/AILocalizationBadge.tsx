@@ -1,7 +1,7 @@
 import aiSparkle from '../assets/GCFrontendUI/iconsax-AISparkle.svg'
 import { useSiteLang } from '../i18n/LanguageContext'
 
-export default function AILocalizationBadge() {
+export default function AILocalizationBadge({ label }: { label?: string }) {
   const { t } = useSiteLang()
 
   return (
@@ -13,7 +13,7 @@ export default function AILocalizationBadge() {
       }}
     >
       <img src={aiSparkle} alt="" aria-hidden className="h-3.5 w-3.5 shrink-0" />
-      <span>{t.dashAiNotice}</span>
+      <span>{label ?? t.dashAiNotice}</span>
     </span>
   )
 }
