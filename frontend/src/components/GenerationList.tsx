@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowRight, Loader2, Pencil, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from './Button'
@@ -6,7 +6,7 @@ import Modal from './Modal'
 import { useToast } from './Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { generationCopy } from '../i18n/generation'
-import { deleteGenerationProject, generationRequest, latestCompletedImages, type GenerationProject } from '../lib/generationApi'
+import { deleteGenerationProject, generationRequest, latestCompletedImages, renameGenerationProject, type GenerationProject } from '../lib/generationApi'
 import { useAuth } from '../store/AuthContext'
 
 function GenerationListSkeleton({ label }: { label: string }) {
@@ -44,6 +44,9 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
   const [error, setError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<GenerationProject | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [renameTarget, setRenameTarget] = useState<GenerationProject | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
 
   useEffect(() => {
     let disposed = false
@@ -75,6 +78,22 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
     }
   }
 
+  const rename = async () => {
+    if (!renameTarget || !token) return
+    setRenaming(true)
+    try {
+      const name = renameValue.trim().slice(0, 60)
+      await renameGenerationProject(token, renameTarget.id, name)
+      setProjects(current => current.map(project => project.id === renameTarget.id ? { ...project, name: name || null } : project))
+      setRenameTarget(null)
+      toast(t.cloudRenameSuccess)
+    } catch (reason) {
+      toast(reason instanceof Error ? reason.message : t.cloudRenameFailed)
+    } finally {
+      setRenaming(false)
+    }
+  }
+
   if (loading) return <GenerationListSkeleton label={g.loading} />
   if (error) return <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>
   if (!visibleProjects.length) return onCount ? null : <p className="mt-4 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{g.empty}</p>
@@ -89,13 +108,14 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
           <div className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <img src={thumbnail.url} alt="" loading="lazy" className="h-full w-full object-contain" /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
           <div className="min-w-0">
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{archive ? g.statusCompleted : pending ? g.aiWorking : g.statusActive}</span>
-            <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{project.prompt}</h3>
+            <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{project.name || project.prompt}</h3>
             <p className="mt-1 text-sm text-sub">{completedImages.length}/24 {g.progress}</p>
             <p className="mt-1 text-xs text-sub">{project.day}</p>
           </div>
         </div>
         <div className="flex min-w-0 gap-2 sm:shrink-0">
-          {!archive ? <Button variant="outline" aria-label={`${project.prompt} ${t.cloudDelete}`} disabled={deleting} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
+          <Button variant="outline" aria-label={`${project.name || project.prompt} ${t.cloudRename}`} disabled={deleting || renaming} onClick={() => { setRenameTarget(project); setRenameValue(project.name ?? '') }}><Pencil className="h-4 w-4" />{t.cloudRename}</Button>
+          {!archive ? <Button variant="outline" aria-label={`${project.name || project.prompt} ${t.cloudDelete}`} disabled={deleting || renaming} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
           <Button onClick={() => navigate(`/generate?project=${project.id}`)} className="flex-1 sm:flex-none"><ArrowRight className="h-4 w-4" />{archive ? t.cloudOpen : t.hubContinue}</Button>
         </div>
       </article>
@@ -103,12 +123,22 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
     {deleteTarget ? <Modal onClose={() => { if (!deleting) setDeleteTarget(null) }} labelledBy="delete-generation-title" closeLabel={t.commonClose}>
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600"><Trash2 className="h-6 w-6" /></div>
       <h2 id="delete-generation-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudDeleteTitle}</h2>
-      <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudDeleteDescription.replace('{name}', deleteTarget.prompt)}</p>
+      <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudDeleteDescription.replace('{name}', deleteTarget.name || deleteTarget.prompt)}</p>
       <div className="mt-7 flex gap-3">
         <Button variant="secondary" disabled={deleting} onClick={() => setDeleteTarget(null)} className="flex-1">{t.cloudDeleteCancel}</Button>
         <Button disabled={deleting} onClick={() => { void remove() }} className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-100 disabled:text-red-400">
           {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{t.cloudDeleteConfirm}
         </Button>
+      </div>
+    </Modal> : null}
+    {renameTarget ? <Modal onClose={() => { if (!renaming) setRenameTarget(null) }} labelledBy="rename-generation-title" closeLabel={t.commonClose}>
+      <h2 id="rename-generation-title" className="pr-8 text-xl font-extrabold text-ink">{t.cloudRenameTitle}</h2>
+      <label htmlFor="rename-generation-input" className="mt-5 block text-sm font-bold">{t.cloudRenameLabel}</label>
+      <input id="rename-generation-input" value={renameValue} maxLength={60} autoFocus disabled={renaming} placeholder={renameTarget.prompt.slice(0, 40)} onChange={event => setRenameValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !renaming) { void rename() } }} className="mt-2 w-full rounded-xl border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-brand" />
+      <p className="mt-2 text-xs leading-5 text-sub">{t.cloudRenameHint}</p>
+      <div className="mt-6 flex gap-3">
+        <Button variant="secondary" disabled={renaming} onClick={() => setRenameTarget(null)} className="flex-1">{t.cloudDeleteCancel}</Button>
+        <Button disabled={renaming} onClick={() => { void rename() }} className="flex-1">{renaming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{t.cloudRenameSave}</Button>
       </div>
     </Modal> : null}
   </div>

@@ -55,7 +55,7 @@ export async function listWorkspaces(ownerId: string) {
     const assets = await findAssetsByProjectId(project.id);
     const visible = project.status === 'created' || !project.selected_client_ids ? assets : assets.filter(asset => project.selected_client_ids!.includes(asset.client_id ?? ''));
     return {
-      id: project.id, name: visible[0]?.original_name ?? 'Untitled', status: project.status,
+      id: project.id, name: project.name ?? visible[0]?.original_name ?? 'Untitled', status: project.status,
       resultReady: project.result_ready ?? false, targetLanguages: project.target_languages,
       imageCount: visible.length, createdAt: project.created_at, updatedAt: project.updated_at,
       thumbnailUrl: visible[0]?.original_path ? await createSignedUrl(visible[0].original_path) : null,

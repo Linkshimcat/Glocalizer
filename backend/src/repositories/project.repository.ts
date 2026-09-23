@@ -58,6 +58,11 @@ export async function updateProjectStage(projectId: string, patch: ProjectStageU
   unwrapVoid(result, '프로젝트 상태를 갱신하지 못했습니다.');
 }
 
+export async function renameProject(projectId: string, name: string | null): Promise<void> {
+  const { error } = await supabase.from('projects').update({ name }).eq('id', projectId);
+  if (error) throw new AppError('INTERNAL_ERROR', { cause: error.message }, '작업 이름 저장 실패');
+}
+
 export async function deleteProjectRow(projectId: string): Promise<void> {
   const result = await supabase.from('projects').delete().eq('id', projectId);
   unwrapVoid(result, '프로젝트 삭제에 실패했습니다.');

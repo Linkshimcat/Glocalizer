@@ -8,7 +8,7 @@ import { createSignedUrl, downloadFromStorage, removeFromStorage, uploadToStorag
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
-export interface GenerationProject { id: string; owner_id: string; prompt: string; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
+export interface GenerationProject { id: string; owner_id: string; prompt: string; name: string | null; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
 export interface GenerationImage { id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
 export async function ownedGeneration(id: string, owner: string) {
  const row = unwrapNullableRow<GenerationProject>(await supabase.from('generation_projects').select().eq('id',id).eq('owner_id',owner).maybeSingle(), '생성 작업 조회 실패');

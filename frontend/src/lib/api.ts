@@ -258,6 +258,9 @@ export function listCloudProjects(): Promise<{ projects: CloudProject[] }> {
 export function deleteCloudProject(id: string): Promise<void> {
   return request(`/projects/${id}`, { method: 'DELETE' })
 }
+export function renameCloudProject(id: string, name: string): Promise<void> {
+  return request(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) })
+}
 export function restoreCloudProject(id: string): Promise<CloudWorkspace> {
   return request(`/projects/${id}/workspace`)
 }

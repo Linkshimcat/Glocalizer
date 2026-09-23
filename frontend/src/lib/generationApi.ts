@@ -3,11 +3,14 @@ import JSZip from 'jszip'
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
 export interface GenerationImage { id: string; slot: number; prompt: string; status: 'queued' | 'running' | 'completed' | 'failed'; caption: string; url: string | null; error: string | null; cost_usd: number | null; reserve_usd: number; elapsed_ms: number | null }
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
-export interface GenerationProject { id: string; prompt: string; confirmed: boolean; day: string; created_at: string; status?: 'active' | 'completed'; completed_at?: string | null; plan?: StickerPlanItem[]; referenceUrl: string | null; images: GenerationImage[] }
+export interface GenerationProject { id: string; prompt: string; name?: string | null; confirmed: boolean; day: string; created_at: string; status?: 'active' | 'completed'; completed_at?: string | null; plan?: StickerPlanItem[]; referenceUrl: string | null; images: GenerationImage[] }
 export async function generationRequest<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`${BASE}/generation${path}`, { method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined })
   if (!response.ok) { const payload = await response.json().catch(() => null); throw new Error(payload?.error?.message ?? `API (${response.status})`) }
   return response.status === 204 ? undefined as T : await response.json() as T
+}
+export async function renameGenerationProject(token: string, projectId: string, name: string) {
+  await generationRequest(token, `/projects/${projectId}`, 'PATCH', { name })
 }
 export async function deleteGenerationProject(token: string, projectId: string) {
   await generationRequest(token, `/projects/${projectId}`, 'DELETE')
