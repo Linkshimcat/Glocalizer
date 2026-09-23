@@ -9,12 +9,11 @@ import { useSiteLang } from '../i18n/LanguageContext'
 import { generationCopy } from '../i18n/generation'
 import { downloadGeneration, generationRequest, prepareReference, type GenerationProject, type GenerationImage } from '../lib/generationApi'
 
-const OWNER = 'yunjae14278@naver.com'
 const categories = ['animal', 'person', 'food', 'object', 'fantasy'] as const
 const tags = ['cute', 'simple', 'pastel', 'bold', 'playful', 'chic', 'warm', 'funny'] as const
 const conditions = { animal: 'animal character', person: 'human character', food: 'food character', object: 'object character', fantasy: 'fantasy character', cute: 'cute', simple: 'simple design', pastel: 'pastel colors', bold: 'bold outlines', playful: 'playful personality', chic: 'chic personality', warm: 'warm and friendly', funny: 'humorous and expressive' }
 export default function Generate() {
-  const { token, user } = useAuth()
+  const { token } = useAuth()
   const { lang } = useSiteLang()
   const t = generationCopy(lang)
   const [params, setParams] = useSearchParams()
@@ -36,20 +35,19 @@ export default function Generate() {
   const fileInput = useRef<HTMLInputElement>(null)
   const polling = useRef(false)
   polling.current = projects.some(p => p.images.some(i => ['queued', 'running'].includes(i.status)))
-  const allowed = user?.email?.toLowerCase() === OWNER
   const project = projects.find(p => p.id === params.get('project')) ?? (params.get('new') === '1' ? undefined : projects[0])
   const slotImages = project?.images.filter(i => i.slot === slot) ?? []
   const latest = slotImages.at(-1)
   const image = [...slotImages].reverse().find(i => i.status === 'completed')
   const busy = submitting || !!project?.images.some(i => ['queued', 'running'].includes(i.status))
   const load = useCallback(async () => {
-    if (!token || !allowed) return
+    if (!token) return
     const [config, result] = await Promise.all([
       generationRequest<{ enabled: boolean }>(token, '/config'),
       generationRequest<{ projects: GenerationProject[] }>(token, '/projects'),
     ])
     setEnabled(config.enabled); setProjects(result.projects)
-  }, [token, allowed])
+  }, [token])
   useEffect(() => {
     let disposed = false
     const refresh = async () => { try { await load() } catch (e) { if (!disposed) setError(e instanceof Error ? e.message : 'API error') } finally { if (!disposed) setLoading(false) } }
@@ -78,7 +76,6 @@ export default function Generate() {
     try { setReference(await prepareReference(files[0])) } catch { setError(t.imageError) } finally { setUploading(false) }
   }
   if (!token) return <Navigate to="/login?next=/generate" replace />
-  if (!allowed) return <Navigate to="/dashboard" replace />
   const cost = project?.images.reduce((sum, i) => sum + Number(i.cost_usd ?? i.reserve_usd), 0) ?? 0
   const cardImage = (i: GenerationImage | undefined, label: string) => i?.url ? <img src={i.url} alt={label} className="h-full w-full object-contain" /> : <Sparkles className="h-10 w-10 text-brand/40" />
   return <div className="min-h-screen bg-[#FAFBFC]">
