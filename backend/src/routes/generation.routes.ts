@@ -10,7 +10,7 @@ import { findUserById } from '../repositories/user.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { unwrapList, unwrapNullableRow, unwrapRow } from '../utils/db-result.js';
-import { captionSticker, enqueueGeneration, generationWorkspace, ownedGeneration, saveBatchCaptions, saveGeneratedCaption, saveGenerationPlan, saveSampleCaptions, suggestStickerCaptions, suggestStickerPlan, type GenerationProject, type GenerationImage } from '../services/generation.service.js';
+import { captionSticker, deleteGenerationProject, enqueueGeneration, generationWorkspace, ownedGeneration, saveBatchCaptions, saveGeneratedCaption, saveGenerationPlan, saveSampleCaptions, suggestStickerCaptions, suggestStickerPlan, type GenerationProject, type GenerationImage } from '../services/generation.service.js';
 
 export const generationRouter=Router();
 generationRouter.use('/generation',authMiddleware,asyncHandler(async(req,_res,next)=>{
@@ -74,7 +74,7 @@ generationRouter.patch('/generation/projects/:id/plan',asyncHandler(async(req,re
 generationRouter.post('/generation/projects/:id/batch',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id);const project=await ownedGeneration(id,requireAuth(req).sub);
  if(project.status!=='active'||!project.confirmed) throw new AppError('INVALID_REQUEST',undefined,'대표 캐릭터를 먼저 확정해주세요.');
- const {slots}=z.object({slots:z.array(z.number().int().min(1).max(23)).min(1).max(4).refine(values=>new Set(values).size===values.length)}).parse(req.body);
+ const {slots}=z.object({slots:z.array(z.number().int().min(1).max(23)).min(1).max(23).refine(values=>new Set(values).size===values.length)}).parse(req.body);
  const plan=stickerPlanSchema.parse(project.plan).filter(item=>slots.includes(item.slot));
  if(plan.length!==slots.length) throw new AppError('INVALID_REQUEST',undefined,'표정·문구 구성을 먼저 저장해주세요.');
  if(!env.ENABLE_IMAGE_GENERATION||!env.OPENAI_API_KEY) throw new AppError('GENERATION_DISABLED');
@@ -106,6 +106,11 @@ generationRouter.post('/generation/projects/:id/complete',asyncHandler(async(req
   if(result.error.message.includes('INCOMPLETE')) throw new AppError('INVALID_REQUEST',undefined,'24장 생성을 모두 완료해주세요.');
   throw new AppError(result.error.message.includes('NOT_FOUND')?'NOT_FOUND':'INVALID_REQUEST');
  }
+ res.status(204).end();
+}));
+generationRouter.delete('/generation/projects/:id',asyncHandler(async(req,res)=>{
+ const id=z.uuid().parse(req.params.id);
+ await deleteGenerationProject(await ownedGeneration(id,requireAuth(req).sub));
  res.status(204).end();
 }));
 generationRouter.patch('/generation/projects/:id/images/:imageId',asyncHandler(async(req,res)=>{

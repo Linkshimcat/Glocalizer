@@ -9,6 +9,9 @@ export async function generationRequest<T>(token: string, path: string, method =
   if (!response.ok) { const payload = await response.json().catch(() => null); throw new Error(payload?.error?.message ?? `API (${response.status})`) }
   return response.status === 204 ? undefined as T : await response.json() as T
 }
+export async function deleteGenerationProject(token: string, projectId: string) {
+  await generationRequest(token, `/projects/${projectId}`, 'DELETE')
+}
 export async function downloadGeneration(token: string, projectId: string, imageId: string) {
   const file = await fetchGenerationFile(token, projectId, imageId)
   const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)

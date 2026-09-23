@@ -17,6 +17,9 @@ export default function Dashboard() {
   const toast = useToast()
   const { t } = useSiteLang()
   const [newTaskOpen, setNewTaskOpen] = useState(false)
+  // 두 목록 모두 비었을 때만 빈 상태를 한 번 보여준다. null은 아직 못 불러왔다는 뜻이다.
+  const [cloudCount, setCloudCount] = useState<number | null>(null)
+  const [generationCount, setGenerationCount] = useState<number | null>(null)
   const [startingNew, setStartingNew] = useState(false)
   const { files, projectStatus, resultReady, resetWorkflow, flushCloudWork, cloudSaving } = useUploads()
   const hasWork = files.length > 0
@@ -70,9 +73,10 @@ export default function Dashboard() {
         </div>
         <section className="mt-10" aria-labelledby="progress-title">
           <h2 id="progress-title" className="text-xl font-extrabold">{t.cloudInProgress}</h2>
-          <CloudProjectList archive={false} />
+          <CloudProjectList archive={false} onCount={setCloudCount} />
+          <GenerationList archive={false} onCount={setGenerationCount} />
+          {cloudCount === 0 && generationCount === 0 ? <p className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{t.cloudEmptyProgress}</p> : null}
         </section>
-        <GenerationList />
       </main>
       {newTaskOpen ? <Modal onClose={() => { if (!startingNew) setNewTaskOpen(false) }} labelledBy="new-task-title" closeLabel={t.commonClose}>
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Globe2 className="h-6 w-6" /></div>

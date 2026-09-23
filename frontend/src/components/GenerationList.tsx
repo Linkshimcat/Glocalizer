@@ -1,32 +1,50 @@
+import { ArrowRight, Loader2, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Sparkles } from 'lucide-react'
-import { useAuth } from '../store/AuthContext'
+import { useNavigate } from 'react-router-dom'
+import Button from './Button'
+import Modal from './Modal'
+import { useToast } from './Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { generationCopy } from '../i18n/generation'
-import { generationRequest, latestCompletedImages, type GenerationProject } from '../lib/generationApi'
+import { deleteGenerationProject, generationRequest, latestCompletedImages, type GenerationProject } from '../lib/generationApi'
+import { useAuth } from '../store/AuthContext'
 
 function GenerationListSkeleton({ label }: { label: string }) {
   return (
-    <div role="status" aria-label={label} aria-busy="true" className="mt-3 grid gap-3 sm:grid-cols-2">
+    <div role="status" aria-label={label} aria-busy="true" className="mt-4 grid gap-4">
       <span className="sr-only">{label}</span>
-      {Array.from({ length: 2 }, (_, index) => (
-        <div key={index} aria-hidden="true" className="flex animate-pulse items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 motion-reduce:animate-none">
-          <div className="h-16 w-16 shrink-0 rounded-xl bg-brand-soft" />
-          <div className="min-w-0 flex-1"><div className="h-4 w-3/5 rounded-full bg-gray-200" /><div className="mt-3 h-3 w-2/5 rounded-full bg-gray-100" /></div>
+      {Array.from({ length: 1 }, (_, index) => (
+        <div key={index} aria-hidden="true" className="flex animate-pulse flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 motion-reduce:animate-none sm:flex-row sm:items-center sm:p-6">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <div className="h-20 w-20 shrink-0 rounded-2xl bg-brand-soft/70" />
+            <div className="min-w-0 flex-1">
+              <div className="h-6 w-16 rounded-full bg-brand-soft" />
+              <div className="mt-3 h-4 w-2/5 rounded-full bg-gray-200" />
+              <div className="mt-3 h-3 w-1/3 rounded-full bg-gray-100" />
+            </div>
+          </div>
+          <div className="h-11 w-full rounded-xl bg-brand-soft sm:w-28 sm:shrink-0" />
         </div>
       ))}
     </div>
   )
 }
 
-export default function GenerationList({ archive = false }: { archive?: boolean }) {
+/** 대시보드·보관함에서 현지화 목록과 한 섹션에 나란히 놓인다. onCount를 받으면 제목과 빈
+ *  상태를 부모가 책임지므로, 여기서는 카드만 그리고 보이는 개수만 올려보낸다. 불러오지
+ *  못했을 때 null을 보내면 부모가 "작업 없음"으로 잘못 단정하지 않는다. */
+export default function GenerationList({ archive = false, onCount }: { archive?: boolean; onCount?: (count: number | null) => void }) {
   const { token } = useAuth()
-  const { lang } = useSiteLang()
-  const t = generationCopy(lang)
+  const { t, lang } = useSiteLang()
+  const g = generationCopy(lang)
+  const navigate = useNavigate()
+  const toast = useToast()
   const [projects, setProjects] = useState<GenerationProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<GenerationProject | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   useEffect(() => {
     let disposed = false
     setLoading(true)
@@ -34,24 +52,64 @@ export default function GenerationList({ archive = false }: { archive?: boolean 
     if (!token) { setLoading(false); return }
     generationRequest<{ projects: GenerationProject[] }>(token, '/projects')
       .then(result => { if (!disposed) setProjects(result.projects) })
-      .catch(e => { if (!disposed) setError(e instanceof Error ? e.message : 'API error') })
+      .catch(reason => { if (!disposed) setError(reason instanceof Error ? reason.message : 'API error') })
       .finally(() => { if (!disposed) setLoading(false) })
     return () => { disposed = true }
   }, [token])
-  const visibleProjects = projects.filter(project => ((project.status ?? (latestCompletedImages(project).length === 24 ? 'completed' : 'active')) === 'completed') === archive)
 
-  return <section className="mt-8">
-    <h2 className="text-lg font-extrabold">{t.history}</h2>
-    {loading ? <GenerationListSkeleton label={t.loading} /> : null}
-    {error ? <p role="alert" className="mt-3 text-sm text-red-600">{error}</p> : null}
-    {!loading && !error && visibleProjects.length === 0 ? <p className="mt-3 rounded-2xl border border-dashed border-gray-200 p-5 text-sm text-sub">{t.empty}</p> : null}
-    {!loading && !error ? <div className="mt-3 grid gap-3 sm:grid-cols-2">{visibleProjects.map(project => {
+  const visibleProjects = projects.filter(project => ((project.status ?? (latestCompletedImages(project).length === 24 ? 'completed' : 'active')) === 'completed') === archive)
+  useEffect(() => { if (!loading) onCount?.(error ? null : visibleProjects.length) }, [loading, error, visibleProjects.length, onCount])
+
+  const remove = async () => {
+    if (!deleteTarget || !token) return
+    setDeleting(true)
+    try {
+      await deleteGenerationProject(token, deleteTarget.id)
+      setProjects(current => current.filter(project => project.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      toast(t.cloudDeleteSuccess)
+    } catch (reason) {
+      toast(reason instanceof Error ? reason.message : t.cloudDeleteFailed)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  if (loading) return <GenerationListSkeleton label={g.loading} />
+  if (error) return <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>
+  if (!visibleProjects.length) return onCount ? null : <p className="mt-4 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{g.empty}</p>
+
+  return <div className="mt-4 grid gap-4">
+    {visibleProjects.map(project => {
       const completedImages = latestCompletedImages(project)
       const thumbnail = completedImages[0]
-      return <Link key={project.id} to={`/generate?project=${project.id}`} className="flex min-w-0 items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 transition-colors hover:border-brand/50">
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-soft">{thumbnail?.url ? <img src={thumbnail.url} alt="" loading="lazy" className="h-full w-full object-contain" /> : <Sparkles className="text-brand-dark" />}</span>
-        <span className="min-w-0"><span className="block truncate font-bold">{project.prompt}</span><span className="text-xs text-sub">{project.day} · {completedImages.length}/24 · {archive ? t.statusCompleted : t.statusActive}</span></span>
-      </Link>
-    })}</div> : null}
-  </section>
+      const pending = project.images.some(image => image.status === 'queued' || image.status === 'running')
+      return <article key={project.id} className="flex flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <img src={thumbnail.url} alt="" loading="lazy" className="h-full w-full object-contain" /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
+          <div className="min-w-0">
+            <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{archive ? g.statusCompleted : pending ? g.aiWorking : g.statusActive}</span>
+            <h3 className="mt-2 truncate font-bold">{project.prompt}</h3>
+            <p className="mt-1 text-sm text-sub">{completedImages.length}/24 {g.progress}</p>
+            <p className="mt-1 text-xs text-sub">{project.day}</p>
+          </div>
+        </div>
+        <div className="flex gap-2 sm:shrink-0">
+          {!archive ? <Button variant="outline" aria-label={`${project.prompt} ${t.cloudDelete}`} disabled={deleting} onClick={() => setDeleteTarget(project)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
+          <Button onClick={() => navigate(`/generate?project=${project.id}`)} className="flex-1 sm:flex-none"><ArrowRight className="h-4 w-4" />{archive ? t.cloudOpen : t.hubContinue}</Button>
+        </div>
+      </article>
+    })}
+    {deleteTarget ? <Modal onClose={() => { if (!deleting) setDeleteTarget(null) }} labelledBy="delete-generation-title" closeLabel={t.commonClose}>
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600"><Trash2 className="h-6 w-6" /></div>
+      <h2 id="delete-generation-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudDeleteTitle}</h2>
+      <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudDeleteDescription.replace('{name}', deleteTarget.prompt)}</p>
+      <div className="mt-7 flex gap-3">
+        <Button variant="secondary" disabled={deleting} onClick={() => setDeleteTarget(null)} className="flex-1">{t.cloudDeleteCancel}</Button>
+        <Button disabled={deleting} onClick={() => { void remove() }} className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-100 disabled:text-red-400">
+          {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{t.cloudDeleteConfirm}
+        </Button>
+      </div>
+    </Modal> : null}
+  </div>
 }
