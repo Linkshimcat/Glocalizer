@@ -33,19 +33,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 top-5 z-50 flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex flex-col items-center gap-2 px-4">
         {toasts.map(t => (
           <div
             key={t.id}
             role="alert"
-            className="animate-toast-in flex items-center gap-2.5 rounded-2xl bg-ink px-5 py-3.5 text-sm font-bold text-white shadow-[0_12px_32px_rgba(0,0,0,0.25)]"
+            className="animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-2xl border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]"
           >
-            {t.type === 'warning' ? (
-              <AlertTriangle className="h-4 w-4 shrink-0 text-[#FACC15]" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-brand" />
-            )}
-            {t.message}
+            <span
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                t.type === 'warning' ? 'bg-amber-50 text-amber-600' : 'bg-brand-soft text-brand-dark'
+              }`}
+            >
+              {t.type === 'warning' ? <AlertTriangle className="h-[18px] w-[18px]" /> : <CheckCircle2 className="h-[18px] w-[18px]" />}
+            </span>
+            <p className="min-w-0 break-keep text-sm font-bold leading-6 text-ink">{t.message}</p>
           </div>
         ))}
       </div>
