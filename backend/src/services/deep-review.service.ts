@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { AppError } from '../errors/app-error.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import type { DeepReviewRequest, DeepReviewResponse } from '../schemas/deep-review.schema.js';
@@ -110,7 +111,7 @@ export async function createDeepReview(input: DeepReviewRequest, ownerId: string
       body: JSON.stringify({
         model: env.AI_REVIEW_MODEL,
         messages: [{ role: 'user', content: [{ type: 'text', text: buildPrompt(materials, input.locale) }, ...visionImages] }],
-        max_completion_tokens: 2_500,
+        max_completion_tokens: 4_000,
         response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
@@ -123,6 +124,7 @@ export async function createDeepReview(input: DeepReviewRequest, ownerId: string
   } catch (error) {
     if (error instanceof AppError) throw error;
     const timedOut = error instanceof Error && error.name === 'AbortError';
+    if (!timedOut) logger.warn({ err: error }, 'Deep review response could not be parsed');
     throw new AppError('AI_REVIEW_FAILED', undefined, timedOut ? 'AI 심층 피드백 요청 시간이 초과되었습니다.' : 'AI 심층 피드백을 생성하지 못했습니다.');
   } finally {
     clearTimeout(timeout);
