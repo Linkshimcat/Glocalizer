@@ -7,7 +7,8 @@ import { AppError } from '../errors/app-error.js';
 import { createSignedUrl, downloadFromStorage, removeFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 
-export interface GenerationProject { id: string; owner_id: string; prompt: string; reference_path: string | null; confirmed: boolean; created_at: string; day: string }
+export interface StickerPlanItem { slot: number; pose: string; caption: string }
+export interface GenerationProject { id: string; owner_id: string; prompt: string; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
 export interface GenerationImage { id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
 export async function ownedGeneration(id: string, owner: string) {
  const row = unwrapNullableRow<GenerationProject>(await supabase.from('generation_projects').select().eq('id',id).eq('owner_id',owner).maybeSingle(), '생성 작업 조회 실패');
@@ -85,6 +86,48 @@ export async function saveSampleCaptions(projectId:string,captions:string[]) {
   const id=latestBySlot.get(index+1);
   if(id) unwrapVoid(await supabase.from('generation_images').update({caption}).eq('id',id),'자동 문구 저장 실패');
  }));
+}
+const FALLBACK_STICKER_PLAN:StickerPlanItem[]=[
+ {slot:1,pose:'밝게 손을 흔들며 인사',caption:'안녕!'},{slot:2,pose:'두 손을 모아 감사 인사',caption:'고마워!'},{slot:3,pose:'고개를 숙여 사과',caption:'미안해'},
+ {slot:4,pose:'엄지를 들며 활짝 웃기',caption:'좋아!'},{slot:5,pose:'두 팔을 높이 들고 기뻐하기',caption:'최고야!'},{slot:6,pose:'폭죽과 함께 축하하기',caption:'축하해!'},
+ {slot:7,pose:'큰 하트를 품에 안기',caption:'사랑해!'},{slot:8,pose:'멀리 바라보며 그리워하기',caption:'보고 싶어'},{slot:9,pose:'두 주먹을 쥐고 응원하기',caption:'힘내!'},
+ {slot:10,pose:'주먹을 불끈 쥐고 파이팅',caption:'파이팅!'},{slot:11,pose:'힘차게 박수치기',caption:'잘했어!'},{slot:12,pose:'눈을 크게 뜨고 놀라기',caption:'대박!'},
+ {slot:13,pose:'고개를 갸웃하며 묻기',caption:'정말?'},{slot:14,pose:'깜짝 놀라 뒤로 물러서기',caption:'헉!'},{slot:15,pose:'당황해서 안절부절못하기',caption:'어떡해'},
+ {slot:16,pose:'입을 삐죽이며 풀이 죽기',caption:'속상해…'},{slot:17,pose:'눈물을 흘리며 울기',caption:'슬퍼'},{slot:18,pose:'팔짱을 끼고 화내기',caption:'화났어!'},
+ {slot:19,pose:'고개를 돌리며 거절하기',caption:'싫어!'},{slot:20,pose:'두 손을 모아 부탁하기',caption:'부탁해'},{slot:21,pose:'한 손을 내밀어 멈춰 세우기',caption:'잠깐만'},
+ {slot:22,pose:'이불을 덮고 졸기',caption:'잘 자'},{slot:23,pose:'맛있게 먹으며 감탄하기',caption:'맛있다!'},
+];
+const planResponseSchema=z.object({items:z.array(z.object({pose:z.string(),caption:z.string()})).length(23)});
+export async function suggestStickerPlan(character:string):Promise<StickerPlanItem[]> {
+ if(!env.OPENAI_API_KEY) return FALLBACK_STICKER_PLAN;
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),env.IMAGE_CAPTION_TIMEOUT_MS);
+ try {
+  const response=await fetch(`${env.OPENAI_BASE_URL}/chat/completions`,{
+   method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
+   body:JSON.stringify({model:env.IMAGE_CAPTION_MODEL,max_completion_tokens:1800,response_format:{type:'json_object'},messages:[{role:'user',content:`Plan a cohesive 24-image Korean chat sticker set for the character below. The representative character image is already slot 0. Return JSON only: {"items":[{"pose":"...","caption":"..."}, ...]}. Write exactly 23 items for slots 1 through 23 in order. Each pose must be visually distinct and practical for daily chat. Each Korean caption must be natural, immediately readable on mobile, one line, and at most ${CAPTION_MAX_LENGTH} visible characters. Cover greetings, thanks, apology, approval, celebration, affection, encouragement, surprise, sadness, anger, refusal, requests, waiting, sleep and food. Avoid brands, copyrighted catchphrases, profanity, violence, politics, religion, sexual content, hashtags and emoji. Character: ${character.slice(0,1000)}`}]}),
+   signal:controller.signal,
+  });
+  if(!response.ok) throw new Error(`plan API ${response.status}`);
+  const body=await response.json() as {choices?:Array<{message?:{content?:string}}>};
+  const content=body.choices?.[0]?.message?.content;
+  if(!content) throw new Error('empty plan response');
+  const parsed=planResponseSchema.parse(JSON.parse(content));
+  return parsed.items.map((item,index)=>({slot:index+1,pose:Array.from(item.pose.replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim()).slice(0,200).join('')||FALLBACK_STICKER_PLAN[index].pose,caption:cleanCaption(item.caption)||FALLBACK_STICKER_PLAN[index].caption}));
+ } catch(error) {
+  logger.warn({err:error},'Sticker plan suggestion failed; using safe fallbacks');
+  return FALLBACK_STICKER_PLAN;
+ } finally { clearTimeout(timeout); }
+}
+export async function saveGenerationPlan(projectId:string,plan:StickerPlanItem[]) {
+ unwrapVoid(await supabase.from('generation_projects').update({plan}).eq('id',projectId).eq('status','active'),'이모티콘 구성 저장 실패');
+}
+export async function saveBatchCaptions(projectId:string,items:StickerPlanItem[]) {
+ const slots=items.map(item=>item.slot);
+ const rows=unwrapList<{id:string;slot:number}>(await supabase.from('generation_images').select('id,slot,created_at').eq('project_id',projectId).in('slot',slots).order('created_at',{ascending:false}),'자동 문구 대상 조회 실패');
+ const latestBySlot=new Map<number,string>();
+ for(const row of rows) if(!latestBySlot.has(row.slot)) latestBySlot.set(row.slot,row.id);
+ await Promise.all(items.map(async item=>{const id=latestBySlot.get(item.slot);if(id) unwrapVoid(await supabase.from('generation_images').update({caption:item.caption}).eq('id',id),'자동 문구 저장 실패');}));
 }
 export async function normalizeSticker(input: Buffer): Promise<Buffer> {
  const source = sharp(input,{limitInputPixels:16_777_216});

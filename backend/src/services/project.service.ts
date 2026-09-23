@@ -66,7 +66,7 @@ export async function createProject(input: CreateProjectInput, ownerId?: string,
       })),
     );
 
-    // 스토리지 URL 발급은 파일끼리 독립적이다. 최대 20개를 직렬 처리하지 않되,
+    // 스토리지 URL 발급은 파일끼리 독립적이다. 최대 24개를 직렬 처리하지 않되,
     // 동시 요청을 제한해 Supabase에 순간적으로 과도한 부하를 주지 않는다.
     const assets = await mapWithConcurrency(plannedAssets, SIGNED_UPLOAD_URL_CONCURRENCY, async (asset): Promise<CreatedAsset> => {
       const { data, error } = await supabase.storage

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
-import { captionSticker, imageUsageCost, normalizeSticker, suggestStickerCaptions } from '../../src/services/generation.service.js';
+import { captionSticker, imageUsageCost, normalizeSticker, suggestStickerCaptions, suggestStickerPlan } from '../../src/services/generation.service.js';
 afterEach(() => vi.unstubAllGlobals());
 describe('generation output', () => {
   it('produces a transparent OGQ canvas with density and white outline', async () => {
@@ -27,5 +27,20 @@ describe('generation output', () => {
   it('uses safe pose-based captions when caption generation fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 500 })));
     await expect(suggestStickerCaptions('캐릭터', ['환하게 웃으며 인사', '하트를 안고 사랑을 표현'])).resolves.toEqual(['안녕!', '사랑해!']);
+  });
+  it('creates a complete ordered 23-image plan and trims long captions', async () => {
+    const items = Array.from({ length: 23 }, (_, index) => ({ pose: `표정 ${index + 1}`, caption: index === 0 ? '아주아주긴문구입니다정말로' : `문구${index + 1}` }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ items }) } }] }), { status: 200 })));
+    const plan = await suggestStickerPlan('분홍 돼지 캐릭터');
+    expect(plan).toHaveLength(23);
+    expect(plan.map(item => item.slot)).toEqual(Array.from({ length: 23 }, (_, index) => index + 1));
+    expect(Array.from(plan[0].caption)).toHaveLength(10);
+  });
+  it('falls back to a safe 23-image plan when planning fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 500 })));
+    const plan = await suggestStickerPlan('캐릭터');
+    expect(plan).toHaveLength(23);
+    expect(plan[0]).toMatchObject({ slot: 1, caption: '안녕!' });
+    expect(plan[22]).toMatchObject({ slot: 23, caption: '맛있다!' });
   });
 });
