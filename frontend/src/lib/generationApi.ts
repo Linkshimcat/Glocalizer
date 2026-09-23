@@ -38,6 +38,10 @@ export function latestCompletedImages(project: GenerationProject) {
   for (const image of [...project.images].reverse()) if (image.status === 'completed' && !images.has(image.slot)) images.set(image.slot, image)
   return [...images.values()].sort((a, b) => a.slot - b.slot)
 }
+export function thumbnailImage(project: GenerationProject) {
+  const images = latestCompletedImages(project)
+  return images.find(image => image.caption) ?? images[0]
+}
 export async function downloadGenerationSet(token: string, project: GenerationProject) {
   const images = latestCompletedImages(project)
   if (images.length !== 24) throw new Error('24장 생성을 모두 완료해주세요.')
