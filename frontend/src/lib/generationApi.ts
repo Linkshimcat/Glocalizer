@@ -1,7 +1,15 @@
 import JSZip from 'jszip'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
-export interface GenerationImage { id: string; slot: number; prompt: string; status: 'queued' | 'running' | 'completed' | 'failed'; caption: string; url: string | null; error: string | null; cost_usd: number | null; reserve_usd: number; elapsed_ms: number | null }
+export interface CaptionStyle { anchor: string; size: number; color: string; stroke: string }
+export interface GenerationImage { id: string; slot: number; prompt: string; status: 'queued' | 'running' | 'completed' | 'failed'; caption: string; caption_style?: CaptionStyle | null; url: string | null; error: string | null; cost_usd: number | null; reserve_usd: number; elapsed_ms: number | null }
+// 740x640 캔버스 기준 앵커 좌표. 백엔드 captionSticker와 같은 값이라야 미리보기가 결과와 맞는다.
+export const CAPTION_ANCHOR_X: Record<string, number> = { left: 48, center: 370, right: 692 }
+export const CAPTION_ANCHOR_Y: Record<string, number> = { top: 56, middle: 340, bottom: 612 }
+export const CAPTION_VERTICALS = ['top', 'middle', 'bottom'] as const
+export const CAPTION_HORIZONTALS = ['left', 'center', 'right'] as const
+export const CAPTION_SIZES = [30, 38, 46, 56]
+export const DEFAULT_CAPTION_STYLE: CaptionStyle = { anchor: 'top-center', size: 46, color: '#202630', stroke: '#ffffff' }
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
 export interface GenerationProject { id: string; prompt: string; name?: string | null; confirmed: boolean; day: string; created_at: string; status?: 'active' | 'completed'; completed_at?: string | null; plan?: StickerPlanItem[]; referenceUrl: string | null; images: GenerationImage[] }
 export async function generationRequest<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<T> {

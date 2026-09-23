@@ -10,7 +10,7 @@ import { findUserById } from '../repositories/user.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
-import { captionSticker, deleteGenerationProject, enqueueGeneration, generationWorkspace, ownedGeneration, saveBatchCaptions, saveGeneratedCaption, saveGenerationPlan, saveSampleCaptions, suggestStickerCaptions, suggestStickerPlan, type GenerationProject, type GenerationImage } from '../services/generation.service.js';
+import { CAPTION_SIZES, captionSticker, deleteGenerationProject, enqueueGeneration, generationWorkspace, ownedGeneration, saveBatchCaptions, saveGeneratedCaption, saveGenerationPlan, saveSampleCaptions, suggestStickerCaptions, suggestStickerPlan, type GenerationProject, type GenerationImage } from '../services/generation.service.js';
 
 export const generationRouter=Router();
 generationRouter.use('/generation',authMiddleware,asyncHandler(async(req,_res,next)=>{
@@ -124,13 +124,21 @@ generationRouter.patch('/generation/projects/:id/images/:imageId',asyncHandler(a
  const id=z.uuid().parse(req.params.id),imageId=z.uuid().parse(req.params.imageId);
  const project=await ownedGeneration(id,requireAuth(req).sub);
  if(project.status==='completed') throw new AppError('INVALID_REQUEST',undefined,'완료한 프로젝트는 수정할 수 없습니다.');
- const {caption}=z.object({caption:z.string().trim().max(16)}).parse(req.body);
- const result=await supabase.from('generation_images').update({caption}).eq('id',imageId).eq('project_id',id).eq('status','completed').select('id').maybeSingle();
+ const {caption,style}=z.object({
+  caption:z.string().trim().max(16),
+  style:z.object({
+   anchor:z.enum(['top-left','top-center','top-right','middle-left','middle-center','middle-right','bottom-left','bottom-center','bottom-right']),
+   size:z.number().refine(value=>CAPTION_SIZES.includes(value)),
+   color:z.string().regex(/^#[0-9a-fA-F]{6}$/),
+   stroke:z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  }).optional(),
+ }).parse(req.body);
+ const result=await supabase.from('generation_images').update(style?{caption,caption_style:style}:{caption}).eq('id',imageId).eq('project_id',id).eq('status','completed').select('id').maybeSingle();
  if(!unwrapNullableRow(result,'문구 저장 실패')) throw new AppError('NOT_FOUND');res.status(204).end();
 }));
 generationRouter.get('/generation/projects/:id/images/:imageId/download',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id),imageId=z.uuid().parse(req.params.imageId);await ownedGeneration(id,requireAuth(req).sub);
  const image=unwrapNullableRow<GenerationImage>(await supabase.from('generation_images').select().eq('id',imageId).eq('project_id',id).eq('status','completed').maybeSingle(),'이미지 조회 실패');
  if(!image?.path) throw new AppError('NOT_FOUND');const png=await downloadFromStorage(image.path);if(!png) throw new AppError('NOT_FOUND');
- res.set('Content-Type','image/png').set('Content-Disposition',`attachment; filename="sample-${image.slot}.png"`).send(await captionSticker(png,image.caption));
+ res.set('Content-Type','image/png').set('Content-Disposition',`attachment; filename="sample-${image.slot}.png"`).send(await captionSticker(png,image.caption,image.caption_style));
 }));
