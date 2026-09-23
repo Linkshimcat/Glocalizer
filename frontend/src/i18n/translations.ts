@@ -159,6 +159,17 @@ export interface Dict {
   reviewKeywordEmpty: string
   reviewKeywordFailed: string
   reviewAnimatedBadge: string
+  reviewAiTitle: string
+  reviewAiDesc: string
+  reviewAiCta: string
+  reviewAiLoading: string
+  reviewAiFailed: string
+  reviewAiLimit: string
+  reviewAiScore: string
+  reviewAiStrengths: string
+  reviewAiFixes: string
+  reviewAiImages: string
+  reviewAiLocalization: string
   reviewChecklistTitle: string
   reviewChecklistItems: string[]
   reviewChecklistDisclaimer: string
@@ -428,12 +439,23 @@ export const translations: Record<SiteLang, Dict> = {
     reviewProjectsFailed: '프로젝트 목록을 불러오지 못했어요.',
     reviewLoadingWorkspace: '프로젝트 문구를 분석하는 중...',
     reviewWorkspaceFailed: '프로젝트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-    reviewSimilarTitle: '비슷한 기존 스티커',
-    reviewSimilarDesc: '이미 이런 이모티콘이 있는지 참고해보세요. 출시 전 차별점을 점검하는 데 도움이 돼요.',
+    reviewSimilarTitle: '비슷한 문구의 기존 스티커',
+    reviewSimilarDesc: '완성 이미지에서 인식한 문구로 OGQ 마켓을 검색해요. 출시 전 표현의 차별점을 참고해보세요.',
     reviewNoKeywords: '프로젝트에서 검색에 쓸 문구를 찾지 못했어요.',
-    reviewKeywordEmpty: '비슷한 스티커를 찾지 못했어요.',
+    reviewKeywordEmpty: '같거나 비슷한 문구의 스티커를 찾지 못했어요.',
     reviewKeywordFailed: '검색에 실패했어요.',
     reviewAnimatedBadge: '움직임',
+    reviewAiTitle: 'AI 심층 피드백',
+    reviewAiDesc: '선택한 완성 이미지와 OCR·번역 결과를 함께 분석해 출시 전에 개선할 부분을 우선순위로 정리해요.',
+    reviewAiCta: '심층 피드백 받기',
+    reviewAiLoading: '분석 중...',
+    reviewAiFailed: '심층 피드백을 만들지 못했어요. 잠시 후 다시 시도해주세요.',
+    reviewAiLimit: 'AI 심층 피드백은 한 번에 프로젝트 3개까지 분석할 수 있어요.',
+    reviewAiScore: 'AI 출시 준비도',
+    reviewAiStrengths: '잘된 점',
+    reviewAiFixes: '우선 수정할 점',
+    reviewAiImages: '이미지별 피드백',
+    reviewAiLocalization: '현지화 피드백',
     reviewChecklistTitle: 'OGQ 마켓 출시 체크리스트',
     reviewChecklistItems: [
       '이미지는 투명 배경 PNG로 준비하세요 (기준 캔버스 740×640px, 파일당 1MB 이하)',
@@ -700,12 +722,23 @@ export const translations: Record<SiteLang, Dict> = {
     reviewProjectsFailed: "Couldn't load your projects.",
     reviewLoadingWorkspace: 'Analyzing project captions...',
     reviewWorkspaceFailed: "Couldn't load the project. Please try again.",
-    reviewSimilarTitle: 'Similar existing stickers',
-    reviewSimilarDesc: 'See what already exists on OGQ Market — useful for checking what makes yours different before you launch.',
+    reviewSimilarTitle: 'Existing stickers with similar captions',
+    reviewSimilarDesc: 'We search OGQ Market using captions recognized in your finished images, so you can compare wording before launch.',
     reviewNoKeywords: "We couldn't find any captions to search with in this project.",
-    reviewKeywordEmpty: 'No similar stickers found.',
+    reviewKeywordEmpty: 'No stickers with the same or similar captions were found.',
     reviewKeywordFailed: 'Search failed.',
     reviewAnimatedBadge: 'Animated',
+    reviewAiTitle: 'AI deep feedback',
+    reviewAiDesc: 'Analyze the selected finished images together with OCR and translations to prioritize improvements before release.',
+    reviewAiCta: 'Get deep feedback',
+    reviewAiLoading: 'Analyzing...',
+    reviewAiFailed: "Couldn't generate deep feedback. Please try again.",
+    reviewAiLimit: 'AI deep feedback can analyze up to 3 projects at a time.',
+    reviewAiScore: 'AI release readiness',
+    reviewAiStrengths: 'What works well',
+    reviewAiFixes: 'Priority improvements',
+    reviewAiImages: 'Feedback by image',
+    reviewAiLocalization: 'Localization feedback',
     reviewChecklistTitle: 'OGQ Market launch checklist',
     reviewChecklistItems: [
       'Prepare transparent-background PNGs (reference canvas 740×640px, under 1MB per file)',
@@ -972,12 +1005,23 @@ export const translations: Record<SiteLang, Dict> = {
     reviewProjectsFailed: 'プロジェクト一覧を読み込めませんでした。',
     reviewLoadingWorkspace: 'プロジェクトの文言を分析中...',
     reviewWorkspaceFailed: 'プロジェクトを読み込めませんでした。しばらくしてから再試行してください。',
-    reviewSimilarTitle: '似ている既存スティッカー',
-    reviewSimilarDesc: '既にこんな絵文字があるか参考にしてみましょう。リリース前の差別化ポイントの確認に役立ちます。',
+    reviewSimilarTitle: '似た文言の既存スティッカー',
+    reviewSimilarDesc: '完成画像から認識した文言でOGQマーケットを検索し、リリース前に表現の違いを比較できます。',
     reviewNoKeywords: 'プロジェクトから検索に使える文言が見つかりませんでした。',
-    reviewKeywordEmpty: '似ているスティッカーが見つかりませんでした。',
+    reviewKeywordEmpty: '同じ、または似た文言のスティッカーが見つかりませんでした。',
     reviewKeywordFailed: '検索に失敗しました。',
     reviewAnimatedBadge: 'アニメーション',
+    reviewAiTitle: 'AI詳細フィードバック',
+    reviewAiDesc: '選択した完成画像とOCR・翻訳結果をまとめて分析し、リリース前の改善点を優先順に整理します。',
+    reviewAiCta: '詳細フィードバックを受ける',
+    reviewAiLoading: '分析中...',
+    reviewAiFailed: '詳細フィードバックを作成できませんでした。しばらくしてから再試行してください。',
+    reviewAiLimit: 'AI詳細フィードバックは一度に3件まで分析できます。',
+    reviewAiScore: 'AIリリース準備度',
+    reviewAiStrengths: '良い点',
+    reviewAiFixes: '優先して修正する点',
+    reviewAiImages: '画像別フィードバック',
+    reviewAiLocalization: 'ローカライズフィードバック',
     reviewChecklistTitle: 'OGQマーケットリリースチェックリスト',
     reviewChecklistItems: [
       '透明背景のPNGで準備してください(基準キャンバス740×640px、ファイルごと1MB以下)',
@@ -1244,12 +1288,23 @@ export const translations: Record<SiteLang, Dict> = {
     reviewProjectsFailed: '项目列表加载失败。',
     reviewLoadingWorkspace: '正在分析项目文案...',
     reviewWorkspaceFailed: '项目加载失败，请稍后重试。',
-    reviewSimilarTitle: '类似的现有贴纸',
-    reviewSimilarDesc: '看看市场上是否已经有类似的表情包，帮你在上架前检查差异点。',
+    reviewSimilarTitle: '文案相似的现有贴纸',
+    reviewSimilarDesc: '使用完成图片中识别出的文案搜索 OGQ 市场，方便你在上架前比较表达差异。',
     reviewNoKeywords: '没能在这个项目里找到可用于搜索的文案。',
-    reviewKeywordEmpty: '没有找到类似的贴纸。',
+    reviewKeywordEmpty: '没有找到文案相同或相似的贴纸。',
     reviewKeywordFailed: '搜索失败。',
     reviewAnimatedBadge: '动图',
+    reviewAiTitle: 'AI 深度反馈',
+    reviewAiDesc: '综合分析所选成品图片、OCR 和翻译结果，按优先级整理上架前需要改进的内容。',
+    reviewAiCta: '获取深度反馈',
+    reviewAiLoading: '正在分析...',
+    reviewAiFailed: '无法生成深度反馈，请稍后重试。',
+    reviewAiLimit: 'AI 深度反馈每次最多可分析 3 个项目。',
+    reviewAiScore: 'AI 上架准备度',
+    reviewAiStrengths: '做得好的地方',
+    reviewAiFixes: '优先修改项',
+    reviewAiImages: '逐图反馈',
+    reviewAiLocalization: '本地化反馈',
     reviewChecklistTitle: 'OGQ 市场上架检查清单',
     reviewChecklistItems: [
       '准备透明背景的 PNG 图片(参考画布 740×640px,单张文件 1MB 以内)',
