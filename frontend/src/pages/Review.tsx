@@ -203,7 +203,7 @@ export default function Review() {
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {projects.map(reviewProject => {
                     const selected = selectedKeys.includes(reviewProject.key)
-                    const projectName = reviewProject.kind === 'localization' ? reviewProject.project.name : reviewProject.project.prompt
+                    const projectName = reviewProject.kind === 'localization' ? reviewProject.project.name : reviewProject.project.name || reviewProject.project.prompt
                     const imageCount = reviewProject.kind === 'localization' ? reviewProject.project.imageCount : reviewProject.completedImages.length
                     const thumbnailUrl = reviewProject.kind === 'localization' ? reviewProject.project.thumbnailUrl : reviewProject.completedImages[0]?.url
                     return (
@@ -212,7 +212,7 @@ export default function Review() {
                       type="button"
                       onClick={() => toggleProject(reviewProject.key)}
                       aria-pressed={selected}
-                      className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-colors ${
+                      className={`flex min-w-0 items-center gap-4 overflow-hidden rounded-2xl border-2 p-4 text-left transition-colors ${
                         selected ? 'border-brand bg-brand-soft' : 'border-gray-100 bg-white hover:border-gray-200'
                       }`}
                     >
@@ -262,7 +262,7 @@ export default function Review() {
                                 )}
                               </div>
                               {(sticker.title || categoryLabel) && (
-                                <div className="border-t border-gray-100 px-2 py-1.5">
+                                <div className="min-w-0 overflow-hidden border-t border-gray-100 px-2 py-1.5">
                                   {sticker.title && <p className="truncate text-[11px] font-semibold text-ink">{sticker.title}</p>}
                                   {categoryLabel && <p className="truncate text-[10px] text-sub">{categoryLabel}</p>}
                                 </div>
@@ -308,7 +308,7 @@ export default function Review() {
                       <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
                     </div>
 
-                    {deepFeedback.imageFeedback.length > 0 && <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="rounded-xl bg-surface p-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.imageFeedback.length > 0 && <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="min-w-0 overflow-hidden rounded-xl bg-surface p-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
                     {deepFeedback.localizationFeedback.length > 0 && <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-l-2 border-brand pl-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
                     <p className="text-xs leading-5 text-sub">{deepFeedback.disclaimer}</p>
                   </div>
