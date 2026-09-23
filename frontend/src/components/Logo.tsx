@@ -3,7 +3,12 @@ import logoUrl from '../assets/GlocalizerLogo.png'
 
 export default function Logo({ small = false }: { small?: boolean }) {
   return (
-    <Link to="/" className="inline-flex w-fit items-center gap-2">
+    <Link
+      to="/"
+      onClick={() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })}
+      aria-label="Glocalizer 홈으로 이동"
+      className="inline-flex w-fit items-center gap-2"
+    >
       <span
         className={`inline-block overflow-hidden ${small ? 'h-7 w-7' : 'h-9 w-9'}`}
       >

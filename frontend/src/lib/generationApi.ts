@@ -7,9 +7,14 @@ export async function generationRequest<T>(token: string, path: string, method =
   return response.status === 204 ? undefined as T : await response.json() as T
 }
 export async function downloadGeneration(token: string, projectId: string, imageId: string) {
+  const file = await fetchGenerationFile(token, projectId, imageId)
+  const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+export async function fetchGenerationFile(token: string, projectId: string, imageId: string, slot?: number) {
   const response = await fetch(`${BASE}/generation/projects/${projectId}/images/${imageId}/download`, { headers: { Authorization: `Bearer ${token}` } })
   if (!response.ok) { const payload = await response.json().catch(() => null); throw new Error(payload?.error?.message ?? 'PNG download failed') }
-  const url = URL.createObjectURL(await response.blob()); const a = document.createElement('a'); a.href = url; a.download = `sample-${imageId}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const suffix = slot === undefined ? imageId.slice(0, 8) : String(slot + 1)
+  return new File([await response.blob()], `glocalizer-${projectId.slice(0, 8)}-${suffix}.png`, { type: 'image/png' })
 }
 export async function prepareReference(file: File): Promise<string> {
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('PNG / JPEG / WebP')

@@ -1,19 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Navigate, useSearchParams } from 'react-router-dom'
-import { ImagePlus, Sparkles, ArrowRight, LoaderCircle } from 'lucide-react'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { ImagePlus, Sparkles, ArrowRight, LoaderCircle, Globe2, ShieldCheck } from 'lucide-react'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import Button from '../components/Button'
 import { useAuth } from '../store/AuthContext'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { generationCopy } from '../i18n/generation'
-import { downloadGeneration, generationRequest, prepareReference, type GenerationProject, type GenerationImage } from '../lib/generationApi'
+import { downloadGeneration, fetchGenerationFile, generationRequest, prepareReference, type GenerationProject, type GenerationImage } from '../lib/generationApi'
+import { useUploads } from '../store/uploads'
 
 const categories = ['animal', 'person', 'food', 'object', 'fantasy'] as const
 const tags = ['cute', 'simple', 'pastel', 'bold', 'playful', 'chic', 'warm', 'funny'] as const
 const conditions = { animal: 'animal character', person: 'human character', food: 'food character', object: 'object character', fantasy: 'fantasy character', cute: 'cute', simple: 'simple design', pastel: 'pastel colors', bold: 'bold outlines', playful: 'playful personality', chic: 'chic personality', warm: 'warm and friendly', funny: 'humorous and expressive' }
+
+function GenerationPageSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} aria-busy="true" className="mt-8 grid animate-pulse items-start gap-5 motion-reduce:animate-none lg:grid-cols-[1fr_320px]">
+      <span className="sr-only">{label}</span>
+      <div aria-hidden="true" className="rounded-[28px] border border-gray-200 bg-white p-5 sm:p-7">
+        <div className="h-7 w-36 rounded-lg bg-gray-200" />
+        <div className="mt-3 h-4 w-3/5 rounded-full bg-gray-100" />
+        <div className="mx-auto mt-6 aspect-[740/640] max-w-md rounded-2xl bg-surface" />
+        <div className="mt-5 grid grid-cols-4 gap-2">{Array.from({ length: 4 }, (_, index) => <div key={index} className="aspect-square rounded-xl bg-gray-100" />)}</div>
+      </div>
+      <div aria-hidden="true" className="space-y-5">
+        <div className="h-64 rounded-3xl border border-gray-200 bg-white" />
+        <div className="h-40 rounded-3xl border border-gray-200 bg-white" />
+      </div>
+    </div>
+  )
+}
+
 export default function Generate() {
   const { token } = useAuth()
+  const navigate = useNavigate()
+  const { addFiles } = useUploads()
   const { lang } = useSiteLang()
   const t = generationCopy(lang)
   const [params, setParams] = useSearchParams()
@@ -39,6 +61,11 @@ export default function Generate() {
   const slotImages = project?.images.filter(i => i.slot === slot) ?? []
   const latest = slotImages.at(-1)
   const image = [...slotImages].reverse().find(i => i.status === 'completed')
+  const completedImages = project ? [0, 1, 2, 3].flatMap(currentSlot => {
+    const completed = [...project.images].reverse().find(item => item.slot === currentSlot && item.status === 'completed')
+    return completed ? [completed] : []
+  }) : []
+  const readyForNextStep = completedImages.length === 4
   const busy = submitting || !!project?.images.some(i => ['queued', 'running'].includes(i.status))
   const load = useCallback(async () => {
     if (!token) return
@@ -75,6 +102,22 @@ export default function Generate() {
     setUploading(true); setError('')
     try { setReference(await prepareReference(files[0])) } catch { setError(t.imageError) } finally { setUploading(false) }
   }
+  const sendToLocalization = async () => {
+    if (!project || !readyForNextStep) return
+    setSubmitting(true); setError('')
+    try {
+      if (image && caption !== image.caption) {
+        await generationRequest(token!, `/projects/${project.id}/images/${image.id}`, 'PATCH', { caption })
+      }
+      const files = await Promise.all(completedImages.map(item => fetchGenerationFile(token!, project.id, item.id, item.slot)))
+      addFiles(files)
+      navigate('/localize')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'API error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
   if (!token) return <Navigate to="/login?next=/generate" replace />
   const cost = project?.images.reduce((sum, i) => sum + Number(i.cost_usd ?? i.reserve_usd), 0) ?? 0
   const cardImage = (i: GenerationImage | undefined, label: string) => i?.url ? <img src={i.url} alt={label} className="h-full w-full object-contain" /> : <Sparkles className="h-10 w-10 text-brand/40" />
@@ -86,7 +129,7 @@ export default function Generate() {
       <p className="mt-3 text-sub">{t.subtitle}</p>
       {!enabled && !loading && <p role="status" className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t.disabled}</p>}
       {error && <div role="alert" className="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}<Button variant="ghost" size="sm" onClick={() => action(load)}>{t.retry}</Button></div>}
-      {loading ? <p className="mt-8 text-sub">{t.loading}</p> : !project ? <section className="mx-auto mt-10 max-w-2xl rounded-[28px] border border-gray-200 bg-white p-5 sm:p-7">
+      {loading ? <GenerationPageSkeleton label={t.loading} /> : !project ? <section className="mx-auto mt-10 max-w-2xl rounded-[28px] border border-gray-200 bg-white p-5 sm:p-7">
         <div onDragOver={e => { e.preventDefault(); setDragging(true) }} onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false) }} onDrop={e => { e.preventDefault(); setDragging(false); void attach(e.dataTransfer.files) }} className={`flex min-h-60 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed p-6 text-center transition-colors ${dragging ? 'border-brand bg-brand-soft' : 'border-gray-200 bg-[#FAFBFC]'}`} aria-busy={uploading}>
           {reference ? <><img src={reference} alt={t.attach} className="h-32 w-full object-contain" /><div className="flex flex-wrap justify-center gap-2"><Button variant="outline" size="sm" onClick={() => fileInput.current?.click()} disabled={uploading}>{t.fileSelect}</Button><Button variant="ghost" size="sm" onClick={() => setReference(undefined)} disabled={uploading}>{t.remove}</Button></div></> : <><span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark">{uploading ? <LoaderCircle className="animate-spin" size={30} /> : <ImagePlus size={30} />}</span><h2 className="text-base font-extrabold">{t.dropTitle}</h2><p className="text-sm leading-6 text-sub">{t.dropHelp}</p><Button size="sm" onClick={() => fileInput.current?.click()} disabled={uploading}>{t.fileSelect}</Button></>}
         </div>
@@ -120,6 +163,7 @@ export default function Generate() {
           <section className="rounded-3xl border border-gray-200 bg-white p-5"><h2 className="font-extrabold">{t.expressions}</h2><div className="mt-4 space-y-3">{poses.map((pose, index) => <label key={index} className="block text-xs font-bold text-sub">{index + 1}<input value={pose} maxLength={500} onChange={e => setPoses(prev => prev.map((value, i) => i === index ? e.target.value : value))} className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-ink" /></label>)}</div><Button className="mt-4 h-auto min-h-11 w-full py-2" disabled={!enabled || busy || !project.confirmed || project.images.some(i => i.slot !== 0) || poses.some(p => !p.trim())} onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/samples`, 'POST', { prompts: poses }); setSlot(1) })}>{t.generate}</Button></section>
           {image && <section className="rounded-3xl border border-gray-200 bg-white p-5"><label className="text-sm font-bold" htmlFor="sticker-caption">{t.caption}</label><input id="sticker-caption" maxLength={16} value={caption} onChange={e => setCaption(e.target.value)} className="mt-3 w-full rounded-xl border border-gray-200 p-3" /><Button variant="outline" className="mt-3 w-full" disabled={submitting} onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/images/${image.id}`, 'PATCH', { caption }) })}>{t.save}</Button><Button className="mt-2 w-full" disabled={submitting} onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/images/${image.id}`, 'PATCH', { caption }); await downloadGeneration(token, project.id, image.id) })}>{t.download}</Button></section>}
           {latest && !(slot === 0 && project.confirmed) && <section className="rounded-3xl border border-gray-200 bg-white p-5"><label htmlFor="revision" className="text-sm font-bold">{t.editPrompt}</label><textarea id="revision" value={revision} maxLength={500} onChange={e => setRevision(e.target.value)} className="mt-3 min-h-20 w-full rounded-xl border border-gray-200 p-3" /><Button variant="outline" className="mt-3 h-auto min-h-11 w-full py-2" disabled={!enabled || busy || !revision.trim()} onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/images`, 'POST', { slot, prompt: revision }) })}>{t.regenerate}</Button></section>}
+          {readyForNextStep && <section className="rounded-3xl border border-brand/20 bg-brand-soft/50 p-5"><h2 className="font-extrabold">{t.nextTitle}</h2><p className="mt-2 text-sm leading-6 text-sub">{t.nextDescription}</p><Button className="mt-4 w-full" disabled={submitting} onClick={() => { void sendToLocalization() }}><Globe2 size={17} />{t.localizeNext}</Button><Button variant="outline" className="mt-2 w-full" disabled={submitting} onClick={() => navigate('/review')}><ShieldCheck size={17} />{t.reviewNext}</Button></section>}
           <p className="px-2 text-xs leading-5 text-sub">{t.budget}: ${cost.toFixed(3)}<br />{t.unknown}<br />{t.limit}</p>
         </aside>
       </div>}

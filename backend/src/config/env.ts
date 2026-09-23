@@ -77,6 +77,8 @@ export const envSchema = z.object({
   ENABLE_IMAGE_GENERATION: z.string().default('false').transform((v) => v === 'true'),
   IMAGE_GENERATION_BUDGET_USD: z.coerce.number().positive().max(10).default(8),
   IMAGE_GENERATION_RESERVE_USD: z.coerce.number().positive().default(2),
+  IMAGE_CAPTION_MODEL: z.string().default('gpt-5.6-luna'),
+  IMAGE_CAPTION_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   OPENAI_OCR_MODEL: z.string().default('gpt-5.6-luna'),
   OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
   AI_REVIEW_MODEL: z.string().default('gpt-5.6-luna'),

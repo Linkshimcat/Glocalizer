@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
-import { captionSticker, imageUsageCost, normalizeSticker } from '../../src/services/generation.service.js';
+import { captionSticker, imageUsageCost, normalizeSticker, suggestStickerCaptions } from '../../src/services/generation.service.js';
+afterEach(() => vi.unstubAllGlobals());
 describe('generation output', () => {
   it('produces a transparent OGQ canvas with density and white outline', async () => {
     const input = await sharp({ create: { width: 128, height: 128, channels: 4, background: '#00000000' } }).composite([{ input: Buffer.from('<svg width="128" height="128"><circle cx="64" cy="64" r="30" fill="red"/></svg>') }]).png().toBuffer();
@@ -18,5 +19,13 @@ describe('generation output', () => {
   it('retains an unknown usage reservation and computes reported usage', () => {
     expect(imageUsageCost(undefined)).toBeNull();
     expect(imageUsageCost({ input_tokens_details: { text_tokens: 100, image_tokens: 200 }, output_tokens: 1000 })).toBeCloseTo(0.0321);
+  });
+  it('creates short Korean captions that match the requested pose order', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ captions: [' 반가워! ', '너무너무속상하고슬퍼요'] }) } }] }), { status: 200 })));
+    await expect(suggestStickerCaptions('분홍 돼지 캐릭터', ['인사', '눈물을 흘림'])).resolves.toEqual(['반가워!', '너무너무속상하고슬퍼']);
+  });
+  it('uses safe pose-based captions when caption generation fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 500 })));
+    await expect(suggestStickerCaptions('캐릭터', ['환하게 웃으며 인사', '하트를 안고 사랑을 표현'])).resolves.toEqual(['안녕!', '사랑해!']);
   });
 });

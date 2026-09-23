@@ -32,6 +32,20 @@ type ReviewProject =
   | { key: string; kind: 'localization'; project: CloudProject }
   | { key: string; kind: 'generation'; project: GenerationProject; completedImages: GenerationProject['images'] }
 
+function ReviewProjectSkeleton({ label }: { label: string }) {
+  return <div role="status" aria-label={label} aria-busy="true" className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <span className="sr-only">{label}</span>
+    {Array.from({ length: 3 }, (_, index) => <div key={index} aria-hidden="true" className="flex animate-pulse items-center gap-4 rounded-2xl border-2 border-gray-100 p-4 motion-reduce:animate-none"><div className="h-16 w-16 shrink-0 rounded-xl bg-brand-soft" /><div className="min-w-0 flex-1"><div className="h-4 w-2/3 rounded-full bg-gray-200" /><div className="mt-3 h-3 w-1/3 rounded-full bg-gray-100" /></div></div>)}
+  </div>
+}
+
+function StickerSearchSkeleton({ label }: { label: string }) {
+  return <div role="status" aria-label={label} aria-busy="true" className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+    <span className="sr-only">{label}</span>
+    {Array.from({ length: 6 }, (_, index) => <div key={index} aria-hidden="true" className="aspect-square animate-pulse rounded-2xl bg-surface motion-reduce:animate-none" />)}
+  </div>
+}
+
 export default function Review() {
   const navigate = useNavigate()
   const { isAuthenticated, token } = useAuth()
@@ -176,7 +190,7 @@ export default function Review() {
               <p className="mt-1 text-sm font-medium text-sub">{t.reviewPickProjectDesc}</p>
 
               {projects === null && !projectsFailed && (
-                <p role="status" className="mt-5 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.reviewProjectsLoading}</p>
+                <ReviewProjectSkeleton label={t.reviewProjectsLoading} />
               )}
               {projectsFailed && <p role="alert" className="mt-5 text-sm text-sub">{t.reviewProjectsFailed}</p>}
               {projects !== null && !projectsFailed && projects.length === 0 && (
@@ -222,7 +236,7 @@ export default function Review() {
                 <p className="mt-1 text-sm font-medium text-sub">{t.reviewSimilarDesc}</p>
 
                 {loadingWorkspace && (
-                  <p role="status" className="mt-5 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.reviewLoadingWorkspace}</p>
+                  <StickerSearchSkeleton label={t.reviewLoadingWorkspace} />
                 )}
                 {workspaceFailed && <p role="alert" className="mt-5 text-sm text-sub">{t.reviewWorkspaceFailed}</p>}
                 {keywordResults !== null && keywordResults.length === 0 && (
