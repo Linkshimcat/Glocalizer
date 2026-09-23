@@ -10,7 +10,7 @@ import { findUserById } from '../repositories/user.repository.js';
 import { downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { unwrapList, unwrapNullableRow, unwrapRow } from '../utils/db-result.js';
-import { captionSticker, enqueueGeneration, generationWorkspace, ownedGeneration, type GenerationProject, type GenerationImage } from '../services/generation.service.js';
+import { captionSticker, enqueueGeneration, generationWorkspace, ownedGeneration, saveGeneratedCaption, saveSampleCaptions, suggestStickerCaptions, type GenerationProject, type GenerationImage } from '../services/generation.service.js';
 
 export const generationRouter=Router();
 generationRouter.use('/generation',authMiddleware,asyncHandler(async(req,_res,next)=>{
@@ -46,15 +46,20 @@ generationRouter.post('/generation/projects',asyncHandler(async(req,res)=>{
 generationRouter.get('/generation/projects/:id',asyncHandler(async(req,res)=>{res.json(await generationWorkspace(await ownedGeneration(z.uuid().parse(req.params.id),requireAuth(req).sub)));}));
 generationRouter.post('/generation/projects/:id/images',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id); const {slot,prompt}=z.object({slot:z.number().int().min(0).max(3),prompt:z.string().trim().min(1).max(500)}).parse(req.body);
- await ownedGeneration(id,requireAuth(req).sub);
- res.status(202).json({id:await enqueueGeneration(requireAuth(req).sub,id,slot,prompt)});
+ const project=await ownedGeneration(id,requireAuth(req).sub);
+ const imageId=await enqueueGeneration(requireAuth(req).sub,id,slot,prompt);
+ const [caption]=await suggestStickerCaptions(project.prompt,[prompt]);
+ await saveGeneratedCaption(imageId,caption);
+ res.status(202).json({id:imageId});
 }));
 generationRouter.post('/generation/projects/:id/samples',asyncHandler(async(req,res)=>{
- const id=z.uuid().parse(req.params.id);await ownedGeneration(id,requireAuth(req).sub);
+ const id=z.uuid().parse(req.params.id);const project=await ownedGeneration(id,requireAuth(req).sub);
  const {prompts}=z.object({prompts:z.array(z.string().trim().min(1).max(500)).length(3)}).parse(req.body);
  if(!env.ENABLE_IMAGE_GENERATION||!env.OPENAI_API_KEY) throw new AppError('GENERATION_DISABLED');
  const result=await supabase.rpc('enqueue_generation_samples',{p_owner:requireAuth(req).sub,p_project:id,p_prompts:prompts,p_reserve:env.IMAGE_GENERATION_RESERVE_USD,p_budget:env.IMAGE_GENERATION_BUDGET_USD});
  if(result.error) throw new AppError(result.error.message.includes('LIMIT')?'GENERATION_LIMIT':'INVALID_REQUEST');
+ const captions=await suggestStickerCaptions(project.prompt,prompts);
+ await saveSampleCaptions(id,captions);
  res.status(202).end();
 }));
 generationRouter.post('/generation/projects/:id/confirm',asyncHandler(async(req,res)=>{

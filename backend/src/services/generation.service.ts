@@ -1,5 +1,7 @@
 import sharp from 'sharp';
+import { z } from 'zod';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
 import { createSignedUrl, downloadFromStorage, removeFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
@@ -28,6 +30,62 @@ export async function enqueueGeneration(owner: string, project: string, slot: nu
  }
  return result.data as string;
 }
+
+export async function saveGeneratedCaption(imageId:string,caption:string) {
+ unwrapVoid(await supabase.from('generation_images').update({caption}).eq('id',imageId).eq('caption',''),'자동 문구 저장 실패');
+}
+
+const captionResponseSchema=z.object({captions:z.array(z.string()).min(1).max(4)});
+const CAPTION_MAX_LENGTH=10;
+function cleanCaption(value:string) {
+ return Array.from(value.replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').replace(/^["'“”‘’]+|["'“”‘’]+$/g,'').trim()).slice(0,CAPTION_MAX_LENGTH).join('');
+}
+function fallbackCaption(pose:string,index:number) {
+ const text=pose.toLowerCase();
+ if(/인사|안녕|hello|wave/.test(text)) return '안녕!';
+ if(/감사|고마|thank/.test(text)) return '고마워!';
+ if(/미안|사과|sorry/.test(text)) return '미안해';
+ if(/사랑|하트|love/.test(text)) return '사랑해!';
+ if(/슬프|눈물|울|sad|cry/.test(text)) return '속상해…';
+ if(/화|분노|angry/.test(text)) return '화났어!';
+ if(/축하|celebrat/.test(text)) return '축하해!';
+ if(/잘 ?자|잠|sleep/.test(text)) return '잘 자';
+ return ['좋아!','힘내!','대박!','오케이!'][index%4];
+}
+export async function suggestStickerCaptions(character:string,poses:string[]):Promise<string[]> {
+ const fallbacks=poses.map(fallbackCaption);
+ if(!env.OPENAI_API_KEY) return fallbacks;
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),env.IMAGE_CAPTION_TIMEOUT_MS);
+ try {
+  const response=await fetch(`${env.OPENAI_BASE_URL}/chat/completions`,{
+   method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
+   body:JSON.stringify({model:env.IMAGE_CAPTION_MODEL,max_completion_tokens:500,response_format:{type:'json_object'},messages:[{role:'user',content:`You write concise Korean captions for OGQ Market chat stickers. Return JSON only: {"captions":[...]}. Write exactly ${poses.length} captions in the same order as the poses. Each caption must be natural Korean used in everyday chat, one line, at most ${CAPTION_MAX_LENGTH} visible characters including spaces and punctuation, immediately readable on a mobile screen, and clearly match the pose. Keep the set varied. Avoid spelling errors, brands, copyrighted catchphrases, profanity, violence, politics, religion, sexual content, hashtags and emoji.\nCharacter: ${character.slice(0,1000)}\nPoses: ${JSON.stringify(poses)}`}]}),
+   signal:controller.signal,
+  });
+  if(!response.ok) throw new Error(`caption API ${response.status}`);
+  const body=await response.json() as {choices?:Array<{message?:{content?:string}}>};
+  const content=body.choices?.[0]?.message?.content;
+  if(!content) throw new Error('empty caption response');
+  const parsed=captionResponseSchema.parse(JSON.parse(content));
+  if(parsed.captions.length!==poses.length) throw new Error('caption count mismatch');
+  return parsed.captions.map((caption,index)=>cleanCaption(caption)||fallbacks[index]);
+ } catch(error) {
+  logger.warn({err:error},'Sticker caption suggestion failed; using safe fallbacks');
+  return fallbacks;
+ } finally { clearTimeout(timeout); }
+}
+
+export async function saveSampleCaptions(projectId:string,captions:string[]) {
+ const result=await supabase.from('generation_images').select('id,slot,created_at').eq('project_id',projectId).in('slot',[1,2,3]).order('created_at',{ascending:false});
+ const rows=unwrapList<{id:string;slot:number}>(result,'자동 문구 대상 조회 실패');
+ const latestBySlot=new Map<number,string>();
+ for(const row of rows) if(!latestBySlot.has(row.slot)) latestBySlot.set(row.slot,row.id);
+ await Promise.all(captions.map(async(caption,index)=>{
+  const id=latestBySlot.get(index+1);
+  if(id) unwrapVoid(await supabase.from('generation_images').update({caption}).eq('id',id),'자동 문구 저장 실패');
+ }));
+}
 export async function normalizeSticker(input: Buffer): Promise<Buffer> {
  const source = sharp(input,{limitInputPixels:16_777_216});
  const metadata = await source.metadata();
@@ -54,7 +112,8 @@ export async function normalizeSticker(input: Buffer): Promise<Buffer> {
 function escapeXml(text: string) { return text.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!)); }
 export async function captionSticker(image: Buffer, caption: string) {
  if(!caption) return image;
- const svg=Buffer.from(`<svg width="740" height="640" xmlns="http://www.w3.org/2000/svg"><text x="370" y="55" text-anchor="middle" font-family="Noto Sans CJK KR, sans-serif" font-size="36" font-weight="900" fill="#202630" stroke="white" stroke-width="7" paint-order="stroke">${escapeXml(caption)}</text></svg>`);
+ const fontSize=Array.from(caption).length<=10?42:34;
+ const svg=Buffer.from(`<svg width="740" height="640" xmlns="http://www.w3.org/2000/svg"><text x="370" y="55" text-anchor="middle" font-family="Noto Sans CJK KR, sans-serif" font-size="${fontSize}" font-weight="900" fill="#202630" stroke="white" stroke-width="7" paint-order="stroke" stroke-linejoin="round">${escapeXml(caption)}</text></svg>`);
  const result=await sharp(image).composite([{input:svg}]).withMetadata({density:72}).png({compressionLevel:9}).toBuffer();
  if(result.length>1_000_000) throw new AppError('FILE_TOO_LARGE');
  return result;

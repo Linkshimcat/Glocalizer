@@ -1,6 +1,5 @@
-import { Loader2 } from 'lucide-react'
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
@@ -28,15 +27,37 @@ const Terms = lazy(() => import('./pages/Terms'))
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface">
-      <Loader2 className="h-8 w-8 animate-spin text-brand" />
+    <div role="status" aria-label="페이지를 불러오는 중" aria-busy="true" className="min-h-screen bg-[#FAFBFC]">
+      <span className="sr-only">페이지를 불러오는 중</span>
+      <div aria-hidden="true" className="h-[72px] border-b border-gray-100 bg-white" />
+      <div aria-hidden="true" className="layout-app animate-pulse py-10 motion-reduce:animate-none">
+        <div className="h-4 w-24 rounded-full bg-brand-soft" />
+        <div className="mt-5 h-10 w-3/5 max-w-md rounded-xl bg-gray-200" />
+        <div className="mt-4 h-4 w-2/5 max-w-sm rounded-full bg-gray-100" />
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className="h-56 rounded-[28px] border border-gray-100 bg-white" />
+          ))}
+        </div>
+      </div>
     </div>
   )
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname])
+
+  return null
 }
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppErrorBoundary>
         <ToastProvider>
           <SiteLangProvider>
