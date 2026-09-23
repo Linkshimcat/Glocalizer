@@ -14,7 +14,7 @@ import {
   type DeepReviewFeedback,
   type OgqSticker,
 } from '../lib/api'
-import { generationRequest, type GenerationProject } from '../lib/generationApi'
+import { generationRequest, latestCompletedImages, type GenerationProject } from '../lib/generationApi'
 import { useAuth } from '../store/AuthContext'
 
 // 프로젝트 하나에 캡션이 아무리 많아도, 검색 요청 수를 합리적인 범위로 제한한다.
@@ -70,8 +70,8 @@ export default function Review() {
       .map((project): ReviewProject => ({ key: `localization:${project.id}`, kind: 'localization', project })))
     const loadGeneration = token
       ? generationRequest<{ projects: GenerationProject[] }>(token, '/projects').then(result => result.projects.flatMap(project => {
-          const completedImages = project.images.filter(image => image.status === 'completed' && image.url)
-          return completedImages.length > 0
+          const completedImages = latestCompletedImages(project).filter(image => image.url)
+          return project.status === 'completed' && completedImages.length === 24
             ? [{ key: `generation:${project.id}`, kind: 'generation' as const, project, completedImages }]
             : []
         }))

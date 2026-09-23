@@ -15,7 +15,7 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
 
   PROJECT_EXPIRY_HOURS: z.coerce.number().int().positive().default(24),
-  MAX_FILES_PER_PROJECT: z.coerce.number().int().positive().default(20),
+  MAX_FILES_PER_PROJECT: z.coerce.number().int().positive().default(24),
   MAX_FILE_SIZE_MB: z.coerce.number().positive().default(5),
   MAX_IMAGE_WIDTH: z.coerce.number().int().positive().default(4096),
   MAX_IMAGE_HEIGHT: z.coerce.number().int().positive().default(4096),
@@ -76,7 +76,10 @@ export const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1).optional(),
   ENABLE_IMAGE_GENERATION: z.string().default('false').transform((v) => v === 'true'),
   IMAGE_GENERATION_BUDGET_USD: z.coerce.number().positive().max(10).default(8),
-  IMAGE_GENERATION_RESERVE_USD: z.coerce.number().positive().default(2),
+  // 사용량이 회신되기 전까지 잡아두는 1장당 예약 비용이다. 프로젝트 상한인 30장(24장 +
+  // 재생성 6회)을 모두 사용량 미회신으로 처리해도 30 x 0.25 = 7.5 USD로 예산 안에 들어간다.
+  // 예약이 과하면 4장 배치의 마지막 장이 한도에 걸려 24장 생성을 끝낼 수 없다.
+  IMAGE_GENERATION_RESERVE_USD: z.coerce.number().positive().default(0.25),
   IMAGE_CAPTION_MODEL: z.string().default('gpt-5.6-luna'),
   IMAGE_CAPTION_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   OPENAI_OCR_MODEL: z.string().default('gpt-5.6-luna'),
