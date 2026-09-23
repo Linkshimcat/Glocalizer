@@ -15,7 +15,8 @@ export interface GenerationProject { id: string; prompt: string; name?: string |
 export async function generationRequest<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`${BASE}/generation${path}`, { method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined })
   if (!response.ok) { const payload = await response.json().catch(() => null); throw new Error(payload?.error?.message ?? `API (${response.status})`) }
-  return response.status === 204 ? undefined as T : await response.json() as T
+  const text = await response.text()
+  return text ? JSON.parse(text) as T : undefined as T
 }
 export async function renameGenerationProject(token: string, projectId: string, name: string) {
   await generationRequest(token, `/projects/${projectId}`, 'PATCH', { name })
