@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, Sparkles } from 'lucide-react'
+import { BrainCircuit, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
@@ -8,8 +8,10 @@ import { useSiteLang } from '../i18n/LanguageContext'
 import {
   fetchOgqStickers,
   listCloudProjects,
+  requestDeepReview,
   restoreCloudProject,
   type CloudProject,
+  type DeepReviewFeedback,
   type OgqSticker,
 } from '../lib/api'
 import { generationRequest, type GenerationProject } from '../lib/generationApi'
@@ -18,6 +20,7 @@ import { useAuth } from '../store/AuthContext'
 // 프로젝트 하나에 캡션이 아무리 많아도, 검색 요청 수를 합리적인 범위로 제한한다.
 const MAX_KEYWORDS = 5
 const STICKERS_PER_KEYWORD = 6
+const MAX_DEEP_REVIEW_PROJECTS = 3
 
 interface KeywordResult {
   keyword: string
@@ -41,6 +44,9 @@ export default function Review() {
   const [loadingWorkspace, setLoadingWorkspace] = useState(false)
   const [workspaceFailed, setWorkspaceFailed] = useState(false)
   const [keywordResults, setKeywordResults] = useState<KeywordResult[] | null>(null)
+  const [deepFeedback, setDeepFeedback] = useState<DeepReviewFeedback | null>(null)
+  const [loadingDeepFeedback, setLoadingDeepFeedback] = useState(false)
+  const [deepFeedbackFailed, setDeepFeedbackFailed] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -120,8 +126,32 @@ export default function Review() {
     return () => { active = false }
   }, [projects, selectedKeys])
 
+  useEffect(() => {
+    setDeepFeedback(null)
+    setDeepFeedbackFailed(false)
+  }, [lang])
+
   const toggleProject = (key: string) => {
     setSelectedKeys(previous => previous.includes(key) ? previous.filter(value => value !== key) : [...previous, key])
+    setDeepFeedback(null)
+    setDeepFeedbackFailed(false)
+  }
+
+  const runDeepReview = async () => {
+    if (!projects || selectedKeys.length === 0 || selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS) return
+    const selected = projects.filter(project => selectedKeys.includes(project.key)).map(project => ({
+      kind: project.kind,
+      id: project.project.id,
+    }))
+    setLoadingDeepFeedback(true)
+    setDeepFeedbackFailed(false)
+    try {
+      setDeepFeedback(await requestDeepReview(selected, lang))
+    } catch {
+      setDeepFeedbackFailed(true)
+    } finally {
+      setLoadingDeepFeedback(false)
+    }
   }
 
   return (
@@ -230,6 +260,45 @@ export default function Review() {
                     )}
                   </div>
                 ))}
+              </section>
+            )}
+
+            {selectedKeys.length > 0 && (
+              <section className="mt-10 overflow-hidden rounded-3xl border border-brand/15 bg-gradient-to-br from-brand-soft via-white to-white p-5 sm:p-7">
+                <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+                  <div>
+                    <div className="flex items-center gap-2 text-brand-dark"><BrainCircuit className="h-5 w-5" /><h2 className="text-lg font-bold">{t.reviewAiTitle}</h2></div>
+                    <p className="mt-2 max-w-2xl text-sm font-medium text-sub">{t.reviewAiDesc}</p>
+                  </div>
+                  <Button onClick={() => { void runDeepReview() }} disabled={loadingDeepFeedback || loadingWorkspace || selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS} className="shrink-0">
+                    {loadingDeepFeedback ? <><Loader2 className="h-4 w-4 animate-spin" />{t.reviewAiLoading}</> : t.reviewAiCta}
+                  </Button>
+                </div>
+
+                {selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS && <p role="alert" className="mt-4 text-sm font-semibold text-amber-700">{t.reviewAiLimit}</p>}
+
+                {deepFeedbackFailed && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600">{t.reviewAiFailed}</p>}
+
+                {deepFeedback && (
+                  <div className="mt-7 space-y-6">
+                    <div className="grid gap-4 rounded-2xl bg-white p-5 shadow-sm sm:grid-cols-[auto_1fr] sm:items-center">
+                      <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-8 border-brand-soft text-brand-dark">
+                        <strong className="text-3xl font-black">{deepFeedback.readinessScore}</strong>
+                        <span className="text-[11px] font-bold">/ 100</span>
+                      </div>
+                      <div><h3 className="font-bold">{t.reviewAiScore}</h3><p className="mt-2 text-sm leading-6 text-sub">{deepFeedback.summary}</p></div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiStrengths}</h3><ul className="mt-3 space-y-2">{deepFeedback.strengths.map(item => <li key={item} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-brand" /><span>{item}</span></li>)}</ul></div>
+                      <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
+                    </div>
+
+                    {deepFeedback.imageFeedback.length > 0 && <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="rounded-xl bg-surface p-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.localizationFeedback.length > 0 && <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-l-2 border-brand pl-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    <p className="text-xs leading-5 text-sub">{deepFeedback.disclaimer}</p>
+                  </div>
+                )}
               </section>
             )}
 

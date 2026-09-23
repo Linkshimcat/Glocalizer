@@ -23,6 +23,8 @@ export const ERROR_CODES = {
   FEEDBACK_SUBMIT_FAILED: { status: 502, message: '피드백 전송에 실패했습니다.' },
   OGQ_NOT_CONFIGURED: { status: 503, message: 'OGQ 마켓 연동이 아직 설정되어 있지 않습니다.' },
   OGQ_REQUEST_FAILED: { status: 502, message: 'OGQ 마켓 조회에 실패했습니다.' },
+  AI_REVIEW_UNAVAILABLE: { status: 503, message: 'AI 심층 피드백 기능이 아직 설정되어 있지 않습니다.' },
+  AI_REVIEW_FAILED: { status: 502, message: 'AI 심층 피드백을 생성하지 못했습니다.' },
   UPLOAD_NOT_COMPLETED: { status: 409, message: '업로드가 완료되지 않았습니다.' },
   PROCESS_ALREADY_RUNNING: { status: 409, message: '이미 처리 중인 프로젝트입니다.' },
   OCR_TEXT_NOT_FOUND: { status: 422, message: '이미지에서 텍스트를 찾지 못했습니다.' },

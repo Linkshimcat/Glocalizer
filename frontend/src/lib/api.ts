@@ -198,6 +198,26 @@ export async function fetchOgqStickers(limit: number, query?: string): Promise<O
   return stickers
 }
 
+export interface DeepReviewFeedback {
+  readinessScore: number
+  summary: string
+  strengths: string[]
+  priorityFixes: Array<{ title: string; reason: string; action: string }>
+  imageFeedback: Array<{ imageName: string; feedback: string }>
+  localizationFeedback: Array<{ language: string; feedback: string }>
+  disclaimer: string
+}
+
+export function requestDeepReview(
+  projects: Array<{ kind: 'localization' | 'generation'; id: string }>,
+  locale: 'ko' | 'en' | 'ja' | 'zh',
+): Promise<DeepReviewFeedback> {
+  return request<DeepReviewFeedback>('/review/deep-feedback', {
+    method: 'POST',
+    body: JSON.stringify({ projects, locale }),
+  })
+}
+
 export async function saveEditorState(
   projectId: string,
   token: string,
