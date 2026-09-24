@@ -1,161 +1,77 @@
-import { ArrowLeft } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
-import aboutKR from '../assets/ServicePageLending/about-KR.png'
-import aboutEN from '../assets/ServicePageLending/about-EN.png'
-import aboutJP from '../assets/ServicePageLending/about-JP.png'
-import aboutZH from '../assets/ServicePageLending/about-ZH.png'
-import iconCrop from '../assets/ServicePageLending/iconsax-crop.svg'
-import iconFireworks from '../assets/ServicePageLending/iconsax-fireworks3.svg'
-import iconImportArrow from '../assets/ServicePageLending/iconsax-import-arrow.svg'
-import iconYoutube from '../assets/ServicePageLending/iconsax-youtube.svg'
-import introduceVideo from '../assets/ServicePageLending/IntroduceVideo.mp4'
+import { ArrowLeft, ArrowUpRight, Archive, Check, Globe2, ShieldCheck, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { serviceDict } from '../i18n/service'
 
-function SectionHeading({ children }: { children: ReactNode }) {
-  return <h2 className="text-[28px] font-extrabold tracking-tight sm:text-[32px]">{children}</h2>
-}
-
-const FEATURE_ICONS = [iconFireworks, iconCrop, iconImportArrow]
-
-// 요약 이미지는 텍스트가 그림에 박혀 있어, 사이트 언어에 맞는 버전으로 교체한다.
-const ABOUT_IMG: Record<string, string> = { ko: aboutKR, en: aboutEN, ja: aboutJP, zh: aboutZH }
+const FEATURES = [
+  { icon: Sparkles, path: '/generate' },
+  { icon: Globe2, path: '/localize' },
+  { icon: ShieldCheck, path: '/review' },
+  { icon: Archive, path: '/archive' },
+] as const
 
 export default function ServiceIntro() {
-  const navigate = useNavigate()
-  const { lang } = useSiteLang()
+  const { lang, t } = useSiteLang()
   const s = serviceDict[lang]
-
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header
-        sticky
-        center={<NavMenu />}
-        right={
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[13px] font-bold text-sub transition-colors hover:bg-surface hover:text-ink md:px-4 md:py-2 md:text-sm"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-            {s.back}
-          </button>
-        }
-      />
-
-      <main className="layout-doc pb-24 pt-12 sm:pt-16">
-        <h1 className="whitespace-nowrap text-[26px] font-extrabold leading-tight tracking-tight min-[360px]:text-[30px] min-[400px]:text-[34px] sm:text-[52px]">
-          {s.titleMain} <span className="text-brand">{s.titleAccent}</span>
-        </h1>
-        <p className="mt-6 text-xl font-bold leading-snug text-ink sm:text-2xl">
-          {s.tagline}
-        </p>
-        <p className="mt-3 text-lg font-medium leading-relaxed text-sub sm:text-xl">
-          {s.intro}
-        </p>
-
-        {/* 이런 고민 */}
-        <section className="section-block">
-          <SectionHeading>{s.worryHead}</SectionHeading>
-          <p className="mt-6 text-lg font-medium leading-[1.85] text-sub">
-            {s.worryLead}
-          </p>
-          <ul className="mt-4 space-y-4 text-lg font-medium leading-[1.85] text-sub">
-            {s.worries.map(item => (
-              <li key={item.title} className="flex gap-3">
-                <span aria-hidden className="text-brand">•</span>
-                <span>
-                  <span className="font-extrabold text-ink">{item.title}</span> — {item.desc}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-lg font-medium leading-[1.85] text-sub">
-            {s.worryTail}
-          </p>
-        </section>
-
-        {/* 왜 Glocalizer인가요 */}
-        <section className="section-block">
-          <SectionHeading>{s.whyHead}</SectionHeading>
-          <ul className="mt-6 space-y-4 text-lg font-medium leading-[1.85] text-sub">
-            {s.whys.map(item => (
-              <li key={item.title} className="flex gap-3">
-                <span aria-hidden className="text-brand">•</span>
-                <span>
-                  <span className="font-extrabold text-ink">{item.title}</span> — {item.desc}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Glocalizer가 대신 해드려요 */}
-        <section className="section-block">
-          <SectionHeading>
-            {s.doHead} <span className="text-brand">{s.doAccent}</span>
-          </SectionHeading>
-          <p className="mt-6 text-lg font-medium leading-[1.85] text-sub">
-            {s.do1}
-          </p>
-          <p className="mt-3 text-lg font-medium leading-[1.85] text-sub">
-            {s.do2}
-          </p>
-
-          <div className="-mx-6 mt-10 overflow-hidden rounded-[32px] bg-[#FAFBFC] sm:mx-0 sm:p-4">
-            <img src={ABOUT_IMG[lang] ?? aboutKR} alt={s.proAlt} className="w-full" />
+    <div className="flex min-h-screen flex-col bg-white">
+      <Header sticky center={<NavMenu />} right={
+        <Link to="/" className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold text-sub hover:bg-surface hover:text-ink">
+          <ArrowLeft className="h-4 w-4" aria-hidden />{s.home}
+        </Link>
+      } />
+      <main className="flex-1">
+        <section className="border-b border-brand/10 bg-gradient-to-br from-brand-soft via-white to-surface">
+          <div className="layout-app py-16 sm:py-24">
+            <p className="text-sm font-extrabold text-brand-dark">Glocalizer · {t.navService}</p>
+            <h1 className="mt-5 max-w-4xl whitespace-pre-line break-words text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-5xl">{s.title}</h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-sub">{s.intro}</p>
+            <Link to="/dashboard" className="mt-8 inline-flex items-center gap-3 rounded-2xl bg-brand px-6 py-4 font-extrabold text-ink transition-opacity hover:opacity-80">
+              {s.start}<ArrowUpRight size={20} aria-hidden />
+            </Link>
+            <p className="mt-4 text-sm leading-6 text-sub">{s.account}</p>
           </div>
         </section>
-
-        {/* 핵심 기능 3가지 */}
-        <section className="section-block">
-          <SectionHeading>
-            {s.featHead} <span className="text-brand">{s.featAccent}</span>
-          </SectionHeading>
-
-          <div className="mt-8 space-y-10">
-            {s.features.map((item, index) => (
-              <div key={item.title}>
-                <h3 className="flex items-center gap-2.5 text-xl font-extrabold text-ink sm:text-2xl">
-                  {item.title}
-                  <img src={FEATURE_ICONS[index]} alt="" aria-hidden className="h-6 w-6" />
-                </h3>
-                <p className="mt-2.5 text-lg font-medium leading-[1.85] text-sub">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
+        <section className="layout-app py-14 sm:py-20" aria-labelledby="service-features">
+          <h2 id="service-features" className="text-2xl font-extrabold tracking-tight sm:text-3xl">{s.heading}</h2>
+          <div className="mt-8 grid gap-5 md:grid-cols-2">
+            {s.features.map((feature, index) => {
+              const { icon: Icon, path } = FEATURES[index]
+              return (
+                <article key={path} className="flex flex-col rounded-[28px] border border-gray-200 bg-surface/50 p-6 sm:p-8">
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Icon size={24} aria-hidden /></span>
+                    <span aria-hidden className="text-sm font-extrabold text-sub">0{index + 1}</span>
+                  </div>
+                  <h3 className="mt-6 text-xl font-extrabold leading-snug text-ink sm:text-2xl">{feature.title}</h3>
+                  <p className="mt-3 leading-7 text-sub">{feature.description}</p>
+                  <ul className="mb-8 mt-5 space-y-3 text-sm leading-6 text-sub">
+                    {feature.details.map(detail => <li key={detail} className="flex gap-2"><Check size={17} className="mt-1 shrink-0 text-brand-dark" aria-hidden /><span>{detail}</span></li>)}
+                  </ul>
+                  <Link to={path} className="mt-auto flex items-center justify-between gap-3 border-t border-gray-200 pt-5 font-extrabold text-ink hover:text-brand-dark">{feature.action}<ArrowUpRight size={20} className="shrink-0" aria-hidden /></Link>
+                </article>
+              )
+            })}
           </div>
+        </section>
+        <section className="bg-surface py-14 sm:py-20" aria-labelledby="service-workflow">
+          <div className="layout-app">
+            <h2 id="service-workflow" className="text-2xl font-extrabold tracking-tight sm:text-3xl">{s.workflow}</h2>
+            <ol className="mt-8 grid gap-6 md:grid-cols-3">
+              {s.steps.map((step, index) => <li key={step.title} className="rounded-3xl bg-white p-6"><span className="text-sm font-extrabold text-brand-dark">0{index + 1}</span><h3 className="mt-4 text-xl font-extrabold">{step.title}</h3><p className="mt-3 leading-7 text-sub">{step.description}</p></li>)}
+            </ol>
+          </div>
+        </section>
+        <section className="layout-app py-14 sm:py-20" aria-labelledby="service-notes">
+          <h2 id="service-notes" className="text-2xl font-extrabold sm:text-3xl">{s.notesTitle}</h2>
+          <ul className="mt-6 max-w-4xl list-disc space-y-3 pl-5 leading-7 text-sub">{s.notes.map(note => <li key={note}>{note}</li>)}</ul>
+          <Link to="/dashboard" className="mt-8 inline-flex items-center gap-3 rounded-2xl bg-brand-soft px-6 py-4 font-extrabold text-ink hover:bg-surface">{s.start}<ArrowUpRight size={20} aria-hidden /></Link>
         </section>
       </main>
-
-      <section className="layout-doc py-20">
-        <h2 className="flex items-center gap-2.5 text-[28px] font-extrabold tracking-tight sm:text-[32px]">
-          {s.videoHead}
-          <img src={iconYoutube} alt="" aria-hidden className="h-7 w-7" />
-        </h2>
-
-        {/* 플랫폼 사용 방법 소개 영상 — corner radius는 버튼(rounded-2xl)과 동일 */}
-        <div className="mx-auto mt-10 max-w-[600px] overflow-hidden rounded-2xl border-2 border-gray-200">
-          <video
-            src={introduceVideo}
-            className="w-full"
-            controls
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        </div>
-      </section>
-
-      <div className="bg-surface pt-16 sm:pt-20">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   )
 }

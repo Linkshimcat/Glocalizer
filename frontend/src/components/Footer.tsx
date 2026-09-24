@@ -1,9 +1,13 @@
+import { useSiteLang } from '../i18n/LanguageContext'
+import { legalUi } from '../i18n/legalUi'
 import githubMark from '../assets/github-mark.svg'
 import { Link } from 'react-router-dom'
 import InstagramIcon from './InstagramIcon'
 import Logo from './Logo'
 
 export default function Footer() {
+  const { lang } = useSiteLang()
+  const copy = legalUi[lang]
   return (
     // 글래스모피즘: 뒤 배경(히어로 그라데이션 등)이 비치도록 반투명 흰색 + 블러를 쓰고,
     // 위쪽 테두리와 안쪽 하이라이트로 유리 가장자리를 표현한다.
@@ -18,7 +22,7 @@ export default function Footer() {
             href="https://github.com/Linkshimcat/Glocalizer"
             target="_blank"
             rel="noreferrer"
-            aria-label="Glocalizer GitHub 저장소 열기"
+            aria-label={copy.github}
             title="GitHub"
             className="p-1 text-ink transition-opacity hover:opacity-60"
           >
@@ -28,7 +32,7 @@ export default function Footer() {
             href="https://www.instagram.com/glocalizer__ogq/"
             target="_blank"
             rel="noreferrer"
-            aria-label="Glocalizer Instagram 계정 열기"
+            aria-label={copy.instagram}
             title="Instagram"
             className="p-1 text-ink transition-opacity hover:opacity-60"
           >
@@ -36,21 +40,21 @@ export default function Footer() {
           </a>
         </div>
         <div className="text-xs font-bold leading-relaxed text-sub sm:text-sm md:justify-self-end md:text-right">
-          <p>Naver OGQ 공모전 · 박소연 | 이윤재 | 장예나 | 김래원</p>
+          <p>{copy.team}</p>
           <p className="mt-1">
-            미림마이스터고등학교 · Glocalizer Team |{' '}
+            {copy.school} |{' '}
             <a
               href="https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file"
               target="_blank"
               rel="noreferrer"
               className="underline underline-offset-2 transition-colors hover:text-ink"
             >
-              라이센스: Apache License 2.0
+              {copy.license}: Apache License 2.0
             </a>
           </p>
-          <nav aria-label="정책" className="mt-1 flex justify-center gap-4 text-xs font-bold md:justify-end">
-            <Link to="/privacy" className="underline underline-offset-2 transition-colors hover:text-ink">개인정보처리방침</Link>
-            <Link to="/terms" className="underline underline-offset-2 transition-colors hover:text-ink">서비스 이용약관</Link>
+          <nav aria-label={copy.policies} className="mt-1 flex justify-center gap-4 text-xs font-bold md:justify-end">
+            <Link to="/privacy" className="underline underline-offset-2 transition-colors hover:text-ink">{copy.privacy}</Link>
+            <Link to="/terms" className="underline underline-offset-2 transition-colors hover:text-ink">{copy.terms}</Link>
           </nav>
         </div>
       </div>
