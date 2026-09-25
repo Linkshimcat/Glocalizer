@@ -11,8 +11,12 @@ const SiteLangContext = createContext<SiteLangState | null>(null)
 const STORAGE_KEY = 'glocalizer:siteLang'
 
 function initialLang(): SiteLang {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved === 'ko' || saved === 'en' || saved === 'ja' || saved === 'zh') return saved
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved === 'ko' || saved === 'en' || saved === 'ja' || saved === 'zh') return saved
+  } catch {
+    // Privacy settings can block reads as well as writes. Keep the page usable.
+  }
   return 'ko'
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import globeIcon from '../assets/GCFrontendUI/globe_asia.svg'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { legalUi } from '../i18n/legalUi'
 import { SITE_LANGS } from '../i18n/translations'
 
 export default function LanguageSelect() {
@@ -24,6 +25,7 @@ export default function LanguageSelect() {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
+        aria-label={`${legalUi[lang].language}: ${current.label}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         className="flex items-center gap-1.5 rounded-xl border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
@@ -37,6 +39,7 @@ export default function LanguageSelect() {
       {open && (
         <ul
           role="listbox"
+          aria-label={legalUi[lang].language}
           className="absolute right-0 z-40 mt-1.5 w-36 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg"
         >
           {SITE_LANGS.map(item => (

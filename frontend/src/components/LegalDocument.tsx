@@ -1,3 +1,4 @@
+import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { LEGAL_CONTACT, LEGAL_EFFECTIVE_DATE, type LegalCopy } from '../i18n/legal'
 import { legalUi } from '../i18n/legalUi'
@@ -7,6 +8,7 @@ import Footer from './Footer'
 import Header from './Header'
 
 export default function LegalDocument({ document: { title, description, sections } }: { document: LegalCopy }) {
+  useDocumentMeta(title, description)
   const { lang } = useSiteLang()
   const copy = legalUi[lang]
   const effectiveDate = new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(LEGAL_EFFECTIVE_DATE))
@@ -26,10 +28,20 @@ export default function LegalDocument({ document: { title, description, sections
           <p className="mt-3 text-base leading-7 text-sub">{description}</p>
           <p className="mt-4 text-sm font-semibold text-sub">{copy.effective}: <time dateTime={LEGAL_EFFECTIVE_DATE}>{effectiveDate}</time></p>
 
+          <nav aria-label={copy.policies} className="mt-6 flex flex-wrap gap-3 text-sm font-bold">
+            <Link to="/privacy" className="rounded-xl bg-surface px-3 py-2 underline underline-offset-2">{copy.privacy}</Link>
+            <Link to="/terms" className="rounded-xl bg-surface px-3 py-2 underline underline-offset-2">{copy.terms}</Link>
+          </nav>
+          <nav aria-label={copy.contents} className="mt-8 rounded-2xl bg-surface p-5">
+            <h2 className="font-extrabold text-ink">{copy.contents}</h2>
+            <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-sub">
+              {sections.map((section, index) => <li key={section.title}><a href={`#legal-section-${index}`} className="underline underline-offset-2 hover:text-ink">{section.title}</a></li>)}
+            </ol>
+          </nav>
           <div className="mt-10 space-y-10">
             {sections.map((section, index) => (
               <section key={section.title} aria-labelledby={`legal-section-${index}`}>
-                <h2 id={`legal-section-${index}`} className="text-xl font-extrabold text-ink">
+                <h2 id={`legal-section-${index}`} className="scroll-mt-6 text-xl font-extrabold text-ink">
                   {index + 1}. {section.title}
                 </h2>
                 <div className="mt-3 space-y-3 text-[15px] leading-7 text-sub [&_a]:font-bold [&_a]:text-ink [&_a]:underline [&_a]:underline-offset-2 [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-extrabold [&_strong]:text-ink">
