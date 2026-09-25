@@ -4,6 +4,7 @@ import Footer from '../components/Footer'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { serviceDict } from '../i18n/service'
 
 const FEATURES = [
@@ -16,6 +17,7 @@ const FEATURES = [
 export default function ServiceIntro() {
   const { lang, t } = useSiteLang()
   const s = serviceDict[lang]
+  useDocumentMeta(t.navService, s.intro)
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Header sticky center={<NavMenu />} right={
@@ -63,6 +65,15 @@ export default function ServiceIntro() {
             <ol className="mt-8 grid gap-6 md:grid-cols-3">
               {s.steps.map((step, index) => <li key={step.title} className="rounded-3xl bg-white p-6"><span className="text-sm font-extrabold text-brand-dark">0{index + 1}</span><h3 className="mt-4 text-xl font-extrabold">{step.title}</h3><p className="mt-3 leading-7 text-sub">{step.description}</p></li>)}
             </ol>
+          </div>
+        </section>
+        <section className="layout-app pt-14 sm:pt-20" aria-labelledby="service-faq">
+          <h2 id="service-faq" className="text-2xl font-extrabold sm:text-3xl">{s.faqTitle}</h2>
+          <div className="mt-6 space-y-3">
+            {s.faq.map(item => <details key={item.question} className="rounded-2xl border border-gray-200 p-5 open:bg-surface">
+              <summary className="cursor-pointer font-bold leading-7 text-ink">{item.question}</summary>
+              <p className="mt-3 leading-7 text-sub">{item.answer}</p>
+            </details>)}
           </div>
         </section>
         <section className="layout-app py-14 sm:py-20" aria-labelledby="service-notes">

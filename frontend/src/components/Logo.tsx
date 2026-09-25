@@ -1,12 +1,15 @@
+import { useSiteLang } from '../i18n/LanguageContext'
+import { legalUi } from '../i18n/legalUi'
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/GlocalizerLogo.png'
 
 export default function Logo({ small = false }: { small?: boolean }) {
+  const { lang } = useSiteLang()
   return (
     <Link
       to="/"
       onClick={() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })}
-      aria-label="Glocalizer 홈으로 이동"
+      aria-label={`Glocalizer · ${legalUi[lang].home}`}
       className="inline-flex w-fit items-center gap-2"
     >
       <span
@@ -15,7 +18,7 @@ export default function Logo({ small = false }: { small?: boolean }) {
         {/* 원본 이미지의 마크 부분만 보이도록 확대·크롭 */}
         <img
           src={logoUrl}
-          alt="Glocalizer 로고"
+          alt=""
           className="h-full w-full scale-150 object-cover object-[50%_40%]"
         />
       </span>

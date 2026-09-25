@@ -5,10 +5,34 @@ interface ServiceDict {
   heading: string; features: { title: string; description: string; details: string[]; action: string }[]
   workflow: string; steps: { title: string; description: string }[]
   notesTitle: string; notes: string[]
+  faqTitle: string; faq: { question: string; answer: string }[]
 }
 
 export const serviceDict: Record<SiteLang, ServiceDict> = {
   ko: {
+    faqTitle: "자주 묻는 질문",
+    faq: [
+      {
+            "question": "이미 만들어 둔 이모티콘도 사용할 수 있나요?",
+            "answer": "네. 생성 단계를 거치지 않고 현지화에서 PNG·JPG 이미지를 직접 올릴 수 있습니다. 이미지 속 한국어를 인식해 영어·일본어·중국어 후보를 제공하며, 원문과 번역문은 직접 수정할 수 있습니다."
+      },
+      {
+            "question": "사이트 언어를 바꾸면 이미지도 번역되나요?",
+            "answer": "아니요. 상단 언어 선택은 화면 안내와 약관의 표시 언어를 바꿉니다. 이미지 번역은 현지화 작업에서 대상 언어를 선택해 별도로 실행합니다."
+      },
+      {
+            "question": "어떤 결과를 다운로드할 수 있나요?",
+            "answer": "생성한 이미지는 개별 다운로드가 가능하며, 24종 세트를 완성하면 ZIP으로 받을 수 있습니다. 현지화 결과도 PNG 이미지 또는 ZIP으로 내보낼 수 있습니다. 다운로드 전에 문구와 배치, 배경 정리 결과를 확인하세요."
+      },
+      {
+            "question": "작업을 나중에 이어가거나 삭제할 수 있나요?",
+            "answer": "로그인한 계정에 저장된 프로젝트는 대시보드에서 다시 열 수 있고, 완료한 프로젝트는 보관함에서 확인할 수 있습니다. 현지화 프로젝트는 보관함에서도 삭제할 수 있고, 생성 프로젝트의 삭제는 진행 중인 작업에서 제공합니다. 삭제한 프로젝트는 복구할 수 없으므로 필요한 결과는 먼저 다운로드하세요."
+      },
+      {
+            "question": "출시 검토를 통과하면 OGQ에 자동 등록되나요?",
+            "answer": "아니요. 규격 검사는 파일 형식·용량·크기·투명도·여백을 확인하는 보조 기능입니다. 관련 콘텐츠 검색과 AI 심층 검토도 참고용이며 공식 심사나 저작권 판단이 아닙니다. 최종 결과를 확인한 뒤 해당 플랫폼에 직접 제출해야 합니다."
+      }
+],
     home: '홈으로', title: '캐릭터 아이디어부터\n세계와 만나는 이모티콘까지',
     intro: '이모티콘 생성, 한국어 문구의 현지화, 출시 전 검토를 한곳에서 이어가세요. AI가 초안을 만들고, 창작자가 표현과 완성도를 결정합니다.',
     start: '작업 공간 시작하기', account: '생성·현지화 작업과 프로젝트 저장에는 로그인이 필요합니다.', heading: '지금 Glocalizer에서 할 수 있는 일',
@@ -24,6 +48,29 @@ export const serviceDict: Record<SiteLang, ServiceDict> = {
     notes: ['사이트 표시 언어는 한국어·영어·일본어·중국어이며, 이미지 현지화 대상은 영어·일본어·중국어입니다.', '생성과 AI 검토는 서비스 설정 및 이용 한도의 영향을 받습니다. 처리 시간은 이미지와 요청 상태에 따라 달라집니다.', 'AI 번역·이미지 생성·배경 정리 결과를 직접 확인해 주세요. 규격 검사와 AI 피드백은 OGQ 공식 심사나 출시 승인이 아닙니다.', '업로드·참고 이미지의 사용 권한을 확인하세요. 다운로드한 결과는 제출할 플랫폼의 최신 기준에 맞춰 직접 제출해야 합니다.'],
   },
   en: {
+    faqTitle: "Frequently asked questions",
+    faq: [
+      {
+            "question": "Can I use stickers I have already made?",
+            "answer": "Yes. Upload PNG or JPG images directly in localization without generating new stickers. Korean text is recognized and English, Japanese and Chinese candidates are offered. You can edit both the source and translated text."
+      },
+      {
+            "question": "Does changing the site language translate my images?",
+            "answer": "No. The language selector changes the interface and legal documents. Image translation is a separate localization task where you choose the target languages."
+      },
+      {
+            "question": "What can I download?",
+            "answer": "Download generated images individually, or download a ZIP after completing the set of 24. Localized results can also be exported as PNG images or a ZIP. Check captions, placement and background cleanup before downloading."
+      },
+      {
+            "question": "Can I resume or delete my work later?",
+            "answer": "Reopen projects saved to your account from the dashboard. View completed projects in the archive. Localization projects can also be deleted there; generation project deletion is available for work in progress. Deleted projects cannot be recovered, so download any results you need first."
+      },
+      {
+            "question": "Does passing release review automatically publish to OGQ?",
+            "answer": "No. Specification checks assist with format, file size, dimensions, transparency and margins. Related-content search and in-depth AI feedback are references, not official review or copyright determinations. Check the final results and submit them to the platform yourself."
+      }
+],
     home: 'Home', title: 'From a character idea\nto stickers for the world',
     intro: 'Connect sticker creation, Korean-text localization and pre-release reviews in one workspace. AI provides a draft; you decide the expression and finish.',
     start: 'Open your workspace', account: 'Sign-in is required for generation, localization and saved projects.', heading: 'What you can do with Glocalizer today',
@@ -39,6 +86,29 @@ export const serviceDict: Record<SiteLang, ServiceDict> = {
     notes: ['The website supports Korean, English, Japanese and Chinese. Image localization targets English, Japanese and Chinese.', 'Generation and AI reviews depend on service settings and usage limits. Processing time varies by image and request status.', 'Review AI translations, generated images and background cleanup yourself. Specification checks and AI feedback are not official OGQ reviews or release approval.', 'Check your rights to uploaded and reference images. Submit downloaded results yourself according to the destination platform’s current requirements.'],
   },
   ja: {
+    faqTitle: "よくある質問",
+    faq: [
+      {
+            "question": "既存のスタンプも使えますか？",
+            "answer": "はい。新しく生成せず、ローカライズ画面にPNG・JPG画像を直接アップロードできます。韓国語を認識し、英語・日本語・中国語の候補を表示します。原文と翻訳文は直接編集できます。"
+      },
+      {
+            "question": "サイトの言語を変えると画像も翻訳されますか？",
+            "answer": "いいえ。言語選択は画面の案内と規約の表示言語を切り替えます。画像の翻訳はローカライズ画面で対象言語を選んで別途実行します。"
+      },
+      {
+            "question": "何をダウンロードできますか？",
+            "answer": "生成画像は個別に、24種類のセット完成後はZIPでダウンロードできます。ローカライズ結果もPNG画像またはZIPで書き出せます。文言・配置・背景処理を事前に確認してください。"
+      },
+      {
+            "question": "後で作業を再開したり削除したりできますか？",
+            "answer": "アカウントに保存したプロジェクトはダッシュボードから再度開けます。完了したプロジェクトはアーカイブで確認できます。ローカライズプロジェクトはアーカイブでも削除でき、生成プロジェクトの削除は進行中の作業で利用できます。削除後は復元できないため、必要な結果を先にダウンロードしてください。"
+      },
+      {
+            "question": "チェックに通ればOGQに自動公開されますか？",
+            "answer": "いいえ。規格チェックは形式・容量・サイズ・透明度・余白を確認する補助機能です。関連コンテンツ検索とAI詳細チェックも参考情報であり、公式審査や著作権判断ではありません。最終結果を確認し、ご自身で提出してください。"
+      }
+],
     home: 'ホームへ', title: 'キャラクターのアイデアから\n世界に届くスタンプへ',
     intro: 'スタンプ生成、韓国語のローカライズ、公開前チェックをひとつの作業スペースで。AIが下書きを作り、表現と仕上がりはクリエイターが決めます。',
     start: '作業スペースを開く', account: '生成・ローカライズとプロジェクト保存にはログインが必要です。', heading: '今、Glocalizerでできること',
@@ -54,6 +124,29 @@ export const serviceDict: Record<SiteLang, ServiceDict> = {
     notes: ['サイト表示は韓国語・英語・日本語・中国語に対応。画像のローカライズ先は英語・日本語・中国語です。', '生成とAIチェックはサービス設定や利用上限に左右されます。処理時間は画像やリクエスト状況によって異なります。', 'AI翻訳・生成画像・背景処理はご自身で確認してください。規格チェックとAIフィードバックはOGQの公式審査や公開承認ではありません。', 'アップロード画像と参考画像の利用権限をご確認ください。ダウンロード後は提出先の最新基準に従い、ご自身で提出してください。'],
   },
   zh: {
+    faqTitle: "常见问题",
+    faq: [
+      {
+            "question": "可以使用已经制作好的表情包吗？",
+            "answer": "可以。无需重新生成，直接在本地化页面上传PNG或JPG图片。系统识别韩文并提供英语、日语和中文候选，原文和译文均可自行修改。"
+      },
+      {
+            "question": "切换网站语言会翻译图片吗？",
+            "answer": "不会。语言选择器切换界面说明和法律文档的显示语言。图片翻译需要在本地化任务中选择目标语言后单独执行。"
+      },
+      {
+            "question": "可以下载什么结果？",
+            "answer": "生成图片可单张下载，完成24张整套后可下载ZIP。本地化结果也可导出为PNG图片或ZIP。下载前请检查文案、位置和背景清理效果。"
+      },
+      {
+            "question": "之后可以继续或删除项目吗？",
+            "answer": "账号中保存的项目可从工作台重新打开，已完成项目可在归档中查看。本地化项目也可在归档中删除；生成项目的删除功能仅在进行中的任务中提供。删除后无法恢复，请先下载需要的结果。"
+      },
+      {
+            "question": "通过发布前检查就会自动发布到OGQ吗？",
+            "answer": "不会。规格检查辅助确认格式、文件大小、尺寸、透明度和留白。相关内容搜索和AI深度检查也仅供参考，不属于官方审核或版权判定。请核对最终结果并自行向平台提交。"
+      }
+],
     home: '返回首页', title: '从角色创意\n到走向世界的表情包',
     intro: '在同一工作空间串联表情包生成、韩文内容本地化与发布前检查。AI 提供初稿，创作者决定表达和最终效果。',
     start: '打开工作空间', account: '生成、本地化和项目保存需要登录。', heading: '现在可以用 Glocalizer 做什么',
