@@ -34,7 +34,7 @@ function GenerationListSkeleton({ label }: { label: string }) {
 /** 대시보드·보관함에서 현지화 목록과 한 섹션에 나란히 놓인다. onCount를 받으면 제목과 빈
  *  상태를 부모가 책임지므로, 여기서는 카드만 그리고 보이는 개수만 올려보낸다. 불러오지
  *  못했을 때 null을 보내면 부모가 "작업 없음"으로 잘못 단정하지 않는다. */
-export default function GenerationList({ archive = false, onCount }: { archive?: boolean; onCount?: (count: number | null) => void }) {
+export default function GenerationList({ archive = false, onCount, onLoadingChange, deferRender = false }: { archive?: boolean; onCount?: (count: number | null) => void; onLoadingChange?: (loading: boolean) => void; deferRender?: boolean }) {
   const { token } = useAuth()
   const { t, lang } = useSiteLang()
   const g = generationCopy(lang)
@@ -63,6 +63,7 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
 
   const visibleProjects = projects.filter(project => ((project.status ?? (latestCompletedImages(project).length === 24 ? 'completed' : 'active')) === 'completed') === archive)
   useEffect(() => { if (!loading) onCount?.(error ? null : visibleProjects.length) }, [loading, error, visibleProjects.length, onCount])
+  useEffect(() => { onLoadingChange?.(loading) }, [loading, onLoadingChange])
 
   const remove = async () => {
     if (!deleteTarget || !token) return
@@ -95,6 +96,7 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
     }
   }
 
+  if (deferRender) return null
   if (loading) return <GenerationListSkeleton label={g.loading} />
   if (error) return <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>
   if (!visibleProjects.length) return onCount ? null : <p className="mt-4 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{g.empty}</p>
@@ -116,7 +118,7 @@ export default function GenerationList({ archive = false, onCount }: { archive?:
         </div>
         <div className="flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
           <Button variant="outline" aria-label={`${project.name || project.prompt} ${t.cloudRename}`} disabled={deleting || renaming} onClick={() => { setRenameTarget(project); setRenameValue(project.name ?? '') }} className="flex-1 sm:flex-none"><Pencil className="h-4 w-4" />{t.cloudRename}</Button>
-          {!archive ? <Button variant="outline" aria-label={`${project.name || project.prompt} ${t.cloudDelete}`} disabled={deleting || renaming} onClick={() => setDeleteTarget(project)} className="flex-1 text-red-600 hover:bg-red-50 sm:flex-none"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button> : null}
+          <Button variant="outline" aria-label={`${project.name || project.prompt} ${t.cloudDelete}`} disabled={deleting || renaming} onClick={() => setDeleteTarget(project)} className="flex-1 text-red-600 hover:bg-red-50 sm:flex-none"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button>
           <Button onClick={() => navigate(`/generate?project=${project.id}`)} className="w-full sm:w-auto sm:flex-none"><ArrowRight className="h-4 w-4" />{archive ? t.cloudOpen : t.hubContinue}</Button>
         </div>
       </article>
