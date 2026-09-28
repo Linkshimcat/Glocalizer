@@ -12,6 +12,9 @@ import reviewPhoneCapture from '../assets/LandingRemake/phone-captures/review-pr
 import generateDesktopCapture from '../assets/LandingRemake/desktop-captures/generate-project-ko.png'
 import localizeDesktopCapture from '../assets/LandingRemake/desktop-captures/localize-upload-ko.png'
 import reviewDesktopCapture from '../assets/LandingRemake/desktop-captures/review-projects-ko.png'
+import workflowCreateVisual from '../assets/LandingRemake/Gen.png'
+import workflowLocalizeVisual from '../assets/LandingRemake/Local.png'
+import workflowReviewVisual from '../assets/LandingRemake/check.png'
 import Button from '../components/Button'
 import AccountMenu from '../components/AccountMenu'
 import Footer from '../components/Footer'
@@ -53,6 +56,8 @@ type RemakeCopy = {
   finalDescription: string
   finalCta: string
 }
+
+const WORKFLOW_VISUALS = [workflowCreateVisual, workflowLocalizeVisual, workflowReviewVisual]
 
 const COPY: Record<SiteLang, RemakeCopy> = {
   ko: {
@@ -309,7 +314,7 @@ export default function LandingRemake() {
 
         <section className="remake-workflow">
           <div className="remake-workflow-heading"><p className="remake-eyebrow">{copy.workflowEyebrow}</p><h2>{copy.workflowTitle}</h2><p>{copy.workflowDescription}</p></div>
-          <div className="remake-workflow-grid">{copy.scenes.map((item) => <article key={item.kicker}><p>{item.kicker}</p><h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3><div>{item.description}</div></article>)}</div>
+          <div className="remake-workflow-grid">{copy.scenes.map((item, index) => <article key={item.kicker}><p>{item.kicker}</p><h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3><div>{item.description}</div><img src={WORKFLOW_VISUALS[index]} alt="" width={201} height={201} loading="lazy" decoding="async" className="remake-workflow-visual" /></article>)}</div>
         </section>
 
         {showcases.length > 0 && <section className="remake-cases">
