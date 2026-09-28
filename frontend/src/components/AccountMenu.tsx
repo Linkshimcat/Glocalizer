@@ -1,6 +1,6 @@
 import { useUploads } from '../store/uploads'
 import { useToast } from './Toast'
-import { LayoutDashboard, Loader2, LogOut, MessageSquare, UserRound } from 'lucide-react'
+import { LayoutDashboard, Loader2, LogOut, MessageSquare, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -120,7 +120,7 @@ export default function AccountMenu() {
             {[
               { label: t.hubDashboard, path: '/dashboard', Icon: LayoutDashboard },
               { label: t.cloudArchive, path: '/archive', Icon: LayoutDashboard },
-              { label: t.accountTitle, path: '/account', Icon: UserRound },
+              { label: t.accountTitle, path: '/account', Icon: Settings },
             ].map(({ label, path, Icon }) => (
               <button key={path} type="button" role="menuitem" onClick={() => { setOpen(false); navigate(path) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface">
                 <Icon className="h-4 w-4 text-sub" />{label}
