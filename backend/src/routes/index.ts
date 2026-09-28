@@ -11,6 +11,7 @@ import { processRouter } from './process.routes.js';
 import { projectRouter } from './project.routes.js';
 import { resultRouter } from './result.routes.js';
 import { uploadRouter } from './upload.routes.js';
+import { showcaseRouter } from './showcase.routes.js';
 
 export const apiRouter = Router();
 
@@ -27,3 +28,4 @@ apiRouter.use(feedbackRouter);
 apiRouter.use(ogqRouter);
 
 apiRouter.use(generationRouter);
+apiRouter.use(showcaseRouter);

@@ -15,6 +15,15 @@ export interface ApiCandidate {
   best?: boolean
 }
 
+export interface LandingShowcase {
+  id: string
+  kind: 'localization' | 'generation'
+  languageCode: string | null
+  originalUrl: string
+  resultUrl: string
+  sortOrder: number
+}
+
 export interface ApiLocalization {
   status: 'translated' | 'failed'
   candidates: ApiCandidate[]
@@ -112,6 +121,11 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
   }
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
+}
+
+export async function getLandingShowcases(): Promise<LandingShowcase[]> {
+  const result = await request<{ showcases: LandingShowcase[] }>('/landing/showcases')
+  return result.showcases
 }
 
 export async function createProject(files: File[], targetLanguages: string[]): Promise<CreatedProject> {

@@ -29,6 +29,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import AuroraBackground from '../components/AuroraBackground'
 import Logo from '../components/Logo'
+import RollingText from '../components/RollingText'
 import { useToast } from '../components/Toast'
 import {
   COLORS,
@@ -1107,7 +1108,15 @@ export default function Editor() {
           <LoaderCircle className="h-7 w-7 animate-spin text-brand-dark" />
         </span>
         <div className="relative z-10">
-          <p className="text-xl font-extrabold">{[t.loadingStep1, t.loadingStep2][loadingStep]}</p>
+          <p className="text-xl font-extrabold" aria-live="polite">
+            <span className="sr-only">{[t.loadingStep1, t.loadingStep2][loadingStep]}</span>
+            <RollingText
+              key={loadingStep}
+              items={[[t.loadingStep1, t.loadingStep2][loadingStep]]}
+              loop={false}
+              className="text-xl font-extrabold"
+            />
+          </p>
           <p className="mt-2 text-sm font-medium text-sub">
             {t.loadingSub}
           </p>

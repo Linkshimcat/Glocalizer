@@ -1,5 +1,5 @@
 import { useAuth } from '../store/AuthContext'
-import { Check, ImagePlus, X } from 'lucide-react'
+import { Check, Cloud, ImagePlus, X } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AILocalizationBadge from '../components/AILocalizationBadge'
@@ -53,11 +53,16 @@ export default function Localize() {
     saveDraft,
   } = useUploads()
   const [dragging, setDragging] = useState(false)
-  const [progress, setProgress] = useState<number | null>(null)
+  const [starting, setStarting] = useState(false)
   const [showAllLangs, setShowAllLangs] = useState(false)
   const [showSamplePicker, setShowSamplePicker] = useState(false)
   const [selectingSampleId, setSelectingSampleId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const desktopStartContainerRef = useRef<HTMLDivElement>(null)
+  const desktopStartButtonWidthRef = useRef<number | null>(null)
+  const desktopStartFrameRef = useRef<number | null>(null)
+  const desktopStartResetTimerRef = useRef<number | null>(null)
+  const [desktopStartButtonWidth, setDesktopStartButtonWidth] = useState<string>()
   const toast = useToast()
   const { t } = useSiteLang()
 
@@ -94,13 +99,38 @@ export default function Localize() {
   }
 
   const beginLocalization = async () => {
-    setProgress(0)
+    if (desktopStartResetTimerRef.current !== null) {
+      window.clearTimeout(desktopStartResetTimerRef.current)
+      desktopStartResetTimerRef.current = null
+    }
+    const desktopWidth = desktopStartContainerRef.current?.querySelector('button')?.getBoundingClientRect().width
+    desktopStartButtonWidthRef.current = desktopWidth || null
+    if (desktopWidth) {
+      setDesktopStartButtonWidth(`${desktopWidth}px`)
+    }
+    setStarting(true)
+    if (desktopWidth) {
+      desktopStartFrameRef.current = window.requestAnimationFrame(() => {
+        desktopStartFrameRef.current = null
+        setDesktopStartButtonWidth('100%')
+      })
+    }
     try {
       await startLocalization()
-      setProgress(100)
       navigate('/editor')
     } catch (error) {
-      setProgress(null)
+      if (desktopStartFrameRef.current !== null) {
+        window.cancelAnimationFrame(desktopStartFrameRef.current)
+        desktopStartFrameRef.current = null
+      }
+      setStarting(false)
+      if (desktopStartButtonWidthRef.current !== null) {
+        setDesktopStartButtonWidth(`${desktopStartButtonWidthRef.current}px`)
+        desktopStartResetTimerRef.current = window.setTimeout(() => {
+          setDesktopStartButtonWidth(undefined)
+          desktopStartResetTimerRef.current = null
+        }, 500)
+      }
       toast(error instanceof Error ? error.message : t.dashToastStartFail)
     }
   }
@@ -133,8 +163,8 @@ export default function Localize() {
   const hasFiles = files.length > 0
   // 백그라운드 자동저장(cloudSaving)이 끝나길 기다리지 않는다. startLocalization이 내부에서
   // saveDraft()를 직접 호출하고, 진행 중인 저장 뒤에 순서대로 이어 붙기 때문에 바로 눌러도 안전하다.
-  // 대신 이미 시작을 눌러 진행 중일 때(progress)는 더블클릭을 막는다.
-  const canStart = isAuthenticated && progress === null && selectedCount > 0 && targetLangs.length > 0
+  // 대신 이미 시작을 눌러 진행 중일 때는 더블클릭을 막는다.
+  const canStart = isAuthenticated && !starting && selectedCount > 0 && targetLangs.length > 0
 
   return (
     <div className="min-h-screen bg-white">
@@ -152,7 +182,7 @@ export default function Localize() {
         </div>
 
         {!isAuthenticated && <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login?next=/localize')}>{t.navLogin}</Button></div>}
-        {isAuthenticated && (hasFiles || cloudError) && <div role="status" className="mt-5 flex flex-wrap items-center gap-3 text-sm text-sub"><span>{cloudError ?? (cloudSaving || !projectStatus ? t.cloudSaving : t.cloudSaved)}</span>{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}</div>}
+        {isAuthenticated && (hasFiles || cloudError) && <div role="status" className="mt-5 flex flex-wrap items-center gap-3 text-sm text-sub">{cloudError ? <span>{cloudError}</span> : <span className="inline-flex items-center gap-1.5"><Cloud size={16} aria-hidden="true" />{cloudSaving || !projectStatus ? t.cloudSaving : t.cloudSaved}</span>}{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}</div>}
         {/* 드롭존 */}
         <div
           data-dragging={dragging}
@@ -222,25 +252,7 @@ export default function Localize() {
           />
         )}
 
-        {/* 업로드 진행률 */}
-        {progress !== null && (
-          <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">
-                {progress < 100 ? t.dashUploading : t.dashUploadDone}
-              </span>
-              <span className="text-sm font-bold text-brand-dark">{progress}%</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
-              <div
-                className="h-full rounded-full bg-brand transition-[width] duration-150"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {hasFiles && progress === null && (
+        {hasFiles && !starting && (
           <p className="mt-5 text-sm font-bold text-brand-dark">
             {t.dashSelectedCount.replace('{n}', String(selectedCount))}
           </p>
@@ -376,15 +388,18 @@ export default function Localize() {
         </section>
 
         {/* CTA */}
-        <div className="mt-14 hidden justify-center lg:flex">
+        <div ref={desktopStartContainerRef} className="mt-14 hidden w-full justify-center lg:flex">
           <Button
             size="lg"
             glow={canStart}
             disabled={!canStart}
             onClick={beginLocalization}
-            className="min-w-[280px]"
+            aria-busy={starting}
+            style={desktopStartButtonWidth ? { width: desktopStartButtonWidth } : undefined}
+            className={`localize-start-button relative overflow-hidden ${starting ? 'w-full disabled:bg-brand-soft disabled:text-brand-dark' : 'min-w-[280px]'}`}
           >
-            {selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}
+            {starting && <span role="progressbar" aria-label={t.dashUploading} className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-brand-soft"><span className="localize-progress-sweep absolute inset-y-0 left-0 w-2/5 rounded-2xl" /></span>}
+            <span className="relative">{starting ? t.dashUploading : selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}</span>
           </Button>
         </div>
         {!canStart && (
@@ -409,9 +424,11 @@ export default function Localize() {
           glow={canStart}
           disabled={!canStart}
           onClick={beginLocalization}
-          className="w-full"
+          aria-busy={starting}
+          className={`localize-start-button relative w-full overflow-hidden ${starting ? 'disabled:bg-brand-soft disabled:text-brand-dark' : ''}`}
         >
-          {selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}
+          {starting && <span role="progressbar" aria-label={t.dashUploading} className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl bg-brand-soft"><span className="localize-progress-sweep absolute inset-y-0 left-0 w-2/5 rounded-xl" /></span>}
+          <span className="relative">{starting ? t.dashUploading : selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}</span>
         </Button>
         <p className="mt-1.5 text-center text-xs font-medium text-sub">
           {!hasFiles
