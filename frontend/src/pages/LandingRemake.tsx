@@ -1,6 +1,8 @@
 import { ArrowDown, ArrowRight, Globe2, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
+import motionGraphic from '../assets/LendingPage/MotionGrap.mp4'
+import refreshIcon from '../assets/LendingPage/refreshButton.svg'
 import macbookFrame from '../assets/LandingRemake/macbook_mockup_transparent.png'
 import iphoneFrame from '../assets/LandingRemake/iphone_17_pro_transparent.png'
 import ogqGalleryReference from '../assets/LandingRemake/ogq-gallery-reference.jpg'
@@ -11,12 +13,15 @@ import generateDesktopCapture from '../assets/LandingRemake/desktop-captures/gen
 import localizeDesktopCapture from '../assets/LandingRemake/desktop-captures/localize-upload-ko.png'
 import reviewDesktopCapture from '../assets/LandingRemake/desktop-captures/review-projects-ko.png'
 import Button from '../components/Button'
+import AccountMenu from '../components/AccountMenu'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
-import NavMenu from '../components/NavMenu'
+import LanguageSelect from '../components/LanguageSelect'
 import OgqStickerGallery from '../components/OgqStickerGallery'
+import RollingText from '../components/RollingText'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { getLandingShowcases, type LandingShowcase } from '../lib/api'
+import { useAuth } from '../store/AuthContext'
 import type { SiteLang } from '../i18n/translations'
 
 type SceneCopy = {
@@ -26,7 +31,6 @@ type SceneCopy = {
 }
 
 type RemakeCopy = {
-  eyebrow: string
   heroTitle: string
   heroDescription: string
   heroCta: string
@@ -52,10 +56,9 @@ type RemakeCopy = {
 
 const COPY: Record<SiteLang, RemakeCopy> = {
   ko: {
-    eyebrow: '이모티콘 창작자의 작업실',
     heroTitle: '아이디어에서 출시까지,\n이모티콘 창작의 모든 과정.',
     heroDescription: '새로운 이모티콘을 만들고, 여러 언어로 다듬고, 출시 전까지 확인해요. 창작에 필요한 흐름을 한곳에서 이어 보세요.',
-    heroCta: 'Glocalizer 시작하기', scrollLabel: '작업실 둘러보기',
+    heroCta: 'Glocalizer 시작하기', scrollLabel: '둘러보기',
     workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: '아이디어부터 출시 준비까지', workflowDescription: '창작의 각 단계를 한곳에서 이어 가세요.',
     scenes: [
       { kicker: '01 · CREATE', title: '아이디어를\n이모티콘으로', description: '만들고 싶은 캐릭터와 표정을 바탕으로 새 이모티콘을 생성해요.' },
@@ -66,10 +69,9 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     finalEyebrow: '이제 당신의 차례예요', finalTitle: '다음 이모티콘을\n함께 완성해요.', finalDescription: 'Glocalizer에서 아이디어를 만들고, 다듬고, 출시를 준비해 보세요.', finalCta: '작업실 열기',
   },
   en: {
-    eyebrow: 'A studio for emoticon creators',
     heroTitle: 'From first idea to release,\nevery step of creating.',
     heroDescription: 'Create new emoticons, refine them for other languages, and get ready to release—all in one creative workflow.',
-    heroCta: 'Start Glocalizer', scrollLabel: 'Explore the studio',
+    heroCta: 'Start Glocalizer', scrollLabel: 'Explore',
     workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: 'From idea to release-ready', workflowDescription: 'Move through every stage of creating in one place.',
     scenes: [
       { kicker: '01 · CREATE', title: 'Turn an idea into\nan emoticon', description: 'Create new emoticons from your character and expression ideas.' },
@@ -80,10 +82,9 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     finalEyebrow: 'Your turn to create', finalTitle: 'Let’s finish your\nnext emoticon.', finalDescription: 'Create, refine, and prepare your next release with Glocalizer.', finalCta: 'Open your studio',
   },
   ja: {
-    eyebrow: 'スタンプクリエイターのためのスタジオ',
     heroTitle: 'アイデアからリリースまで、\nスタンプ制作のすべてを。',
     heroDescription: 'スタンプを作り、他の言語に合わせて整え、リリースの準備まで。制作に必要な流れをひとつに。',
-    heroCta: 'Glocalizerを始める', scrollLabel: 'スタジオを見る',
+    heroCta: 'Glocalizerを始める', scrollLabel: '見る',
     workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: 'アイデアからリリース準備まで', workflowDescription: '制作の各ステップをひとつの場所で進められます。',
     scenes: [
       { kicker: '01 · CREATE', title: 'アイデアを\nスタンプに', description: 'キャラクターや表情のアイデアから、新しいスタンプを作ります。' },
@@ -94,10 +95,9 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     finalEyebrow: '次はあなたの番です', finalTitle: '次のスタンプを\n一緒に完成させましょう。', finalDescription: 'Glocalizerでアイデアを形にして、リリースの準備をしましょう。', finalCta: 'スタジオを開く',
   },
   zh: {
-    eyebrow: '表情创作者的工作室',
     heroTitle: '从灵感到发布，\n完成表情创作的每一步。',
     heroDescription: '创作新表情、适配不同语言，并为发布做好准备。在一个工作流程中完成创作所需的一切。',
-    heroCta: '开始使用 Glocalizer', scrollLabel: '看看创作流程',
+    heroCta: '开始使用 Glocalizer', scrollLabel: '浏览',
     workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: '从灵感到发布准备', workflowDescription: '在一个工作空间中完成创作的每个阶段。',
     scenes: [
       { kicker: '01 · CREATE', title: '把灵感变成\n表情作品', description: '根据角色和表情灵感创作新的表情。' },
@@ -182,9 +182,13 @@ function ShowcaseCompare({ item, copy }: { item: LandingShowcase; copy: RemakeCo
 
 export default function LandingRemake() {
   const navigate = useNavigate()
-  const { lang } = useSiteLang()
+  const { isAuthenticated } = useAuth()
+  const { lang, t } = useSiteLang()
   const copy = COPY[lang]
   const storyRef = useRef<HTMLElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [reduceMotion, setReduceMotion] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [heroReplayCount, setHeroReplayCount] = useState(0)
   const [scene, setScene] = useState(1)
   const tickingRef = useRef(false)
   const [showcases, setShowcases] = useState<LandingShowcase[]>([])
@@ -194,6 +198,17 @@ export default function LandingRemake() {
     void getLandingShowcases().then((items) => { if (active) setShowcases(items) }).catch(() => { if (active) setShowcases([]) })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setReduceMotion(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (reduceMotion) videoRef.current?.pause()
+  }, [reduceMotion])
 
   useEffect(() => {
     const syncScenes = () => {
@@ -225,24 +240,49 @@ export default function LandingRemake() {
     storyRef.current?.scrollIntoView({ behavior })
   }
 
+  const replayHero = () => {
+    const video = videoRef.current
+    if (!video) return
+    video.currentTime = 0
+    void video.play()
+    setHeroReplayCount(count => count + 1)
+  }
+
   return (
     <div className="remake-page" style={{ '--ogq-gallery': `url(${ogqGalleryReference})` } as CSSProperties}>
-      <Header center={<NavMenu />} sticky />
+      <Header center={<nav className="remake-header-nav" aria-label={t.navStart}>
+        <button type="button" onClick={() => navigate('/dashboard')}>{t.navStart}</button>
+        <button type="button" onClick={() => navigate('/service')}>{t.navService}</button>
+        <LanguageSelect />
+        {isAuthenticated ? <AccountMenu /> : (
+          <button type="button" onClick={() => navigate('/login')} className="bg-surface">{t.navLogin}</button>
+        )}
+      </nav>} />
       <main>
-        <section className="remake-hero">
-          <div className="remake-hero-inner">
-            <p className="remake-eyebrow">{copy.eyebrow}</p>
-            <h1>{copy.heroTitle.split('\n').map((line) => <span key={line}>{line}</span>)}</h1>
-            <p className="remake-hero-description">{copy.heroDescription}</p>
-            <div className="remake-hero-actions">
-              <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.heroCta}<ArrowRight size={18} /></Button>
-              <button type="button" onClick={jumpToStory} className="remake-scroll-button">{copy.scrollLabel}<ArrowDown size={17} /></button>
+        <div className="remake-hero-shell" data-reduced-motion={reduceMotion}>
+          <video ref={videoRef} className="remake-hero-video" src={motionGraphic} autoPlay={!reduceMotion} muted playsInline preload="metadata" aria-hidden />
+          <section className="remake-hero">
+            <div className="remake-hero-inner">
+              <h1 key={`title-${lang}-${heroReplayCount}`}>{copy.heroTitle.split('\n').map((line, index) => (
+                <span key={line}>
+                  <span className="sr-only">{line}</span>
+                  <RollingText items={[line]} loop={false} delaySeconds={index * 0.12} />
+                </span>
+              ))}</h1>
+              <p key={`description-${lang}-${heroReplayCount}`} className="remake-hero-description">{copy.heroDescription}</p>
+              <div className="remake-hero-actions">
+                <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.heroCta}<ArrowRight size={18} /></Button>
+                <button type="button" onClick={jumpToStory} className="remake-scroll-button">{copy.scrollLabel}<ArrowDown size={17} /></button>
+              </div>
+              <div className="remake-hero-pillars" aria-hidden>
+                <span><Sparkles size={15} />CREATE</span><i /><span><Globe2 size={15} />LOCALIZE</span><i /><span><ShieldCheck size={15} />REVIEW</span>
+              </div>
             </div>
-            <div className="remake-hero-pillars" aria-hidden>
-              <span><Sparkles size={15} />CREATE</span><i /><span><Globe2 size={15} />LOCALIZE</span><i /><span><ShieldCheck size={15} />REVIEW</span>
-            </div>
-          </div>
-        </section>
+            <button type="button" onClick={replayHero} className="remake-hero-replay" aria-label={t.heroReplay} title={t.heroReplay}>
+              <img src={refreshIcon} alt="" aria-hidden />
+            </button>
+          </section>
+        </div>
 
         <section ref={storyRef} className="remake-story" data-lang={lang}>
           <div className="remake-story-sticky">
