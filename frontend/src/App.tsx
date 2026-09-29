@@ -24,6 +24,7 @@ const Result = lazy(() => import('./pages/Result'))
 const Review = lazy(() => import('./pages/Review'))
 const ServiceIntro = lazy(() => import('./pages/ServiceIntro'))
 const Terms = lazy(() => import('./pages/Terms'))
+const Support = lazy(() => import('./pages/Support'))
 
 function RouteFallback() {
   return (
@@ -72,6 +73,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/terms" element={<Terms />} />
+                    <Route path="/support" element={<Support />} />
                     <Route path="/auth/naver/callback" element={<NaverCallback />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/generate" element={<Generate />} />

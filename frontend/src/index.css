@@ -63,11 +63,15 @@ body {
 .remake-scene-copy > p { color: #168b4a; font-size: 12px; font-weight: 900; letter-spacing: .15em; }
 .remake-scene-copy h2 { margin-top: 20px; font-size: clamp(38px,3.7vw,56px); font-weight: 900; letter-spacing: -.065em; line-height: 1.08; }
 .remake-scene-copy > div:not(.remake-progress) { max-width: 420px; margin-top: 22px; color: #68727d; font-size: 16px; font-weight: 560; line-height: 1.8; }
-.remake-device-wrap { transform: none; }
+.remake-scene-progress { display: flex; width: min(100%,132px); gap: 6px; margin-top: 28px; }
+.remake-scene-progress span { height: 3px; flex: 1; overflow: hidden; border-radius: 99px; background: #dfe5e1; transition: background-color .25s ease, transform .25s ease; }
+.remake-scene-progress span[data-active="true"] { background: #20b45a; }
+.remake-device-wrap { width: min(92%,960px); justify-self: center; transform: none; }
 .remake-device { position: relative; isolation: isolate; width: 100%; aspect-ratio: 4096 / 2499; filter: drop-shadow(0 28px 34px rgba(25,31,40,.13)); }
 .remake-device-frame { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .remake-device-frame-mobile { display: none; }
 .remake-product-window { position: absolute; z-index: 1; top: 2.2%; left: 9%; width: 82%; height: 87.3%; overflow: hidden; border-radius: 2.7% 2.7% 0 0; background: #fff; pointer-events: none; }
+.remake-product-window { animation: remake-screen-enter .5s cubic-bezier(.22,1,.36,1) both; }
 .remake-product-screen { position: absolute; top: 0; left: 0; display: block; transform-origin: top left; border: 0; background: #fff; pointer-events: none; }
 .remake-product-capture { display: none; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .remake-product-capture-desktop { transform: translateX(5%) scale(1.6); transform-origin: center top; }
@@ -78,16 +82,24 @@ body {
 .remake-workflow-heading h2 { margin-top: 16px; font-size: clamp(36px,5vw,64px); font-weight: 900; letter-spacing: -.06em; }
 .remake-workflow-heading > p:last-child { margin-top: 14px; color: #77818a; font-size: 16px; font-weight: 600; }
 .remake-workflow-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 36px; width: min(100%,1280px); margin: 72px auto 0; }
-.remake-workflow-grid article { display: flex; min-width: 0; flex-direction: column; padding-top: 24px; border-top: 1px solid #dfe4e1; }
+.remake-workflow-grid article { position: relative; display: flex; min-width: 0; flex-direction: column; padding-top: 24px; border-top: 1px solid #dfe4e1; transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), filter .55s ease, background-color .25s ease; transition-delay: var(--workflow-delay, 0ms); }
+.remake-workflow-grid[data-motion-ready="true"] article[data-visible="false"] { opacity: 0; transform: translateY(18px); filter: blur(2px); }
+.remake-workflow-grid article::before { position: absolute; top: -1px; left: 0; width: 100%; height: 2px; transform: scaleX(0); transform-origin: left; background: #20b45a; content: ''; transition: transform .65s cubic-bezier(.22,1,.36,1), height .2s ease; transition-delay: var(--workflow-delay, 0ms); }
+.remake-workflow-grid article[data-visible="true"]::before { transform: scaleX(1); }
+.remake-workflow-grid article[data-active="true"]::before { height: 3px; }
+.remake-workflow-grid article[data-visible="true"]:hover { transform: translateY(-4px); }
+.remake-workflow-grid article:active { transform: translateY(-1px) scale(.995); }
 .remake-workflow-grid article > p { color: #168b4a; font-size: 11px; font-weight: 900; letter-spacing: .14em; }
 .remake-workflow-grid h3 { margin-top: 18px; font-size: clamp(23px,2.4vw,34px); font-weight: 900; letter-spacing: -.05em; line-height: 1.18; }
 .remake-workflow-grid h3 span { display: block; }
 .remake-workflow-grid article > div { margin: 16px 0 28px; color: #68727d; font-size: 15px; font-weight: 560; line-height: 1.75; }
-.remake-workflow-visual { display: block; width: 100%; height: auto; aspect-ratio: 1; margin-top: auto; border-radius: 8%; object-fit: cover; }
+.remake-workflow-visual { display: block; width: 100%; height: auto; aspect-ratio: 1; margin-top: auto; border-radius: 8%; object-fit: cover; transition: transform .5s cubic-bezier(.22,1,.36,1); }
+.remake-workflow-grid article:hover .remake-workflow-visual { transform: scale(1.025); }
 .remake-cases { padding: 112px 5vw 120px; background: #fff; }.remake-cases-heading { max-width: 820px; margin: 0 auto; text-align: center; }.remake-cases-heading h2 { margin-top: 17px; font-size: clamp(36px,5vw,64px); font-weight: 900; letter-spacing: -.06em; }.remake-cases-heading > p:last-child { margin-top: 15px; color: #77818a; font-size: 16px; font-weight: 600; }.remake-case-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,330px),1fr)); gap: 22px; width: min(100%,1120px); margin: 48px auto 0; }.remake-case-card { min-width: 0; overflow: hidden; border: 1px solid #e7eaec; border-radius: 24px; background: #fff; box-shadow: 0 16px 48px rgba(25,31,40,.06); }.remake-case-meta { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; color: #168b4a; font-size: 11px; font-weight: 900; letter-spacing: .08em; }.remake-case-meta span + span { color: #7a838b; }.remake-case-compare { position: relative; aspect-ratio: 1; overflow: hidden; background: repeating-conic-gradient(#f3f5f4 0 25%,#fff 0 50%) 0 0/20px 20px; touch-action: pan-y; }.remake-case-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 9%; }.remake-case-compare img:nth-of-type(2) { clip-path: inset(0 0 0 50%); }.remake-case-label { position: absolute; z-index: 2; top: 14px; border-radius: 99px; padding: 6px 10px; background: rgba(255,255,255,.92); color: #343d45; font-size: 10px; font-weight: 850; box-shadow: 0 2px 12px rgba(25,31,40,.08); }.remake-case-label-before { left: 14px; }.remake-case-label-after { right: 14px; }.remake-case-divider { position: absolute; z-index: 2; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 0 1px rgba(25,31,40,.1),0 1px 12px rgba(25,31,40,.2); pointer-events: none; }.remake-case-divider i { position: absolute; top: 50%; left: 50%; display: grid; width: 36px; aspect-ratio: 1; place-items: center; transform: translate(-50%,-50%); border: 2px solid #fff; border-radius: 50%; background: #22c55e; box-shadow: 0 2px 12px rgba(25,31,40,.18); }.remake-case-divider i::before { width: 9px; height: 9px; border-right: 2px solid #fff; border-left: 2px solid #fff; content: ''; }.remake-case-compare input { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; margin: 0; cursor: ew-resize; opacity: 0; touch-action: pan-y; }.remake-case-compare input:focus-visible { outline: 3px solid #168b4a; outline-offset: -4px; opacity: .01; }
 .remake-ogq-proof { overflow: hidden; border-top: 1px solid #f0f2f3; background: #f7f8f8; }.ogq-gallery-fallback { display: block; width: min(100% - 40px,1500px); margin: 0 auto; border-radius: 24px; }
 .remake-final { display: flex; min-height: 76svh; align-items: center; flex-direction: column; justify-content: center; padding: 100px 24px; background: #f7f8f8; text-align: center; }.remake-final h2 { margin-top: 20px; font-size: clamp(46px,6.8vw,86px); font-weight: 900; letter-spacing: -.07em; line-height: 1.03; }.remake-final > p:not(.remake-eyebrow) { max-width: 560px; margin: 24px auto 32px; color: #69747d; font-size: 17px; font-weight: 600; line-height: 1.75; }
 @keyframes remake-copy-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes remake-screen-enter { from { opacity: .72; transform: translateY(7px) scale(.992); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes remake-hero-letter-in { from { opacity: 0; filter: blur(5px); transform: translateY(.35em); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
 @keyframes remake-hero-description-in { from { opacity: 0; filter: blur(8px); transform: translateY(12px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
 @media (max-width: 900px) {
@@ -127,6 +139,32 @@ body {
   .remake-page *, .remake-page *::before, .remake-page *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   .remake-hero .animate-roll-in { animation: none; }
   .remake-hero-description { animation: none; }
+  .remake-scene-progress span, .remake-product-window, .remake-workflow-grid article, .remake-workflow-grid article::before, .remake-workflow-visual { animation: none !important; transition: none !important; }
+}
+
+/* Service page scroll reveals and direct interaction feedback. */
+.service-page[data-motion-ready="true"] .service-reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); filter: blur(2px); }
+.service-reveal { transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), filter .55s ease; transition-delay: var(--reveal-delay, 0ms); }
+.service-reveal.is-visible { opacity: 1; transform: translateY(0); filter: blur(0); }
+.service-feature-card { transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), filter .55s ease, border-color .2s ease, box-shadow .2s ease; }
+.service-feature-card:hover, .service-feature-card:focus-within { transform: translateY(-5px); border-color: rgba(25,157,82,.36); box-shadow: 0 18px 40px rgba(25,31,40,.09); }
+.service-feature-card:active { transform: translateY(-2px) scale(.995); }
+.service-feature-icon { transition: transform .25s cubic-bezier(.22,1,.36,1), background-color .25s ease; }
+.service-feature-card:hover .service-feature-icon, .service-feature-card:focus-within .service-feature-icon { transform: rotate(4deg) scale(1.06); background-color: #d8f5e4; }
+.service-feature-link { transition: color .2s ease; }
+.service-feature-card:hover .service-feature-link, .service-feature-link:focus-visible { color: #168b4a; }
+.service-arrow { transition: transform .22s cubic-bezier(.22,1,.36,1); }
+.service-feature-link:hover .service-arrow, .service-feature-link:focus-visible .service-arrow, .service-cta:hover .service-arrow { transform: translate(3px,-2px); }
+.service-cta { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
+.service-cta:hover, .service-cta:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(25,31,40,.1); }
+.service-cta:active { transform: translateY(0) scale(.985); }
+.service-workflow-progress { height: 3px; overflow: hidden; margin-top: 26px; border-radius: 99px; background: #dfe7e2; }
+.service-workflow-progress span { display: block; width: 100%; height: 100%; transform: scaleX(var(--workflow-progress, 0)); transform-origin: left center; background: #20b45a; transition: transform .12s linear; }
+.service-workflow-step { transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), filter .55s ease, box-shadow .2s ease; }
+.service-workflow-step:hover { box-shadow: 0 12px 30px rgba(25,31,40,.07); }
+@media (prefers-reduced-motion: reduce) {
+  .service-reveal, .service-feature-card, .service-feature-icon, .service-feature-link, .service-arrow, .service-cta, .service-workflow-progress span, .service-workflow-step { transition: none !important; animation: none !important; }
+  .service-page .service-reveal { opacity: 1 !important; transform: none !important; filter: none !important; }
 }
 
 /* 에디터 캔버스 투명 배경 표시용 체커보드 */

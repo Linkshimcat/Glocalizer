@@ -2,7 +2,7 @@
 
 > **대상:** 제4회 NAVER OGQ마켓 AI Competition 출품작
 **슬로건:** "K-이모티콘, 클릭 한 번으로 글로벌 마켓의 인기 밈(Meme)이 되다."
-> 
+>
 
 ## 1. 서비스 컨셉 및 핵심 가치 (Value Proposition)
 
