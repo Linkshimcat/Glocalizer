@@ -20,6 +20,15 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 
 본 프로덕트는 사용자가 이모티콘 이미지를 업로드하면 이미지 속 한국어 글자 영역을 탐지하고, 안전하게 지울 수 있는 영역은 주변 색상과 형태를 바탕으로 자동 정리함. 이후 LLM이 한국어 원문의 의미와 말투를 대상 언어에 맞는 표현으로 현지화하고, 원본 스타일에 가까운 글꼴 후보와 함께 편집 가능한 결과를 제공함. OCR·번역·이미지 정리는 입력에 따라 실패하거나 부정확할 수 있으므로, 사용자는 에디터에서 원문과 번역문, 글자 영역, 배경 정리 방식, 글꼴과 위치를 직접 검토하고 수정할 수 있음.
 
+**핵심 기능**
+
+- **자동 배경 정리 + 수동 보정**: OCR로 찾은 글자 영역을 안전하게 판단되면 자동으로 지우고, 위험하거나 복잡한 배경은 원본을 보존한 뒤 사각형·브러시 도구로 직접 정리할 수 있음
+- **다국어 현지화(EN/JA/ZH)**: 원문의 존댓말·타이핑 감정 표현(ㅋㅋ/ㅠㅠ 등)까지 반영해 번역하고, 후보 3안 중 베스트를 추천
+- **클라우드 작업 저장**: 로그인 후 진행 중인 프로젝트가 자동 저장돼 다른 기기·세션에서 이어서 작업할 수 있고, 완료된 프로젝트는 보관함에서 다시 열람 가능
+- **이메일 · 네이버 · 구글 로그인**
+- **OGQ 마켓 연동**: 랜딩페이지 예시 갤러리, 업로드 페이지 샘플 체험, 완료된 프로젝트의 유사 스티커 검색·출시 체크리스트("OGQ 출시 검토")
+- **(실험적, 내부 전용) AI 캐릭터 생성**: 텍스트 설명과 선택적 참고 이미지로 오리지널 캐릭터의 대표 이미지 1장 + 표정 23종을 자동 생성해 OGQ용 24장 세트를 만드는 별도 기능
+
 ---
 
 #### **[시스템 아키텍처]**
@@ -49,7 +58,9 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
       → 여러 줄로 잘린 캡션은 mergeWrappedLines로 한 캡션으로 병합
       → 합의도 낮음 + 한글 3자 이하 등 조건이면 Vision(Groq/Gemini) 폴백으로 재판정
    2. 번역 → 폰트 스타일 분석 (순차 실행, 실패는 서로 독립)
-      - 번역: Groq(Qwen3.8 27B)로 원문 뉘앙스 반영한 다국어 번역 후보 생성
+      - 번역: OpenAI GPT-5.6(주력)로 원문 뉘앙스·존댓말·타이핑된 감정 표현(ㅋㅋ/ㅠㅠ 등)까지 반영한 다국어 번역 후보 생성
+        → 실패 시 Groq(Qwen3.8 27B)로 자동 폴백. 73개 한국어 이모티콘 문구 데이터셋 + LLM 심사 벤치마크로
+        검증해 기존 대비 종합 품질 점수를 3.74 → 4.88로 개선(근거: [#86](https://github.com/Linkshimcat/Glocalizer/pull/86))
       - 폰트 스타일 분석: 번역 완료 후 Vision 모델이 원본 글자 크롭만 보고 굵기/둥글기/손글씨 여부/격식 태깅 (soft-fail)
    3. 이미지 정리(cleanup) 단계
       OCR 영역의 배경 복잡도와 마스크 안전성을 평가해 방향성 inpaint·단색 채우기·투명 처리를 선택
@@ -109,8 +120,13 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 
 | **분류** | **기술 스택** |
 | --- | --- |
-| Backend | Node.js (v22+), TypeScript, Express 5, Supabase |
-| Frontend | React 19, Vite, TypeScript, TailWind CSS |
+| Backend | Node.js (v22+), TypeScript, Express 5 |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS |
+| DB · Storage | Supabase (PostgreSQL + Storage) |
+| OCR · 이미지 처리 | PaddleOCR(Python), OpenCV, Sharp |
+| AI 모델 | OpenAI GPT-5.6 · GPT-5.6 Luna · gpt-image-2.5-sunburst, Groq Qwen3.8 27B, Google Gemini 2.5 Flash |
+| 인증 | 이메일(자체 JWT), 네이버 로그인, 구글 로그인(Supabase Auth) |
+| 배포 | Frontend → Vercel, Backend → Render, DB·Storage·Auth → Supabase |
 | Design | Figma, Claude Design |
 
 ---
@@ -121,8 +137,9 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 # 0. 사전 준비
 #    - Node.js 22+, Python 3.12(PaddlePaddle이 3.14 미지원)
 #    - Supabase 프로젝트(Postgres + Storage), Groq API 키
-#    - OpenAI API 키는 OCR_PROVIDER=luna일 때만 필요
-#      OPENAI_API_KEY 없이도 OCR_PROVIDER=paddle로 두면 PaddleOCR만으로 로컬 실행 가능
+#    - OpenAI API 키는 OCR_PROVIDER=luna 또는 TRANSLATION_PROVIDER=openai일 때 필요
+#      (저장소 기본값은 각각 paddle/groq라 OPENAI_API_KEY 없이도 로컬 실행 가능. AI 캐릭터 생성은
+#      ENABLE_IMAGE_GENERATION=true + OPENAI_API_KEY가 있을 때만 켜지는 별도 실험 기능)
 
 git clone https://github.com/Linkshimcat/Glocalizer.git
 cd Glocalizer
@@ -160,13 +177,16 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 
 | 제공자·모델 | 사용 목적 | 전달 데이터 | 실패 대응 |
 | --- | --- | --- | --- |
-| OpenAI · GPT-5.6 Luna | `OCR_PROVIDER=luna` 배포에서 업로드 이미지의 한국어 문구와 좌표를 찾는 OCR | 크기를 제한한 업로드 이미지 | 호출 실패 또는 한글 미검출 시 로컬 PaddleOCR로 폴백 |
+| OpenAI · GPT-5.6 Luna | `OCR_PROVIDER=luna` 배포(production 기본값)에서 업로드 이미지의 한국어 문구와 좌표를 찾는 OCR | 크기를 제한한 업로드 이미지 | 호출 실패 또는 한글 미검출 시 로컬 PaddleOCR로 폴백 |
 | PaddlePaddle · PP-OCRv5 Korean | 로컬 OCR 및 Luna 장애 시 폴백 | 서버 내부 이미지 처리, 외부 AI API 전송 없음 | 여러 전처리 결과의 IoU·문자 유사도 합의와 수동 영역 지정 제공 |
-| Groq · Qwen3.8 27B | OCR 원문의 영어·일본어·중국어 현지화, 선택적 OCR 재판정과 글꼴 스타일 분석 | OCR 텍스트, 대상 언어, 필요한 경우 글자 영역 이미지 | 제한된 재시도 후 애셋별 오류 또는 soft-fail 처리 |
+| OpenAI · GPT-5.6 | `TRANSLATION_PROVIDER=openai`(production 기본값)에서 OCR 원문의 영어·일본어·중국어 현지화(주력) | OCR 텍스트, 대상 언어, 같은 이미지의 다른 캡션(문맥) | 실패 시 Groq로 자동 폴백. 73개 문구 + LLM 심사 벤치마크로 품질 검증 |
+| Groq · Qwen3.8 27B | 번역 실패 시 폴백, 선택적 OCR 재판정(Vision)과 글꼴 스타일 분석 | OCR 텍스트, 대상 언어, 필요한 경우 글자 영역 이미지 | 제한된 재시도 후 애셋별 오류 또는 soft-fail 처리 |
 | Google · Gemini 2.5 Flash | OCR 합의도가 낮을 때 선택적으로 재판정하는 보조 Vision 모델 | 재판정이 필요한 이미지 | API 키가 없거나 호출에 실패하면 기존 OCR 결과와 수동 편집 경로 유지 |
 | Google · Gemini 3.7 Flash | 2026-08-24 내부 OCR 정확도 벤치마크에만 사용한 비교 모델 | 벤치마크용 이미지 | 제품의 현재 런타임 모델에는 포함하지 않음 |
+| OpenAI · gpt-image-2.5-sunburst | (실험적, 내부 전용 — 특정 계정만 활성화) 텍스트 설명·선택적 참고 이미지로 오리지널 캐릭터 스티커 이미지 생성 | 캐릭터 설명, 선택적 참고 이미지 | 실패한 이미지는 실패 상태로 기록하고 선택 재생성 제공(프로젝트당 최대 6회), 일일 비용 예산 한도 도달 시 요청 자체를 거부 |
+| OpenAI · GPT-5.6 (chat) | (Generate 기능) 24종 표정·문구 구성 초안과 캡션 문구 제안 | 캐릭터 설명 | 실패 시 규칙 기반 fallback 표정 목록·문구 사용 |
 
-저장소 기본값은 `OCR_PROVIDER=paddle`이며, `OCR_PROVIDER`, `VISION_PROVIDER`, `ENABLE_FONT_STYLE_ANALYSIS` 환경변수로 각 기능의 사용 여부를 제어함. 프로젝트는 업로드 이미지를 자체 모델 학습 데이터로 사용하지 않으며, 외부 AI API를 사용하는 경우 해당 제공자의 데이터 처리 정책이 적용됨.
+저장소 기본값은 `OCR_PROVIDER=paddle`, `TRANSLATION_PROVIDER=groq`이며, `OCR_PROVIDER`, `TRANSLATION_PROVIDER`, `VISION_PROVIDER`, `ENABLE_FONT_STYLE_ANALYSIS`, `ENABLE_IMAGE_GENERATION` 환경변수로 각 기능의 사용 여부를 제어함. production(Render)은 `OCR_PROVIDER=luna`, `TRANSLATION_PROVIDER=openai`로 배포됨(`render.yaml` 참고). 프로젝트는 업로드 이미지를 자체 모델 학습 데이터로 사용하지 않으며, 외부 AI API를 사용하는 경우 해당 제공자의 데이터 처리 정책이 적용됨.
 
 **개발 과정에서 사용한 생성형 AI**
 
@@ -215,7 +235,9 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | react / react-dom / react-router-dom | ^19.2.7 / ^19.2.7 / ^7.18.1 | MIT | UI 렌더링과 클라이언트 라우팅 |
 | tailwindcss / @tailwindcss/vite | ^4.3.2 | MIT | 스타일 시스템과 Vite 연동 |
 | lucide-react | ^1.25.0 | ISC | 버튼·상태 아이콘 |
-| jszip | ^3.10.1 | MIT 선택 사용 | 여러 PNG 결과의 ZIP 다운로드 |
+| jszip | ^3.10.1 | MIT | 여러 PNG 결과의 ZIP 다운로드 |
+| @supabase/supabase-js | 2.110.2 | MIT | 구글 로그인(Supabase Auth) 클라이언트, 동적 import로 필요할 때만 로드 |
+| @vercel/speed-insights | ^2.0.0 | Apache-2.0 | Vercel 배포 성능 지표 수집 |
 | vite / @vitejs/plugin-react | ^8.1.1 / ^6.0.3 | MIT | 개발 서버와 production build |
 | oxlint | ^1.71.0 | MIT | 정적 분석과 린트 |
 | playwright | ^1.62.1 | Apache-2.0 | 브라우저 화면 검증 |
