@@ -52,9 +52,10 @@ export default function Footer() {
               {copy.license}: Apache License 2.0
             </a>
           </p>
-          <nav aria-label={copy.policies} className="mt-1 flex justify-center gap-4 text-xs font-bold md:justify-end">
+          <nav aria-label={copy.footerLinks} className="mt-1 flex justify-center gap-4 text-xs font-bold md:justify-end">
             <Link to="/privacy" className="underline underline-offset-2 transition-colors hover:text-ink">{copy.privacy}</Link>
             <Link to="/terms" className="underline underline-offset-2 transition-colors hover:text-ink">{copy.terms}</Link>
+            <Link to="/support" className="underline underline-offset-2 transition-colors hover:text-ink">{copy.customerSupport}</Link>
           </nav>
         </div>
       </div>

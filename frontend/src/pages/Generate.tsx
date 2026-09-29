@@ -20,6 +20,12 @@ const categories = ['animal', 'pet', 'person', 'baby', 'couple', 'food', 'drink'
 const styleTags = ['simple', 'bold', 'pastel', 'vivid', 'monotone', 'watercolor', 'crayon', 'lineart', 'retro', 'glossy'] as const
 const moodTags = ['cute', 'chubby', 'fluffy', 'playful', 'funny', 'chic', 'warm', 'cool', 'emotional', 'energetic'] as const
 const tagGroups = [{ key: 'styleTags', values: styleTags }, { key: 'moodTags', values: moodTags }] as const
+type CaptionSaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
+
+function sameCaptionStyle(left: CaptionStyle, right: CaptionStyle): boolean {
+  return left.anchor === right.anchor && left.size === right.size && left.color === right.color && left.stroke === right.stroke
+}
+
 const conditions = {
   animal: 'animal character', pet: 'pet dog or cat character', person: 'human character', baby: 'baby character',
   couple: 'couple of two characters', food: 'food character', drink: 'drink character', object: 'everyday object character',
@@ -40,8 +46,8 @@ export default function Generate() {
   const { token } = useAuth(); const navigate = useNavigate(); const { addFiles } = useUploads(); const { lang } = useSiteLang(); const t = generationCopy(lang)
   const [params, setParams] = useSearchParams(); const [projects, setProjects] = useState<GenerationProject[]>([]); const [enabled, setEnabled] = useState(false); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
   const [prompt, setPrompt] = useState(''); const [reference, setReference] = useState<string>(); const [category, setCategory] = useState<typeof categories[number]>(); const [selectedTags, setSelectedTags] = useState<(typeof styleTags[number] | typeof moodTags[number])[]>([]); const [dragging, setDragging] = useState(false); const [uploading, setUploading] = useState(false)
-  const [slot, setSlot] = useState(0); const [caption, setCaption] = useState(''); const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE); const [revision, setRevision] = useState(''); const [planDraft, setPlanDraft] = useState<StickerPlanItem[]>([]); const [completeOpen, setCompleteOpen] = useState(false)
-  const fileInput = useRef<HTMLInputElement>(null); const polling = useRef(false)
+  const [slot, setSlot] = useState(0); const [caption, setCaption] = useState(''); const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE); const [captionImageId, setCaptionImageId] = useState<string | null>(null); const [captionSaveStatus, setCaptionSaveStatus] = useState<CaptionSaveStatus>('idle'); const [revision, setRevision] = useState(''); const [planDraft, setPlanDraft] = useState<StickerPlanItem[]>([]); const [completeOpen, setCompleteOpen] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null); const polling = useRef(false); const captionSaveQueue = useRef<Promise<void>>(Promise.resolve()); const captionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null); const savedCaptionDrafts = useRef(new Map<string, { caption: string; style: CaptionStyle }>())
   const activeProject = projects.find(item => (item.status ?? 'active') === 'active')
   const project = projects.find(item => item.id === params.get('project')) ?? (params.get('new') === '1' ? undefined : activeProject ?? projects[0])
   polling.current = projects.some(item => item.images.some(image => ['queued', 'running'].includes(image.status)))
@@ -51,32 +57,95 @@ export default function Generate() {
   const currentPending = latest?.status === 'queued' || latest?.status === 'running'
   const image = completedImages.find(item => item.slot === slot)
   const projectStatus = project?.status ?? (completedImages.length === 24 ? 'completed' : 'active')
+  const captionTargetKey = project && image ? `${project.id}:${image.id}` : ''
+  const activeCaptionTarget = useRef('')
+  activeCaptionTarget.current = captionTargetKey
   const busy = submitting || !!project?.images.some(item => ['queued', 'running'].includes(item.status))
   const plan = useMemo(() => project?.plan ?? [], [project])
   const pendingSlots = useMemo(() => new Set((project?.images ?? []).filter(item => item.status === 'queued' || item.status === 'running').map(item => item.slot)), [project])
   const remainingSlots = useMemo(() => planDraft.filter(item => !completedSlots.has(item.slot)).map(item => item.slot), [planDraft, completedSlots])
   const load = useCallback(async () => { if (!token) return []; const [config, result] = await Promise.all([generationRequest<{ enabled: boolean }>(token, '/config'), generationRequest<{ projects: GenerationProject[] }>(token, '/projects')]); setEnabled(config.enabled); setProjects(result.projects); return result.projects }, [token])
   useEffect(() => { let disposed = false; const refresh = async () => { try { await load() } catch (reason) { if (!disposed) setError(reason instanceof Error ? reason.message : 'API error') } finally { if (!disposed) setLoading(false) } }; void refresh(); const interval = setInterval(() => { if (polling.current && document.visibilityState === 'visible') void refresh() }, 4000); return () => { disposed = true; clearInterval(interval) } }, [load])
-  useEffect(() => { setCaption(image?.caption ?? ''); setCaptionStyle(image?.caption_style ?? DEFAULT_CAPTION_STYLE); setRevision(latest?.prompt ?? '') }, [image?.id, image?.caption, image?.caption_style, latest?.id, latest?.prompt])
+  // Only hydrate drafts when selecting another image; polling updates must not replace an unsaved local draft.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setCaption(image?.caption ?? ''); setCaptionStyle(image?.caption_style ?? DEFAULT_CAPTION_STYLE); setCaptionImageId(image?.id ?? null); setCaptionSaveStatus('idle') }, [image?.id])
+  useEffect(() => { setRevision(latest?.prompt ?? '') }, [latest?.id, latest?.prompt])
   useEffect(() => { setPlanDraft(plan) }, [plan])
+  const persistCaptionDraft = useCallback((projectId: string, imageId: string, draftCaption: string, draftStyle: CaptionStyle) => {
+    const targetKey = `${projectId}:${imageId}`
+    const operation = captionSaveQueue.current.catch(() => undefined).then(async () => {
+      if (activeCaptionTarget.current === targetKey) setCaptionSaveStatus('saving')
+      await generationRequest(token!, `/projects/${projectId}/images/${imageId}`, 'PATCH', { caption: draftCaption, style: draftStyle })
+      savedCaptionDrafts.current.set(targetKey, { caption: draftCaption, style: draftStyle })
+      setProjects(previous => previous.map(item => item.id !== projectId ? item : {
+        ...item,
+        images: item.images.map(projectImage => projectImage.id === imageId ? { ...projectImage, caption: draftCaption, caption_style: draftStyle } : projectImage),
+      }))
+      if (activeCaptionTarget.current === targetKey) setCaptionSaveStatus('saved')
+    })
+    captionSaveQueue.current = operation.catch(() => undefined)
+    void operation.catch(() => { if (activeCaptionTarget.current === targetKey) setCaptionSaveStatus('error') })
+    return operation
+  }, [token])
+  const flushCaptionDraft = useCallback(async () => {
+    if (captionSaveTimer.current) {
+      clearTimeout(captionSaveTimer.current)
+      captionSaveTimer.current = null
+    }
+    if (!project || !image || projectStatus !== 'active' || captionImageId !== image.id) return captionSaveQueue.current
+    const targetKey = `${project.id}:${image.id}`
+    await captionSaveQueue.current
+    const savedDraft = savedCaptionDrafts.current.get(targetKey)
+    const savedCaption = savedDraft?.caption ?? image.caption ?? ''
+    const savedStyle = savedDraft?.style ?? image.caption_style ?? DEFAULT_CAPTION_STYLE
+    if (caption === savedCaption && sameCaptionStyle(captionStyle, savedStyle)) return
+    await persistCaptionDraft(project.id, image.id, caption, captionStyle)
+  }, [caption, captionImageId, captionStyle, image, project, projectStatus, persistCaptionDraft])
+  const flushCaptionDraftRef = useRef(flushCaptionDraft)
+  flushCaptionDraftRef.current = flushCaptionDraft
+  useEffect(() => () => { void flushCaptionDraftRef.current().catch(() => undefined) }, [])
+  useEffect(() => {
+    if (!project || !image || projectStatus !== 'active' || captionImageId !== image.id) return
+    const targetKey = `${project.id}:${image.id}`
+    const savedDraft = savedCaptionDrafts.current.get(targetKey)
+    const savedCaption = savedDraft?.caption ?? image.caption ?? ''
+    const savedStyle = savedDraft?.style ?? image.caption_style ?? DEFAULT_CAPTION_STYLE
+    if (caption === savedCaption && sameCaptionStyle(captionStyle, savedStyle)) return
+    setCaptionSaveStatus('pending')
+    const timer = setTimeout(() => {
+      captionSaveTimer.current = null
+      void persistCaptionDraft(project.id, image.id, caption, captionStyle).catch(() => undefined)
+    }, 600)
+    captionSaveTimer.current = timer
+    return () => {
+      clearTimeout(timer)
+      if (captionSaveTimer.current === timer) captionSaveTimer.current = null
+    }
+  }, [caption, captionImageId, captionStyle, image, project, projectStatus, persistCaptionDraft])
+  const selectSlot = async (nextSlot: number) => {
+    try { await flushCaptionDraft(); setSlot(nextSlot) } catch { /* Keep the current image selected so its draft remains visible for retry. */ }
+  }
+  const selectProject = async (projectId: string) => {
+    try { await flushCaptionDraft(); setParams({ project: projectId }); setSlot(0) } catch { /* Keep the current project selected so its draft remains visible for retry. */ }
+  }
   const action = async (fn: () => Promise<unknown>) => { setSubmitting(true); setError(''); try { await fn(); await load() } catch (reason) { setError(reason instanceof Error ? reason.message : 'API error') } finally { setSubmitting(false) } }
   const create = () => action(async () => { const instructions = [category ? `Category: ${conditions[category]}.` : '', selectedTags.length ? `Style and personality: ${selectedTags.map(tag => conditions[tag]).join(', ')}.` : '', prompt.trim()].filter(Boolean).join('\n'); const created = await generationRequest<GenerationProject>(token!, '/projects', 'POST', { prompt: instructions, reference }); setProjects(previous => [created, ...previous]); setParams({ project: created.id }); await generationRequest(token!, `/projects/${created.id}/images`, 'POST', { slot: 0, prompt: '중립 표정으로 전체 캐릭터 디자인을 보여주세요.' }) })
   const attach = async (files: FileList | null) => { if (!files?.length || uploading) return; if (files.length !== 1) { setError(t.oneImage); return } setUploading(true); setError(''); try { setReference(await prepareReference(files[0])) } catch { setError(t.imageError) } finally { setUploading(false) } }
   const createPlan = () => action(async () => { const result = await generationRequest<{ plan: StickerPlanItem[] }>(token!, `/projects/${project!.id}/plan`, 'POST'); setPlanDraft(result.plan) })
   const savePlan = async () => { await generationRequest(token!, `/projects/${project!.id}/plan`, 'PATCH', { plan: planDraft }) }
-  const generateAll = () => action(async () => { await savePlan(); if (!remainingSlots.length) return; await generationRequest(token!, `/projects/${project!.id}/batch`, 'POST', { slots: remainingSlots }); setSlot(remainingSlots[0]) })
+  const generateAll = () => action(async () => { await flushCaptionDraft(); await savePlan(); if (!remainingSlots.length) return; await generationRequest(token!, `/projects/${project!.id}/batch`, 'POST', { slots: remainingSlots }); setSlot(remainingSlots[0]) })
   const sendToLocalization = async () => { if (!project || projectStatus !== 'completed') return; setSubmitting(true); setError(''); try { const files: File[] = []; for (let start = 0; start < completedImages.length; start += 4) files.push(...await Promise.all(completedImages.slice(start, start + 4).map(item => fetchGenerationFile(token!, project.id, item.id, item.slot)))); addFiles(files); navigate('/localize') } catch (reason) { setError(reason instanceof Error ? reason.message : 'API error') } finally { setSubmitting(false) } }
   const resetToNewWork = () => { setParams({ new: '1' }); setSlot(0); setPrompt(''); setReference(undefined); setCategory(undefined); setSelectedTags([]); setError('') }
-  const startNew = () => { if (activeProject) { setParams({ project: activeProject.id }); setError(t.activeExists); return } resetToNewWork() }
-  // 프로젝트 완료를 확정하면 이 페이지에 남아 "새 작업" 버튼을 또 누르게 하지 않고 바로 다음 작업을 시작할 수 있게 넘어간다.
-  // activeProject는 클릭 시점의 렌더에 갇힌 값이라, 완료 반영 후 다른 진행 중 프로젝트가 있는지는 재조회한 목록으로 다시 확인한다.
+  const startNew = async () => { try { await flushCaptionDraft() } catch { return } if (activeProject) { setParams({ project: activeProject.id }); setError(t.activeExists); return } resetToNewWork() }
+  // 프로젝트 완료 후 진행 중 프로젝트가 남아 있는지 다시 확인한 다음 다음 작업을 엽니다.
   const completeProject = async () => {
     if (!project) return
     setSubmitting(true); setError('')
     try {
+      await flushCaptionDraft()
       await generationRequest(token!, `/projects/${project.id}/complete`, 'POST')
       setCompleteOpen(false)
-      const freshProjects = await load()
+      const freshProjects = await load() ?? []
       const stillActive = freshProjects.find(item => (item.status ?? 'active') === 'active')
       if (stillActive) { setParams({ project: stillActive.id }); setError(t.activeExists) } else resetToNewWork()
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'API error') } finally { setSubmitting(false) }
@@ -95,12 +164,13 @@ export default function Generate() {
     </section> : <><section className="mt-8 rounded-3xl border border-gray-200 bg-white p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold text-brand-dark">{projectStatus === 'completed' ? t.statusCompleted : t.statusActive}</p><h2 className="mt-1 text-xl font-extrabold">{completedImages.length}/24 {t.progress}</h2>{pendingSlots.size > 0 && <p role="status" aria-live="polite" className="mt-1 flex items-center gap-2 text-sm font-bold text-brand-dark"><LoaderCircle size={14} className="animate-spin" />{t.generating.replace('{n}', String(pendingSlots.size))}</p>}</div>{projectStatus === 'completed' && <CheckCircle2 className="text-brand" />}</div><div className="mt-4 flex h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-brand transition-[width]" style={{ width: `${completedImages.length / 24 * 100}%` }} /><div className="sticker-shimmer h-full bg-brand/30 transition-[width]" style={{ width: `${pendingSlots.size / 24 * 100}%` }} /></div></section>
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[1fr_340px]"><section className="min-w-0 rounded-[28px] border border-gray-200 bg-white p-5 sm:p-7"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-extrabold">{slot === 0 ? t.base : `${t.expressions} ${slot}`}</h2>{project.confirmed && <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">{t.confirmed}</span>}</div><p className="mt-2 break-words text-sm text-sub">{project.prompt}</p>
         <div className="relative mx-auto mt-5 flex aspect-[740/640] max-w-md items-center justify-center overflow-hidden rounded-2xl border border-gray-100 bg-[repeating-conic-gradient(#f2f4f6_0%_25%,white_0%_50%)] bg-[length:20px_20px] [container-type:inline-size]">{!currentPending && cardImage(image, slot === 0 ? t.base : `${t.expressions} ${slot}`)}{caption && image && (() => { const [vertical, horizontal] = captionStyle.anchor.split('-'); const shift = horizontal === 'center' ? '-50%' : horizontal === 'right' ? '-100%' : '0'; return <span className="absolute whitespace-nowrap font-black [paint-order:stroke]" style={{ left: `${(CAPTION_ANCHOR_X[horizontal] ?? 370) / 740 * 100}%`, top: `${(CAPTION_ANCHOR_Y[vertical] ?? 56) / 640 * 100}%`, transform: `translate(${shift}, -100%)`, fontSize: `${captionStyle.size / 740 * 100}cqw`, color: captionStyle.color, WebkitTextStroke: `${captionStyle.size / 740 * 100 * 0.15}cqw ${captionStyle.stroke}` }}>{caption}</span> })()}{currentPending && <div role="status" aria-live="polite" className="sticker-shimmer absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/85"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Astroid className="h-6 w-6" /></span><span className="sr-only">{latest.status === 'queued' ? t.queued : t.aiWorking}</span>{latest.status === 'queued' ? <span className="text-base font-extrabold text-brand-dark">{t.queued}</span> : <RollingText items={[t.drawingStage1, t.drawingStage2, t.drawingStage3]} className="text-base font-extrabold text-brand-dark" />}</div>}</div>{latest?.error && <p className="mt-3 text-sm text-red-600">{latest.error}</p>}{!latest && <p className="mt-3 text-sm text-sub">{t.missing}</p>}
-        <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-6">{Array.from({ length: 24 }, (_, currentSlot) => { const completed = completedImages.find(item => item.slot === currentSlot); const newest = project.images.filter(item => item.slot === currentSlot).at(-1); return <button key={currentSlot} type="button" onClick={() => setSlot(currentSlot)} aria-pressed={slot === currentSlot} className={`overflow-hidden rounded-xl border-2 p-1 ${slot === currentSlot ? 'border-brand bg-brand-soft' : 'border-gray-100'}`}><div className={`flex aspect-square items-center justify-center overflow-hidden rounded-lg ${pendingSlots.has(currentSlot) ? 'sticker-shimmer bg-brand-soft/60' : ''}`}>{cardImage(completed, `${currentSlot + 1}`)}</div><span className="block truncate text-[11px]">{newest && newest.status !== 'completed' ? t[newest.status] : currentSlot === 0 ? t.base : `${currentSlot + 1}`}</span></button> })}</div>
-        {slot === 0 && !project.confirmed && <Button className="mt-5 w-full" disabled={!image || busy} onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/confirm`, 'POST'); const created = await generationRequest<{ plan: StickerPlanItem[] }>(token, `/projects/${project.id}/plan`, 'POST'); setPlanDraft(created.plan); setSlot(1) })}>{t.confirm}<ArrowRight size={16} /></Button>}{!latest && slot === 0 && <Button className="mt-3 w-full" onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/images`, 'POST', { slot: 0, prompt: '중립 표정으로 전체 캐릭터 디자인을 보여주세요.' }) })} disabled={busy || !enabled}>{t.create}</Button>}<p className="mt-5 text-xs leading-5 text-sub">{t.format}</p></section>
+        <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-6">{Array.from({ length: 24 }, (_, currentSlot) => { const completed = completedImages.find(item => item.slot === currentSlot); const newest = project.images.filter(item => item.slot === currentSlot).at(-1); return <button key={currentSlot} type="button" onClick={() => { void selectSlot(currentSlot) }} aria-pressed={slot === currentSlot} className={`overflow-hidden rounded-xl border-2 p-1 ${slot === currentSlot ? 'border-brand bg-brand-soft' : 'border-gray-100'}`}><div className={`flex aspect-square items-center justify-center overflow-hidden rounded-lg ${pendingSlots.has(currentSlot) ? 'sticker-shimmer bg-brand-soft/60' : ''}`}>{cardImage(completed, `${currentSlot + 1}`)}</div><span className="block truncate text-[11px]">{newest && newest.status !== 'completed' ? t[newest.status] : currentSlot === 0 ? t.base : `${currentSlot + 1}`}</span></button> })}</div>
+        {slot === 0 && !project.confirmed && <Button className="mt-5 w-full" disabled={!image || busy} onClick={() => action(async () => { await flushCaptionDraft(); await generationRequest(token, `/projects/${project.id}/confirm`, 'POST'); const created = await generationRequest<{ plan: StickerPlanItem[] }>(token, `/projects/${project.id}/plan`, 'POST'); setPlanDraft(created.plan); setSlot(1) })}>{t.confirm}<ArrowRight size={16} /></Button>}{!latest && slot === 0 && <Button className="mt-3 w-full" onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/images`, 'POST', { slot: 0, prompt: '중립 표정으로 전체 캐릭터 디자인을 보여주세요.' }) })} disabled={busy || !enabled}>{t.create}</Button>}<p className="mt-5 text-xs leading-5 text-sub">{t.format}</p></section>
       <aside className="min-w-0 space-y-5">{project.confirmed && projectStatus === 'active' && <section className="rounded-3xl border border-gray-200 bg-white p-5"><h2 className="font-extrabold">{t.planTitle}</h2><p className="mt-2 text-sm leading-6 text-sub">{t.planDescription}</p>{planDraft.length === 0 ? <Button className="mt-4 w-full" disabled={busy} onClick={createPlan}><Sparkles size={17} />{t.createPlan}</Button> : <><details className="mt-4"><summary className="cursor-pointer rounded-xl bg-surface px-4 py-3 text-sm font-bold">{t.editPlan}</summary><div className="mt-3 max-h-[480px] space-y-3 overflow-y-auto pr-1">{planDraft.map((item, index) => <div key={item.slot} className="rounded-2xl border border-gray-100 p-3"><p className="text-xs font-extrabold text-brand-dark">{item.slot + 1}/24</p><input value={item.pose} disabled={completedSlots.has(item.slot)} maxLength={500} onChange={event => setPlanDraft(previous => previous.map((value, current) => current === index ? { ...value, pose: event.target.value } : value))} className="mt-2 w-full rounded-xl border border-gray-200 p-2.5 text-sm disabled:bg-gray-50" /><input value={item.caption} disabled={completedSlots.has(item.slot)} maxLength={16} onChange={event => setPlanDraft(previous => previous.map((value, current) => current === index ? { ...value, caption: event.target.value } : value))} className="mt-2 w-full rounded-xl border border-gray-200 p-2.5 text-sm disabled:bg-gray-50" /></div>)}</div><Button variant="outline" className="mt-3 w-full" disabled={busy || planDraft.some(item => !item.pose.trim())} onClick={() => action(savePlan)}>{t.savePlan}</Button></details><Button className="mt-4 w-full" disabled={!enabled || busy || !remainingSlots.length || planDraft.some(item => !item.pose.trim())} onClick={generateAll}>{submitting ? <LoaderCircle className="animate-spin" size={17} /> : <Sparkles size={17} />}{submitting ? t.generating.replace('{n}', String(remainingSlots.length)) : t.generateAll.replace('{n}', String(remainingSlots.length))}</Button><p className="mt-3 text-xs leading-5 text-sub">{t.autoNote}</p></>}</section>}
         {image && <section className="rounded-3xl border border-gray-200 bg-white p-5">
           <label className="text-sm font-bold" htmlFor="sticker-caption">{t.caption}</label>
           <input id="sticker-caption" maxLength={16} value={caption} disabled={projectStatus === 'completed'} onChange={event => setCaption(event.target.value)} className="mt-3 w-full rounded-xl border border-gray-200 p-3 disabled:bg-gray-50" />
+          {captionSaveStatus !== 'idle' && <p role="status" aria-live="polite" className="mt-2 min-h-5 text-xs text-sub">{captionSaveStatus === 'pending' ? t.captionSavePending : captionSaveStatus === 'saving' ? t.captionSaving : captionSaveStatus === 'saved' ? t.saved : t.captionSaveFailed}</p>}
           {projectStatus === 'active' && <details className="mt-4">
             <summary className="cursor-pointer rounded-xl bg-surface px-4 py-3 text-sm font-bold">{t.captionStyleTitle}</summary>
             <p className="mt-3 text-xs leading-5 text-sub">{t.captionAutoNote}</p>
@@ -114,12 +184,12 @@ export default function Generate() {
             </div>
             <Button variant="ghost" size="sm" className="mt-3" disabled={submitting} onClick={() => setCaptionStyle(image.caption_style ?? DEFAULT_CAPTION_STYLE)}>{t.captionReset}</Button>
           </details>}
-          {projectStatus === 'active' && <Button variant="outline" className="mt-3 w-full" disabled={submitting} onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/images/${image.id}`, 'PATCH', { caption, style: captionStyle }) })}>{t.save}</Button>}
-          <Button className="mt-2 w-full" disabled={submitting} onClick={() => action(async () => { if (projectStatus === 'active') await generationRequest(token, `/projects/${project.id}/images/${image.id}`, 'PATCH', { caption, style: captionStyle }); await downloadGeneration(token, project.id, image.id) })}>{t.download}</Button>
+          {projectStatus === 'active' && <Button variant="outline" className="mt-3 w-full" disabled={submitting} onClick={() => { void flushCaptionDraft().catch(() => undefined) }}>{t.save}</Button>}
+          <Button className="mt-2 w-full" disabled={submitting} onClick={() => action(async () => { await flushCaptionDraft(); await downloadGeneration(token, project.id, image.id) })}>{t.download}</Button>
         </section>}
-        {latest && projectStatus === 'active' && !(slot === 0 && project.confirmed) && <section className="rounded-3xl border border-gray-200 bg-white p-5"><label htmlFor="revision" className="text-sm font-bold">{t.editPrompt}</label><textarea id="revision" value={revision} maxLength={500} onChange={event => setRevision(event.target.value)} className="mt-3 min-h-20 w-full rounded-xl border border-gray-200 p-3" /><Button variant="outline" className="mt-3 w-full" disabled={!enabled || busy || !revision.trim()} onClick={() => action(async () => { await generationRequest(token, `/projects/${project.id}/images`, 'POST', { slot, prompt: revision }) })}>{t.regenerate}</Button></section>}
+        {latest && projectStatus === 'active' && !(slot === 0 && project.confirmed) && <section className="rounded-3xl border border-gray-200 bg-white p-5"><label htmlFor="revision" className="text-sm font-bold">{t.editPrompt}</label><textarea id="revision" value={revision} maxLength={500} onChange={event => setRevision(event.target.value)} className="mt-3 min-h-20 w-full rounded-xl border border-gray-200 p-3" /><Button variant="outline" className="mt-3 w-full" disabled={!enabled || busy || !revision.trim()} onClick={() => action(async () => { await flushCaptionDraft(); await generationRequest(token, `/projects/${project.id}/images`, 'POST', { slot, prompt: revision }) })}>{t.regenerate}</Button></section>}
         {projectStatus === 'active' && completedImages.length === 24 && <section className="rounded-3xl border border-brand/20 bg-brand-soft/50 p-5"><h2 className="font-extrabold">{t.readyTitle}</h2><p className="mt-2 text-sm leading-6 text-sub">{t.readyDescription}</p><Button className="mt-4 w-full" onClick={() => setCompleteOpen(true)} disabled={busy}>{t.complete}</Button></section>}
         {projectStatus === 'completed' && <section className="rounded-3xl border border-brand/20 bg-brand-soft/50 p-5"><h2 className="font-extrabold">{t.nextTitle}</h2><p className="mt-2 text-sm leading-6 text-sub">{t.nextDescription}</p><Button className="mt-4 w-full" disabled={submitting} onClick={() => action(async () => { await downloadGenerationSet(token, project) })}><Download size={17} />{t.downloadSet}</Button><Button variant="outline" className="mt-2 w-full" disabled={submitting} onClick={() => { void sendToLocalization() }}><Globe2 size={17} />{t.localizeNext}</Button><Button variant="outline" className="mt-2 w-full" onClick={() => navigate('/review')}><ShieldCheck size={17} />{t.reviewNext}</Button></section>}</aside></div></>}
-    <section className="mt-10"><h2 className="text-lg font-extrabold">{t.history}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{projects.map(item => { const thumbnail = thumbnailImage(item); const count = latestCompletedImages(item).length; return <button key={item.id} onClick={() => { setParams({ project: item.id }); setSlot(0) }} className="flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 text-left"><span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-soft">{thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Sparkles size={20} />}</span><span className="min-w-0"><span className="block truncate font-bold">{item.prompt}</span><span className="text-xs text-sub">{item.day} · {count}/24 · {(item.status ?? (count === 24 ? 'completed' : 'active')) === 'completed' ? t.statusCompleted : t.statusActive}</span></span></button> })}</div></section>
+    <section className="mt-10"><h2 className="text-lg font-extrabold">{t.history}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{projects.map(item => { const thumbnail = thumbnailImage(item); const count = latestCompletedImages(item).length; return <button key={item.id} onClick={() => { void selectProject(item.id) }} className="flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 text-left"><span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-soft">{thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Sparkles size={20} />}</span><span className="min-w-0"><span className="block truncate font-bold">{item.prompt}</span><span className="text-xs text-sub">{item.day} · {count}/24 · {(item.status ?? (count === 24 ? 'completed' : 'active')) === 'completed' ? t.statusCompleted : t.statusActive}</span></span></button> })}</div></section>
   </main>{completeOpen && project && <Modal onClose={() => { if (!submitting) setCompleteOpen(false) }} labelledBy="complete-project-title" closeLabel={t.cancel}><h2 id="complete-project-title" className="pr-8 text-xl font-extrabold">{t.completeTitle}</h2><p className="mt-3 text-sm leading-6 text-sub">{t.completeDescription}</p><div className="mt-6 flex justify-end gap-2"><Button variant="outline" onClick={() => setCompleteOpen(false)} disabled={submitting}>{t.cancel}</Button><Button onClick={() => { void completeProject() }} disabled={submitting}>{t.complete}</Button></div></Modal>}</div>
 }

@@ -1,4 +1,4 @@
-import noteIcon from '../assets/LendingPage/iconsax-note.svg'
+import noteIcon from '../assets/LandingAssets/iconsax-note.svg'
 import { useSiteLang } from '../i18n/LanguageContext'
 
 const SPEC_GUIDE_URL =

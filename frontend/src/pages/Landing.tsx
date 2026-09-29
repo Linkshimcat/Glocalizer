@@ -6,9 +6,9 @@ import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
 import RollingText from '../components/RollingText'
 import OgqStickerGallery from '../components/OgqStickerGallery'
-import heroGradient from '../assets/LendingPage/GreenBackground-web.webp'
-import motionGraphic from '../assets/LendingPage/MotionGrap.mp4'
-import refreshIcon from '../assets/LendingPage/refreshButton.svg'
+import heroGradient from '../assets/LandingAssets/GreenBackground-web.webp'
+import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
+import refreshIcon from '../assets/LandingAssets/refreshButton.svg'
 import { useSiteLang } from '../i18n/LanguageContext'
 
 export default function Landing() {

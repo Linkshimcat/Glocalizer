@@ -1,20 +1,20 @@
 import { ArrowDown, ArrowRight, Globe2, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
-import motionGraphic from '../assets/LendingPage/MotionGrap.mp4'
-import refreshIcon from '../assets/LendingPage/refreshButton.svg'
-import macbookFrame from '../assets/LandingRemake/macbook_mockup_transparent.png'
-import iphoneFrame from '../assets/LandingRemake/iphone_17_pro_transparent.png'
-import ogqGalleryReference from '../assets/LandingRemake/ogq-gallery-reference.jpg'
-import generatePhoneCapture from '../assets/LandingRemake/phone-captures/generate-project-ko.png'
-import localizePhoneCapture from '../assets/LandingRemake/phone-captures/localize-upload-ko.png'
-import reviewPhoneCapture from '../assets/LandingRemake/phone-captures/review-projects-ko.png'
-import generateDesktopCapture from '../assets/LandingRemake/desktop-captures/generate-project-ko.png'
-import localizeDesktopCapture from '../assets/LandingRemake/desktop-captures/localize-upload-ko.png'
-import reviewDesktopCapture from '../assets/LandingRemake/desktop-captures/review-projects-ko.png'
-import workflowCreateVisual from '../assets/LandingRemake/Gen.png'
-import workflowLocalizeVisual from '../assets/LandingRemake/Local.png'
-import workflowReviewVisual from '../assets/LandingRemake/check.png'
+import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
+import refreshIcon from '../assets/LandingAssets/refreshButton.svg'
+import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.png'
+import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.png'
+import ogqGalleryReference from '../assets/LandingAssets/ogq-gallery-reference.jpg'
+import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.png'
+import localizePhoneCapture from '../assets/LandingAssets/phone-captures/localize-upload-ko.png'
+import reviewPhoneCapture from '../assets/LandingAssets/phone-captures/review-projects-ko.png'
+import generateDesktopCapture from '../assets/LandingAssets/desktop-captures/generate-project-ko.png'
+import localizeDesktopCapture from '../assets/LandingAssets/desktop-captures/localize-upload-ko.png'
+import reviewDesktopCapture from '../assets/LandingAssets/desktop-captures/review-projects-ko.png'
+import workflowCreateVisual from '../assets/LandingAssets/Gen.png'
+import workflowLocalizeVisual from '../assets/LandingAssets/Local.png'
+import workflowReviewVisual from '../assets/LandingAssets/check.png'
 import Button from '../components/Button'
 import AccountMenu from '../components/AccountMenu'
 import Footer from '../components/Footer'
@@ -191,10 +191,14 @@ export default function LandingRemake() {
   const { lang, t } = useSiteLang()
   const copy = COPY[lang]
   const storyRef = useRef<HTMLElement>(null)
+  const workflowGridRef = useRef<HTMLDivElement>(null)
+  const heroShellRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [reduceMotion, setReduceMotion] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [heroReplayCount, setHeroReplayCount] = useState(0)
   const [scene, setScene] = useState(1)
+  const [workflowVisible, setWorkflowVisible] = useState<boolean[]>([false, false, false])
+  const [activeWorkflowIndex, setActiveWorkflowIndex] = useState(0)
   const tickingRef = useRef(false)
   const [showcases, setShowcases] = useState<LandingShowcase[]>([])
 
@@ -213,6 +217,29 @@ export default function LandingRemake() {
 
   useEffect(() => {
     if (reduceMotion) videoRef.current?.pause()
+  }, [reduceMotion])
+
+  useEffect(() => {
+    if (reduceMotion) return
+    let frame = 0
+    const updateParallax = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const shell = heroShellRef.current
+        const video = videoRef.current
+        if (!shell || !video) return
+        const offset = Math.min(Math.max(-shell.getBoundingClientRect().top * 0.035, 0), 18)
+        video.style.transform = `translate3d(0, ${offset}px, 0) scale(1.015)`
+      })
+    }
+    updateParallax()
+    window.addEventListener('scroll', updateParallax, { passive: true })
+    window.addEventListener('resize', updateParallax)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', updateParallax)
+      window.removeEventListener('resize', updateParallax)
+    }
   }, [reduceMotion])
 
   useEffect(() => {
@@ -240,6 +267,32 @@ export default function LandingRemake() {
     }
   }, [])
 
+  useEffect(() => {
+    const grid = workflowGridRef.current
+    if (reduceMotion || !grid || !('IntersectionObserver' in window)) {
+      setWorkflowVisible([true, true, true])
+      return
+    }
+
+    const cards = Array.from(grid.children)
+    const observer = new IntersectionObserver((entries) => {
+      const visibleEntries = entries.filter(entry => entry.isIntersecting)
+      for (const entry of visibleEntries) {
+        const index = cards.indexOf(entry.target)
+        if (index >= 0) setWorkflowVisible(current => current[index] ? current : current.map((visible, cardIndex) => visible || cardIndex === index))
+      }
+
+      const centeredEntry = visibleEntries
+        .filter(entry => entry.intersectionRatio >= 0.35)
+        .sort((a, b) => Math.abs(a.boundingClientRect.top + a.boundingClientRect.height / 2 - window.innerHeight / 2) - Math.abs(b.boundingClientRect.top + b.boundingClientRect.height / 2 - window.innerHeight / 2))[0]
+      const activeIndex = centeredEntry ? cards.indexOf(centeredEntry.target) : -1
+      if (activeIndex >= 0) setActiveWorkflowIndex(activeIndex)
+    }, { threshold: [0.15, 0.35, 0.6] })
+
+    cards.forEach(card => observer.observe(card))
+    return () => observer.disconnect()
+  }, [reduceMotion])
+
   const jumpToStory = () => {
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     storyRef.current?.scrollIntoView({ behavior })
@@ -264,7 +317,7 @@ export default function LandingRemake() {
         )}
       </nav>} />
       <main>
-        <div className="remake-hero-shell" data-reduced-motion={reduceMotion}>
+        <div ref={heroShellRef} className="remake-hero-shell" data-reduced-motion={reduceMotion}>
           <video ref={videoRef} className="remake-hero-video" src={motionGraphic} autoPlay={!reduceMotion} muted playsInline preload="metadata" aria-hidden />
           <section className="remake-hero">
             <div className="remake-hero-inner">
@@ -291,14 +344,18 @@ export default function LandingRemake() {
 
         <section ref={storyRef} className="remake-story" data-lang={lang}>
           <div className="remake-story-sticky">
-            <div className="remake-scene-copy" key={`${lang}-${scene}`}>
+              <div className="remake-scene-copy" key={`${lang}-${scene}`}>
               <p>{copy.scenes[scene].kicker}</p>
               <h2>{copy.scenes[scene].title.split('\n').map((line) => <span key={line}>{line}</span>)}</h2>
               <div>{copy.scenes[scene].description}</div>
+              <div className="remake-scene-progress" aria-hidden>
+                {copy.scenes.map((item, index) => <span key={item.kicker} data-active={index <= scene} />)}
+              </div>
             </div>
             <div className="remake-device-wrap">
               <div className="remake-device">
                 <LiveProductScreen
+                  key={scene}
                   lang={lang}
                   title={copy.scenes[scene].title.replace('\n', ' ')}
                   scene={scene}
@@ -314,7 +371,22 @@ export default function LandingRemake() {
 
         <section className="remake-workflow">
           <div className="remake-workflow-heading"><p className="remake-eyebrow">{copy.workflowEyebrow}</p><h2>{copy.workflowTitle}</h2><p>{copy.workflowDescription}</p></div>
-          <div className="remake-workflow-grid">{copy.scenes.map((item, index) => <article key={item.kicker}><p>{item.kicker}</p><h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3><div>{item.description}</div><img src={WORKFLOW_VISUALS[index]} alt="" width={201} height={201} loading="lazy" decoding="async" className="remake-workflow-visual" /></article>)}</div>
+          <div ref={workflowGridRef} className="remake-workflow-grid" data-motion-ready="true">
+            {copy.scenes.map((item, index) => (
+              <article
+                key={item.kicker}
+                data-visible={workflowVisible[index]}
+                data-active={activeWorkflowIndex === index}
+                style={{ '--workflow-delay': `${index * 120}ms` } as CSSProperties}
+                onPointerDown={() => setActiveWorkflowIndex(index)}
+              >
+                <p>{item.kicker}</p>
+                <h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3>
+                <div>{item.description}</div>
+                <img src={WORKFLOW_VISUALS[index]} alt="" width={201} height={201} loading="lazy" decoding="async" className="remake-workflow-visual" />
+              </article>
+            ))}
+          </div>
         </section>
 
         {showcases.length > 0 && <section className="remake-cases">
