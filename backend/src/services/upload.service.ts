@@ -1,7 +1,8 @@
 import sharp, { type Metadata } from 'sharp';
 import { env } from '../config/env.js';
 import { findAssetsByIds, updateAsset } from '../repositories/asset.repository.js';
-import { downloadFromStorage } from '../repositories/storage.repository.js';
+import { downloadFromStorage, uploadThumbnailForOriginal } from '../repositories/storage.repository.js';
+import { logger } from '../config/logger.js';
 import type { AssetRow } from '../types/asset.js';
 
 const FORMAT_BY_MIME: Record<string, string> = {
@@ -49,6 +50,14 @@ async function validateAndStoreAsset(asset: AssetRow): Promise<AssetUploadResult
 
   if (metadata.width > env.MAX_IMAGE_WIDTH || metadata.height > env.MAX_IMAGE_HEIGHT) {
     return fail(asset.id, 'FILE_TOO_LARGE', `이미지 해상도는 ${env.MAX_IMAGE_WIDTH}x${env.MAX_IMAGE_HEIGHT}를 초과할 수 없습니다.`);
+  }
+
+  try {
+    if (!await uploadThumbnailForOriginal(asset.original_path, buffer)) {
+      logger.warn({ assetId: asset.id }, '프로젝트 목록 썸네일 저장 실패');
+    }
+  } catch (error) {
+    logger.warn({ err: error, assetId: asset.id }, '프로젝트 목록 썸네일 생성 실패');
   }
 
   await updateAsset(asset.id, {
