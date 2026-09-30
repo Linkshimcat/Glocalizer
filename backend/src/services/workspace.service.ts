@@ -4,7 +4,7 @@ import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
 import { deleteDraftAssets, findAssetsByProjectId, insertAssets } from '../repositories/asset.repository.js';
 import { findProjectsByOwner, updateDraftProject } from '../repositories/project.repository.js';
-import { createSignedUrl, removeFromStorage } from '../repositories/storage.repository.js';
+import { createSignedUrl, removeFromStorage, thumbnailPathForOriginal } from '../repositories/storage.repository.js';
 import type { DraftProjectInput } from '../schemas/project.schema.js';
 import type { ProjectRow } from '../types/project.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
@@ -54,11 +54,18 @@ export async function listWorkspaces(ownerId: string) {
   return mapWithConcurrency(projects, 4, async project => {
     const assets = await findAssetsByProjectId(project.id);
     const visible = project.status === 'created' || !project.selected_client_ids ? assets : assets.filter(asset => project.selected_client_ids!.includes(asset.client_id ?? ''));
+    const originalPath = visible[0]?.original_path;
+    let thumbnailUrl: string | null = null;
+    if (originalPath) {
+      const thumbnailPath = thumbnailPathForOriginal(originalPath);
+      const { data: hasThumbnail } = await supabase.storage.from(env.SUPABASE_STORAGE_BUCKET).exists(thumbnailPath);
+      thumbnailUrl = await createSignedUrl(hasThumbnail ? thumbnailPath : originalPath);
+    }
     return {
       id: project.id, name: project.name ?? visible[0]?.original_name ?? 'Untitled', status: project.status,
       resultReady: project.result_ready ?? false, targetLanguages: project.target_languages,
       imageCount: visible.length, createdAt: project.created_at, updatedAt: project.updated_at,
-      thumbnailUrl: visible[0]?.original_path ? await createSignedUrl(visible[0].original_path) : null,
+      thumbnailUrl,
     };
   });
 }
