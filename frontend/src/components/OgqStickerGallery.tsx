@@ -20,11 +20,26 @@ export default function OgqStickerGallery({ fallbackImage }: { fallbackImage?: s
     if (pointerFrameRef.current !== null) cancelAnimationFrame(pointerFrameRef.current)
   }, [])
 
+  useEffect(() => {
+    const scene = sceneRef.current
+    if (!scene) return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        scene.classList.add('is-visible')
+        observer.disconnect()
+      }
+    }, { threshold: 0.2 })
+    observer.observe(scene)
+    return () => observer.disconnect()
+  }, [])
+
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch') return
 
     const scene = sceneRef.current
     if (!scene) return
+    scene.classList.add('is-interacting')
 
     const { left, top, width, height } = scene.getBoundingClientRect()
     const pointerX = ((event.clientX - left) / width - 0.5) * 2
@@ -45,6 +60,7 @@ export default function OgqStickerGallery({ fallbackImage }: { fallbackImage?: s
     pointerFrameRef.current = null
     scene.style.setProperty('--tilt-x', '0deg')
     scene.style.setProperty('--tilt-y', '0deg')
+    scene.classList.remove('is-interacting')
   }
 
   // OGQ 연동이 꺼져 있거나 조회에 실패하면 기본 랜딩에서는 조용히 숨기고,
@@ -71,6 +87,7 @@ export default function OgqStickerGallery({ fallbackImage }: { fallbackImage?: s
               <div
                 key={sticker?.assetId ?? index}
                 className="ogq-tilt-card aspect-square overflow-hidden rounded-2xl border border-black/[0.06] bg-white"
+                style={{ animationDelay: `${index * 55}ms` }}
               >
                 {sticker ? (
                   <img src={sticker.thumbnailUrl} alt={sticker.title ?? ''} loading="lazy" className="h-full w-full object-contain p-3" />

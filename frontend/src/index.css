@@ -228,6 +228,36 @@ body {
   backface-visibility: hidden;
 }
 
+.ogq-tilt-scene:not(.is-visible) .ogq-tilt-card {
+  opacity: 0;
+  translate: 0 12px;
+}
+
+.ogq-tilt-scene.is-visible .ogq-tilt-card {
+  animation: ogq-card-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ogq-card-enter {
+  to { opacity: 1; translate: 0 0; }
+}
+
+.ogq-tilt-scene.is-visible .ogq-tilt-plane {
+  animation: ogq-auto-tilt 12s ease-in-out infinite;
+}
+
+.ogq-tilt-scene.is-interacting .ogq-tilt-plane {
+  animation: none;
+}
+
+.ogq-tilt-scene:hover .ogq-tilt-plane {
+  animation-play-state: paused;
+}
+
+@keyframes ogq-auto-tilt {
+  0%, 100% { transform: rotateX(48deg) rotateY(0deg); }
+  50% { transform: rotateX(45deg) rotateY(3deg); }
+}
+
 .ogq-gallery-base {
   height: 110px;
   margin: -118px 5% 0;
@@ -255,6 +285,19 @@ body {
       0 32px 42px rgba(25, 31, 40, 0.18),
       0 8px 16px rgba(25, 31, 40, 0.08);
     transform: translateZ(54px) scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ogq-tilt-scene:not(.is-visible) .ogq-tilt-card,
+  .ogq-tilt-scene.is-visible .ogq-tilt-card {
+    opacity: 1;
+    translate: none;
+    animation: none;
+  }
+
+  .ogq-tilt-scene.is-visible .ogq-tilt-plane {
+    animation: none;
   }
 }
 
