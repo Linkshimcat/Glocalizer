@@ -31,54 +31,236 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 
 ---
 
-#### **[시스템 아키텍처]**
+#### **[시스템 아키텍처 — 심사위원용]**
 
-```
-[사용자 브라우저]
-   │  이미지 업로드(최대 20장), 대상 언어 선택
-   ▼
-[Frontend: React SPA @ Vercel]
-   │  REST 호출 (project 생성 → Storage 서명 URL로 직접 업로드 → 업로드 완료 통보 → 처리 시작)
-   ▼
-[Backend: Express API @ Render]
-   │  1) POST /projects            → project/asset row 생성, Supabase Storage 서명 업로드 URL 발급
-   │  2) 클라이언트가 Storage에 원본 이미지 직접 PUT (백엔드 경유 없음)
-   │  3) POST /uploads/complete    → 업로드 검증
-   │  4) POST /process             → job 테이블에 "process-project" job 등록 후 즉시 202 응답
-   ▼
-[Job Worker (같은 Node 프로세스 내 polling loop)]
-   │  WORKER_POLL_INTERVAL_MS 주기로 job 테이블 polling, lease/heartbeat로 중복 실행 방지
-   │  job 하나당 runLocalizationPipeline(projectId) 실행
-   ▼
-[Localization Pipeline] — 프로젝트 단위, 애셋별 부분 실패 허용
-   1. OCR 단계
-      원본 이미지 → GPT-5.6 Luna(주력, 유료 Vision API)로 이미지 내 모든 한글 캡션(줄바꿈·여러 캡션 포함)을
-      한 번에 검출 → 실패하거나 한글을 못 찾으면 PaddleOCR(Python, JSONL 영속 브릿지)로 자동 폴백
-      → PaddleOCR 경로일 때만 selectConsensusRegions로 다중 변형 IoU+텍스트 유사도 합의
-      → 여러 줄로 잘린 캡션은 mergeWrappedLines로 한 캡션으로 병합
-      → 합의도 낮음 + 한글 3자 이하 등 조건이면 Vision(Groq/Gemini) 폴백으로 재판정
-   2. 번역 → 폰트 스타일 분석 (순차 실행, 실패는 서로 독립)
-      - 번역: OpenAI GPT-5.6(주력)로 원문 뉘앙스·존댓말·타이핑된 감정 표현(ㅋㅋ/ㅠㅠ 등)까지 반영한 다국어 번역 후보 생성
-        → 실패 시 Groq(Qwen3.8 27B)로 자동 폴백. 73개 한국어 이모티콘 문구 데이터셋 + LLM 심사 벤치마크로
-        검증해 기존 대비 종합 품질 점수를 3.74 → 4.88로 개선(근거: [#86](https://github.com/Linkshimcat/Glocalizer/pull/86))
-      - 폰트 스타일 분석: 번역 완료 후 Vision 모델이 원본 글자 크롭만 보고 굵기/둥글기/손글씨 여부/격식 태깅 (soft-fail)
-   3. 이미지 정리(cleanup) 단계
-      OCR 영역의 배경 복잡도와 마스크 안전성을 평가해 방향성 inpaint·단색 채우기·투명 처리를 선택
-      → 마스크 신뢰도가 낮거나 OCR 검수가 필요하면 원본을 보존하고 에디터의 수동 정리 대상으로 표시
-   4. 결과 저장 → project/asset 상태를 completed로 갱신
-   ▼
-[Supabase: PostgreSQL + Storage]
-   원본/정리본 이미지는 private Storage 버킷, 메타데이터(OCR 영역·번역 후보·폰트 스타일·에디터 상태)는 Postgres
-   ▼
-[Frontend: 결과 조회 → AI 에디터]
-   GET /results로 조립된 결과(원문/번역 후보/추천 폰트/정리본 URL) 수신
-   → 클라이언트에서 cleanedUrl 위에 번역 텍스트를 CSS 오버레이로 얹어 실시간 편집(폰트·굵기·색·위치)
-   → PNG export는 Canvas로 동일 로직 재합성, 여러 장은 JSZip으로 일괄 다운로드
-   → 다운로드가 실제로 완료되는 시점마다 POST /projects/:id/downloads로 "변환 완주" 이벤트를 비동기 기록
-      (북극성 지표. 아래 [핵심 기능 검증 가이드] 참고)
+Glocalizer는 **CREATE(생성) → LOCALIZE(현지화) → REVIEW(출시 검토)**를 하나의 계정과 프로젝트 흐름으로 연결함. 생성 결과 24장은 ZIP으로 받을 수 있을 뿐 아니라 현지화 입력이나 출시 검토 대상으로 바로 넘길 수 있고, 현지화가 끝난 프로젝트도 다시 출시 검토에서 불러올 수 있음.
+
+##### **[전체 서비스 구조]**
+
+```mermaid
+flowchart TB
+    user["창작자"]
+
+    subgraph client["Frontend · React SPA @ Vercel"]
+        dashboard["Dashboard<br/>프로젝트 진입·진행 상태"]
+        create["CREATE<br/>이모티콘 24장 생성"]
+        localize["LOCALIZE<br/>OCR·번역·배경 정리·편집"]
+        review["REVIEW<br/>규격·유사 작품·AI 피드백"]
+    end
+
+    subgraph server["Backend · Express API @ Render"]
+        api["REST API<br/>인증·검증·소유권 확인"]
+        localizationWorker["Localization Worker<br/>jobs polling · lease · heartbeat"]
+        generationWorker["Generation Worker<br/>generation_images polling"]
+        reviewService["Review Service<br/>OGQ proxy · Deep Review"]
+    end
+
+    subgraph data["Supabase"]
+        auth["인증<br/>자체 JWT · Google Supabase Auth"]
+        db[("PostgreSQL<br/>프로젝트·작업·결과 메타데이터")]
+        storage[("Private Storage<br/>원본·정리본·생성 PNG")]
+    end
+
+    subgraph ai["AI·이미지 처리"]
+        textVision["OpenAI · Groq · Gemini<br/>OCR·번역·검토·문구"]
+        localOcr["PaddleOCR · OpenCV<br/>OCR 폴백·이미지 정리"]
+        sharp["Sharp<br/>이미지 규격화·검토 전처리"]
+        imageModel["gpt-image-2.5-sunburst<br/>캐릭터 생성·변형"]
+        ogq["OGQ Search API<br/>유사 스티커 검색"]
+    end
+
+    user --> dashboard
+    dashboard --> create
+    dashboard --> localize
+    dashboard --> review
+    create -->|"완성한 24장 전달"| localize
+    create -->|"완료 프로젝트 선택"| review
+    localize -->|"완료 프로젝트 선택"| review
+
+    create <--> api
+    localize <--> api
+    review <--> api
+    api <--> auth
+    api <--> db
+    api <--> storage
+    api --> localizationWorker
+    api --> generationWorker
+    api --> reviewService
+    localizationWorker <--> textVision
+    localizationWorker <--> localOcr
+    localizationWorker --> sharp
+    generationWorker <--> imageModel
+    generationWorker --> sharp
+    reviewService <--> textVision
+    reviewService --> sharp
+    reviewService <--> ogq
 ```
 
-핵심 설계 포인트: 번역/OCR/클린업 각 단계가 애셋 단위로 독립 실패하고, 무거운 Python 작업(OCR)은 별도 프로세스로 격리, Job 테이블 기반 polling worker라 별도 큐 인프라(Redis/SQS 등) 없이 동작함.
+- **공통 저장 경계**: 원본·정리본·생성 이미지는 private Storage에 보관하고 서명 URL 또는 인증된 API를 통해 접근함. 프로젝트 소유권은 API에서 다시 확인함.
+- **비동기 실행**: 현지화와 이미지 생성 모두 DB 작업 상태를 기준으로 worker가 처리하므로, 긴 AI 작업을 HTTP 요청 하나에 묶지 않음.
+- **기능 간 연결**: CREATE 결과를 LOCALIZE와 REVIEW가 재사용하고, LOCALIZE 결과도 REVIEW가 불러와 같은 출시 준비 흐름을 이어감.
+- **검토의 책임 범위**: REVIEW는 기술 규격과 참고 피드백을 제공하며, OGQ에 자동 제출하거나 실제 승인·저작권 적합성을 보장하지 않음.
+
+##### **[1. 이모티콘 현지화 아키텍처]**
+
+```mermaid
+flowchart TB
+    user["사용자 브라우저"]
+    frontend["Frontend<br/>React SPA · Vercel"]
+    api["Backend API<br/>Express · Render"]
+    worker["Job Worker<br/>Node polling loop"]
+    db[("Supabase PostgreSQL<br/>프로젝트·작업·OCR·번역 메타데이터")]
+    storage[("Supabase Private Storage<br/>원본·정리본 이미지")]
+    editor["AI 에디터<br/>CSS 오버레이 · Canvas PNG · JSZip"]
+
+    user -->|"이미지 최대 20장 · 대상 언어 선택"| frontend
+    frontend -->|"프로젝트 생성 · 업로드 완료 · 처리 시작"| api
+    api -->|"서명 업로드 URL"| frontend
+    frontend -->|"원본 이미지 직접 업로드"| storage
+    api -->|"project · asset · process-project job"| db
+    api -->|"202 응답"| frontend
+
+    subgraph pipeline["Localization Pipeline · 애셋별 부분 실패 허용"]
+        direction TB
+        ocr["OCR<br/>GPT-5.6 Luna로 한글 캡션 검출"]
+        paddle["PaddleOCR 폴백<br/>Python JSONL 브릿지 · 영역 합의 · 줄 병합"]
+        vision["Vision 재판정<br/>Groq 또는 Gemini"]
+        translate["번역<br/>OpenAI GPT-5.6 → Groq Qwen3.8 27B 폴백"]
+        font["폰트 스타일 분석<br/>Vision 기반 · soft-fail"]
+        cleanup["이미지 정리<br/>방향성 inpaint · 단색 채우기 · 투명 처리"]
+        complete["결과 저장<br/>asset · project 완료 상태"]
+
+        ocr -->|"실패 또는 한글 미검출"| paddle
+        paddle -->|"낮은 합의도 또는 짧은 캡션"| vision
+        ocr --> translate --> font --> cleanup --> complete
+        vision --> translate
+    end
+
+    worker -->|"runLocalizationPipeline"| ocr
+    worker <--> db
+    storage -->|"원본 이미지"| ocr
+    complete -->|"정리본"| storage
+    complete -->|"OCR·번역·폰트·정리 상태"| db
+    frontend -->|"GET /results"| api
+    api -->|"조립된 결과"| frontend
+    frontend --> editor
+    editor -->|"다운로드 완료 이벤트"| api
+```
+
+**텍스트 상세 흐름**
+
+1. 사용자가 이미지 최대 20장과 대상 언어를 선택하면 Frontend가 프로젝트와 asset row를 만들고, Backend가 발급한 Supabase Storage 서명 URL로 원본을 직접 업로드함. 대용량 원본이 Backend를 한 번 더 통과하지 않음.
+2. `POST /uploads/complete`가 업로드를 검증하고, `POST /process`는 job 테이블에 `process-project`를 등록한 뒤 즉시 `202`를 반환함.
+3. 같은 Node 프로세스의 Job Worker가 `WORKER_POLL_INTERVAL_MS` 주기로 job을 polling하며 lease와 heartbeat로 중복 실행을 막고, `runLocalizationPipeline(projectId)`를 실행함.
+4. OCR은 GPT-5.6 Luna로 이미지의 여러 한글 캡션과 줄바꿈을 한 번에 검출함. 실패하거나 한글을 찾지 못하면 별도 Python 프로세스의 PaddleOCR로 전환하고, 다중 변형 IoU·텍스트 유사도 합의와 `mergeWrappedLines` 병합을 수행함. 신뢰도가 낮은 짧은 캡션은 Groq/Gemini Vision으로 재판정함.
+5. 각 OCR 영역은 OpenAI GPT-5.6으로 영어·일본어·중국어 번역 후보를 만들고, 실패 시 Groq Qwen3.8 27B로 폴백함. 번역 완료 후 원본 글자 crop을 기준으로 굵기·둥글기·손글씨 여부·격식 같은 폰트 스타일을 분석하며, 이 분석 실패는 전체 작업을 중단하지 않음.
+6. Cleanup은 OCR 영역의 배경 복잡도와 마스크 안전성을 평가해 방향성 inpaint·단색 채우기·투명 처리 중 하나를 선택함. 안전하지 않거나 검수가 필요한 영역은 원본을 보존하고 에디터의 수동 정리 대상으로 표시함.
+7. 원본·정리본은 private Storage에, OCR 영역·번역 후보·폰트 스타일·에디터 상태는 PostgreSQL에 저장함. 프로젝트 단위 오류 대신 애셋별 부분 실패를 허용해 정상 이미지 결과를 먼저 제공함.
+8. AI 에디터는 `GET /results`로 결과를 받아 정리본 위에 번역문을 CSS로 실시간 합성함. 사용자는 폰트·굵기·색·위치를 고치고 Canvas로 PNG를 다시 만들거나 JSZip으로 여러 장을 내려받음. 실제 다운로드 완료 시 `download_events`에 변환 완주 이벤트를 비동기로 기록함.
+
+핵심 설계 포인트: 번역·OCR·Cleanup 실패를 애셋별로 격리하고, 무거운 Python OCR을 별도 프로세스로 분리함. Job 테이블 기반 worker라 Redis/SQS 같은 별도 큐 인프라 없이도 재시작·중복 실행을 제어함.
+
+##### **[2. 이모티콘 생성 아키텍처]**
+
+```mermaid
+flowchart TB
+    user["로그인한 창작자"]
+    setup["캐릭터 설명<br/>카테고리·스타일·선택적 참고 이미지"]
+    project["생성 프로젝트 생성<br/>사용자당 active 프로젝트 1개"]
+    baseQueue["대표 캐릭터 slot 0 큐 등록"]
+    worker["Generation Worker<br/>2초 polling · queued → running"]
+    imageApi["gpt-image-2.5-sunburst<br/>생성 또는 reference edit"]
+    normalize["Sharp 규격화<br/>740×640 · 투명 배경 · 흰 외곽선 · 1MB 이하"]
+    baseConfirm["대표 캐릭터 확인·확정"]
+    plan["23개 표정·포즈·문구 계획<br/>AI 제안 + 안전한 fallback + 사용자 수정"]
+    batch["slot 1~23 일괄 큐 등록<br/>DB에 진행 상태 지속"]
+    edit["슬롯별 미리보기·문구·9분할 위치·크기·색 수정<br/>필요한 슬롯만 재생성"]
+    done["24개 고유 slot 완료 확인<br/>프로젝트 completed 잠금"]
+    handoff["24장 ZIP 다운로드<br/>현지화로 보내기 · 출시 검토로 보내기"]
+    db[("generation_projects<br/>generation_images")]
+    storage[("Private Storage<br/>reference · character PNG")]
+
+    user --> setup --> project --> baseQueue --> worker --> imageApi --> normalize
+    project --> db
+    setup -->|"참고 이미지"| storage
+    worker <--> db
+    worker <--> storage
+    normalize --> storage
+    normalize --> db
+    normalize --> baseConfirm --> plan --> batch --> worker
+    batch --> db
+    db --> edit --> done --> handoff
+```
+
+**텍스트 상세 흐름**
+
+1. 로그인한 사용자가 캐릭터 설명과 카테고리·스타일을 입력하고, 필요하면 PNG/JPEG/WebP 참고 이미지를 1장 첨부함. 브라우저가 긴 변 800px 이하 WebP로 축소하고, Backend가 다시 검증·정규화해 private Storage에 저장함.
+2. `generation_projects`에 active 프로젝트를 만들고 slot `0`의 대표 캐릭터 작업을 `generation_images`에 `queued`로 등록함. 사용자마다 active 프로젝트는 하나만 허용해 중복 프로젝트와 예산 경합을 줄임.
+3. Generation Worker가 가장 오래된 queued 작업을 원자적으로 `running`으로 점유함. slot 0은 사용자 참고 이미지가 있으면 image edit로, 없으면 새 이미지 생성으로 처리함. 이후 slot 1~23은 확정된 slot 0 PNG를 reference로 사용해 캐릭터 정체성·색상·비율을 유지함.
+4. 생성 결과는 Sharp로 OGQ 스티커 규격인 740×640 투명 PNG로 정규화함. 캐릭터에 흰 외곽선을 만들고, 알파 채널과 1MB 상한을 검증한 뒤 Storage 경로·실제 비용·처리 시간을 DB에 저장함.
+5. 대표 캐릭터를 확정해야 다음 단계로 갈 수 있음. 확정 후 AI가 23개 포즈와 짧은 한국어 문구 계획을 제안하며, 호출 실패 시에도 고정 fallback 계획을 제공함. 사용자는 생성 전에 각 포즈와 문구를 직접 수정할 수 있음.
+6. 저장한 plan의 남은 slot을 한 요청으로 큐에 넣으며, 브라우저를 닫아도 서버 worker가 계속 처리함. 사용자별 일일 예산, 프로젝트당 최대 작업 수, 동일 slot 동시 실행, 확정 전 후 slot 규칙은 PostgreSQL RPC에서 트랜잭션으로 검사함.
+7. 각 완성 이미지는 캐릭터의 알파 영역과 주요 색을 분석해 문구를 덜 가리는 위·아래 위치와 글자색을 자동 선택함. 사용자는 9분할 위치·크기·글자색·외곽선색·문구를 slot별로 고치고, 실패하거나 마음에 들지 않는 slot만 선택 재생성할 수 있음.
+8. `complete_generation`은 queued/running 작업이 없고 slot 0~23이 모두 completed일 때만 프로젝트를 완료 상태로 잠금. 이후 24장 ZIP 다운로드, 현지화 입력 전송, 출시 검토 프로젝트 선택으로 이어짐. 유료 요청이 중단된 경우 비용 중복을 막기 위해 자동 재시도하지 않고 실패 상태로 남김.
+
+핵심 설계 포인트: 대표 캐릭터를 먼저 확정한 뒤 나머지 23장을 같은 reference에서 파생해 일관성을 확보함. 큐·비용·완료 조건을 DB에서 함께 강제하고, PNG 원본과 문구 스타일을 분리 저장해 미리보기 수정과 최종 다운로드 합성을 일치시킴.
+
+##### **[3. 이모티콘 출시 검토 아키텍처]**
+
+```mermaid
+flowchart TB
+    user["로그인한 창작자"]
+    select["완료 프로젝트 다중 선택<br/>현지화 결과 + 24장 생성 결과"]
+    direct["또는 PNG/JPEG 직접 업로드"]
+
+    subgraph objective["브라우저의 객관적 규격 검사 · Canvas"]
+        format["PNG 형식"]
+        size["파일당 1MB 이하"]
+        dimensions["240×240 · 740×640 · 96×74"]
+        alpha["투명 배경"]
+        margin["알파 영역 기준 여백<br/>짧은 변의 4% 미만이면 경고"]
+    end
+
+    keywords["프로젝트 문구에서<br/>중복 제거 후 최대 5개 키워드"]
+    ogqProxy["Backend OGQ proxy<br/>API key 비공개 · 10분 캐시"]
+    ogqApi["OGQ Search API<br/>키워드당 최대 6개 참고 결과"]
+
+    deep["선택 프로젝트 1~3개<br/>AI 심층 피드백 요청"]
+    material["Backend 소유권·완성 이미지 확인<br/>OCR·번역·문구 context + 이미지 최대 6장"]
+    preprocess["Sharp 전처리<br/>768×768 이내 · low detail"]
+    vision["OpenAI Vision<br/>출시 준비도·강점·우선 수정·이미지·현지화 피드백"]
+    schema["Zod 응답 정규화<br/>0~100 score · 항목 길이·개수 제한"]
+    result["검토 결과 + 체크리스트<br/>참고용 고지"]
+
+    user --> select
+    user --> direct
+    select --> objective
+    direct --> objective
+    select --> keywords --> ogqProxy <--> ogqApi
+    select --> deep --> material --> preprocess --> vision --> schema --> result
+    objective --> result
+    ogqProxy --> result
+```
+
+**텍스트 상세 흐름**
+
+1. REVIEW는 완료된 현지화 프로젝트와 완료 이미지가 24장인 생성 프로젝트를 함께 조회함. 사용자는 여러 프로젝트를 선택할 수 있고, 프로젝트가 없어도 완성 파일을 직접 올려 규격만 검사할 수 있음.
+2. 현지화 프로젝트에서는 OCR 캡션, 생성 프로젝트에서는 캐릭터 prompt와 이미지 문구를 모아 중복을 제거하고 최대 5개 검색어를 만듦. 검색어마다 Backend의 `GET /ogq/stickers`가 OGQ Search API에서 최대 6개 유사 스티커를 조회함. OGQ API key는 서버에만 두고 동일 요청은 10분간 캐시함.
+3. 선택한 프로젝트 이미지는 하나씩 `fetch → Blob → File`로 바꿔 브라우저 Canvas 검사에 전달함. `Promise.allSettled`를 사용해 이미지 하나를 불러오지 못해도 나머지 검사를 계속함.
+4. 객관적 검사는 PNG 여부, 파일당 1MB 이하, 공식 용도별 크기(메인 240×240, 스티커 740×640, 탭 96×74), 실제 알파 투명도, 캐릭터 주변 여백을 픽셀 단위로 확인함. 불투명 이미지처럼 여백을 분리할 수 없는 경우는 실패가 아니라 측정 불가 경고로 표시함.
+5. 선택한 프로젝트가 1~3개이면 인증·시간당 rate limit이 적용된 `POST /review/deep-feedback`으로 심층 피드백을 요청할 수 있음. Backend는 프로젝트 소유권과 이용 가능한 완성 이미지를 확인하고, 구조화된 OCR·번역·Cleanup·생성 문구 context와 이미지 최대 6장을 준비함.
+6. 이미지는 Sharp로 768×768 이내 PNG로 줄여 Vision 입력 비용과 크기를 제한함. AI는 작은 화면 가독성, 표정과 문구의 일치, 세트의 시각적 일관성, 번역 자연스러움, 명확한 출시 위험을 분석함. 결과는 Zod로 점수와 항목 개수·길이를 정규화해 UI에 표시함.
+7. 마지막에는 사람이 확인할 출시 체크리스트와 참고용 고지를 함께 제공함. 이 기능은 출시 전 위험을 빠르게 찾는 보조 도구이며, OGQ 자동 제출·승인 판정·저작권 판정을 수행하지 않음.
+
+핵심 설계 포인트: 비용 없는 객관적 Canvas 검사, 외부 OGQ 유사 사례 탐색, 선택적 AI 정성 피드백을 분리함. 한 단계가 실패해도 가능한 결과는 계속 보여주며, 외부 플랫폼의 실제 심사를 대신한다고 과장하지 않음.
+
+##### **[아키텍처 코드 근거]**
+
+| 흐름 | Frontend | Backend·Worker | DB·저장소 |
+| --- | --- | --- | --- |
+| 이모티콘 현지화 | [`Localize.tsx`](frontend/src/pages/Localize.tsx), [`Editor.tsx`](frontend/src/pages/Editor.tsx), [`uploads.tsx`](frontend/src/store/uploads.tsx) | [`processing.service.ts`](backend/src/services/processing.service.ts), [`worker.ts`](backend/src/workers/worker.ts), [`process-project.job.ts`](backend/src/workers/process-project.job.ts), [`ocr-pipeline.service.ts`](backend/src/ocr/ocr-pipeline.service.ts) | `projects`, `assets`, `jobs`, `ocr_regions`, `translations`, `editor_states`, `download_events`, private Storage |
+| 이모티콘 생성 | [`Generate.tsx`](frontend/src/pages/Generate.tsx), [`generationApi.ts`](frontend/src/lib/generationApi.ts) | [`generation.routes.ts`](backend/src/routes/generation.routes.ts), [`generation.service.ts`](backend/src/services/generation.service.ts), [`generation-worker.ts`](backend/src/workers/generation-worker.ts) | `generation_projects`, `generation_images`, PostgreSQL enqueue/confirm/complete RPC, private Storage |
+| 이모티콘 출시 검토 | [`Review.tsx`](frontend/src/pages/Review.tsx), [`OgqSpecChecker.tsx`](frontend/src/components/OgqSpecChecker.tsx), [`ogqSpecCheck.ts`](frontend/src/lib/ogqSpecCheck.ts) | [`ogq.service.ts`](backend/src/services/ogq.service.ts), [`deep-review.service.ts`](backend/src/services/deep-review.service.ts) | 기존 완료 프로젝트를 읽기 전용으로 조합하며 별도 승인 상태를 저장하지 않음 |
 
 ---
 
