@@ -1,4 +1,5 @@
 # **NAVER OGQ PROJECT**
+<img width="1920" height="1080" alt="Glocalizer W8 데모데이 ppt" src="https://github.com/user-attachments/assets/c7389116-7f43-498c-86f6-7393eceba762" />
 
 ### [Glocalizer]
 
