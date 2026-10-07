@@ -23,9 +23,11 @@ interface ApiFailure {
 }
 
 export class AuthApiError extends Error {
-  constructor(message: string) {
+  readonly status: number
+  constructor(message: string, status = 0) {
     super(message)
     this.name = 'AuthApiError'
+    this.status = status
   }
 }
 
@@ -39,7 +41,7 @@ async function authRequest<T>(path: string, init: RequestInit = {}): Promise<T> 
   })
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiFailure
-    throw new AuthApiError(body.error?.message ?? body.message ?? '요청에 실패했어요.')
+    throw new AuthApiError(body.error?.message ?? body.message ?? '요청에 실패했어요.', response.status)
   }
   return response.json() as Promise<T>
 }

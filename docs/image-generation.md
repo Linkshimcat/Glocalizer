@@ -1,27 +1,36 @@
-# Image generation sample MVP
+# 24장 이모티콘 생성
 
-Only the existing account `yunjae14278@naver.com` can use `/generate`. The backend verifies the current database user on every generation route. Other accounts retain the disabled dashboard card.
+현재 `/generate`는 로그인한 계정에서 사용할 수 있다. 모든 API는 JWT와 프로젝트 소유자를 확인한다. 유료 이미지 호출은 `ENABLE_IMAGE_GENERATION=true`와 서버의 `OPENAI_API_KEY`가 있을 때만 활성화된다.
 
-## Enable locally
+## 실행과 한도
 
-1. Apply `supabase/migrations/20260918190641_emoticon_generation.sql` using the existing migration runner (`npm run db:migrate` from backend). No production migration or deployment is performed by this change.
-2. Check API balance and access to `gpt-image-2.5-sunburst`. Reuse the backend `OPENAI_API_KEY`; never put it in frontend variables.
-3. Set `ENABLE_IMAGE_GENERATION=true` and restart the backend. Default is false. The UI is available without making paid requests.
+생성 테이블 초기 마이그레이션부터 프로젝트 생명주기, 전체 배치, 캡션 스타일 후속 마이그레이션까지 적용해야 한다. 기존 backend의 `npm run db:migrate`를 사용한다.
 
-Server variables: `IMAGE_GENERATION_OWNER_EMAIL` (defaults to the account above), `IMAGE_GENERATION_BUDGET_USD=8`, `IMAGE_GENERATION_RESERVE_USD=2`.
+- 대표 캐릭터 1장과 표정 23장, 총 24장이다.
+- 사용자별 진행 중인 프로젝트는 하나다. 완료 후 새 프로젝트를 만들 수 있다.
+- 프로젝트당 최대 30개 작업, 같은 슬롯 재생성은 합계 최대 6회다. 실패한 호출도 작업 수에 포함된다.
+- 예산은 사용자별 **한국 날짜의 하루** 기준이다. 기본 `IMAGE_GENERATION_BUDGET_USD=8`, 호출당 예약 `IMAGE_GENERATION_RESERVE_USD=0.25`다.
+- 사용량이 회신되면 추정 실제 비용으로 예약을 대체한다. 응답이 없으면 예약을 유지한다. DB 트랜잭션이 배치 등록과 한도 검사를 처리한다.
 
-## Costs and limits
+예약 비용은 공급자 청구 상한을 보장하지 않는다. 실제 사용량과 서버 예산을 운영 중에 확인해야 한다. 이번 개선 검증에서는 유료 AI 호출을 실행하지 않았다.
 
-Budget is cumulative across all generation projects, not daily. Each queued call reserves USD 2; a response with usage replaces that reservation with estimated token cost. Unknown or interrupted usage retains its reservation. An atomic SQL transaction prevents concurrent budget/quota bypass. A set consists of one base plus three expressions; up to two extra attempts are allowed, including failures. One project per Korea calendar day; caption editing and download remain available on old projects.
+## 작업 흐름
 
-The USD 8 budget/reservation is a conservative application estimate, **not a guaranteed provider billing cap**. A single response may cost more than its reservation, and API billing can lag. It excludes taxes, exchange rate and existing OCR spend. For the user's KRW 20,000 overall test budget, verify the final prepaid purchase amount and disable auto recharge in OpenAI billing. Do not assume billing dashboard budgets stop requests. No paid test has been executed.
+설명과 선택적인 참고 이미지 → 대표 캐릭터 생성 → 명시적 확정 → 23개 표정·문구 계획 자동 작성 → 계획 검토·편집 → 남은 슬롯 일괄 생성 → 캡션 검토 → 프로젝트 완료 → 24장 ZIP 다운로드 또는 현지화로 이동한다. OGQ 제출 전 최종 검수는 별도로 필요하다.
 
-## Flow and storage
+대표 확정 후 계획 작성이 실패하면 확정 상태를 유지하고 계획 작성 버튼을 제공한다. 저장된 23개 계획을 다시 요청하면 기존 계획을 반환한다. 폴링은 저장하지 않은 계획 입력을 덮어쓰지 않는다.
 
-Prompt + optional reference → base character → explicit confirmation → three expression jobs queued transactionally → individual caption edit/download or regeneration. Confirmed base is immutable. Jobs use dedicated tables and worker, not localization jobs. Queued work survives browser navigation; abandoned running work is failed after ten minutes and never automatically reissued because a paid request may already have succeeded. Private storage signed URLs expire after one hour and are refreshed when loading the workspace.
+일괄 생성 직전에 서버 상태를 조회해 완료·대기·실행 중 슬롯을 제외한다. 버튼 연속 클릭은 같은 화면에서 한 번만 처리한다. 큐 등록 응답이 끊기면 새 작업 ID를 조회해 성공 여부를 확인하며, 유료 POST를 자동 재전송하지 않는다. 등록 여부를 알 수 없을 때 다음 사용자 시도도 조회부터 시작한다. 실패 슬롯은 서버 상태 확인 후 다시 등록할 수 있으며 비용과 재생성 한도가 적용된다.
 
-Backend `/api/v1/generation`: GET config, GET/POST projects, GET projects/:id, POST projects/:id/images, POST projects/:id/confirm, POST projects/:id/samples, PATCH projects/:id/images/:imageId, GET projects/:id/images/:imageId/download. All require JWT and account authorization.
+생성 작업은 현지화 작업과 별도 테이블·워커에서 처리된다. 큐는 브라우저 이동 후에도 유지된다. 응답을 잃은 실행 작업은 자동으로 유료 요청을 재실행하지 않는다. 비공개 이미지의 서명 URL은 1시간 후 만료되며 작업 화면 조회 시 새로 발급된다.
 
-PNG output: 740×640, RGB with alpha, 72dpi, ≤1,000,000 bytes, white character/caption outline. Opaque results are rejected. Sharp does not stretch the character. Captions use a separate server-rendered SVG text layer; the Docker runtime installs Noto CJK fonts. Captions are limited to 16 characters. Final image readability and identity consistency require human review; neither technical output checks nor this four-image sample guarantees OGQ approval. Complete 24-image packaging, main/tab assets, localization, OGQ import and review integration are out of scope.
+## API와 출력
 
-Official references: https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst and https://creators.ogq.me/faq?faqCategoryId=61c54a8a1fbca
+기본 경로는 `/api/v1/generation`이다.
+
+- `GET config`, `GET/POST projects`, `GET/PATCH/DELETE projects/:id`
+- `POST projects/:id/images`, `POST projects/:id/confirm`
+- `POST/PATCH projects/:id/plan`, `POST projects/:id/batch`
+- `POST projects/:id/complete`, 캡션 일괄 저장·개별 편집 및 이미지 다운로드
+
+이미지는 740×640 PNG, 알파 채널 포함, 72dpi, 1,000,000바이트 이하로 정규화된다. 캡션은 서버에서 별도 SVG 레이어로 합성하며 최대 16자다. 캡션 위치·크기·색·외곽선을 편집할 수 있다. Docker에는 Noto CJK 폰트가 설치된다. 결과 검토와 플랫폼 제출 규격 확인은 사용자가 진행한다.

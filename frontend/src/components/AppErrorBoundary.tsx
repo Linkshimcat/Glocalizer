@@ -35,7 +35,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           <p className="mt-3 text-sm font-semibold leading-6 text-sub">작업 데이터는 브라우저에 보관돼 있어요. 새로고침하거나 대시보드로 돌아가 다시 시도해주세요.</p>
           <div className="mt-6 grid grid-cols-2 gap-2">
             <button type="button" onClick={this.reloadPage} className="h-11 rounded-xl border-2 border-gray-100 text-sm font-bold text-sub hover:border-gray-200">새로고침</button>
-            <button type="button" onClick={this.goToDashboard} className="h-11 rounded-xl bg-brand text-sm font-bold text-white hover:bg-brand-dark">대시보드</button>
+            <button type="button" onClick={this.goToDashboard} className="h-11 rounded-xl bg-action text-sm font-bold text-white hover:bg-brand-dark">대시보드</button>
           </div>
         </section>
       </main>

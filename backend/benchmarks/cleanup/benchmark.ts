@@ -57,6 +57,10 @@ export async function renderScenario(scenario: Scenario): Promise<RenderedScenar
   }
   const pad = 2;
   const bbox = { x: Math.max(0, minX - pad), y: Math.max(0, minY - pad), width: Math.min(WIDTH, maxX + pad + 1) - Math.max(0, minX - pad), height: Math.min(HEIGHT, maxY + pad + 1) - Math.max(0, minY - pad) };
+  if (scenario.ocrInset) {
+    const [left, top, right, bottom] = scenario.ocrInset;
+    bbox.x += left; bbox.y += top; bbox.width -= left + right; bbox.height -= top + bottom;
+  }
   return { scenario, full, clean: background, textMask, bbox };
 }
 

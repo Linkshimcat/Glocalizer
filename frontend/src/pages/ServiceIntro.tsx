@@ -76,12 +76,12 @@ export default function ServiceIntro() {
         </Link>
       } />
       <main className="flex-1">
-        <section className="border-b border-brand/10 bg-gradient-to-br from-brand-soft via-white to-surface">
+        <section className="border-b border-brand/10 bg-white">
           <div className="layout-app service-reveal py-16 sm:py-24">
             <p className="text-sm font-extrabold text-brand-dark">Glocalizer · {t.navService}</p>
             <h1 className="mt-5 max-w-4xl whitespace-pre-line break-words text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-5xl">{s.title}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-sub">{s.intro}</p>
-            <Link to="/dashboard" className="service-cta mt-8 inline-flex items-center gap-3 rounded-2xl bg-brand px-6 py-4 font-extrabold text-ink">
+            <Link to="/dashboard" className="service-cta mt-8 inline-flex items-center gap-3 rounded-lg bg-action px-6 py-4 font-extrabold text-white">
               {s.start}<ArrowUpRight className="service-arrow" size={20} aria-hidden />
             </Link>
             <p className="mt-4 text-sm leading-6 text-sub">{s.account}</p>
@@ -93,7 +93,7 @@ export default function ServiceIntro() {
             {s.features.map((feature, index) => {
               const { icon: Icon, path } = FEATURES[index]
               return (
-                <article key={path} className="service-reveal service-feature-card flex flex-col rounded-[28px] border border-gray-200 bg-surface/50 p-6 sm:p-8" style={{ '--reveal-delay': `${index * 75}ms` } as CSSProperties}>
+                <article key={path} className="service-reveal service-feature-card flex flex-col rounded-xl border border-gray-200 bg-surface/50 p-6 sm:p-8" style={{ '--reveal-delay': `${index * 75}ms` } as CSSProperties}>
                   <div className="flex items-center justify-between">
                     <span className="service-feature-icon flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Icon size={24} aria-hidden /></span>
                     <span aria-hidden className="text-sm font-extrabold text-sub">0{index + 1}</span>
@@ -114,7 +114,7 @@ export default function ServiceIntro() {
             <h2 id="service-workflow" className="service-reveal text-2xl font-extrabold tracking-tight sm:text-3xl">{s.workflow}</h2>
             <div ref={workflowProgressRef} className="service-workflow-progress" aria-hidden><span /></div>
             <ol className="mt-8 grid gap-6 md:grid-cols-3">
-              {s.steps.map((step, index) => <li key={step.title} className="service-reveal service-workflow-step rounded-3xl bg-white p-6" style={{ '--reveal-delay': `${index * 90}ms` } as CSSProperties}><span className="text-sm font-extrabold text-brand-dark">0{index + 1}</span><h3 className="mt-4 text-xl font-extrabold">{step.title}</h3><p className="mt-3 leading-7 text-sub">{step.description}</p></li>)}
+              {s.steps.map((step, index) => <li key={step.title} className="service-reveal service-workflow-step rounded-xl bg-white p-6" style={{ '--reveal-delay': `${index * 90}ms` } as CSSProperties}><span className="text-sm font-extrabold text-brand-dark">0{index + 1}</span><h3 className="mt-4 text-xl font-extrabold">{step.title}</h3><p className="mt-3 leading-7 text-sub">{step.description}</p></li>)}
             </ol>
           </div>
         </section>

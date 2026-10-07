@@ -173,13 +173,13 @@ export default function Account() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="studio-account min-h-screen bg-[#FAFBFC]">
       <Header center={<NavMenu workspace />} sticky />
       <main className="layout-app py-10 sm:py-16">
         <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{t.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{t.accountDesc}</p>
-        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>
+        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-xl border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 shrink-0">
@@ -283,7 +283,7 @@ export default function Account() {
               <button type="button" onClick={cancelEditing} disabled={saving} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
                 {t.accountCancel}
               </button>
-              <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+              <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-full bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {t.accountSave}
               </button>
@@ -292,7 +292,7 @@ export default function Account() {
         </form>
 
         {user.hasPassword && (
-          <section className="mt-6 max-w-2xl rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountSecurityTitle}>
+          <section className="mt-6 max-w-2xl rounded-xl border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountSecurityTitle}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-extrabold text-ink">{t.accountSecurityTitle}</h2>
@@ -360,7 +360,7 @@ export default function Account() {
                   <button type="button" onClick={cancelChangingPassword} disabled={passwordSaving} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
                     {t.accountCancel}
                   </button>
-                  <button type="submit" disabled={passwordSaving} className="flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+                  <button type="submit" disabled={passwordSaving} className="flex items-center gap-1.5 rounded-full bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
                     {passwordSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t.accountPasswordSubmit}
                   </button>
@@ -370,7 +370,7 @@ export default function Account() {
           </section>
         )}
 
-        <section className="mt-6 max-w-2xl rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPolicyTitle}>
+        <section className="mt-6 max-w-2xl rounded-xl border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPolicyTitle}>
           <h2 className="text-lg font-extrabold text-ink">{t.accountPolicyTitle}</h2>
           <p className="mt-1 text-sm text-sub">{t.accountPolicyDesc}</p>
           <div className="mt-5 divide-y divide-gray-100">
@@ -387,7 +387,7 @@ export default function Account() {
           </div>
         </section>
 
-        <section className="mt-6 max-w-2xl rounded-[28px] border border-red-200 bg-red-50/40 p-6 sm:p-8" aria-label={t.accountDangerZoneTitle}>
+        <section className="mt-6 max-w-2xl rounded-xl border border-red-200 bg-red-50/40 p-6 sm:p-8" aria-label={t.accountDangerZoneTitle}>
           <h2 className="text-lg font-extrabold text-red-600">{t.accountDangerZoneTitle}</h2>
           <p className="mt-2 text-sm text-red-900/70">{t.accountDangerZoneDesc}</p>
           <button

@@ -16,6 +16,8 @@ export interface Scenario {
   noise?: number;
   /** 이 시나리오가 알려진 난제인지 — 통과율 예산에서 별도로 다룬다. */
   hard?: boolean;
+  /** Pixels trimmed from left/top/right/bottom to reproduce tight OCR boxes. */
+  ocrInset?: [number, number, number, number];
 }
 
 const KOREAN = '고마워요';
@@ -26,6 +28,9 @@ const pattern = (id: string, size: number, inner: string) =>
   `<pattern id="${id}" width="${size}" height="${size}" patternUnits="userSpaceOnUse">${inner}</pattern><rect width="${WIDTH}" height="${HEIGHT}" fill="url(#${id})"/>`;
 
 export const SCENARIOS: Scenario[] = [
+  { name: 'ocr-tight-right-solid', background: rect('#ffffff'), text: textNode('#222'), ocrInset: [0, 0, 22, 0] },
+  { name: 'ocr-tight-left-transparent', background: '', text: textNode('#222'), ocrInset: [22, 0, 0, 0] },
+  { name: 'ocr-tight-bottom-outline', background: rect('#7cc4ff'), text: textNode('#222', 'stroke="#ffffff" stroke-width="7" paint-order="stroke"'), ocrInset: [0, 0, 0, 6] },
   { name: 'solid-white', background: rect('#ffffff'), text: textNode('#222') },
   { name: 'solid-yellow', background: rect('#ffe066'), text: textNode('#333') },
   { name: 'solid-dark-light-text', background: rect('#1d2333'), text: textNode('#f4f4f4') },

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { consumeLoginReturn } from '../lib/loginReturn'
 import { consumeNaverState } from '../lib/naverAuth'
 import { useAuth } from '../store/AuthContext'
 
@@ -32,9 +33,7 @@ export default function NaverCallback() {
     completeNaverLogin(code, state)
       .then(() => {
         toast(t.loginSuccessToast, 'success')
-        const returnTo = sessionStorage.getItem('glocalizer:loginReturnTo')
-        sessionStorage.removeItem('glocalizer:loginReturnTo')
-        navigate(returnTo && ['/localize', '/generate'].includes(returnTo) ? returnTo : '/dashboard', { replace: true })
+        navigate(consumeLoginReturn(), { replace: true })
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : t.loginNaverFailed)

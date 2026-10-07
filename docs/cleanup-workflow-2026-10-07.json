@@ -1,0 +1,453 @@
+{
+  "basis": "Synthetic PNGs with Noto Sans CJK KR; no production images or paid calls",
+  "baselineCommit": "c9e30b3",
+  "date": "2026-10-07",
+  "before": [
+    {
+      "name": "ocr-tight-right-solid",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0.02005906965296579,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "ocr-tight-left-transparent",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0.010060300270735909,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "transparent-mask": 8
+      }
+    },
+    {
+      "name": "ocr-tight-bottom-outline",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0.0006760004807114529,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "solid-white",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "solid-yellow",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "solid-dark-light-text",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "gradient-mild",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "text-with-white-outline",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "two-color-text",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "speech-bubble-tight",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "transparent-clean",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "transparent-mask": 8
+      }
+    },
+    {
+      "name": "transparent-character-above",
+      "hard": false,
+      "passRate": 0,
+      "meanResidual": 0.1367991204648971,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "transparent-mask": 8
+      }
+    },
+    {
+      "name": "transparent-bubble-white",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "stripes",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 1,
+      "maxCollateralPx": 0,
+      "stability": 0.875,
+      "outcomes": {
+        "manual:periodic-pattern": 7,
+        "manual:no-safe-mask": 1
+      }
+    },
+    {
+      "name": "dots-sparse",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 1,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "manual:periodic-pattern": 8
+      }
+    },
+    {
+      "name": "dots-dense",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 1,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "manual:periodic-pattern": 8
+      }
+    },
+    {
+      "name": "checker",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 0.9975387644597588,
+      "maxCollateralPx": 29,
+      "stability": 0.875,
+      "outcomes": {
+        "manual:periodic-pattern": 7,
+        "directional-inpaint": 1
+      }
+    },
+    {
+      "name": "gradient-strong",
+      "hard": true,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "noisy-photo",
+      "hard": true,
+      "passRate": 1,
+      "meanResidual": 0.01591621309582715,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "neon-glow",
+      "hard": true,
+      "passRate": 0.875,
+      "meanResidual": 0.017475751934946604,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    }
+  ],
+  "after": [
+    {
+      "name": "ocr-tight-right-solid",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0.0009229633275904504,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "ocr-tight-left-transparent",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "transparent-mask": 8
+      }
+    },
+    {
+      "name": "ocr-tight-bottom-outline",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0.0006760004807114529,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "solid-white",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "solid-yellow",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "solid-dark-light-text",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "gradient-mild",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "text-with-white-outline",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "two-color-text",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "speech-bubble-tight",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "transparent-clean",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "transparent-mask": 8
+      }
+    },
+    {
+      "name": "transparent-character-above",
+      "hard": false,
+      "passRate": 0.875,
+      "meanResidual": 0.029193497722632324,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "transparent-mask": 8
+      }
+    },
+    {
+      "name": "transparent-bubble-white",
+      "hard": false,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "stripes",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 1,
+      "maxCollateralPx": 0,
+      "stability": 0.875,
+      "outcomes": {
+        "manual:periodic-pattern": 7,
+        "manual:no-safe-mask": 1
+      }
+    },
+    {
+      "name": "dots-sparse",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 1,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "manual:periodic-pattern": 8
+      }
+    },
+    {
+      "name": "dots-dense",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 1,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "manual:periodic-pattern": 8
+      }
+    },
+    {
+      "name": "checker",
+      "hard": true,
+      "passRate": 0,
+      "meanResidual": 0.9975387644597588,
+      "maxCollateralPx": 29,
+      "stability": 0.875,
+      "outcomes": {
+        "manual:periodic-pattern": 7,
+        "directional-inpaint": 1
+      }
+    },
+    {
+      "name": "gradient-strong",
+      "hard": true,
+      "passRate": 1,
+      "meanResidual": 0,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "noisy-photo",
+      "hard": true,
+      "passRate": 1,
+      "meanResidual": 0.01591621309582715,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    },
+    {
+      "name": "neon-glow",
+      "hard": true,
+      "passRate": 0.875,
+      "meanResidual": 0.017475751934946604,
+      "maxCollateralPx": 0,
+      "stability": 1,
+      "outcomes": {
+        "solid-color-fill": 8
+      }
+    }
+  ]
+}

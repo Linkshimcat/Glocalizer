@@ -58,6 +58,12 @@ export function textOverlaysForItem(
   })
 }
 
+/** Image layout comes from the primary region, consistently in previews and ZIP exports. */
+export function imageStyleForItem(item: DemoItem, languageCode: string, styles: Record<string, Record<string, Style>>): Style {
+  const overlays = textOverlaysForItem(item, languageCode, styles)
+  return styles[item.id]?.[languageCode] ?? overlays.find(overlay => overlay.regionId === item.analysis?.regionId)?.style ?? overlays[0]?.style ?? DEFAULT_STYLE
+}
+
 function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number, scale: number) {
   if (!style.backgroundOn || !text) return
   const lines = text.split(/\r?\n/)
@@ -273,7 +279,7 @@ export async function zipLocalizedItems(
   const zip = new JSZip()
   for (const { languageCode, items } of itemsByLanguage) {
     for (const item of items) {
-      const style = styles[item.id]?.[languageCode] ?? DEFAULT_STYLE
+      const style = imageStyleForItem(item, languageCode, styles)
       const overlays = textOverlaysForItem(item, languageCode, styles)
       zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays, preset))
     }

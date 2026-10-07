@@ -21,7 +21,7 @@ describe('cleanup benchmark', () => {
   for (const name of ['stripes', 'dots-dense', 'checker', 'neon-glow']) {
     it(`${name}(어려운 유형): 훼손 없이 처리하거나 수동/폴백으로 넘긴다`, async () => {
       const scenario = SCENARIOS.find((item) => item.name === name)!;
-      const summary = summarize(name, true, await runScenario(await renderScenario(scenario), jitters));
+      const summary = summarize(name, true, await runScenario(await renderScenario(scenario), JITTERS));
       expect(summary.maxCollateralPx).toBeLessThanOrEqual(30);
     }, 60_000);
   }

@@ -28,7 +28,7 @@ export default function LanguageSelect() {
         aria-label={`${legalUi[lang].language}: ${current.label}`}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex items-center gap-1.5 rounded-xl border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
+        className="flex min-h-11 items-center gap-1.5 rounded-lg border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
       >
         <img src={globeIcon} alt="" aria-hidden className="h-4 w-4" />
         <span className="hidden sm:inline">{current.label}</span>
@@ -52,7 +52,7 @@ export default function LanguageSelect() {
                   setLang(item.code)
                   setOpen(false)
                 }}
-                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-surface ${
+                className={`flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-surface ${
                   item.code === lang ? 'text-brand-dark' : 'text-ink'
                 }`}
               >

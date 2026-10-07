@@ -24,7 +24,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "benchmark:translation": "tsx benchmarks/translation/run.ts",
-    "benchmark:cleanup": "tsx benchmarks/cleanup/run.ts"
+    "benchmark:cleanup": "tsx benchmarks/cleanup/run.ts",
+    "report:translation-fallback": "node scripts/report-translation-fallback.mjs",
+    "report:download-funnel": "node scripts/report-download-funnel.mjs"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,9 @@
+{
+  "responsiveLocaleCases": 20,
+  "serviceSceneChecks": 60,
+  "reducedMotionCases": 8,
+  "ogqStates": 3,
+  "nativeMediaControls": "passed",
+  "runtimeErrors": [],
+  "consoleErrors": []
+}

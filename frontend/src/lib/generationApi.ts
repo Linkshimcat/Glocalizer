@@ -24,6 +24,27 @@ export async function renameGenerationProject(token: string, projectId: string, 
 export async function deleteGenerationProject(token: string, projectId: string) {
   await generationRequest(token, `/projects/${projectId}`, 'DELETE')
 }
+/** Reconcile a lost queue response using job identities; never retry a potentially paid POST. */
+export async function enqueueRemainingGeneration(token: string, projectId: string, plan: StickerPlanItem[]) {
+  const before = await generationRequest<GenerationProject>(token, `/projects/${projectId}`)
+  if (before.status === 'completed') throw new Error('완료한 프로젝트는 수정할 수 없습니다.')
+  const completed = new Set(latestCompletedImages(before).map(image => image.slot))
+  const pending = new Set(before.images.filter(image => image.status === 'queued' || image.status === 'running').map(image => image.slot))
+  const slots = plan.filter(item => !completed.has(item.slot) && !pending.has(item.slot)).map(item => item.slot)
+  if (!slots.length) return { slots, recovered: false }
+  await generationRequest(token, `/projects/${projectId}/plan`, 'PATCH', { plan })
+  const knownIds = new Set(before.images.map(image => image.id))
+  try {
+    await generationRequest(token, `/projects/${projectId}/batch`, 'POST', { slots })
+    return { slots, recovered: false }
+  } catch (error) {
+    try {
+      const after = await generationRequest<GenerationProject>(token, `/projects/${projectId}`)
+      if (slots.every(slot => after.images.some(image => image.slot === slot && !knownIds.has(image.id)))) return { slots, recovered: true }
+    } catch { /* Unknown registration state: retain the original error and require reconciliation on next attempt. */ }
+    throw error
+  }
+}
 export async function downloadGeneration(token: string, projectId: string, imageId: string) {
   const file = await fetchGenerationFile(token, projectId, imageId)
   const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)

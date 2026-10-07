@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { LocalizationBatchInput } from '../../src/ai/localization/localization-provider.types.js';
 import { validateTranslationResult } from '../../src/ai/localization/localization-validator.js';
@@ -16,6 +17,13 @@ const genConcurrency = Number(flag('gen-concurrency', '2'));
 const judgeModel = flag('judge-model', 'gpt-5.6');
 const stride = Number(flag('stride', '1'));
 const outDir = flag('out', path.join(import.meta.dirname, 'results'));
+if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(stride) || stride < 1) throw new Error('limit and stride must be positive integers');
+for (const name of variantNames) if (!VARIANTS[name]) throw new Error(`unknown variant ${name}`);
+if (args.includes('--dry-run')) {
+  const selected = CAPTIONS.filter((_, index) => index % stride === 0).slice(0, limit);
+  console.log(JSON.stringify({ variants: variantNames, captions: selected.length, languages: LANGS, categories: Object.fromEntries([...new Set(selected.map(item => item.category))].map(category => [category, selected.filter(item => item.category === category).length])), idsUnique: new Set(selected.map(item => item.id)).size === selected.length, textsUnique: new Set(selected.map(item => item.ko)).size === selected.length }, null, 2));
+  process.exit(0);
+}
 fs.mkdirSync(outDir, { recursive: true });
 
 interface Row {
@@ -52,7 +60,8 @@ const progress = (label: string, done: number, total: number, started: number) =
 
 async function generate(variant: Variant, caption: Caption): Promise<Row> {
   // 같은 변형·캡션은 다시 호출하지 않는다(중단 후 재개, 심사만 다시 돌리기 위함).
-  const cacheFile = path.join(cacheDir, `${variant.name}--${caption.id}.json`);
+  const signature = createHash('sha256').update(JSON.stringify([variant.options, variant.messages(buildInput(caption))])).digest('hex').slice(0, 16);
+  const cacheFile = path.join(cacheDir, `${variant.name}--${caption.id}--${signature}.json`);
   if (fs.existsSync(cacheFile)) return JSON.parse(fs.readFileSync(cacheFile, 'utf8')) as Row;
   const row = await generateUncached(variant, caption);
   if (row.ok) fs.writeFileSync(cacheFile, JSON.stringify(row));

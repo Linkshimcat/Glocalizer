@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Header from '../components/Header'
 import NavMenu from '../components/NavMenu'
-import RollingText from '../components/RollingText'
+import heroCharacter from '../assets/studio/hero-character.png'
+import { studioCopy } from '../i18n/studio'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useUploads } from '../store/uploads'
 import GenerationList from '../components/GenerationList'
@@ -15,7 +16,8 @@ import Modal from '../components/Modal'
 export default function Dashboard() {
   const navigate = useNavigate()
   const toast = useToast()
-  const { t } = useSiteLang()
+  const { t, lang } = useSiteLang()
+  const copy = studioCopy[lang]
   const [newTaskOpen, setNewTaskOpen] = useState(false)
   // 두 목록 모두 비었을 때만 빈 상태를 한 번 보여준다. null은 아직 못 불러왔다는 뜻이다.
   const [cloudCount, setCloudCount] = useState<number | null>(null)
@@ -39,43 +41,47 @@ export default function Dashboard() {
   }
   const requestNewTask = () => { if (hasWork) setNewTaskOpen(true); else void startNew() }
   const cards = [
-    { title: t.hubLocalize, description: t.hubLocalizeDesc, Icon: Globe2, active: true },
-    { title: t.hubReview, description: t.hubReviewDesc, Icon: ShieldCheck, active: true },
-    { title: t.hubGenerate, description: t.hubGenerateDesc, Icon: SmilePlus, active: true },
+    { title: t.hubGenerate, Icon: SmilePlus, run: () => navigate('/generate') },
+    { title: t.hubLocalize, Icon: Globe2, run: requestNewTask },
+    { title: t.hubReview, Icon: ShieldCheck, run: () => navigate('/review') },
   ]
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="studio-dashboard min-h-screen">
       <Header center={<NavMenu workspace />} sticky />
-      <main className="layout-app py-10 sm:py-16">
-        <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
-        <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">
-          {/* 굴러 올라오는 글자는 aria-hidden이라 읽히는 제목을 따로 둔다. */}
-          <span className="sr-only">{t.hubTitle}</span>
-          <RollingText items={[t.hubTitle]} loop={false} />
-        </h1>
-        <p className="mt-3 max-w-2xl break-keep text-base leading-relaxed text-sub">{t.hubSubtitle}</p>
-        <div className="mt-8 grid gap-5 lg:grid-cols-3">
-          {cards.map(({ title, description, Icon, active }) => (
-            <section key={title} className="flex flex-col rounded-[28px] border border-gray-200/70 bg-white p-6 sm:p-7">
-              <div className="flex items-center justify-between gap-3">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Icon className="h-7 w-7" /></span>
-                {!active && <span className="rounded-full bg-surface px-3 py-1 text-xs font-bold text-sub">{t.hubSoon}</span>}
-              </div>
-              <h2 className="mt-6 text-xl font-extrabold text-ink">{title}</h2>
-              <p className="mb-7 mt-3 flex-1 break-normal text-sm leading-6 text-sub [overflow-wrap:anywhere]">{description}</p>
-              <Button disabled={!active || cloudSaving || startingNew} onClick={() => Icon === SmilePlus ? navigate('/generate') : Icon === ShieldCheck ? navigate('/review') : hasWork ? navigate(resumePath) : requestNewTask()} className="w-full">
-                {active ? hasWork && Icon === Globe2 ? t.hubContinue : t.hubStart : t.hubSoon}{active && <ArrowRight className="h-4 w-4" />}
-              </Button>
-              {active && hasWork && Icon === Globe2 && <Button variant="ghost" disabled={cloudSaving || startingNew} onClick={requestNewTask} className="mt-2 w-full">{t.hubNew}</Button>}
-            </section>
-          ))}
+      <main className="studio-dashboard-main">
+        <div className="studio-dashboard-heading">
+          <h1>{hasWork ? copy.resume : t.hubTitle}</h1>
+          <p>{t.hubSubtitle}</p>
         </div>
-        <section className="mt-10" aria-labelledby="progress-title">
-          <h2 id="progress-title" className="text-xl font-extrabold">{t.cloudInProgress}</h2>
-          <CloudProjectList archive={false} onCount={setCloudCount} />
-          <GenerationList archive={false} onCount={setGenerationCount} />
-          {cloudCount === 0 && generationCount === 0 ? <p className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{t.cloudEmptyProgress}</p> : null}
+        <div className="studio-start-grid">
+          <section className="studio-resume" aria-label={hasWork ? copy.resume : copy.intro}>
+            <img src={hasWork && files[0]?.url ? files[0].url : heroCharacter} alt="" className="studio-resume-art" />
+            <div className="studio-resume-body">
+              <h2>{hasWork ? files[0].name : copy.intro}</h2>
+              <p>{hasWork ? t.hubFiles.replace('{n}', String(files.length)) : t.hubLocalizeDesc}</p>
+              <div className="studio-resume-actions">
+                <Button disabled={cloudSaving || startingNew} onClick={() => hasWork ? navigate(resumePath) : requestNewTask()}>
+                  {hasWork ? t.hubContinue : t.hubStart}<ArrowRight size={17} />
+                </Button>
+                {hasWork && <Button variant="ghost" disabled={cloudSaving || startingNew} onClick={requestNewTask}>{t.hubNew}</Button>}
+              </div>
+            </div>
+          </section>
+          <section className="studio-new-work" aria-labelledby="new-work-title">
+            <h2 id="new-work-title">{copy.newWork}</h2>
+            <div className="studio-work-menu">
+              {cards.map(({ title, Icon, run }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
+                <Icon aria-hidden="true" /><strong>{title}</strong>
+              </button>)}
+            </div>
+          </section>
+        </div>
+        <section className="studio-project-section" aria-labelledby="progress-title">
+          <h2 id="progress-title">{copy.projects}</h2>
+          <CloudProjectList archive={false} gallery onCount={setCloudCount} />
+          <GenerationList archive={false} gallery onCount={setGenerationCount} />
+          {cloudCount === 0 && generationCount === 0 ? <p className="mt-5 border-t border-gray-200 py-6 text-sm text-sub">{t.cloudEmptyProgress}</p> : null}
         </section>
       </main>
       {newTaskOpen ? <Modal onClose={() => { if (!startingNew) setNewTaskOpen(false) }} labelledBy="new-task-title" closeLabel={t.commonClose}>

@@ -10,19 +10,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClass: Record<Variant, string> = {
-  primary: 'bg-brand text-white hover:bg-brand-dark',
+  primary: 'bg-action text-white hover:bg-[#116b33]',
   secondary: 'bg-surface text-ink hover:bg-[#E8EBEE]',
   ghost: 'bg-transparent text-sub hover:bg-surface',
   // 네이버 공식 브랜드 그린(#03C75A) — 앱 고유의 --color-brand(#22c55e)와는 별개로 고정한다.
-  naver: 'bg-[#03C75A] text-white hover:bg-[#02b350]',
+  naver: 'bg-[#03C75A] text-ink hover:bg-[#02b350]',
   outline: 'border border-gray-200 bg-white text-ink hover:bg-surface',
 }
 
 const sizeClass: Record<Size, string> = {
-  xs: 'h-9 px-2 text-sm rounded-xl',
-  sm: 'h-9 px-4 text-sm rounded-xl',
-  md: 'h-11 px-5 text-[15px] rounded-xl',
-  lg: 'h-14 px-8 text-lg rounded-2xl',
+  xs: 'min-h-11 px-2 py-2 text-sm rounded-lg',
+  sm: 'min-h-11 px-4 py-2 text-sm rounded-lg',
+  md: 'min-h-11 px-5 py-2.5 text-[15px] rounded-lg',
+  lg: 'min-h-14 px-7 py-3 text-base rounded-xl',
 }
 
 export default function Button({
@@ -34,8 +34,8 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold transition-colors disabled:cursor-not-allowed disabled:bg-surface disabled:text-sub ${variantClass[variant]} ${sizeClass[size]} ${
-        glow ? 'shadow-[0_12px_32px_rgba(34,197,94,0.4)]' : ''
+      className={`inline-flex items-center justify-center gap-2 studio-button text-center leading-snug font-bold transition-colors disabled:cursor-not-allowed disabled:bg-surface disabled:text-sub ${variantClass[variant]} ${sizeClass[size]} ${
+        glow ? 'shadow-sm' : ''
       } ${className}`}
       {...props}
     />
