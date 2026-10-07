@@ -14,14 +14,14 @@ export default function NavMenu({ workspace = false }: { workspace?: boolean }) 
     <nav aria-label={legalUi[lang].navigation} className="flex items-center gap-1.5">
       <button
         onClick={() => navigate('/dashboard')}
-        className="rounded-xl px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-surface md:px-4 md:py-2 md:text-sm"
+        className="whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-surface md:px-4 md:py-2 md:text-sm"
       >
         {workspace ? t.hubDashboard : t.navStart}
       </button>
       <button
         type="button"
         onClick={() => navigate('/service')}
-        className="rounded-xl px-3 py-1.5 text-[13px] font-bold text-sub transition-colors hover:bg-surface hover:text-ink md:px-4 md:py-2 md:text-sm"
+        className="whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-bold text-sub transition-colors hover:bg-surface hover:text-ink md:px-4 md:py-2 md:text-sm"
       >
         {t.navService}
       </button>
@@ -32,7 +32,7 @@ export default function NavMenu({ workspace = false }: { workspace?: boolean }) 
         <button
           type="button"
           onClick={() => navigate('/login')}
-          className="rounded-xl bg-surface px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-[#E8EBEE] md:px-4 md:py-2 md:text-sm"
+          className="whitespace-nowrap rounded-xl bg-surface px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-[#E8EBEE] md:px-4 md:py-2 md:text-sm"
         >
           {t.navLogin}
         </button>
