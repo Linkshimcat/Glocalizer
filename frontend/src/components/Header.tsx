@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 export default function Header({ center, right, sticky = false, overlay = false }: HeaderProps) {
-  // 스크롤을 내렸을 때만 블러 배경이 떠오르도록 스크롤 위치를 추적한다.
+  // 스크롤 중에도 조작부가 선명하게 보이도록 흰 배경과 구분선을 유지한다.
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function Header({ center, right, sticky = false, overlay = false 
     <header
       className={`border-b transition-colors duration-300 ${sticky ? 'sticky top-0 z-30' : ''} ${
         sticky && scrolled
-          ? 'border-gray-100 bg-white/70 backdrop-blur-md'
+          ? 'border-gray-200 bg-white'
           : overlay
             ? 'border-gray-100 bg-white lg:border-transparent lg:bg-transparent'
             : 'border-gray-100 bg-white'

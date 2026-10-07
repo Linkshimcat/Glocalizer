@@ -44,6 +44,15 @@ function translation(sourceText: string) {
 }
 
 describe('runTranslationsForAsset multi-region behavior', () => {
+  it('persists the actual fallback model rather than the configured primary model', async () => {
+    const results = translation('고마워');
+    const entry = results.get('en')!;
+    results.set('en', { ...entry, execution: { provider: 'groq', model: 'actual-groq-model' } } as typeof entry);
+    provider.localizeBatch.mockResolvedValue(results);
+    await localizeRegionForLanguages(regions[0] as never, ['en'], { tone: 'funny', audience: 'teen', translationStyle: 'trendy', highQualityReview: false });
+    expect(translationRepo.upsertTranslation).toHaveBeenCalledWith(expect.objectContaining({ generationModel: 'actual-groq-model' }));
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue(regions as never);

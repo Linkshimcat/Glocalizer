@@ -136,6 +136,10 @@ export interface Dict {
   heroDesc: string
   heroCta: string
   heroReplay: string
+  landingVideoTitle: string
+  landingVideoDescription: string
+  landingVideoAutoHint: string
+  landingVideoManualHint: string
   beforeAfter: string
   cardTitle: string
   beforeLabel: string
@@ -426,6 +430,10 @@ export const translations: Record<SiteLang, Dict> = {
     heroDesc: '현지화, 검토, 생성까지\n이모티콘 작업을 한 곳에서 끝내요.',
     heroCta: '시작하기',
     heroReplay: '영상 처음부터 다시 보기',
+    landingVideoTitle: 'Glocalizer를 영상으로 만나 보세요',
+    landingVideoDescription: '아이디어가 이모티콘이 되고, 다른 언어로 이어지는 과정을 확인해 보세요.',
+    landingVideoAutoHint: '화면에 들어오면 음소거로 재생돼요. 재생 버튼과 탐색 막대로 직접 조작할 수 있어요.',
+    landingVideoManualHint: '재생 버튼을 눌러 영상을 확인해 보세요. 탐색 막대로 원하는 장면으로 이동할 수 있어요.',
     beforeAfter: 'Before → After',
     cardTitle: '한글 밈이 현지 표현이 돼요',
     beforeLabel: 'Before · 원본',
@@ -710,6 +718,10 @@ export const translations: Record<SiteLang, Dict> = {
     heroDesc: 'Localize, review, and generate your emoji — all in one place.',
     heroCta: 'Get started',
     heroReplay: 'Replay the video from the start',
+    landingVideoTitle: 'Meet Glocalizer in motion',
+    landingVideoDescription: 'See how an idea becomes an emoticon and finds its voice in other languages.',
+    landingVideoAutoHint: 'The video plays muted when in view. Use the playback controls to pause or seek.',
+    landingVideoManualHint: 'Press play to watch. Use the seek bar to explore any part of the video.',
     beforeAfter: 'Before → After',
     cardTitle: 'Korean memes become local expressions',
     beforeLabel: 'Before · Original',
@@ -994,6 +1006,10 @@ export const translations: Record<SiteLang, Dict> = {
     heroDesc: '現地化・確認・生成まで、スタンプ制作をこれひとつで完結。',
     heroCta: 'はじめる',
     heroReplay: '動画を最初から再生',
+    landingVideoTitle: '動画でGlocalizerを見てみましょう',
+    landingVideoDescription: 'アイデアがスタンプになり、他の言語へ届く流れをご覧ください。',
+    landingVideoAutoHint: '画面に入るとミュートで再生します。再生ボタンとシークバーで操作できます。',
+    landingVideoManualHint: '再生ボタンを押してご覧ください。シークバーで好きな場面に移動できます。',
     beforeAfter: 'Before → After',
     cardTitle: '韓国のミームがローカル表現になります',
     beforeLabel: 'Before · 原文',
@@ -1278,6 +1294,10 @@ export const translations: Record<SiteLang, Dict> = {
     heroDesc: '从本地化、检查到生成,一站搞定表情包制作。',
     heroCta: '开始使用',
     heroReplay: '从头播放视频',
+    landingVideoTitle: '通过视频认识 Glocalizer',
+    landingVideoDescription: '看看灵感如何变成表情，并用不同语言传递情感。',
+    landingVideoAutoHint: '视频进入视野时会静音播放。可以使用播放按钮和进度条暂停或跳转。',
+    landingVideoManualHint: '点击播放观看视频，使用进度条跳转到想看的画面。',
     beforeAfter: 'Before → After',
     cardTitle: '韩国梗变成本地表达',
     beforeLabel: 'Before · 原文',

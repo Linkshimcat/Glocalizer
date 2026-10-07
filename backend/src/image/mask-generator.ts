@@ -15,6 +15,8 @@ export interface FeatherMask {
 
 export interface TextMaskOptions {
   mode: 'transparent' | 'solid';
+  /** 복잡한 배경에서는 새 가로 확장을 억제해 기존 마스크 안전성 판정을 유지한다. */
+  growHorizontally?: boolean;
   backgroundColor?: { r: number; g: number; b: number };
   /**
    * 강한 그라데이션·노이즈 배경에서 위치별 배경 추정값과 노이즈 크기를 준다. 없으면 backgroundColor 하나와의
@@ -118,7 +120,7 @@ export function keepComponentsTouchingBox(
 /**
  * OCR bbox가 둥근 글자 획의 위·아래끝을 잘라내면(실측 2026-09-21: 큰 글자에서 획이 박스 밖으로
  * 6px 삐져나옴) 그 조각이 스캔 범위 밖이라 지워지지 않고 자투리로 남는다. 스캔 범위 안에서 이미
- * 글자로 확정된 픽셀에 8-이웃으로 이어진 글자색 픽셀만 위·아래로 maxGrow px까지 따라가 추가한다.
+ * 글자로 확정된 픽셀에 8-이웃으로 이어진 글자색 픽셀만 네 방향으로 maxGrow px까지 따라가 추가한다.
  * 이어진 획만 따라가고 거리도 제한하므로, 떨어져 있는 캐릭터·말풍선은 건드리지 않는다. in-place.
  */
 export function growTextBeyondScan(
@@ -128,17 +130,23 @@ export function growTextBeyondScan(
   scanRoi: PixelBox,
   isTextPixel: (pixelIndex: number) => boolean,
   maxGrow: number,
+  growHorizontally = true,
 ): void {
   const left = Math.max(0, Math.floor(scanRoi.x));
   const right = Math.min(width, Math.ceil(scanRoi.x + scanRoi.width));
   const scanTop = Math.max(0, Math.floor(scanRoi.y));
   const scanBottom = Math.min(height, Math.ceil(scanRoi.y + scanRoi.height));
+  const limitLeft = Math.max(0, left - (growHorizontally ? maxGrow : 0));
+  const limitRight = Math.min(width, right + (growHorizontally ? maxGrow : 0));
   const limitTop = Math.max(0, scanTop - maxGrow);
   const limitBottom = Math.min(height, scanBottom + maxGrow);
   const stack: number[] = [];
   for (const y of [scanTop, scanBottom - 1]) {
     if (y < 0 || y >= height) continue;
     for (let x = left; x < right; x += 1) if (foreground[y * width + x] === 255) stack.push(y * width + x);
+  }
+  for (const x of [left, right - 1]) {
+    for (let y = scanTop; y < scanBottom; y += 1) if (foreground[y * width + x] === 255) stack.push(y * width + x);
   }
   while (stack.length > 0) {
     const pixel = stack.pop() as number;
@@ -149,8 +157,8 @@ export function growTextBeyondScan(
         if (dx === 0 && dy === 0) continue;
         const nx = px + dx;
         const ny = py + dy;
-        if (nx < left || nx >= right || ny < limitTop || ny >= limitBottom) continue;
-        if (ny >= scanTop && ny < scanBottom) continue; // 스캔 범위 안은 이미 판정을 마쳤다.
+        if (nx < limitLeft || nx >= limitRight || ny < limitTop || ny >= limitBottom) continue;
+        if (nx >= left && nx < right && ny >= scanTop && ny < scanBottom) continue; // 스캔 범위 안은 이미 판정을 마쳤다.
         const index = ny * width + nx;
         if (foreground[index] === 255 || !isTextPixel(index)) continue;
         foreground[index] = 255;
@@ -303,16 +311,13 @@ export async function generateTextEraseMask(
 
   // 글자 획보다 훨씬 두꺼운 덩어리(캐릭터 몸통·면)는 글자가 아니다. 박스 윗변·아랫변에 살짝 걸친 캐릭터가
   // 스캔 범위 안에서는 얇은 조각처럼 보여 글자로 오인되는 것을 막는다. 두께 기준은 글자 높이에 비례한다
-  // (굵은 글꼴의 획도 글자 높이의 35%를 넘지 않는다).
-  const blobThickness = Math.max(10, Math.round(box.height * 0.35));
+  // (굵은 CJK 글꼴의 흰 외곽선까지 포함한 획을 캐릭터 면으로 오인하지 않도록 45% 여유를 둔다).
+  const blobThickness = Math.max(10, Math.round(box.height * (options.growHorizontally === false || model ? 0.35 : 0.45)));
   // 아래에서 스캔 범위 밖으로 획을 따라 자라는 거리(maxGrow)만큼 위아래로 넓혀서 덩어리를 찾는다.
   const maxGrow = Math.max(4, Math.min(24, Math.ceil(box.height * 0.16)));
-  const blobRoi = {
-    x: scanRoi.x,
-    y: Math.max(0, scanRoi.y - maxGrow),
-    width: scanRoi.width,
-    height: Math.min(imageHeight, scanRoi.y + scanRoi.height + maxGrow) - Math.max(0, scanRoi.y - maxGrow),
-  };
+  const growHorizontally = options.growHorizontally !== false && !model;
+  const expandedRoi = padAndClampBox(scanRoi, maxGrow, imageWidth, imageHeight);
+  const blobRoi = growHorizontally ? expandedRoi : { ...expandedRoi, x: scanRoi.x, width: scanRoi.width };
   // 두께를 재려면 범위 안 조각뿐 아니라 그 너머까지 봐야 한다(캐릭터 조각은 범위 안에선 얇아 보인다).
   const analysisLeft = Math.max(0, blobRoi.x - blobThickness);
   const analysisTop = Math.max(0, blobRoi.y - blobThickness);
@@ -351,20 +356,15 @@ export async function generateTextEraseMask(
 
   // 스캔 범위 위·아래로 삐져나간 획의 끝까지 이어 붙인다. 박스 높이에 비례하되 상한을 둬서
   // 몸통에 붙은 글자에서도 지나치게 번지지 않게 한다(scan 범위 자체는 캐릭터 보호 때문에 좁게 유지).
-  growTextBeyondScan(foreground, imageWidth, imageHeight, scanRoi, (pixel) => isTextAt(pixel) && !insideThickBlob(pixel), maxGrow);
-  const growTop = Math.max(0, scanRoi.y - maxGrow);
-  const growBottom = Math.min(imageHeight, scanRoi.y + scanRoi.height + maxGrow);
-  const grownRoi = { x: scanRoi.x, y: growTop, width: scanRoi.width, height: growBottom - growTop };
+  growTextBeyondScan(foreground, imageWidth, imageHeight, scanRoi, (pixel) => isTextAt(pixel) && !insideThickBlob(pixel), maxGrow, growHorizontally);
+  const grownRoi = blobRoi;
 
   // 안티에일리어싱 헤일로(잔상)까지 덮도록 dilation을 조금 더 준다. 분리된 캐릭터는 위의
   // 연결성분 필터가 이미 제거했으므로 확대해도 캐릭터를 갉아먹지 않는다.
   const dilationRadius = Math.max(3, Math.min(7, Math.round(Math.min(box.width, box.height) / 24)));
-  const expanded = dilateMask(foreground, imageWidth, imageHeight, dilationRadius, {
-    x: grownRoi.x,
-    y: Math.max(0, grownRoi.y - dilationRadius),
-    width: grownRoi.width,
-    height: Math.min(imageHeight, grownRoi.y + grownRoi.height + dilationRadius) - Math.max(0, grownRoi.y - dilationRadius),
-  });
+  const dilationRoi = padAndClampBox(grownRoi, dilationRadius, imageWidth, imageHeight);
+  const expanded = dilateMask(foreground, imageWidth, imageHeight, dilationRadius,
+    growHorizontally ? dilationRoi : { ...dilationRoi, x: grownRoi.x, width: grownRoi.width });
   const { data: blurred, info: blurInfo } = await sharp(Buffer.from(expanded), { raw: { width: imageWidth, height: imageHeight, channels: 1 } })
     .blur(1.2)
     .raw()

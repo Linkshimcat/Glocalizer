@@ -1,149 +1,103 @@
-import { useToast } from '../components/Toast'
-import { ArrowLeft, Check, Home } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Home } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import sparkleDownload from '../assets/GCFrontendUI/SparkleDownload.svg'
-import greenBackground from '../assets/LandingAssets/GreenBackground-web.webp'
-import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
 import Header from '../components/Header'
+import Modal from '../components/Modal'
+import PngPreview from '../components/PngPreview'
+import AILocalizationBadge from '../components/AILocalizationBadge'
 import UploadSpecBadge from '../components/UploadSpecBadge'
+import { useToast } from '../components/Toast'
 import { toDemoItems } from '../data/demo'
-import { DEFAULT_STYLE, resolveText } from '../lib/style'
+import { downloadBlob, exportFileName, imageStyleForItem, renderItemToPng, textOverlaysForItem, zipLocalizedItems } from '../lib/exportImage'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
-
-function StepIndicator() {
-  const { t } = useSiteLang()
-  return (
-    <div className="flex items-center gap-1 whitespace-nowrap text-[10px] font-semibold text-sub sm:gap-2 sm:text-xs md:text-sm">
-      <span>1 {t.stepUpload}</span>
-      <span>›</span>
-      <span>2 {t.stepEdit}</span>
-      <span>›</span>
-      <span className="text-brand-dark">3 {t.stepDownload}</span>
-    </div>
-  )
-}
+import { workflowCopy } from '../i18n/workflow'
 
 export default function Result() {
   const navigate = useNavigate()
   const toast = useToast()
-  const { t } = useSiteLang()
-  const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady, cloudSaving, flushCloudWork, selectedFileIds } = useUploads()
-  const localizationFinished = projectStatus?.status === 'completed' || projectStatus?.status === 'failed'
-  // 업로드 → AI 처리 → 에디터 다운로드를 완료하지 않고 주소로 직접 접근하는 경우를 막는다.
+  const { t, lang } = useSiteLang()
+  const w = workflowCopy[lang]
+  const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady, cloudSaving, flushCloudWork, selectedFileIds, outputPreset, recordDownload, lastDownload } = useUploads()
+  const [enlarged, setEnlarged] = useState<number | null>(null)
+  const [busy, setBusy] = useState(false)
+  const exporting = useRef(false)
+  const groups = useMemo(() => {
+    const languages = targetLangs.length ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
+    return languages.map(language => ({ language, items: toDemoItems(files.filter(file => selectedFileIds.includes(file.id)), language.code) }))
+  }, [files, selectedFileIds, targetLangs])
+  const entries = useMemo(() => groups.flatMap(group => group.items.map(item => ({ item, language: group.language }))), [groups])
+  const active = enlarged === null ? undefined : entries[enlarged]
+  useEffect(() => {
+    if (enlarged === null) return
+    const handle = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') setEnlarged(value => Math.max(0, (value ?? 0) - 1))
+      if (event.key === 'ArrowRight') setEnlarged(value => Math.min(entries.length - 1, (value ?? 0) + 1))
+    }
+    window.addEventListener('keydown', handle)
+    return () => window.removeEventListener('keydown', handle)
+  }, [enlarged, entries.length])
+  const redownload = async (entry?: typeof entries[number]) => {
+    if (exporting.current) return
+    exporting.current = true
+    setBusy(true)
+    try {
+      await flushCloudWork()
+      if (entry) {
+        const { item, language } = entry
+        const blob = await renderItemToPng(item, imageStyleForItem(item, language.code, styles), textOverlaysForItem(item, language.code, styles), outputPreset)
+        downloadBlob(blob, exportFileName(item.name, language.code, 'png'))
+        recordDownload('single', language.code)
+      } else {
+        const blob = await zipLocalizedItems(groups.map(group => ({ languageCode: group.language.code, items: group.items })), styles, outputPreset)
+        downloadBlob(blob, 'glocalizer_export.zip')
+        recordDownload('zip')
+      }
+      toast(w.downloadStarted, 'success')
+    } catch (error) { toast(error instanceof Error ? error.message : t.toastDownloadFail) }
+    finally { exporting.current = false; setBusy(false) }
+  }
   if (cloudSaving && files.length === 0) return <div role="status" className="p-8 text-center text-sub">{t.cloudLoading}</div>
-  if (files.length === 0 || !projectStatus) return <Navigate to="/localize" replace />
-  if (!localizationFinished || !resultReady) return <Navigate to="/editor" replace />
-  const languages = targetLangs.length > 0 ? targetLangs : [{ code: 'en', flag: '🇺🇸', label: 'English' }]
+  if (!files.length || !projectStatus) return <Navigate to="/localize" replace />
+  if (!['completed', 'failed'].includes(projectStatus.status) || !resultReady) return <Navigate to="/editor" replace />
 
-  const langLabel =
-    targetLangs.length > 0
-      ? targetLangs.map(l => `${l.flag} ${l.label}`).join(' · ')
-      : '🇺🇸 English'
-
-  return (
-    <div className="min-h-screen bg-white">
-      <Header right={<StepIndicator />} sticky />
-
-      <main className="mx-auto max-w-[880px] px-6 py-16">
-        {/* 완료 히어로 */}
-        <div
-          className="relative isolate flex min-h-[284px] flex-col items-center justify-center gap-5 rounded-[28px] bg-cover bg-center px-6 py-10 text-center before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-[32px] before:bg-[conic-gradient(from_120deg,rgba(34,197,94,0.72),rgba(45,212,191,0.55),rgba(125,211,252,0.5),rgba(244,114,182,0.42),rgba(250,204,21,0.32),rgba(34,197,94,0.72))] before:opacity-60 before:blur-2xl sm:px-8 sm:py-12"
-          style={{ backgroundImage: `url(${greenBackground})` }}
-        >
-          <span className="relative flex h-16 w-16 items-center justify-center">
-            {/* 퍼지는 링 */}
-            <span className="animate-success-ring absolute inset-0 rounded-full bg-brand" />
-            {/* 팝인되는 초록 원 */}
-            <span className="animate-success-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-brand shadow-[0_12px_32px_rgba(34,197,94,0.4)]">
-              <Check
-                className="animate-success-check h-8 w-8 text-white"
-                strokeWidth={3.5}
-              />
-            </span>
-          </span>
-          <div>
-            <h1 className="text-[32px] font-extrabold tracking-tight">
-              {t.resultDone}
-            </h1>
-            <p className="mt-2 text-[16px] font-medium text-[#4E5968]">
-              {t.resultDesc1.replace('{lang}', langLabel)}
-              <br />
-              {t.resultDesc2}
-            </p>
-          </div>
-        </div>
-        <p className="mt-2 text-right text-[10px] font-medium text-sub">
-          <a
-            href="https://www.magnific.com"
-            target="_blank"
-            rel="noreferrer"
-            className="underline underline-offset-2 transition-colors hover:text-ink"
-          >
-            designed by rawpixel.com - Magnific.com
-          </a>
-        </p>
-
-        {/* 결과 미리보기 */}
-        <section className="mt-12">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2>
-            <AILocalizationBadge />
-            <UploadSpecBadge />
-          </div>
-          <div className="mt-4 space-y-7">
-            {languages.map(language => {
-              const items = toDemoItems(files.filter(file => selectedFileIds.includes(file.id)), language.code)
-              return (
-                <section key={language.code}>
-                  <h3 className="text-sm font-extrabold">{language.flag} {language.label}</h3>
-                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-                    {items.map(item => (
-                      <div key={item.id} className="relative flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white px-3 py-5">
-                        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white"><Check className="h-3 w-3" strokeWidth={3.5} /></span>
-                        {item.url ? <img src={item.url} alt={item.name} className="h-12 w-12 object-contain" /> : <span className="text-4xl">{item.emoji}</span>}
-                        <span className="rounded-md bg-[#FFF9DB] px-2 py-0.5 text-[11px] font-bold text-[#92400E] line-through">{item.korean || t.resultNoText}</span>
-                        <span className="rounded-md bg-brand-soft px-2 py-0.5 text-center text-[11px] font-bold text-brand-dark">{resolveText(styles[item.id]?.[language.code] ?? DEFAULT_STYLE, item.suggestions)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* 하단 액션 */}
-        <div className="mt-14 flex flex-col gap-3 md:flex-row">
-          <Button
-            variant="secondary"
-            onClick={() => navigate('/editor')}
-            className="min-h-14 flex-1 md:min-h-0"
-          >
-            <ArrowLeft className="h-4 w-4" /> {t.resultBackEditor}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              navigate('/dashboard')
-            }}
-            className="min-h-14 flex-1 md:min-h-0"
-          >
-            <Home className="h-4 w-4" /> {t.hubDashboard}
-          </Button>
-          <Button
-            onClick={async () => {
-              try { await flushCloudWork(); resetWorkflow(); navigate('/localize') }
-              catch (error) { toast(error instanceof Error ? error.message : t.cloudSaveFailed) }
-            }}
-            className="min-h-14 flex-1 md:min-h-0"
-            glow
-          >
-            <img src={sparkleDownload} alt="" aria-hidden className="h-4 w-4" /> {t.resultRestart}
-          </Button>
-        </div>
-      </main>
-    </div>
-  )
+  return <div className="studio-result min-h-screen bg-white">
+    <Header right={<span className="text-xs font-bold text-brand-dark">3 · {t.stepDownload}</span>} sticky />
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+      <section className="studio-result-summary"><div>
+        <h1 className="text-2xl font-extrabold sm:text-3xl">{lastDownload ? w.downloadStarted : w.ready}</h1>
+        <p role="status" aria-live="polite" className="mt-3 text-sm text-sub">{busy ? w.preparing : lastDownload ? w.downloadHint : w.previewHint}</p>
+        </div><Button className="w-full shrink-0 sm:w-auto" disabled={busy || !entries.length} onClick={() => { void redownload() }}><Download className="h-4 w-4" />{w.downloadAgain} · ZIP</Button>
+      </section>
+      <section className="mt-8">
+        <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2><AILocalizationBadge /><UploadSpecBadge /></div>
+        <div className="mt-5 space-y-8">{groups.map(({ language, items }) => <section key={language.code}>
+          <h3 className="font-bold">{language.flag} {language.label}</h3>
+          <div className="studio-result-gallery mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{items.map(item => <article key={item.id} className="min-w-0 rounded-2xl border border-gray-200 bg-white p-3">
+            <PngPreview item={item} overlays={textOverlaysForItem(item, language.code, styles)} baseStyle={imageStyleForItem(item, language.code, styles)} preset={outputPreset} onEnlarge={() => setEnlarged(entries.findIndex(entry => entry.item.id === item.id && entry.language.code === language.code))} />
+            <p className="mt-2 truncate text-xs text-sub" title={item.name}>{item.name}</p>
+            {item.analysis?.needsManualCleanup && <button className="mt-2 w-full rounded-lg border border-amber-200 p-2 text-left text-xs font-bold text-amber-800" onClick={() => navigate(`/editor?cleanup=${encodeURIComponent(item.id)}`)}>{w.cleanupAction}</button>}
+          </article>)}</div>
+        </section>)}</div>
+      </section>
+      <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+        <Button variant="secondary" className="min-h-12 flex-1" onClick={() => navigate('/editor')}><ArrowLeft className="h-4 w-4" />{t.resultBackEditor}</Button>
+        <Button variant="secondary" className="min-h-12 flex-1" onClick={() => navigate('/dashboard')}><Home className="h-4 w-4" />{t.hubDashboard}</Button>
+        <Button className="min-h-12 flex-1" onClick={async () => { try { await flushCloudWork(); resetWorkflow(); navigate('/localize') } catch (error) { toast(error instanceof Error ? error.message : t.cloudSaveFailed) } }}>{t.resultRestart}</Button>
+      </div>
+    </main>
+    {active && enlarged !== null && <Modal onClose={() => setEnlarged(null)} closeLabel={w.close} labelledBy="result-preview-title" className="max-w-4xl">
+      <h2 id="result-preview-title" className="break-words pr-8 font-bold">{active.language.flag} {active.item.name} · {enlarged + 1}/{entries.length}</h2>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div><p className="mb-2 text-sm text-sub">{t.stepUpload}</p><img src={active.item.analysis?.originalUrl ?? active.item.url} alt={active.item.name} className="checkerboard max-h-[60dvh] w-full rounded-xl object-contain" /></div>
+        <div><p className="mb-2 text-sm text-sub">{w.preview}</p><PngPreview large item={active.item} overlays={textOverlaysForItem(active.item, active.language.code, styles)} baseStyle={imageStyleForItem(active.item, active.language.code, styles)} preset={outputPreset} /></div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <Button variant="outline" aria-label={w.previous} disabled={enlarged === 0} onClick={() => setEnlarged(enlarged - 1)}><ChevronLeft className="h-4 w-4" />{w.previous}</Button>
+        <Button disabled={busy} onClick={() => { void redownload(active) }}><Download className="h-4 w-4" />PNG</Button>
+        <Button variant="outline" aria-label={w.next} disabled={enlarged === entries.length - 1} onClick={() => setEnlarged(enlarged + 1)}>{w.next}<ChevronRight className="h-4 w-4" /></Button>
+      </div>
+    </Modal>}
+  </div>
 }

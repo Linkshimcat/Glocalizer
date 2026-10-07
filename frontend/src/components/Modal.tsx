@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 interface ModalProps {
@@ -7,15 +7,26 @@ interface ModalProps {
   children: ReactNode
   labelledBy?: string
   closeLabel: string
+  className?: string
 }
 
-export default function Modal({ onClose, children, labelledBy, closeLabel }: ModalProps) {
+export default function Modal({ onClose, children, labelledBy, closeLabel, className = 'max-w-md' }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null
+    if (!dialogRef.current?.contains(document.activeElement)) dialogRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
+      if (event.key === 'Tab') {
+        const targets = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]') ?? []).filter(node => node.getClientRects().length > 0)
+        const first = targets[0], last = targets.at(-1)
+        if (!first) { event.preventDefault(); dialogRef.current?.focus() }
+        else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first.focus() }
+      }
     }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('keydown', onKeyDown); previousFocus?.focus() }
   }, [onClose])
 
   // 모달이 떠 있는 동안 배경 페이지 스크롤을 막는다. iOS Safari는 overflow:hidden만으로는
@@ -55,11 +66,13 @@ export default function Modal({ onClose, children, labelledBy, closeLabel }: Mod
           바깥 컨테이너(overflow-y-auto)로 스크롤해서 볼 수 있다. */}
       <div className="flex min-h-full items-center justify-center p-4 py-8">
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-labelledby={labelledBy}
           onClick={event => event.stopPropagation()}
-          className="relative w-full max-w-md rounded-[28px] bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.2)] sm:p-8"
+          className={`relative w-full min-w-0 rounded-[28px] bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.2)] sm:p-8 ${className}`}
         >
           <button
             type="button"

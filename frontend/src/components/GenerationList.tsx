@@ -34,7 +34,7 @@ function GenerationListSkeleton({ label }: { label: string }) {
 /** 대시보드·보관함에서 현지화 목록과 한 섹션에 나란히 놓인다. onCount를 받으면 제목과 빈
  *  상태를 부모가 책임지므로, 여기서는 카드만 그리고 보이는 개수만 올려보낸다. 불러오지
  *  못했을 때 null을 보내면 부모가 "작업 없음"으로 잘못 단정하지 않는다. */
-export default function GenerationList({ archive = false, onCount, onLoadingChange, deferRender = false }: { archive?: boolean; onCount?: (count: number | null) => void; onLoadingChange?: (loading: boolean) => void; deferRender?: boolean }) {
+export default function GenerationList({ archive = false, onCount, onLoadingChange, deferRender = false, gallery = false }: { archive?: boolean; onCount?: (count: number | null) => void; onLoadingChange?: (loading: boolean) => void; deferRender?: boolean; gallery?: boolean }) {
   const { token } = useAuth()
   const { t, lang } = useSiteLang()
   const g = generationCopy(lang)
@@ -101,14 +101,14 @@ export default function GenerationList({ archive = false, onCount, onLoadingChan
   if (error) return <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>
   if (!visibleProjects.length) return onCount ? null : <p className="mt-4 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{g.empty}</p>
 
-  return <div className="mt-4 grid gap-4">
+  return <div className={gallery ? "studio-project-grid mt-4" : "mt-4 grid gap-4"}>
     {visibleProjects.map(project => {
       const completedImages = latestCompletedImages(project)
       const thumbnail = thumbnailImage(project)
       const pending = project.images.some(image => image.status === 'queued' || image.status === 'running')
-      return <article key={project.id} className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
-        <div className="flex min-w-0 flex-1 items-center gap-4">
-          <div className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
+      return <article key={project.id} className={gallery ? "studio-project-tile" : "flex min-w-0 flex-col gap-4 overflow-hidden rounded-xl border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6"}>
+        <div className={gallery ? "studio-project-info" : "flex min-w-0 flex-1 items-center gap-4"}>
+          <div className={`${gallery ? "studio-project-thumbnail" : "h-20 w-20 rounded-lg"} flex shrink-0 items-center justify-center overflow-hidden bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
           <div className="min-w-0">
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{archive ? g.statusCompleted : pending ? g.aiWorking : g.statusActive}</span>
             <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{project.name || project.prompt}</h3>
@@ -116,7 +116,7 @@ export default function GenerationList({ archive = false, onCount, onLoadingChan
             <p className="mt-1 text-xs text-sub">{project.day}</p>
           </div>
         </div>
-        <div className="flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
+        <div className={gallery ? "studio-project-actions" : "flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:shrink-0"}>
           <Button variant="outline" aria-label={`${project.name || project.prompt} ${t.cloudRename}`} disabled={deleting || renaming} onClick={() => { setRenameTarget(project); setRenameValue(project.name ?? '') }} className="flex-1 sm:flex-none"><Pencil className="h-4 w-4" />{t.cloudRename}</Button>
           <Button variant="outline" aria-label={`${project.name || project.prompt} ${t.cloudDelete}`} disabled={deleting || renaming} onClick={() => setDeleteTarget(project)} className="flex-1 text-red-600 hover:bg-red-50 sm:flex-none"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button>
           <Button onClick={() => navigate(`/generate?project=${project.id}`)} className="w-full sm:w-auto sm:flex-none"><ArrowRight className="h-4 w-4" />{archive ? t.cloudOpen : t.hubContinue}</Button>

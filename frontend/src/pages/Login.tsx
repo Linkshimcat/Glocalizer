@@ -9,6 +9,8 @@ import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useAuth } from '../store/AuthContext'
 import { buildNaverAuthUrl } from '../lib/naverAuth'
+import { safeLoginReturn, rememberLoginReturn } from '../lib/loginReturn'
+import { workflowCopy } from '../i18n/workflow'
 import { preloadGoogleLogin, startGoogleLogin } from '../lib/googleAuth'
 
 type Mode = 'login' | 'signup'
@@ -16,9 +18,10 @@ type Mode = 'login' | 'signup'
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const returnTo = ['/localize', '/generate'].includes(searchParams.get('next') ?? '') ? searchParams.get('next')! : '/dashboard'
-  const { t } = useSiteLang()
-  const { loginWithEmail, signupWithEmail, completeGoogleLogin } = useAuth()
+  const returnTo = safeLoginReturn(searchParams.get('next'))
+  const { t, lang } = useSiteLang()
+  const w = workflowCopy[lang]
+  const { loginWithEmail, signupWithEmail, completeGoogleLogin, isAuthenticated, checkingSession, sessionError, refreshUser } = useAuth()
   const toast = useToast()
 
   const [mode, setMode] = useState<Mode>('login')
@@ -39,6 +42,10 @@ export default function Login() {
       })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    if (isAuthenticated && !checkingSession && !sessionError) navigate(returnTo, { replace: true })
+  }, [isAuthenticated, checkingSession, sessionError, navigate, returnTo])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -65,7 +72,7 @@ export default function Login() {
       toast('네이버 로그인이 아직 설정되지 않았어요.')
       return
     }
-    sessionStorage.setItem('glocalizer:loginReturnTo', returnTo)
+    rememberLoginReturn(returnTo)
     window.location.href = url
   }
 
@@ -90,6 +97,9 @@ export default function Login() {
 
   const inputClass =
     'h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-[15px] font-medium text-ink outline-none transition-colors placeholder:text-sub focus:border-brand'
+
+  if (checkingSession) return <div role="status" className="p-8 text-center">{w.checkingSession}</div>
+  if (isAuthenticated && sessionError) return <div role="alert" className="mx-auto max-w-md p-8 text-center"><p>{w.sessionRetry}</p><Button className="mt-4" onClick={() => { void refreshUser() }}>{w.retry}</Button></div>
 
   return (
     <div className="flex min-h-screen flex-col bg-surface">

@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:workflows": "node scripts/check-workflows.mjs",
+    "check:public-pages": "node scripts/check-public-pages.mjs",
+    "check:studio": "node scripts/check-studio.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.2",

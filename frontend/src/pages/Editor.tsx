@@ -25,7 +25,12 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { frameTextEdits, type FrameTextEdit } from '../lib/frameText'
+import PngPreview from '../components/PngPreview'
+import Modal from '../components/Modal'
+import JapaneseSpeech from '../components/JapaneseSpeech'
+import { workflowCopy } from '../i18n/workflow'
 import Button from '../components/Button'
 import AuroraBackground from '../components/AuroraBackground'
 import Logo from '../components/Logo'
@@ -45,7 +50,6 @@ import {
   renderItemToPng,
   textOverlaysForItem,
   zipLocalizedItems,
-  type OutputPreset,
 } from '../lib/exportImage'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
@@ -272,6 +276,8 @@ function RangeRow({ label, min, max, value, suffix = '', onBegin, onLive }: Rang
 
 export default function Editor() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const cleanupRequest = searchParams.get('cleanup')
   const {
     files,
     selectedFileIds,
@@ -279,6 +285,8 @@ export default function Editor() {
     resetWorkflow,
     targetLangs,
     styles: savedStyles,
+    outputPreset,
+    setOutputPreset,
     saveStyle,
     recordDownload,
     markResultReady,
@@ -338,17 +346,10 @@ export default function Editor() {
   const toast = useToast()
   const { t, lang } = useSiteLang()
   const e = editorDict[lang]
+  const w = workflowCopy[lang]
 
   // AI 자동 배경 정리가 안 됐거나 OCR 문구 확인이 필요한 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도
   // 알려준다. OCR 검수 대상이어도 단색·투명 배경은 자동 정리되므로, 정리 실패와 별개로 검수 안내를 띄운다.
-  const manualCleanupWarnedIdRef = useRef<string | null>(null)
-  useEffect(() => {
-    const needsOcrReview = current.analysis?.needsManualOcrReview ?? false
-    if ((current.analysis?.needsManualCleanup || needsOcrReview) && manualCleanupWarnedIdRef.current !== current.id) {
-      manualCleanupWarnedIdRef.current = current.id
-      toast(needsOcrReview ? t.toastOcrManual : t.toastCleanupManual)
-    }
-  }, [current.id, current.analysis?.needsManualCleanup, current.analysis?.needsManualOcrReview, t.toastCleanupManual, t.toastOcrManual, toast])
 
   // 스타일 + undo/redo 히스토리
   const [style, setStyle] = useState<Style>(DEFAULT_STYLE)
@@ -394,10 +395,22 @@ export default function Editor() {
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const canvasViewportRef = useRef<HTMLDivElement>(null)
+  const [canvasDisplaySize, setCanvasDisplaySize] = useState(320)
+  useEffect(() => {
+    const viewport = canvasViewportRef.current
+    if (!viewport) return
+    const observer = new ResizeObserver(() => setCanvasDisplaySize(viewport.clientWidth))
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [isLoading, mobileCanvasTab])
+
   const [exportName, setExportName] = useState('glocalizer_export')
   const [exportFormat, setExportFormat] = useState<'PNG' | 'ZIP'>('ZIP')
   // 내보내기 규격은 프로젝트 전체(모든 이미지·언어)에 공통으로 적용한다.
-  const [outputPreset, setOutputPreset] = useState<OutputPreset>('default')
+  const [downloadPreviewOpen, setDownloadPreviewOpen] = useState(false)
+  const [batchUndo, setBatchUndo] = useState<{ language: string; project: string | undefined; edits: FrameTextEdit[] } | null>(null)
+  const cleanupToolsRef = useRef<HTMLElement>(null)
   const [ocrDraft, setOcrDraft] = useState('')
   const [selectionMode, setSelectionMode] = useState<SelectionMode | null>(null)
   const [selectionRect, setSelectionRect] = useState<NormalizedRect | null>(null)
@@ -412,6 +425,43 @@ export default function Editor() {
 
   const saveActiveStyle = (languageCode = activeLanguage.code) => {
     saveStyle(current.id, languageCode, style, activeRegion.id)
+  }
+
+  const applyTextToFrames = () => {
+    const text = resolveText(style, activeRegion.suggestions)
+    if (!text.trim()) return
+    const edits = frameTextEdits(items, activeLanguage.code, savedStyles, text, { fileId: current.id, regionId: activeRegion.id, style })
+    if (!edits.length) { toast(w.applyHint); return }
+    if (!current.analysis || current.analysis.regionId || current.textRegions?.length) saveActiveStyle()
+    for (const edit of edits) saveStyle(edit.fileId, activeLanguage.code, edit.style, edit.regionId)
+    const local = edits.find(edit => edit.fileId === current.id && styleKeyForRegion(current.id, edit.regionId, current.analysis?.regionId) === activeStyleKey)
+    if (local) { setStyle(local.style); setPast([]); setFuture([]) }
+    setBatchUndo({ language: activeLanguage.code, project: projectStatus?.projectId, edits })
+    toast(w.applied.replace('{n}', String(edits.length)), 'success')
+  }
+  const undoFrameText = () => {
+    if (!batchUndo || batchUndo.project !== projectStatus?.projectId) return
+    const liveEdits = frameTextEdits(items, batchUndo.language, savedStyles, '', { fileId: current.id, regionId: activeRegion.id, style })
+    for (const original of batchUndo.edits) {
+      const latest = liveEdits.find(edit => edit.fileId === original.fileId)
+      if (!latest || latest.regionId !== original.regionId) continue
+      const restored = { ...latest.style, customText: original.previousText }
+      saveStyle(original.fileId, batchUndo.language, restored, original.regionId)
+      if (original.fileId === current.id && batchUndo.language === activeLanguage.code && styleKeyForRegion(current.id, original.regionId, current.analysis?.regionId) === activeStyleKey) {
+        setStyle(restored); setPast([]); setFuture([])
+      }
+    }
+    setBatchUndo(null)
+    toast(w.undone, 'success')
+  }
+  const openCleanupTools = () => {
+    setMobileTab('스타일')
+    setMobileCanvasTab('미리보기')
+    setIsInspectorOpen(true)
+    setPreview(false)
+    setSelected(false)
+    setCleanupSelected(true)
+    window.setTimeout(() => cleanupToolsRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 100)
   }
 
   const selectRegion = (regionId: string) => {
@@ -489,6 +539,18 @@ export default function Editor() {
       setSelectedRegionId(textRegions[0]?.id ?? null)
     }
   }, [selectedRegionId, textRegions])
+  const consumedCleanupRequest = useRef<string | null>(null)
+  useEffect(() => {
+    if (!cleanupRequest || isLoading || consumedCleanupRequest.current === cleanupRequest) return
+    const idx = items.findIndex(item => item.id === cleanupRequest)
+    if (idx < 0) return
+    consumedCleanupRequest.current = cleanupRequest
+    selectItem(idx)
+    openCleanupTools()
+    // Run once per requested file; subsequent edits must stay in the user's selected frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleanupRequest, isLoading, items])
+
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
     if (currentIdx < items.length - 1) selectItem(currentIdx + 1)
@@ -661,7 +723,7 @@ export default function Editor() {
     beginGesture()
 
     const orig = style
-    const scale = zoom / 100
+    const scale = (zoom / 100) * (canvasDisplaySize / 320)
     const rect = boxRef.current?.getBoundingClientRect()
     const cx = rect ? rect.left + rect.width / 2 : e.clientX
     const cy = rect ? rect.top + rect.height / 2 : e.clientY
@@ -878,7 +940,7 @@ export default function Editor() {
   }
 
   const canvasZoomStyle = {
-    transform: `scale(${zoom / 100})`,
+    transform: `scale(${(zoom / 100) * (canvasDisplaySize / 320)})`,
     transformOrigin: 'center center',
   }
   const sourceWidth = current.analysis?.width ?? 1
@@ -890,6 +952,7 @@ export default function Editor() {
   /* ── 다운로드 ─────────────────────────────────────────────────── */
 
   const [busy, setBusy] = useState(false)
+  const exportInFlight = useRef(false)
   const completingDownloadRef = useRef(false)
   const langCode = activeLanguage.code
 
@@ -906,6 +969,8 @@ export default function Editor() {
   }
 
   const downloadCurrentPng = async () => {
+    if (exportInFlight.current) return
+    exportInFlight.current = true
     setBusy(true)
     completingDownloadRef.current = true
     try {
@@ -917,17 +982,21 @@ export default function Editor() {
       await markResultReady()
       downloadBlob(blob, exportFileName(current.name, langCode, 'png'))
       recordDownload('single', langCode)
+      toast(w.downloadStarted, 'success')
       markCurrentDone()
       navigate('/result')
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastPngFail)
     } finally {
+      exportInFlight.current = false
       setBusy(false)
     }
   }
 
   const downloadAllZip = async () => {
+    if (exportInFlight.current) return
+    exportInFlight.current = true
     setBusy(true)
     completingDownloadRef.current = true
     try {
@@ -941,12 +1010,14 @@ export default function Editor() {
       await markResultReady()
       downloadBlob(blob, `${exportName.trim() || 'glocalizer_export'}.zip`)
       recordDownload('zip')
+      toast(w.downloadStarted, 'success')
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
       navigate('/result')
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastZipFail)
     } finally {
+      exportInFlight.current = false
       setBusy(false)
     }
   }
@@ -956,6 +1027,8 @@ export default function Editor() {
       await downloadAllZip()
       return
     }
+    if (exportInFlight.current) return
+    exportInFlight.current = true
     setBusy(true)
     completingDownloadRef.current = true
     try {
@@ -965,12 +1038,14 @@ export default function Editor() {
       await markResultReady()
       downloadBlob(blob, exportFileName(current.name, langCode, 'png'))
       recordDownload('single', langCode)
+      toast(w.downloadStarted, 'success')
       markCurrentDone()
       navigate('/result')
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastDownloadFail)
     } finally {
+      exportInFlight.current = false
       setBusy(false)
     }
   }
@@ -1058,7 +1133,7 @@ export default function Editor() {
     <button
       onClick={() => setPreview(p => !p)}
       title={e.preview}
-      className={`flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-bold transition-colors ${
+      className={`flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-bold transition-colors ${
         preview ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'
       }`}
     >
@@ -1082,7 +1157,7 @@ export default function Editor() {
     <button
       onClick={() => setIsInspectorOpen(open => !open)}
       aria-expanded={isInspectorOpen}
-      className="hidden h-9 items-center gap-1.5 rounded-xl bg-surface px-3 text-sm font-bold text-ink lg:flex xl:hidden"
+      className="hidden min-h-11 items-center gap-1.5 rounded-xl bg-surface px-3 text-sm font-bold text-ink lg:flex xl:hidden"
     >
       <SlidersHorizontal className="h-4 w-4" /> {e.settings}
     </button>
@@ -1138,7 +1213,7 @@ export default function Editor() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white lg:h-screen">
+    <div className="studio-editor flex min-h-screen flex-col bg-white xl:h-screen">
       {cloudError && <div role="alert" className="flex flex-wrap items-center gap-3 bg-amber-50 px-4 py-3 text-sm text-amber-800"><span>{cloudError}</span><Button variant="outline" size="sm" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button></div>}
       {/* 상단 바 */}
       <div className="border-b border-gray-100">
@@ -1164,7 +1239,7 @@ export default function Editor() {
             <button
               onClick={() => navigate('/dashboard')}
               aria-label={e.backToDash}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -1197,11 +1272,11 @@ export default function Editor() {
             </div>
           )}
           {/* 2줄: 편집 도구 */}
-          <div className="flex items-center gap-1 px-3 pb-2 pt-1.5">
+          <div className="studio-canvas-toolbar flex items-center gap-1 px-3 pb-2 pt-1.5">
             {historyControls}
             <span className="mx-1 h-5 w-px bg-gray-200" />
             {previewControl}
-            <div className="flex-1" />
+            <div className="min-w-0 flex-1" />
             {pngControl}
           </div>
         </div>
@@ -1230,9 +1305,9 @@ export default function Editor() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col xl:grid xl:grid-cols-[192px_minmax(0,1fr)_288px] xl:overflow-hidden">
+      <div className="studio-editor-workspace flex flex-1 flex-col xl:grid xl:grid-cols-[220px_minmax(0,1fr)_320px] xl:overflow-hidden">
         {/* 파일 리스트 — 모바일에선 가로 스트립 */}
-        <aside className="flex flex-col border-b border-gray-100 xl:border-b-0 xl:border-r">
+        <aside className="studio-editor-frames flex flex-col border-b border-gray-100 xl:border-b-0 xl:border-r">
           <p className="px-4 pb-2 pt-3 text-xs font-bold text-sub xl:pt-4">
             {e.emojiLabel} {items.length}{e.countUnit} · {e.doneLabel} {doneIds.length}{e.countUnit}
           </p>
@@ -1259,15 +1334,16 @@ export default function Editor() {
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-bold">
+                    <span title={item.name}
+                    className="block truncate text-[13px] font-bold">
                       {item.name}
                     </span>
                     <span
-                      className={`text-[11px] font-semibold ${
-                        done ? 'text-brand-dark' : active ? 'text-[#F59E0B]' : 'text-sub'
+                      className={`block truncate text-[11px] font-semibold ${
+                        done ? 'text-brand-dark' : active ? 'text-amber-800' : 'text-sub'
                       }`}
                     >
-                      {done ? e.statusDone : active ? e.statusEditing : e.statusWait}
+                      {item.analysis?.needsManualCleanup ? w.cleanupAction : done ? e.statusDone : active ? e.statusEditing : e.statusWait}
                     </span>
                   </span>
                   {done && (
@@ -1312,8 +1388,17 @@ export default function Editor() {
         </aside>
 
         {/* 원본 / 변환 미리보기 캔버스 */}
-        <section className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-surface pb-24 pt-5 lg:gap-5 lg:pb-8 lg:pt-5">
-          <div className="flex w-full max-w-[800px] items-center justify-between gap-3 px-5">
+        <section className="studio-editor-canvas relative min-w-0 flex flex-col items-center justify-center gap-4 overflow-hidden bg-surface pb-24 pt-5 lg:gap-5 lg:pb-8 lg:pt-5">
+          <div className="w-full max-w-[800px] px-4">
+            {(current.analysis?.needsManualCleanup || activeRegion.needsManualCleanup) && <div role="status" className="mb-3 flex flex-wrap items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+              <details className="min-w-0 flex-1 text-amber-900"><summary className="min-h-11 cursor-pointer py-2 font-bold">{w.cleanup}</summary><p className="pb-2">{w.cleanupHint}</p></details>
+              <button type="button" className="min-h-11 rounded-lg bg-white px-3 font-bold text-amber-900" onClick={openCleanupTools}>{w.cleanupAction}</button>
+            </div>}
+            <button type="button" onClick={() => setDownloadPreviewOpen(true)} className="mb-3 min-h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold">{w.preview}</button>
+            {busy && <p role="status" aria-live="polite" className="mb-3 text-center text-sm text-sub">{w.preparing}</p>}
+            {cloudError && <div role="alert" className="mb-3 text-sm text-red-700"><p>{cloudError}</p><button type="button" className="min-h-11 font-bold underline" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{w.retry}</button></div>}
+          </div>
+          <div className="flex w-full max-w-[800px] flex-wrap items-center justify-between gap-3 px-5">
             <span className="text-xs font-bold text-sub">
               {activeRegion.korean ? e.foundText : e.enterTextTitle}
             </span>
@@ -1339,10 +1424,11 @@ export default function Editor() {
               )}
             </div>
           </div>
-          <div className="grid w-full max-w-[760px] grid-cols-2 gap-2 px-4 lg:hidden">
+          <div className="studio-tool-tabs grid w-full max-w-[480px] grid-cols-2 gap-2 px-2">
             {(['원본', '미리보기'] as const).map(tab => (
               <button
                 key={tab}
+                aria-pressed={mobileCanvasTab === tab}
                 onClick={() => setMobileCanvasTab(tab)}
                 className={`h-10 rounded-xl text-sm font-bold transition-colors ${
                   mobileCanvasTab === tab
@@ -1355,30 +1441,30 @@ export default function Editor() {
             ))}
           </div>
 
-          <div className="grid w-full max-w-[800px] grid-cols-1 gap-5 px-5 lg:grid-cols-2 lg:gap-6">
+          <div className="grid w-full max-w-[800px] grid-cols-1 gap-5 px-4">
             {/* 좌측: 원본과 감지 위치 */}
-            <article className={`${mobileCanvasTab === '원본' ? 'block' : 'hidden'} lg:block`}>
+            <article className={`${mobileCanvasTab === '원본' ? 'block' : 'hidden'}`}>
               <div className="mb-2 flex h-8 items-center justify-between gap-2">
                 <p className="text-sm font-extrabold text-ink">{e.original}</p>
                 <div className="flex gap-1">
                   <button
                     onClick={() => toggleAreaSelection('reselect')}
                     aria-pressed={selectionMode === 'reselect'}
-                    className={`flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-colors ${selectionMode === 'reselect' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
+                    className={`flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm font-bold transition-colors ${selectionMode === 'reselect' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
                   >
                     <ScanText className="h-3.5 w-3.5" /> {e.reselectArea}
                   </button>
                   <button
                     onClick={() => toggleAreaSelection('add')}
                     aria-pressed={selectionMode === 'add'}
-                    className={`flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-colors ${selectionMode === 'add' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
+                    className={`flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm font-bold transition-colors ${selectionMode === 'add' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
                   >
                     <Plus className="h-3.5 w-3.5" /> {e.addCaption}
                   </button>
                 </div>
               </div>
-              <div className="mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl bg-white sm:h-[340px] sm:w-[340px]">
-                <div className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
+              <div ref={mobileCanvasTab === '원본' ? canvasViewportRef : undefined} className="studio-canvas-stage bg-white">
+                <div className="studio-logical-canvas relative flex shrink-0 items-center justify-center" style={canvasZoomStyle}>
                   {current.url ? (
                     <div className="absolute inset-0 flex items-center justify-center p-2">
                       <div
@@ -1435,10 +1521,10 @@ export default function Editor() {
             </article>
 
             {/* 우측: 변환 미리보기와 편집 제스처 */}
-            <article className={`${mobileCanvasTab === '미리보기' ? 'block' : 'hidden'} lg:block`}>
+            <article className={`${mobileCanvasTab === '미리보기' ? 'block' : 'hidden'}`}>
               <div className="mb-2 flex h-8 items-center justify-center"><p className="text-sm font-extrabold text-ink">{e.canvasPreview}</p></div>
-              <div className="checkerboard mx-auto h-[320px] w-[320px] overflow-hidden rounded-3xl sm:h-[340px] sm:w-[340px]">
-                <div ref={cleanupPreviewRef} onPointerDown={() => { setSelected(false); setCleanupSelected(false) }} className="relative flex h-full w-full items-center justify-center transition-transform duration-200" style={canvasZoomStyle}>
+              <div ref={mobileCanvasTab === '미리보기' ? canvasViewportRef : undefined} className="studio-canvas-stage checkerboard">
+                <div ref={cleanupPreviewRef} onPointerDown={() => { setSelected(false); setCleanupSelected(false) }} className="studio-logical-canvas relative flex shrink-0 items-center justify-center" style={canvasZoomStyle}>
                   {current.url ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
                       <img src={current.url} alt={`${current.name} 변환 미리보기`} draggable={false} className="h-full w-full select-none object-contain" style={{ transform: `scale(${style.imageScale / 100})` }} />
@@ -1543,7 +1629,7 @@ export default function Editor() {
             <button
               onClick={goNext}
               disabled={currentIdx === items.length - 1}
-              className="rounded-xl bg-brand px-3.5 py-2 text-xs font-bold text-white disabled:bg-gray-200 disabled:text-gray-400"
+              className="rounded-lg bg-brand px-3.5 py-2 text-sm font-bold text-white disabled:bg-gray-200 disabled:text-gray-400"
             >
               {e.next} →
             </button>
@@ -1561,16 +1647,17 @@ export default function Editor() {
 
         {/* 컨트롤 패널 — 중간 화면에서는 슬라이드 패널 */}
         <aside
-          className={`relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
+          className={`studio-editor-inspector relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
             isInspectorOpen ? 'lg:translate-x-0' : 'lg:translate-x-full'
           }`}
         >
           <div className="-mb-2">
             <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-200 lg:hidden" />
-            <div className="mt-4 grid grid-cols-3 gap-2 lg:mt-0">
+            <div className="studio-editor-tabs mt-4 grid grid-cols-3 gap-2 lg:mt-0">
               {(['번역', '폰트', '스타일'] as const).map(tab => (
                 <button
                   key={tab}
+                  aria-pressed={mobileTab === tab}
                   onClick={() => setMobileTab(tab)}
                   className={`h-10 rounded-xl border-2 text-sm font-bold transition-colors ${
                     mobileTab === tab
@@ -1633,7 +1720,7 @@ export default function Editor() {
                 <button
                   onClick={() => void retryActiveTranslation()}
                   disabled={retryingRegionId === activeRegion.id}
-                  className="mt-2 flex h-9 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-extrabold text-white disabled:opacity-50"
+                  className="mt-2 flex min-h-11 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-extrabold text-white disabled:opacity-50"
                 >
                   {retryingRegionId === activeRegion.id && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
                   {retryingRegionId === activeRegion.id ? e.retryingTranslation : e.retryTranslation}
@@ -1673,6 +1760,7 @@ export default function Editor() {
                 )
               })}
             </div>
+            {activeLanguage.code === 'ja' && <JapaneseSpeech text={resolveText(style, activeRegion.suggestions)} itemKey={`${current.id}:${activeRegion.id}:${activeLanguage.code}`} />}
             {/* 직접 입력 */}
             <p className="mt-4 text-[11px] font-semibold text-sub">
               {e.customHint}
@@ -1689,6 +1777,11 @@ export default function Editor() {
                   : 'border-gray-100 bg-white focus:border-brand'
               }`}
             />
+            {items.length > 1 && <div className="mt-3">
+              <button type="button" disabled={!resolveText(style, activeRegion.suggestions).trim() || busy} onClick={applyTextToFrames} className="min-h-11 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold disabled:opacity-40">{w.applyAll}</button>
+              <p className="mt-2 text-xs text-sub">{w.applyHint}</p>
+              {batchUndo?.language === activeLanguage.code && batchUndo.project === projectStatus?.projectId && <button type="button" onClick={undoFrameText} className="mt-2 min-h-11 text-sm font-bold text-brand-dark underline">{w.undoAll}</button>}
+            </div>}
           </section>
 
           {/* ── 폰트 탭 ── */}
@@ -2095,7 +2188,7 @@ export default function Editor() {
             </div>
           </section>
 
-          <section className={tabClass('스타일')}>
+          <section ref={cleanupToolsRef} className={tabClass('스타일')}>
             <div className="flex items-center justify-between">
               <PanelTitle>{e.eraseOriginal}</PanelTitle>
               <Toggle
@@ -2246,6 +2339,16 @@ export default function Editor() {
           </div>
         </div>
       )}
+      {downloadPreviewOpen && <Modal onClose={() => setDownloadPreviewOpen(false)} closeLabel={w.close} labelledBy="editor-png-preview" className="max-w-4xl">
+        <h2 id="editor-png-preview" className="pr-8 font-bold">{w.preview} · {activeLanguage.label}</h2>
+        <p className="mt-2 text-sm text-sub">{w.previewHint}</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div><p className="mb-2 text-sm text-sub">{e.original}</p><img src={current.analysis?.originalUrl ?? current.url} alt={current.name} className="checkerboard max-h-[60dvh] w-full rounded-xl object-contain" /></div>
+          <PngPreview large item={current} overlays={canvasOverlays} baseStyle={style} preset={outputPreset} />
+        </div>
+        <div className="mt-4 flex flex-wrap justify-between gap-2"><Button variant="outline" disabled={currentIdx === 0} onClick={goPrev}>{w.previous}</Button><Button disabled={busy} onClick={downloadCurrentPng}>PNG</Button><Button variant="outline" disabled={currentIdx === items.length - 1} onClick={goNext}>{w.next}</Button></div>
+      </Modal>}
+
     </div>
   )
 }

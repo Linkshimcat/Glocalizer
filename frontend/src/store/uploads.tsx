@@ -11,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { OUTPUT_PRESETS, type OutputPreset } from '../lib/exportImage'
 import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
 import { pickFontByStyle } from '../data/demo'
@@ -157,6 +158,9 @@ interface UploadState {
   cloudSaving: boolean
   cloudError: string | null
   /** 파일·언어별 에디터 편집 상태 — 결과 페이지 다운로드에서 재사용 */
+  lastDownload: 'single' | 'zip' | null
+  outputPreset: OutputPreset
+  setOutputPreset: (preset: OutputPreset) => void
   styles: StylesByLanguage
   saveStyle: (id: string, languageCode: string, style: Style, regionId?: string | null) => void
   /** 이모티콘 변환 완주(다운로드) 기록 — 실패해도 실제 다운로드 경험엔 영향 없음(fire-and-forget) */
@@ -194,6 +198,17 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(null)
   const [projectResults, setProjectResults] = useState<ProjectResults | null>(null)
   const [resultReady, setResultReady] = useState(false)
+  const [lastDownload, setLastDownload] = useState<'single' | 'zip' | null>(null)
+  const [outputPreset, updateOutputPreset] = useState<OutputPreset>('default')
+  useEffect(() => {
+    const stored = loadSession<Record<string, OutputPreset>>('exportPresets', {})[projectId ?? '']
+    updateOutputPreset(stored && stored in OUTPUT_PRESETS ? stored : 'default')
+    setLastDownload(null)
+  }, [projectId])
+  const setOutputPreset = useCallback((preset: OutputPreset) => {
+    updateOutputPreset(preset)
+    if (projectId) saveSession('exportPresets', { ...loadSession<Record<string, OutputPreset>>('exportPresets', {}), [projectId]: preset })
+  }, [projectId])
   const [processingError, setProcessingError] = useState<string | null>(null)
 
   const resetWorkflow = useCallback(() => {
@@ -210,6 +225,8 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setProjectStatus(null)
     setProjectResults(null)
     setResultReady(false)
+    updateOutputPreset('default')
+    setLastDownload(null)
     setProcessingError(null)
     try {
       for (const key of [...WORKFLOW_SESSION_KEYS, 'cloudProjectId']) sessionStorage.removeItem(SESSION_PREFIX + key)
@@ -266,6 +283,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   }, [files, projectId, projectToken, t.cloudSaveFailed])
 
   const recordDownload = useCallback((kind: 'single' | 'zip', languageCode?: string) => {
+    setLastDownload(kind)
     if (!projectId || !projectToken) return
     void recordDownloadApi(projectId, projectToken, kind, languageCode).catch(() => {
       // 카운팅 실패가 실제 다운로드 경험을 막으면 안 됨 — 조용히 무시
@@ -576,6 +594,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       resetWorkflow,
       resultReady,
       markResultReady,
+      lastDownload,
+      outputPreset,
+      setOutputPreset,
       styles,
       saveStyle,
       recordDownload,
@@ -607,6 +628,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       resetWorkflow,
       resultReady,
       markResultReady,
+      lastDownload,
+      outputPreset,
+      setOutputPreset,
       styles,
       saveStyle,
       recordDownload,

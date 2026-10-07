@@ -1,5 +1,5 @@
 import { setApiAccountToken } from '../lib/api'
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AuthApiError,
   changePassword as apiChangePassword,
@@ -53,6 +53,8 @@ interface AuthState {
   user: AuthUser | null
   token: string | null
   isAuthenticated: boolean
+  checkingSession: boolean
+  sessionError: boolean
   loginWithEmail: (email: string, password: string) => Promise<void>
   signupWithEmail: (email: string, password: string, name?: string) => Promise<void>
   completeNaverLogin: (code: string, state: string) => Promise<void>
@@ -71,10 +73,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(loadStoredToken)
   const [user, setUser] = useState<AuthUser | null>(loadStoredUser)
 
+  const [checkingSession, setCheckingSession] = useState(() => Boolean(loadStoredToken()))
+  const [sessionError, setSessionError] = useState(false)
+  const tokenRef = useRef(token)
+  tokenRef.current = token
+  const refreshInFlight = useRef<{ token: string; promise: Promise<void> } | null>(null)
+
   useEffect(() => { setApiAccountToken(token) }, [token])
 
   const applySession = useCallback((nextToken: string, nextUser: AuthUser) => {
     setApiAccountToken(nextToken)
+    tokenRef.current = nextToken
+    setCheckingSession(false)
+    setSessionError(false)
     setToken(nextToken)
     setUser(nextUser)
     persistSession(nextToken, nextUser)
@@ -102,27 +113,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setApiAccountToken(null)
+    tokenRef.current = null
+    setCheckingSession(false)
+    setSessionError(false)
     setToken(null)
     setUser(null)
     persistSession(null, null)
   }, [])
 
   const refreshUser = useCallback(async () => {
-    if (!token) return
-    try {
-      const { user: freshUser } = await fetchCurrentUser(token)
-      setUser(freshUser)
-      persistSession(token, freshUser)
-    } catch (error) {
-      // 토큰 만료/무효화 시에는 조용히 로그아웃 처리한다.
-      if (error instanceof AuthApiError) {
-        setApiAccountToken(null)
-        setToken(null)
-        setUser(null)
-        persistSession(null, null)
+    if (!token) { setCheckingSession(false); return }
+    if (refreshInFlight.current?.token === token) return refreshInFlight.current.promise
+    const request = (async () => {
+      try {
+        const { user: freshUser } = await fetchCurrentUser(token)
+        if (tokenRef.current !== token) return
+        setUser(freshUser)
+        persistSession(token, freshUser)
+        setSessionError(false)
+      } catch (error) {
+        if (tokenRef.current !== token) return
+        if (error instanceof AuthApiError && error.status === 401) {
+          logout()
+        } else {
+          // A temporary server/network failure must not erase a valid stored session.
+          setSessionError(true)
+        }
+      } finally {
+        if (tokenRef.current === token) setCheckingSession(false)
       }
-    }
-  }, [token])
+    })()
+    refreshInFlight.current = { token, promise: request }
+    try { await request } finally { if (refreshInFlight.current?.promise === request) refreshInFlight.current = null }
+  }, [token, logout])
 
   useEffect(() => {
     if (!token) return
@@ -157,6 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
     await apiDeleteAccount(token)
     setApiAccountToken(null)
+    tokenRef.current = null
+    setCheckingSession(false)
+    setSessionError(false)
     setToken(null)
     setUser(null)
     persistSession(null, null)
@@ -166,6 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     token,
     isAuthenticated: Boolean(token && user),
+    checkingSession,
+    sessionError,
     loginWithEmail,
     signupWithEmail,
     completeNaverLogin,
@@ -175,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateProfile,
     changePassword,
     deleteAccount,
-  }), [user, token, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile, changePassword, deleteAccount])
+  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile, changePassword, deleteAccount])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

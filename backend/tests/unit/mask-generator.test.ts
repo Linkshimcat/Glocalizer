@@ -13,6 +13,17 @@ function pixelBuffer(background: [number, number, number, number], text: [number
 }
 
 describe('generateTextEraseMask', () => {
+  it('follows a connected horizontal stroke beyond the scan edge without erasing a detached character', async () => {
+    const w = 120, h = 80;
+    const raw = Buffer.alloc(w * h * 4, 255);
+    for (let y = 28; y < 31; y++) for (let x = 30; x < 71; x++) raw.set([0, 0, 0, 255], (y * w + x) * 4);
+    for (let y = 24; y < 37; y++) for (let x = 82; x < 94; x++) raw.set([0, 0, 0, 255], (y * w + x) * 4);
+    const buffer = await sharp(raw, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+    const mask = await generateTextEraseMask(buffer, { x: 20, y: 20, width: 40, height: 20 }, w, h, { mode: 'solid', backgroundColor: { r: 255, g: 255, b: 255 } });
+    expect(mask.data[29 * w + 70]).toBeLessThan(40);
+    expect(mask.data[29 * w + 87]).toBeGreaterThan(240);
+  });
+
   it('keeps a solid background while targeting only pixels different from it', async () => {
     const buffer = await sharp(pixelBuffer([255, 255, 255, 255], [20, 20, 20, 255]), { raw: { width, height, channels: 4 } }).png().toBuffer();
     const mask = await generateTextEraseMask(buffer, { x: 8, y: 8, width: 4, height: 4 }, width, height, { mode: 'solid', backgroundColor: { r: 255, g: 255, b: 255 } });

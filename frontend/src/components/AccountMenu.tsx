@@ -89,7 +89,7 @@ export default function AccountMenu() {
         aria-label={t.accountMenu}
         aria-expanded={open}
         aria-haspopup="true"
-        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand text-sm font-bold text-white transition-opacity hover:opacity-90"
+        className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-action text-sm font-bold text-white transition-opacity hover:opacity-90"
       >
         {user.avatarUrl ? (
           <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
@@ -104,7 +104,7 @@ export default function AccountMenu() {
           className="absolute right-0 top-[calc(100%+10px)] z-40 w-64 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
         >
           <div className="flex items-center gap-3 px-4 py-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-base font-bold text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-action text-base font-bold text-white">
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               ) : (
@@ -184,7 +184,7 @@ export default function AccountMenu() {
             <button type="button" onClick={() => setFeedbackOpen(false)} disabled={feedbackSending} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
               {t.accountCancel}
             </button>
-            <button type="button" onClick={onSubmitFeedback} disabled={feedbackSending} className="flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+            <button type="button" onClick={onSubmitFeedback} disabled={feedbackSending} className="flex items-center gap-1.5 rounded-full bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
               {feedbackSending && <Loader2 className="h-4 w-4 animate-spin" />}
               {feedbackSending ? t.feedbackSending : t.feedbackSubmit}
             </button>

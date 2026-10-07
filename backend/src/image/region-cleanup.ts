@@ -64,7 +64,7 @@ export async function cleanRegionPixels(input: RegionCleanupInput): Promise<Regi
     // 로컬 명암 기반 마스크가 두꺼운 글자·작은 이미지에서 실패하면 배경 대표색과 다른 연결성분 마스크를
     // 보조 후보로 검사한다. 둘 다 안전하지 않으면 원본 보존.
     const colorMask = adaptiveSafe ? null : await generateTextEraseMask(
-      originalBuffer, bbox, width, height, { mode: 'solid', backgroundColor: stats.medianColor }, decoded,
+      originalBuffer, bbox, width, height, { mode: 'solid', backgroundColor: stats.medianColor, growHorizontally: false }, decoded,
     );
     const selectedMask = adaptiveSafe
       ? adaptive.mask

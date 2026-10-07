@@ -55,6 +55,8 @@ generationRouter.post('/generation/projects/:id/images',asyncHandler(async(req,r
 generationRouter.post('/generation/projects/:id/plan',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id);const project=await ownedGeneration(id,requireAuth(req).sub);
  if(project.status!=='active'||!project.confirmed) throw new AppError('INVALID_REQUEST',undefined,'대표 캐릭터를 먼저 확정해주세요.');
+ // A lost response must not charge for another plan or replace the user's saved edits.
+ if(project.plan?.length===23) {res.json({plan:project.plan});return;}
  const suggested=await suggestStickerPlan(project.prompt);
  const completed=unwrapList<GenerationImage>(await supabase.from('generation_images').select().eq('project_id',id).eq('status','completed').order('created_at',{ascending:false}),'생성 결과 조회 실패');
  const existingBySlot=new Map<number,GenerationImage>();

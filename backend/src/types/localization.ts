@@ -43,6 +43,8 @@ export interface RecommendedStyle {
 }
 
 export interface TranslationResult {
+  /** Internal provenance; persisted as generationModel, not added to public result responses. */
+  execution?: { provider: string; model: string };
   sourceText: string;
   targetLanguage: TargetLanguage;
   candidates: TranslationCandidate[];

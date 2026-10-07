@@ -13,6 +13,8 @@ vi.mock('../../src/config/env.js', () => ({
     GROQ_API_KEY: 'g',
     GROQ_MODEL: 'm',
     TRANSLATION_PROVIDER: 'openai',
+    LOG_LEVEL: 'silent',
+    NODE_ENV: 'test',
   },
 }));
 

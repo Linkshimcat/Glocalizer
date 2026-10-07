@@ -37,7 +37,7 @@ export default function Archive() {
   const handleGenerationLoading = useCallback((loading: boolean) => setGenerationLoading(loading), [])
   const loading = cloudLoading || generationLoading
   if (!isAuthenticated) return <Navigate to={enteredAuthenticated.current ? '/' : '/login'} replace />
-  return <div className="min-h-screen bg-[#FAFBFC]">
+  return <div className="studio-archive min-h-screen bg-[#FAFBFC]">
     <Header center={<NavMenu workspace />} sticky />
     <main className="layout-app py-10 sm:py-16">
       <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>

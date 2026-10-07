@@ -33,12 +33,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[60] flex flex-col items-center gap-2 px-4">
         {toasts.map(t => (
           <div
             key={t.id}
             role="alert"
-            className="animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-2xl border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]"
+            className="animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-xl border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]"
           >
             <span
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${

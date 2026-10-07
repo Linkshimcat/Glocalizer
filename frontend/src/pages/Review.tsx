@@ -170,7 +170,7 @@ export default function Review() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="studio-review min-h-screen bg-white">
       <Header center={<button type="button" onClick={() => navigate('/dashboard')} className="rounded-xl px-3 py-2 text-sm font-bold text-sub hover:bg-surface">{t.hubDashboard}</button>} sticky />
 
       <main className="layout-app pb-24 pt-10 sm:py-16">
@@ -282,7 +282,7 @@ export default function Review() {
             )}
 
             {selectedKeys.length > 0 && (
-              <section className="mt-10 overflow-hidden rounded-3xl border border-brand/15 bg-gradient-to-br from-brand-soft via-white to-white p-5 sm:p-7">
+              <section className="mt-10 overflow-hidden rounded-xl border border-brand/15 bg-gradient-to-br from-brand-soft via-white to-white p-5 sm:p-7">
                 <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                   <div>
                     <div className="flex items-center gap-2 text-brand-dark"><BrainCircuit className="h-5 w-5" /><h2 className="text-lg font-bold">{t.reviewAiTitle}</h2></div>

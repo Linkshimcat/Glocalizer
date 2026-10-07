@@ -167,7 +167,7 @@ export default function Localize() {
   const canStart = isAuthenticated && !starting && selectedCount > 0 && targetLangs.length > 0
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="studio-localize min-h-screen bg-white">
       <Header center={<button type="button" onClick={() => navigate('/dashboard')} className="rounded-xl px-3 py-2 text-sm font-bold text-sub hover:bg-surface">{t.hubDashboard}</button>} right={<StepIndicator />} sticky />
 
       <main className="layout-app pb-32 pt-10 sm:py-16 lg:pb-16">
@@ -196,10 +196,10 @@ export default function Localize() {
           role="button"
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter') { if (isAuthenticated) inputRef.current?.click(); else navigate('/login?next=/localize') } }}
-          className={`dropzone-aurora relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-[28px] border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-[32px] before:bg-[conic-gradient(from_120deg,rgba(34,197,94,0.72),rgba(45,212,191,0.55),rgba(125,211,252,0.5),rgba(244,114,182,0.42),rgba(250,204,21,0.32),rgba(34,197,94,0.72))] before:opacity-0 before:blur-2xl before:transition-opacity before:duration-500 sm:px-8 sm:py-16 ${
+          className={`studio-upload relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-xl border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 sm:px-8 sm:py-16 ${
             dragging
-              ? 'border-brand bg-brand-soft before:opacity-75'
-              : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70 hover:before:opacity-55'
+              ? 'border-brand bg-brand-soft'
+              : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70 '
           }`}
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft">
@@ -224,7 +224,7 @@ export default function Localize() {
               variant="outline"
               onClick={e => {
                 e.stopPropagation()
-                isAuthenticated ? setShowSamplePicker(true) : navigate('/login?next=/localize')
+                if (isAuthenticated) setShowSamplePicker(true); else navigate('/login?next=/localize')
               }}
             >
               {t.sampleTryLabel}

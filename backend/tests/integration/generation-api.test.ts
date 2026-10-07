@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 vi.mock('../../src/repositories/user.repository.js', () => ({ findUserById: vi.fn() }));
-vi.mock('../../src/services/generation.service.js', () => ({ ownedGeneration: vi.fn(), generationWorkspace: vi.fn(), enqueueGeneration: vi.fn(), captionSticker: vi.fn(), suggestStickerCaptions: vi.fn(), saveGeneratedCaption: vi.fn(), saveSampleCaptions: vi.fn() }));
+vi.mock('../../src/services/generation.service.js', () => ({ ownedGeneration: vi.fn(), generationWorkspace: vi.fn(), enqueueGeneration: vi.fn(), captionSticker: vi.fn(), suggestStickerCaptions: vi.fn(), saveGeneratedCaption: vi.fn(), saveSampleCaptions: vi.fn(), suggestStickerPlan: vi.fn(), saveGenerationPlan: vi.fn() }));
 const { createApp } = await import('../../src/app.js');
 const { signAuthToken } = await import('../../src/utils/jwt.js');
 const users = await import('../../src/repositories/user.repository.js');
@@ -12,6 +12,20 @@ const id = '00000000-0000-4000-8000-000000000002';
 const auth = `Bearer ${signAuthToken({ sub: owner })}`;
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(users.findUserById).mockResolvedValue({ id: owner, email: 'yunjae14278@naver.com' } as never); vi.mocked(service.suggestStickerCaptions).mockResolvedValue(['안녕!']); });
 describe('private generation API', () => {
+  it('reuses a saved plan after a lost response without another AI call', async () => {
+    const plan = Array.from({ length: 23 }, (_, index) => ({ slot: index + 1, pose: 'wave', caption: '안녕' }));
+    vi.mocked(service.ownedGeneration).mockResolvedValue({ id, status: 'active', confirmed: true, plan } as never);
+    const result = await request(app).post(`/api/v1/generation/projects/${id}/plan`).set('Authorization', auth);
+    expect(result.status).toBe(200);
+    expect(result.body.plan).toEqual(plan);
+    expect(service.suggestStickerPlan).not.toHaveBeenCalled();
+  });
+  it('rejects plan creation before confirmation without an AI call', async () => {
+    vi.mocked(service.ownedGeneration).mockResolvedValue({ id, status: 'active', confirmed: false, plan: [] } as never);
+    const result = await request(app).post(`/api/v1/generation/projects/${id}/plan`).set('Authorization', auth);
+    expect(result.status).toBe(400);
+    expect(service.suggestStickerPlan).not.toHaveBeenCalled();
+  });
   it('requires JWT authentication', async () => { expect((await request(app).get('/api/v1/generation/config')).status).toBe(401); });
   it('allows any existing logged-in account', async () => {
     vi.mocked(users.findUserById).mockResolvedValue({ id: owner, email: 'other@example.com' } as never);

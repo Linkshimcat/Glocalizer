@@ -25,7 +25,7 @@ export default function Support() {
         }
       />
       <main className="layout-app flex flex-1 items-start justify-center py-10 sm:py-16">
-        <article className="w-full max-w-3xl rounded-[28px] border border-gray-200/70 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.04)] sm:p-10">
+        <article className="w-full max-w-3xl rounded-xl border border-gray-200/70 bg-white p-6 sm:p-10">
           <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
           <h1 className="mt-3 text-[30px] font-extrabold tracking-tight text-ink sm:text-[38px]">{copy.supportTitle}</h1>
           <p className="mt-3 text-base leading-7 text-sub">{copy.supportDescription}</p>
@@ -34,7 +34,7 @@ export default function Support() {
             <p className="mt-2 text-sm leading-6 text-sub">{copy.supportEmailHint}</p>
             <a
               href={`mailto:${LEGAL_CONTACT}`}
-              className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-brand-dark"
+              className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-action px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-brand-dark"
             >
               {LEGAL_CONTACT}
             </a>

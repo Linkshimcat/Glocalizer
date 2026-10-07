@@ -38,7 +38,7 @@ function ProjectListSkeleton({ label }: { label: string }) {
 /** onCount를 받으면 제목과 빈 상태를 부모가 책임진다. 생성 목록과 한 섹션에 나란히 놓일 때
  *  "작업 없음" 문구가 두 번 뜨지 않게 하기 위함이고, 불러오지 못했을 때는 null을 올려보내
  *  부모가 작업이 없다고 잘못 단정하지 않게 한다. */
-export default function CloudProjectList({ archive, onCount, onLoadingChange, deferRender = false }: { archive: boolean; onCount?: (count: number | null) => void; onLoadingChange?: (loading: boolean) => void; deferRender?: boolean }) {
+export default function CloudProjectList({ archive, onCount, onLoadingChange, deferRender = false, gallery = false }: { archive: boolean; onCount?: (count: number | null) => void; onLoadingChange?: (loading: boolean) => void; deferRender?: boolean; gallery?: boolean }) {
   const { user, token } = useAuth()
   const { t, lang } = useSiteLang()
   const { openCloudProject, resultReady, cloudSaving, files, flushCloudWork, projectStatus, resetWorkflow } = useUploads()
@@ -115,13 +115,13 @@ export default function CloudProjectList({ archive, onCount, onLoadingChange, de
   if (error) return <div role="alert" className="mt-5"><p className="text-sm text-sub">{t.cloudListFailed}</p><Button variant="outline" className="mt-3" onClick={() => setRetry(value => value + 1)}>{t.cloudRetry}</Button></div>
   if (!projects.length) return onCount ? null : <p className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p>
 
-  return <div className="mt-4 grid gap-4">
+  return <div className={gallery ? "studio-project-grid mt-4" : "mt-4 grid gap-4"}>
     {projects.map(project => {
       const status = project.resultReady ? t.hubResult : project.status === 'created' ? t.hubUpload : project.status === 'processing' ? t.hubProcessing : project.status === 'failed' ? t.hubFailed : t.hubEditing
       const currentDraft = project.id === projectStatus?.projectId && projectStatus.status === 'created'
-      return <article key={project.id} className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
-        <div className="flex min-w-0 flex-1 items-center gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface">{project.thumbnailUrl ? <img src={project.thumbnailUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain" /> : <Globe2 className="h-7 w-7 text-sub" />}</div>
+      return <article key={project.id} className={gallery ? "studio-project-tile" : "flex min-w-0 flex-col gap-4 overflow-hidden rounded-xl border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6"}>
+        <div className={gallery ? "studio-project-info" : "flex min-w-0 flex-1 items-center gap-4"}>
+          <div className={`${gallery ? "studio-project-thumbnail" : "h-20 w-20 rounded-lg"} flex shrink-0 items-center justify-center overflow-hidden bg-surface`}>{project.thumbnailUrl ? <img src={project.thumbnailUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain" /> : <Globe2 className="h-7 w-7 text-sub" />}</div>
           <div className="min-w-0">
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{status}</span>
             <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{currentDraft && files[0]?.name ? files[0].name : project.name}</h3>
@@ -129,7 +129,7 @@ export default function CloudProjectList({ archive, onCount, onLoadingChange, de
             <p className="mt-1 text-xs text-sub">{t.cloudRecent} · {new Date(project.updatedAt).toLocaleDateString(lang)}</p>
           </div>
         </div>
-        <div className="flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:shrink-0">
+        <div className={gallery ? "studio-project-actions" : "flex min-w-0 flex-wrap gap-2 sm:flex-nowrap sm:shrink-0"}>
           <Button variant="outline" aria-label={`${project.name} ${t.cloudRename}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => { setRenameTarget(project); setRenameValue(project.name) }} className="flex-1 sm:flex-none"><Pencil className="h-4 w-4" />{t.cloudRename}</Button>
           <Button variant="outline" aria-label={`${project.name} ${t.cloudDelete}`} disabled={opening !== null || cloudSaving || renaming} onClick={() => setDeleteTarget(project)} className="flex-1 text-red-600 hover:bg-red-50 sm:flex-none"><Trash2 className="h-4 w-4" />{t.cloudDelete}</Button>
           <Button disabled={opening !== null || cloudSaving} onClick={() => { void open(project.id) }} className="w-full sm:w-auto sm:flex-none">{opening === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{archive ? t.cloudOpen : t.hubContinue}</Button>

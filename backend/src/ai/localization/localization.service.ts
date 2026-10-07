@@ -99,7 +99,7 @@ export async function localizeRegionForLanguages(
         generationCandidates: result.candidates,
         finalCandidates: result.candidates,
         recommendedStyle: result.recommendedStyle,
-        generationModel: provider.model,
+        generationModel: result.execution?.model ?? provider.model,
         promptVersion: LOCALIZATION_PROMPT_VERSION,
       });
 
