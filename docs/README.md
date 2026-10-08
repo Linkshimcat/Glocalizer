@@ -6,6 +6,7 @@
 | --- | --- |
 | [api.md](api.md) | Backend REST API endpoint 목록과 인증 규칙 |
 | [ocr-benchmark-2026-07-25.md](ocr-benchmark-2026-07-25.md) | 이모티콘 12장 처리 benchmark와 재시도 설정 근거 |
+| [openai-groq-render-setup.md](openai-groq-render-setup.md) | OpenAI·Groq 실측 키와 Render 백엔드 연결 안내 |
 
 ## 로컬 보관 (Git 미포함)
 

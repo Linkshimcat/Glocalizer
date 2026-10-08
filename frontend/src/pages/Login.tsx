@@ -207,7 +207,7 @@ export default function Login() {
               {googlePreparing ? t.loginGooglePreparing : googleSubmitting ? t.loginGoogleProcessing : t.loginGoogleCta}
             </Button>
             <Button type="button" variant="naver" size="lg" onClick={handleNaverLogin} className="w-full">
-              <NaverIcon className="h-4 w-4" />
+              <NaverIcon className="h-[18px] w-[18px]" />
               {t.loginNaverCta}
             </Button>
           </div>
