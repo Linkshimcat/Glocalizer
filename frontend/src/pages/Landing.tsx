@@ -91,7 +91,7 @@ export default function Landing() {
               </div>
 
               <div className="flex w-full flex-col gap-6 lg:max-w-[900px] lg:justify-self-end lg:self-center">
-                <div className="overflow-hidden rounded-[24px] border border-black/[0.06] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+                <div className="overflow-hidden rounded-panel border border-black/[0.06] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
                   <video
                     ref={videoRef}
                     src={motionGraphic}

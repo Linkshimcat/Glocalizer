@@ -26,7 +26,6 @@ import { getLandingShowcases, type LandingShowcase } from '../lib/api'
 import type { Dict, SiteLang } from '../i18n/translations'
 
 type SceneCopy = {
-  kicker: string
   title: string
   description: string
   linkLabel: string
@@ -71,19 +70,16 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "workflowDescription": "필요한 단계부터 시작할 수 있습니다.",
     "scenes": [
       {
-        "kicker": "01",
         "title": "이모티콘 생성",
         "description": "캐릭터와 표정 설명으로 이모티콘을 생성합니다.",
         "linkLabel": "생성 시작하기"
       },
       {
-        "kicker": "02",
         "title": "다국어 현지화",
         "description": "한국어 문구를 영어·일본어·중국어로 현지화합니다.",
         "linkLabel": "현지화 시작하기"
       },
       {
-        "kicker": "03",
         "title": "출시 전 검토",
         "description": "OGQ 규격과 이미지·문구를 확인합니다.",
         "linkLabel": "검토 시작하기"
@@ -115,19 +111,16 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "workflowDescription": "Start with the step you need.",
     "scenes": [
       {
-        "kicker": "01",
         "title": "Sticker creation",
         "description": "Generate stickers from character and expression descriptions.",
         "linkLabel": "Start creating"
       },
       {
-        "kicker": "02",
         "title": "Caption localization",
         "description": "Adapt Korean captions into English, Japanese and Chinese.",
         "linkLabel": "Start localizing"
       },
       {
-        "kicker": "03",
         "title": "Pre-release review",
         "description": "Check OGQ specifications, images and captions.",
         "linkLabel": "Start reviewing"
@@ -159,19 +152,16 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "workflowDescription": "必要なステップから始められます。",
     "scenes": [
       {
-        "kicker": "01",
         "title": "スタンプ生成",
         "description": "キャラクターと表情の説明からスタンプを生成します。",
         "linkLabel": "生成を始める"
       },
       {
-        "kicker": "02",
         "title": "多言語ローカライズ",
         "description": "韓国語の文言を英語・日本語・中国語に変換します。",
         "linkLabel": "ローカライズを始める"
       },
       {
-        "kicker": "03",
         "title": "公開前チェック",
         "description": "OGQの規格と画像・文言を確認します。",
         "linkLabel": "チェックを始める"
@@ -203,19 +193,16 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "workflowDescription": "从需要的步骤开始。",
     "scenes": [
       {
-        "kicker": "01",
         "title": "表情生成",
         "description": "根据角色和表情描述生成图片。",
         "linkLabel": "开始生成"
       },
       {
-        "kicker": "02",
         "title": "多语言本地化",
         "description": "将韩语文案转换为英语、日语和中文。",
         "linkLabel": "开始本地化"
       },
       {
-        "kicker": "03",
         "title": "发布前检查",
         "description": "检查OGQ规格、图片和文案。",
         "linkLabel": "开始检查"
@@ -501,7 +488,7 @@ export default function LandingRemake() {
         <h2>{copy.scenes[index].title.split('\n').map(line => <span key={line}>{line}</span>)}</h2>
         <div>{copy.scenes[index].description}</div>
         <div className="remake-scene-progress" aria-hidden>
-          {copy.scenes.map((item, step) => <span key={item.kicker} data-active={step <= index} />)}
+          {copy.scenes.map((item, step) => <span key={item.title} data-active={step <= index} />)}
         </div>
       </div>
       <div className="remake-device-wrap">
@@ -558,7 +545,7 @@ export default function LandingRemake() {
           <div ref={workflowGridRef} className="remake-workflow-grid" data-motion-ready="true">
             {copy.scenes.map((item, index) => (
               <article
-                key={item.kicker}
+                key={item.title}
                 data-visible={workflowVisible[index]}
                 data-active={activeWorkflowIndex === index}
                 style={{ '--workflow-delay': `${index * 120}ms` } as CSSProperties}

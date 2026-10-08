@@ -15,7 +15,7 @@ function GenerationListSkeleton({ label }: { label: string }) {
     <div role="status" aria-label={label} aria-busy="true" className="mt-4 grid gap-4">
       <span className="sr-only">{label}</span>
       {Array.from({ length: 1 }, (_, index) => (
-        <div key={index} aria-hidden="true" className="flex animate-pulse flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 motion-reduce:animate-none sm:flex-row sm:items-center sm:p-6">
+        <div key={index} aria-hidden="true" className="flex animate-pulse flex-col gap-4 rounded-panel border border-gray-200/70 bg-white p-5 motion-reduce:animate-none sm:flex-row sm:items-center sm:p-6">
           <div className="flex min-w-0 flex-1 items-center gap-4">
             <div className="h-20 w-20 shrink-0 rounded-panel bg-brand-soft/70" />
             <div className="min-w-0 flex-1">
@@ -106,11 +106,11 @@ export default function GenerationList({ archive = false, onCount, onLoadingChan
       const completedImages = latestCompletedImages(project)
       const thumbnail = thumbnailImage(project)
       const pending = project.images.some(image => image.status === 'queued' || image.status === 'running')
-      return <article key={project.id} className={gallery ? "studio-project-tile" : "flex min-w-0 flex-col gap-4 overflow-hidden rounded-xl border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6"}>
+      return <article key={project.id} className={gallery ? "studio-project-tile" : "flex min-w-0 flex-col gap-4 overflow-hidden rounded-panel border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6"}>
         <div className={gallery ? "studio-project-info" : "flex min-w-0 flex-1 items-center gap-4"}>
           <div className={`${gallery ? "studio-project-thumbnail" : "h-20 w-20 rounded-lg"} flex shrink-0 items-center justify-center overflow-hidden bg-brand-soft ${pending ? 'sticker-shimmer' : ''}`}>{thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Sparkles className="h-7 w-7 text-brand-dark" />}</div>
           <div className="min-w-0">
-            <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{archive ? g.statusCompleted : pending ? g.aiWorking : g.statusActive}</span>
+            <span className="rounded-badge bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-dark">{archive ? g.statusCompleted : pending ? g.aiWorking : g.statusActive}</span>
             <h3 className="mt-2 line-clamp-2 font-bold [overflow-wrap:anywhere]">{project.name || project.prompt}</h3>
             <p className="mt-1 text-sm text-sub">{completedImages.length}/24 {g.progress}</p>
             <p className="mt-1 text-xs text-sub">{project.day}</p>

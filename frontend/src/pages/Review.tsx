@@ -260,7 +260,7 @@ export default function Review() {
                               <div className="relative aspect-square">
                                 <img src={sticker.thumbnailUrl} alt={sticker.title ?? ''} loading="lazy" className="h-full w-full object-contain p-2" />
                                 {sticker.animated && (
-                                  <span className="absolute right-1.5 top-1.5 rounded-full bg-ink/70 px-2 py-0.5 text-[10px] font-bold text-white">{t.reviewAnimatedBadge}</span>
+                                  <span className="absolute right-1.5 top-1.5 rounded-badge bg-ink/70 px-2 py-0.5 text-[10px] font-bold text-white">{t.reviewAnimatedBadge}</span>
                                 )}
                               </div>
                               {(sticker.title || categoryLabel) && (

@@ -417,7 +417,7 @@ export default function Localize() {
         )}
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 rounded-t-[20px] border-t border-gray-100 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-20 rounded-t-panel border-t border-gray-100 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
         <Button
           size="md"
           glow={canStart}

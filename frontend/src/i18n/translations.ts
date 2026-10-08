@@ -341,7 +341,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     hubDashboard: "작업실",
     hubTitle: "작업실",
-    hubSubtitle: '이모티콘의 제작부터 현지화와 출시 준비까지, Glocalizer와 함께해요.',
+    hubSubtitle: "이모티콘 생성·현지화·출시 전 검토를 지원합니다.",
     hubLocalize: '이모티콘 현지화',
     hubLocalizeDesc: "한국어 문구를 영어·일본어·중국어로 변환합니다.",
     hubReview: 'OGQ 출시 검토',
@@ -631,7 +631,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     hubDashboard: "Studio",
     hubTitle: "Studio",
-    hubSubtitle: 'Create, localize, and prepare your emoticons for release with Glocalizer.',
+    hubSubtitle: "Create stickers. Localize captions. Review before release.",
     hubLocalize: 'Emoticon localization',
     hubLocalizeDesc: "Adapt Korean captions into English, Japanese and Chinese.",
     hubReview: 'OGQ release review',
@@ -921,7 +921,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     hubDashboard: "スタジオ",
     hubTitle: "スタジオ",
-    hubSubtitle: '制作から翻訳、リリース準備まで、Glocalizerと一緒に。',
+    hubSubtitle: "スタンプ生成・ローカライズ・公開前チェックを支援します。",
     hubLocalize: 'スタンプの現地化',
     hubLocalizeDesc: "韓国語の文言を英語・日本語・中国語に変換します。",
     hubReview: 'OGQリリース確認',
@@ -1211,7 +1211,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     hubDashboard: "工作室",
     hubTitle: "工作室",
-    hubSubtitle: '与Glocalizer一起制作、本地化表情并准备发布。',
+    hubSubtitle: "支持表情生成、多语言本地化和发布前检查。",
     hubLocalize: '表情本地化',
     hubLocalizeDesc: "将韩语文案转换为英语、日语和中文。",
     hubReview: 'OGQ发布检查',

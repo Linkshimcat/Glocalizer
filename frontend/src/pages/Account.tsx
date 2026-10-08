@@ -209,7 +209,7 @@ export default function Account() {
               <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={onPickPhoto} />
             </div>
             {!editing && (
-              <button type="button" onClick={startEditing} className="shrink-0 rounded-full border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface">
+              <button type="button" onClick={startEditing} className="shrink-0 rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface">
                 {t.accountEdit}
               </button>
             )}
@@ -277,10 +277,10 @@ export default function Account() {
 
           {editing && (
             <div className="mt-8 flex justify-end gap-2">
-              <button type="button" onClick={cancelEditing} disabled={saving} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
+              <button type="button" onClick={cancelEditing} disabled={saving} className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
                 {t.accountCancel}
               </button>
-              <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-full bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+              <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {t.accountSave}
               </button>
@@ -299,7 +299,7 @@ export default function Account() {
                 <button
                   type="button"
                   onClick={startChangingPassword}
-                  className="shrink-0 rounded-full border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface"
+                  className="shrink-0 rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface"
                 >
                   {t.accountPasswordChangeCta}
                 </button>
@@ -354,10 +354,10 @@ export default function Account() {
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
-                  <button type="button" onClick={cancelChangingPassword} disabled={passwordSaving} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
+                  <button type="button" onClick={cancelChangingPassword} disabled={passwordSaving} className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
                     {t.accountCancel}
                   </button>
-                  <button type="submit" disabled={passwordSaving} className="flex items-center gap-1.5 rounded-full bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+                  <button type="submit" disabled={passwordSaving} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
                     {passwordSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t.accountPasswordSubmit}
                   </button>
@@ -390,7 +390,7 @@ export default function Account() {
           <button
             type="button"
             onClick={openDeleteModal}
-            className="mt-5 rounded-full border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
+            className="mt-5 rounded-control border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
           >
             {t.accountDeleteButton}
           </button>
@@ -439,7 +439,7 @@ export default function Account() {
                 <button
                   type="button"
                   onClick={() => setDeleteModalOpen(false)}
-                  className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface"
+                  className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface"
                 >
                   {t.accountCancel}
                 </button>
@@ -447,7 +447,7 @@ export default function Account() {
                   type="button"
                   disabled={!ackDataLoss || !ackResignup}
                   onClick={() => { void onConfirmDelete() }}
-                  className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-control bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {t.accountDeleteConfirmCta}
                 </button>

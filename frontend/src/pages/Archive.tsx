@@ -8,7 +8,7 @@ import { useAuth } from '../store/AuthContext'
 function ArchiveSkeleton({ label }: { label: string }) {
   return <div role="status" aria-label={label} aria-busy="true" className="mt-4 grid gap-4">
     <span className="sr-only">{label}</span>
-    {Array.from({ length: 2 }, (_, index) => <div key={index} aria-hidden="true" className="flex animate-pulse flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 motion-reduce:animate-none sm:flex-row sm:items-center sm:p-6">
+    {Array.from({ length: 2 }, (_, index) => <div key={index} aria-hidden="true" className="flex animate-pulse flex-col gap-4 rounded-panel border border-gray-200/70 bg-white p-5 motion-reduce:animate-none sm:flex-row sm:items-center sm:p-6">
       <div className="flex min-w-0 flex-1 items-center gap-4">
         <div className="h-20 w-20 shrink-0 rounded-panel bg-brand-soft/70" />
         <div className="min-w-0 flex-1">

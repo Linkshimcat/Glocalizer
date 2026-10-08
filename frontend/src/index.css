@@ -20,6 +20,7 @@
   --radius-control: 6px;
   --radius-panel: 8px;
   --radius-dialog: 12px;
+  --radius-badge: 4px;
 }
 
 html {

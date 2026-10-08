@@ -1266,7 +1266,7 @@ export default function Editor() {
           {/* 번역 대상 언어 배지 (모바일) */}
           {targetLangs.length > 0 && (
             <div className="px-3 pt-1.5">
-              <span className="block truncate rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-brand-dark">
+              <span className="block truncate rounded-badge bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-brand-dark">
                 {activeLanguage.flag} {activeLanguage.label} {e.editingSuffix}
               </span>
             </div>
@@ -1287,7 +1287,7 @@ export default function Editor() {
           <span className="h-5 w-px bg-gray-200" />
           <span className="text-sm font-semibold text-sub">{current.name}</span>
           {targetLangs.length > 0 && (
-            <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">
+            <span className="rounded-badge bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">
               {activeLanguage.flag} {activeLanguage.label} {e.editingSuffix}
             </span>
           )}
@@ -1647,7 +1647,7 @@ export default function Editor() {
 
         {/* 컨트롤 패널 — 중간 화면에서는 슬라이드 패널 */}
         <aside
-          className={`studio-editor-inspector relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
+          className={`studio-editor-inspector relative z-10 -mt-6 flex flex-col gap-7 rounded-t-panel bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:top-[var(--site-header-height)] lg:bottom-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
             isInspectorOpen ? 'lg:translate-x-0' : 'lg:translate-x-full'
           }`}
         >
@@ -2316,7 +2316,7 @@ export default function Editor() {
 
       {selectionDraft && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-ink/25 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-panel bg-white p-5 shadow-xl">
+          <div className="w-full max-w-md rounded-dialog bg-white p-5 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-ink">{e.detectedAreaTitle}</h2>
