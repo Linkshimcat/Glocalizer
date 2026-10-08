@@ -11,6 +11,7 @@ The landing page keeps the original character, translation strip, video and work
 - The original 1920×1080, approximately 18.6-second video keeps its native controls and unfiltered 16:9 presentation, capped at 1120px. It plays muted when at least half visible and pauses outside the viewport. Reduced motion requires manual playback.
 - Three scrolling device scenes, workflow entrances, conditional comparison cases and the animated OGQ gallery remain. Empty or failed OGQ responses show a localized retry action instead of the reference JPG. Successful retries restore the gallery entrance effect.
 - All six Korean device captures reflect the current workspace UI. Phone content clears the camera cutout; the editor inspector at 1024px clears the shared header.
+- Section spacing is more compact: workflow/case padding is 64px on desktop and 40px on mobile, video spacing is reduced, the device scroll span is 210svh, and the closing CTA sizes to its content instead of occupying 60–70% of the viewport. Static service scenes also size to their content. With identical empty-gallery fixtures at 1024px viewport height, the page is 919px shorter at 390px width and 1024px shorter at 1440px width. The closing CTA decreases from 614px to 291px on mobile and from 717px to 324px on desktop.
 - Korean, English, Japanese and Chinese copy updated. No dependencies, public APIs, data types, authentication behavior or save formats changed.
 
 ## Verification
