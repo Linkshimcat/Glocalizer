@@ -22,6 +22,12 @@ try {
         await page.goto(base + path, { waitUntil: 'domcontentloaded' })
         await page.locator('h1').waitFor()
         assert.equal(await page.locator('html').getAttribute('lang'), lang)
+        assert.equal(await page.locator('header').count(), 1)
+        assert.equal((await page.locator('header').boundingBox()).height, width >= 1024 ? 72 : 112)
+        assert.deepEqual(await page.locator('header nav a').evaluateAll(nodes => nodes.map(n => n.getAttribute('href'))), ['/dashboard', '/service'])
+        assert.equal(await page.locator('header a[href="/login"]').count(), 1)
+        if (path === '/service') assert.equal(await page.locator('header a[aria-current="page"]').getAttribute('href'), '/service')
+
         assert.ok((await page.title()).endsWith(' | Glocalizer'))
         if (index < 2) {
           assert.equal(await page.locator('h1').innerText(), names[lang][index])
