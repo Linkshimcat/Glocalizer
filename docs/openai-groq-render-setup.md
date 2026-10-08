@@ -33,16 +33,18 @@ GROQ_API_KEY=여기에_Groq_키
 
 ## 2. 번역 비교 실측
 
-같은 데이터에서 Groq 기준선과 OpenAI 변형을 소량 비교하려면 위 키를 저장한 뒤 `backend` 폴더에서 실행합니다.
+같은 데이터에서 현재 Groq fallback과 OpenAI를 소량 비교하려면 위 키를 저장하고 공식 단가 snapshot을 준비한 뒤 `backend` 폴더에서 실행합니다. 드라이런은 키·DB·단가 설정 없이 실행됩니다.
 
 ```bash
-npm run benchmark:translation -- --variants baseline,v1-gpt56 --limit 3
+npm run benchmark:translation -- --dry-run --variants current-groq,current-openai --limit 3
+npm run benchmark:translation -- --variants current-groq,current-openai --limit 3 \
+  --prices /로컬/검증단가.json --budget-usd 10
 ```
 
-- `baseline`은 Groq를 사용합니다.
-- `v1-gpt56`은 OpenAI를 사용합니다.
+- `current-groq`와 `current-openai`는 현재 환경변수의 모델과 운영 프롬프트를 사용합니다. `baseline`은 #86 이전 Groq 설정을 보존한 과거 비교용입니다.
 - 두 결과의 품질 평가는 OpenAI 심사 모델도 호출하므로 두 키가 모두 필요하고 OpenAI 사용 비용이 발생합니다. 처음에는 `--limit 3`처럼 작은 수로 시작하세요.
 - 결과 JSON과 호출 캐시는 `backend/benchmarks/translation/results/` 아래에 저장됩니다. 같은 변형을 다시 실행하면 기존 번역 캐시를 재사용할 수 있습니다.
+- 생성·심사·재시도 비용은 같은 예산 장부에서 총 10달러 상한을 공유합니다. 확인한 단가 JSON의 형식과 105개 평가·홀드아웃 검증 순서는 [번역 fallback 운영·평가 안내](backend/translation-fallback.md)를 따르세요.
 
 ## 3. Render 계정과 GitHub 저장소 연결
 
