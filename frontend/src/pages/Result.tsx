@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Home } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Download, Home } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
@@ -27,6 +27,13 @@ export default function Result() {
     return languages.map(language => ({ language, items: toDemoItems(files.filter(file => selectedFileIds.includes(file.id)), language.code) }))
   }, [files, selectedFileIds, targetLangs])
   const entries = useMemo(() => groups.flatMap(group => group.items.map(item => ({ item, language: group.language }))), [groups])
+  // 실사용 피드백(W5/W6): 일부 항목이 실패했거나 수동 보정이 필요할 때도 화면 상단은 항상 "준비됐어요"로만
+  // 보여 완료 여부를 체감하기 어렵다는 제보가 있었다. 두 신호를 상단 배너에 그대로 드러낸다.
+  const failedCount = projectStatus?.assets.filter(asset => asset.status === 'failed').length ?? 0
+  const manualCleanupCount = useMemo(
+    () => new Set(entries.filter(({ item }) => item.analysis?.needsManualCleanup).map(({ item }) => item.id)).size,
+    [entries],
+  )
   const active = enlarged === null ? undefined : entries[enlarged]
   useEffect(() => {
     if (enlarged === null) return
@@ -65,18 +72,24 @@ export default function Result() {
     <div className="workspace-stepbar"><div className="layout-app text-sm font-bold text-brand-dark">3 · {t.stepDownload}</div></div>
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <section className="studio-result-summary"><div>
-        <h1 className="text-2xl font-extrabold sm:text-3xl">{lastDownload ? w.downloadStarted : w.ready}</h1>
-        <p role="status" aria-live="polite" className="mt-3 text-sm text-sub">{busy ? w.preparing : lastDownload ? w.downloadHint : w.previewHint}</p>
+        <div className="flex items-center gap-2.5">
+          {!lastDownload && (failedCount > 0
+            ? <AlertTriangle aria-hidden className="h-7 w-7 shrink-0 text-amber-500" />
+            : <CheckCircle2 aria-hidden className="h-7 w-7 shrink-0 text-brand" />)}
+          <h1 className="text-2xl font-extrabold sm:text-3xl">{lastDownload ? w.downloadStarted : failedCount > 0 ? w.readyWithFailures.replace('{n}', String(failedCount)) : w.ready}</h1>
+        </div>
+        <p role="status" aria-live="polite" className="mt-3 text-sm text-sub">{busy ? w.preparing : lastDownload ? w.downloadHint : manualCleanupCount > 0 ? w.previewHintManual.replace('{n}', String(manualCleanupCount)) : w.previewHint}</p>
         </div><Button className="w-full shrink-0 sm:w-auto" disabled={busy || !entries.length} onClick={() => { void redownload() }}><Download className="h-4 w-4" />{w.downloadAgain} · ZIP</Button>
       </section>
       <section className="mt-8">
         <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2><AILocalizationBadge /><UploadSpecBadge /></div>
         <div className="mt-5 space-y-8">{groups.map(({ language, items }) => <section key={language.code}>
           <h3 className="font-bold">{language.flag} {language.label}</h3>
-          <div className="studio-result-gallery mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{items.map(item => <article key={item.id} className="min-w-0 rounded-panel border border-gray-200 bg-white p-3">
+          {/* 미리보기가 작다는 실사용 피드백(W5/W6)을 반영해 열 수를 줄이고 카드를 키웠다(기존 2/3/4열 → 2/3열). */}
+          <div className="studio-result-gallery mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">{items.map(item => <article key={item.id} className="min-w-0 rounded-2xl border border-gray-200 bg-white p-3">
             <PngPreview item={item} overlays={textOverlaysForItem(item, language.code, styles)} baseStyle={imageStyleForItem(item, language.code, styles)} preset={outputPreset} onEnlarge={() => setEnlarged(entries.findIndex(entry => entry.item.id === item.id && entry.language.code === language.code))} />
             <p className="mt-2 truncate text-xs text-sub" title={item.name}>{item.name}</p>
-            {item.analysis?.needsManualCleanup && <button className="mt-2 w-full rounded-control border border-amber-200 p-2 text-left text-xs font-bold text-amber-800" onClick={() => navigate(`/editor?cleanup=${encodeURIComponent(item.id)}`)}>{w.cleanupAction}</button>}
+            {item.analysis?.needsManualCleanup && <button type="button" className="mt-2 flex w-full items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-2 text-left text-xs font-bold text-amber-900" onClick={() => navigate(`/editor?cleanup=${encodeURIComponent(item.id)}`)}><AlertTriangle aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />{w.cleanupAction}</button>}
           </article>)}</div>
         </section>)}</div>
       </section>
