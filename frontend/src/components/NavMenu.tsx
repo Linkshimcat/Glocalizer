@@ -1,42 +1,17 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { legalUi } from '../i18n/legalUi'
-import AccountMenu from './AccountMenu'
-import LanguageSelect from './LanguageSelect'
 import { useSiteLang } from '../i18n/LanguageContext'
-import { useAuth } from '../store/AuthContext'
 
-export default function NavMenu({ workspace = false }: { workspace?: boolean }) {
-  const navigate = useNavigate()
+const WORKSPACE_ROUTES = ['/dashboard', '/generate', '/localize', '/review', '/editor', '/result', '/archive', '/account']
+
+export default function NavMenu() {
   const { t, lang } = useSiteLang()
-  const { isAuthenticated } = useAuth()
-
+  const { pathname } = useLocation()
+  const inWorkspace = WORKSPACE_ROUTES.includes(pathname)
   return (
-    <nav aria-label={legalUi[lang].navigation} className="flex items-center gap-1.5">
-      <button
-        onClick={() => navigate('/dashboard')}
-        className="whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-surface md:px-4 md:py-2 md:text-sm"
-      >
-        {workspace ? t.hubDashboard : t.navStart}
-      </button>
-      <button
-        type="button"
-        onClick={() => navigate('/service')}
-        className="whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-bold text-sub transition-colors hover:bg-surface hover:text-ink md:px-4 md:py-2 md:text-sm"
-      >
-        {t.navService}
-      </button>
-      <LanguageSelect />
-      {isAuthenticated ? (
-        <AccountMenu />
-      ) : (
-        <button
-          type="button"
-          onClick={() => navigate('/login')}
-          className="whitespace-nowrap rounded-xl bg-surface px-3 py-1.5 text-[13px] font-bold text-ink transition-colors hover:bg-[#E8EBEE] md:px-4 md:py-2 md:text-sm"
-        >
-          {t.navLogin}
-        </button>
-      )}
+    <nav aria-label={legalUi[lang].navigation} className="site-nav">
+      <Link to="/dashboard" className={inWorkspace ? 'is-active' : ''} aria-current={inWorkspace ? 'page' : undefined}>{t.hubDashboard}</Link>
+      <NavLink to="/service" className={({ isActive }) => isActive ? 'is-active' : ''}>{t.navService}</NavLink>
     </nav>
   )
 }

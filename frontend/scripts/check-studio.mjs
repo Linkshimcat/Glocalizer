@@ -94,6 +94,15 @@ for (const width of [360,390,768,1280,1440]) {
    await page.waitForTimeout(100);
    const sizes=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
    assert.ok(sizes.scroll<=sizes.width+1,JSON.stringify({path,lang,...sizes}));
+   assert.equal(await page.locator('header').count(),1,`${path}: one global header`);
+   const header=page.locator('.site-header');
+   assert.equal((await header.boundingBox()).height,width>=1024?72:112);
+   assert.deepEqual(await header.locator('nav a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href'))),['/dashboard','/service']);
+   assert.equal(await header.locator('button[aria-haspopup="listbox"]').count(),1);
+   assert.equal(await header.locator('button[aria-haspopup="true"]').count(),1);
+   if(path!=='/') assert.equal(await header.locator('a[aria-current="page"]').getAttribute('href'),'/dashboard');
+   assert.deepEqual(await header.locator('a,button').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1}).map(n=>n.textContent)),[]);
+
    if(lang==='ko') await page.screenshot({path:'/tmp/glocalizer-studio-qa/'+(path==='/'?'landing':path.slice(1))+'-'+width+'.png'});
    cases++;
   }

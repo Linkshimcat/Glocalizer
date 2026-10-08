@@ -7,6 +7,7 @@ import { SiteLangProvider } from './i18n/LanguageContext'
 import LandingRemake from './pages/LandingRemake'
 import { AuthProvider } from './store/AuthContext'
 import { UploadProvider } from './store/uploads'
+import Header from './components/Header'
 
 // 첫 진입 페이지(랜딩)만 즉시 로드하고, 나머지는 방문한 페이지 코드만 받도록 지연 로드한다.
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -30,14 +31,14 @@ function RouteFallback() {
   return (
     <div role="status" aria-label="페이지를 불러오는 중" aria-busy="true" className="min-h-screen bg-[#FAFBFC]">
       <span className="sr-only">페이지를 불러오는 중</span>
-      <div aria-hidden="true" className="h-[72px] border-b border-gray-100 bg-white" />
+
       <div aria-hidden="true" className="layout-app animate-pulse py-10 motion-reduce:animate-none">
         <div className="h-4 w-24 rounded-full bg-brand-soft" />
-        <div className="mt-5 h-10 w-3/5 max-w-md rounded-xl bg-gray-200" />
+        <div className="mt-5 h-10 w-3/5 max-w-md rounded-panel bg-gray-200" />
         <div className="mt-4 h-4 w-2/5 max-w-sm rounded-full bg-gray-100" />
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }, (_, index) => (
-            <div key={index} className="h-56 rounded-[28px] border border-gray-100 bg-white" />
+            <div key={index} className="h-56 rounded-panel border border-gray-100 bg-white" />
           ))}
         </div>
       </div>
@@ -64,6 +65,7 @@ function App() {
           <SiteLangProvider>
             <AuthProvider>
               <UploadProvider>
+                <Header />
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={<LandingRemake />} />

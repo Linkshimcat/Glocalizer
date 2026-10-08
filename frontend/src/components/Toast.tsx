@@ -38,10 +38,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             role="alert"
-            className="animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-xl border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]"
+            className="animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-panel border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]"
           >
             <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-panel ${
                 t.type === 'warning' ? 'bg-amber-50 text-amber-600' : 'bg-brand-soft text-brand-dark'
               }`}
             >

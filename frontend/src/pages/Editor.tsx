@@ -1107,7 +1107,7 @@ export default function Editor() {
         onClick={undo}
         disabled={past.length === 0}
         title={e.undo}
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface disabled:text-gray-300"
+        className="flex h-9 w-9 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface disabled:text-gray-300"
       >
         <Undo2 className="h-4 w-4" />
       </button>
@@ -1115,14 +1115,14 @@ export default function Editor() {
         onClick={redo}
         disabled={future.length === 0}
         title={e.redo}
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface disabled:text-gray-300"
+        className="flex h-9 w-9 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface disabled:text-gray-300"
       >
         <Redo2 className="h-4 w-4" />
       </button>
       <button
         onClick={resetStyle}
         title={e.reset}
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-ink transition-colors hover:bg-surface"
+        className="flex h-9 w-9 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface"
       >
         <RotateCcw className="h-4 w-4" />
       </button>
@@ -1133,7 +1133,7 @@ export default function Editor() {
     <button
       onClick={() => setPreview(p => !p)}
       title={e.preview}
-      className={`flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-bold transition-colors ${
+      className={`flex min-h-11 items-center gap-1.5 rounded-control px-3 text-sm font-bold transition-colors ${
         preview ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'
       }`}
     >
@@ -1157,7 +1157,7 @@ export default function Editor() {
     <button
       onClick={() => setIsInspectorOpen(open => !open)}
       aria-expanded={isInspectorOpen}
-      className="hidden min-h-11 items-center gap-1.5 rounded-xl bg-surface px-3 text-sm font-bold text-ink lg:flex xl:hidden"
+      className="hidden min-h-11 items-center gap-1.5 rounded-control bg-surface px-3 text-sm font-bold text-ink lg:flex xl:hidden"
     >
       <SlidersHorizontal className="h-4 w-4" /> {e.settings}
     </button>
@@ -1179,7 +1179,7 @@ export default function Editor() {
         <div className="relative z-10">
           <Logo small />
         </div>
-        <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft">
+        <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-panel bg-brand-soft">
           <LoaderCircle className="h-7 w-7 animate-spin text-brand-dark" />
         </span>
         <div className="relative z-10">
@@ -1213,7 +1213,7 @@ export default function Editor() {
   }
 
   return (
-    <div className="studio-editor flex min-h-screen flex-col bg-white xl:h-screen">
+    <div className="studio-editor flex min-h-screen flex-col bg-white xl:min-h-0 xl:h-[calc(100svh-var(--site-header-height))]">
       {cloudError && <div role="alert" className="flex flex-wrap items-center gap-3 bg-amber-50 px-4 py-3 text-sm text-amber-800"><span>{cloudError}</span><Button variant="outline" size="sm" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button></div>}
       {/* 상단 바 */}
       <div className="border-b border-gray-100">
@@ -1223,7 +1223,7 @@ export default function Editor() {
               <button
                 key={language.code}
                 onClick={() => selectLanguage(language.code)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-extrabold transition-colors ${
+                className={`shrink-0 rounded-control px-3 py-1.5 text-xs font-extrabold transition-colors ${
                   language.code === activeLanguage.code ? 'bg-brand text-white' : 'bg-surface text-sub hover:bg-brand-soft hover:text-brand-dark'
                 }`}
               >
@@ -1239,7 +1239,7 @@ export default function Editor() {
             <button
               onClick={() => navigate('/dashboard')}
               aria-label={e.backToDash}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -1266,7 +1266,7 @@ export default function Editor() {
           {/* 번역 대상 언어 배지 (모바일) */}
           {targetLangs.length > 0 && (
             <div className="px-3 pt-1.5">
-              <span className="block truncate rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-brand-dark">
+              <span className="block truncate rounded-badge bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-brand-dark">
                 {activeLanguage.flag} {activeLanguage.label} {e.editingSuffix}
               </span>
             </div>
@@ -1283,11 +1283,11 @@ export default function Editor() {
 
         {/* ── 데스크톱 상단 바 (1줄) ── */}
         <div className="hidden h-16 items-center gap-3 px-6 lg:flex">
-          <Logo small />
+          <span className="text-sm font-bold">{e.aiEditor}</span>
           <span className="h-5 w-px bg-gray-200" />
           <span className="text-sm font-semibold text-sub">{current.name}</span>
           {targetLangs.length > 0 && (
-            <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">
+            <span className="rounded-badge bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">
               {activeLanguage.flag} {activeLanguage.label} {e.editingSuffix}
             </span>
           )}
@@ -1322,7 +1322,7 @@ export default function Editor() {
                   tabIndex={0}
                   onClick={() => selectItem(idx)}
                   onKeyDown={e => e.key === 'Enter' && selectItem(idx)}
-                  className={`group flex w-48 shrink-0 cursor-pointer items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-colors xl:mb-1.5 xl:w-auto xl:shrink ${
+                  className={`group flex w-48 shrink-0 cursor-pointer items-center gap-3 rounded-panel border-2 px-3 py-2.5 text-left transition-colors xl:mb-1.5 xl:w-auto xl:shrink ${
                     active ? 'border-brand bg-brand-soft' : 'border-transparent hover:bg-surface'
                   }`}
                 >
@@ -1357,7 +1357,7 @@ export default function Editor() {
                     }}
                     aria-label={`${item.name}: ${e.deleteEmoji}`}
                     title={e.deleteEmoji}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sub transition-colors hover:bg-red-50 hover:text-[#EF4444] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#EF4444]"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-sub transition-colors hover:bg-red-50 hover:text-[#EF4444] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#EF4444]"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -1392,9 +1392,9 @@ export default function Editor() {
           <div className="w-full max-w-[800px] px-4">
             {(current.analysis?.needsManualCleanup || activeRegion.needsManualCleanup) && <div role="status" className="mb-3 flex flex-wrap items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
               <details className="min-w-0 flex-1 text-amber-900"><summary className="min-h-11 cursor-pointer py-2 font-bold">{w.cleanup}</summary><p className="pb-2">{w.cleanupHint}</p></details>
-              <button type="button" className="min-h-11 rounded-lg bg-white px-3 font-bold text-amber-900" onClick={openCleanupTools}>{w.cleanupAction}</button>
+              <button type="button" className="min-h-11 rounded-control bg-white px-3 font-bold text-amber-900" onClick={openCleanupTools}>{w.cleanupAction}</button>
             </div>}
-            <button type="button" onClick={() => setDownloadPreviewOpen(true)} className="mb-3 min-h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold">{w.preview}</button>
+            <button type="button" onClick={() => setDownloadPreviewOpen(true)} className="mb-3 min-h-11 w-full rounded-control border border-gray-200 bg-white px-3 text-sm font-bold">{w.preview}</button>
             {busy && <p role="status" aria-live="polite" className="mb-3 text-center text-sm text-sub">{w.preparing}</p>}
             {cloudError && <div role="alert" className="mb-3 text-sm text-red-700"><p>{cloudError}</p><button type="button" className="min-h-11 font-bold underline" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{w.retry}</button></div>}
           </div>
@@ -1402,12 +1402,12 @@ export default function Editor() {
             <span className="text-xs font-bold text-sub">
               {activeRegion.korean ? e.foundText : e.enterTextTitle}
             </span>
-            <div className="flex shrink-0 gap-1 rounded-xl bg-white p-1">
+            <div className="flex shrink-0 gap-1 rounded-panel bg-white p-1">
               {ZOOMS.map(z => (
                 <button
                   key={z}
                   onClick={() => setZoom(z)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${
+                  className={`rounded-control px-2.5 py-1 text-xs font-bold transition-colors ${
                     zoom === z ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'
                   }`}
                 >
@@ -1417,7 +1417,7 @@ export default function Editor() {
               {zoom !== DEFAULT_ZOOM && (
                 <button
                   onClick={() => setZoom(DEFAULT_ZOOM)}
-                  className="rounded-lg px-2.5 py-1 text-xs font-bold text-sub transition-colors hover:bg-surface hover:text-ink"
+                  className="rounded-control px-2.5 py-1 text-xs font-bold text-sub transition-colors hover:bg-surface hover:text-ink"
                 >
                   {e.originalSize}
                 </button>
@@ -1430,7 +1430,7 @@ export default function Editor() {
                 key={tab}
                 aria-pressed={mobileCanvasTab === tab}
                 onClick={() => setMobileCanvasTab(tab)}
-                className={`h-10 rounded-xl text-sm font-bold transition-colors ${
+                className={`h-10 rounded-control text-sm font-bold transition-colors ${
                   mobileCanvasTab === tab
                     ? 'bg-brand text-white'
                     : 'bg-white text-sub'
@@ -1450,14 +1450,14 @@ export default function Editor() {
                   <button
                     onClick={() => toggleAreaSelection('reselect')}
                     aria-pressed={selectionMode === 'reselect'}
-                    className={`flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm font-bold transition-colors ${selectionMode === 'reselect' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
+                    className={`flex min-h-11 items-center gap-1 rounded-control px-2 text-sm font-bold transition-colors ${selectionMode === 'reselect' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
                   >
                     <ScanText className="h-3.5 w-3.5" /> {e.reselectArea}
                   </button>
                   <button
                     onClick={() => toggleAreaSelection('add')}
                     aria-pressed={selectionMode === 'add'}
-                    className={`flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm font-bold transition-colors ${selectionMode === 'add' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
+                    className={`flex min-h-11 items-center gap-1 rounded-control px-2 text-sm font-bold transition-colors ${selectionMode === 'add' ? 'bg-brand text-white' : 'bg-white text-sub hover:bg-brand-soft hover:text-brand-dark'}`}
                   >
                     <Plus className="h-3.5 w-3.5" /> {e.addCaption}
                   </button>
@@ -1622,14 +1622,14 @@ export default function Editor() {
             <button
               onClick={goPrev}
               disabled={currentIdx === 0}
-              className="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-ink disabled:text-gray-300"
+              className="rounded-control border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-ink disabled:text-gray-300"
             >
               ← {e.prev}
             </button>
             <button
               onClick={goNext}
               disabled={currentIdx === items.length - 1}
-              className="rounded-lg bg-brand px-3.5 py-2 text-sm font-bold text-white disabled:bg-gray-200 disabled:text-gray-400"
+              className="rounded-control bg-brand px-3.5 py-2 text-sm font-bold text-white disabled:bg-gray-200 disabled:text-gray-400"
             >
               {e.next} →
             </button>
@@ -1647,7 +1647,7 @@ export default function Editor() {
 
         {/* 컨트롤 패널 — 중간 화면에서는 슬라이드 패널 */}
         <aside
-          className={`studio-editor-inspector relative z-10 -mt-6 flex flex-col gap-7 rounded-t-[28px] bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
+          className={`studio-editor-inspector relative z-10 -mt-6 flex flex-col gap-7 rounded-t-panel bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:top-[var(--site-header-height)] lg:bottom-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
             isInspectorOpen ? 'lg:translate-x-0' : 'lg:translate-x-full'
           }`}
         >
@@ -1659,7 +1659,7 @@ export default function Editor() {
                   key={tab}
                   aria-pressed={mobileTab === tab}
                   onClick={() => setMobileTab(tab)}
-                  className={`h-10 rounded-xl border-2 text-sm font-bold transition-colors ${
+                  className={`h-10 rounded-control border-2 text-sm font-bold transition-colors ${
                     mobileTab === tab
                       ? 'border-brand bg-brand-soft text-brand-dark'
                       : 'border-gray-100 bg-white text-sub'
@@ -1672,7 +1672,7 @@ export default function Editor() {
             <button
               onClick={() => setIsInspectorOpen(false)}
               aria-label="설정 패널 닫기"
-              className="absolute right-4 top-4 hidden rounded-xl p-2 text-sub hover:bg-surface lg:block xl:hidden"
+              className="absolute right-4 top-4 hidden rounded-control p-2 text-sub hover:bg-surface lg:block xl:hidden"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1688,7 +1688,7 @@ export default function Editor() {
                     <button
                       key={region.id}
                       onClick={() => selectRegion(region.id)}
-                      className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-bold transition-colors ${
+                      className={`flex min-h-10 items-center gap-2 rounded-control border px-3 py-2 text-left text-xs font-bold transition-colors ${
                         activeRegion.id === region.id
                           ? 'border-brand bg-brand-soft text-brand-dark'
                           : 'border-gray-100 bg-white text-ink hover:border-gray-200'
@@ -1707,20 +1707,20 @@ export default function Editor() {
                 </div>
               </div>
             )}
-            <div className={`mb-4 rounded-xl border p-3 ${needsManualOcrReview ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-surface'}`}>
+            <div className={`mb-4 rounded-panel border p-3 ${needsManualOcrReview ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-surface'}`}>
               <p className="text-xs font-extrabold">{e.ocrEditTitle} {needsManualOcrReview && <span className="text-amber-700">{e.ocrNeedCheck}</span>}</p>
               <p className="mt-1 text-[11px] text-sub">{e.ocrEditHint}</p>
-              <input value={ocrDraft || activeRegion.korean} onChange={event => setOcrDraft(event.target.value)} className="mt-2 h-9 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold outline-none focus:border-brand" />
-              <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || activeRegion.korean, detectedBox, activeRegion.id).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || activeRegion.korean).trim()} className="mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
+              <input value={ocrDraft || activeRegion.korean} onChange={event => setOcrDraft(event.target.value)} className="mt-2 h-9 w-full rounded-control border border-gray-200 bg-white px-2 text-sm font-semibold outline-none focus:border-brand" />
+              <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || activeRegion.korean, detectedBox, activeRegion.id).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || activeRegion.korean).trim()} className="mt-2 rounded-control bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
             </div>
             <PanelTitle>{e.aiSuggest}</PanelTitle>
             {activeRegion.translationStatus === 'failed' && (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <div className="mt-3 rounded-panel border border-amber-200 bg-amber-50 p-3">
                 <p className="text-xs font-semibold text-amber-800">{e.translationMissing}</p>
                 <button
                   onClick={() => void retryActiveTranslation()}
                   disabled={retryingRegionId === activeRegion.id}
-                  className="mt-2 flex min-h-11 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-extrabold text-white disabled:opacity-50"
+                  className="mt-2 flex min-h-11 items-center gap-1.5 rounded-control bg-brand px-3 text-xs font-extrabold text-white disabled:opacity-50"
                 >
                   {retryingRegionId === activeRegion.id && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
                   {retryingRegionId === activeRegion.id ? e.retryingTranslation : e.retryTranslation}
@@ -1734,7 +1734,7 @@ export default function Editor() {
                   <button
                     key={sug.text}
                     onClick={() => update({ suggestion: i, customText: '' })}
-                    className={`flex items-center gap-2.5 rounded-2xl border-2 px-4 py-3 text-left transition-colors ${
+                    className={`flex items-center gap-2.5 rounded-control border-2 px-4 py-3 text-left transition-colors ${
                       active
                         ? 'border-brand bg-brand-soft'
                         : 'border-gray-100 bg-white hover:border-gray-200'
@@ -1771,14 +1771,14 @@ export default function Editor() {
               onChange={e => live({ customText: e.target.value })}
               placeholder={e.customPlaceholder}
               rows={3}
-              className={`mt-2 min-h-20 w-full resize-y rounded-xl border-2 px-3 py-2 text-[15px] font-semibold outline-none transition-colors ${
+              className={`mt-2 min-h-20 w-full resize-y rounded-control border-2 px-3 py-2 text-[15px] font-semibold outline-none transition-colors ${
                 usingCustom
                   ? 'border-brand bg-brand-soft'
                   : 'border-gray-100 bg-white focus:border-brand'
               }`}
             />
             {items.length > 1 && <div className="mt-3">
-              <button type="button" disabled={!resolveText(style, activeRegion.suggestions).trim() || busy} onClick={applyTextToFrames} className="min-h-11 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold disabled:opacity-40">{w.applyAll}</button>
+              <button type="button" disabled={!resolveText(style, activeRegion.suggestions).trim() || busy} onClick={applyTextToFrames} className="min-h-11 w-full rounded-control border border-gray-200 px-3 py-2 text-sm font-bold disabled:opacity-40">{w.applyAll}</button>
               <p className="mt-2 text-xs text-sub">{w.applyHint}</p>
               {batchUndo?.language === activeLanguage.code && batchUndo.project === projectStatus?.projectId && <button type="button" onClick={undoFrameText} className="mt-2 min-h-11 text-sm font-bold text-brand-dark underline">{w.undoAll}</button>}
             </div>}
@@ -1796,7 +1796,7 @@ export default function Editor() {
                     weight: clampWeight(activeRegion.recommendedFont, style.weight),
                   })
                 }
-                className="mt-3 flex w-full items-center gap-2 rounded-2xl border-2 border-dashed border-brand/40 bg-brand-soft/60 px-4 py-2.5 text-left transition-colors hover:border-brand"
+                className="mt-3 flex w-full items-center gap-2 rounded-control border-2 border-dashed border-brand/40 bg-brand-soft/60 px-4 py-2.5 text-left transition-colors hover:border-brand"
               >
                 <Sparkles className="h-4 w-4 shrink-0 text-brand-dark" />
                 <span className="min-w-0 flex-1">
@@ -1823,7 +1823,7 @@ export default function Editor() {
                   weight: clampWeight(e.target.value, style.weight),
                 })
               }
-              className="mt-3 h-11 w-full rounded-xl border-2 border-gray-100 bg-white px-3 text-[15px] font-semibold outline-none focus:border-brand"
+              className="mt-3 h-11 w-full rounded-control border-2 border-gray-100 bg-white px-3 text-[15px] font-semibold outline-none focus:border-brand"
             >
               {FONT_NAMES.map(f => (
                 <option key={f} value={f} style={{ fontFamily: `'${f}', sans-serif` }}>
@@ -1848,7 +1848,7 @@ export default function Editor() {
                     <button
                       key={w.value}
                       onClick={() => update({ weight: w.value })}
-                      className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                      className={`h-9 rounded-control border-2 text-xs font-bold transition-colors ${
                         style.weight === w.value
                           ? 'border-brand bg-brand-soft text-brand-dark'
                           : 'border-gray-100 bg-white text-sub hover:border-gray-200'
@@ -2064,7 +2064,7 @@ export default function Editor() {
                             : { alignH: key, x: ALIGN_X[key] },
                         )
                       }
-                      className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                      className={`h-9 rounded-control border-2 text-xs font-bold transition-colors ${
                         active
                           ? 'border-brand bg-brand-soft text-brand-dark'
                           : 'border-gray-100 bg-white text-sub hover:border-gray-200'
@@ -2098,7 +2098,7 @@ export default function Editor() {
                             : { alignV: key, y: ALIGN_Y[key] },
                         )
                       }
-                      className={`h-9 rounded-xl border-2 text-xs font-bold transition-colors ${
+                      className={`h-9 rounded-control border-2 text-xs font-bold transition-colors ${
                         active
                           ? 'border-brand bg-brand-soft text-brand-dark'
                           : 'border-gray-100 bg-white text-sub hover:border-gray-200'
@@ -2128,7 +2128,7 @@ export default function Editor() {
                   key={value}
                   onClick={() => setOutputPreset(value)}
                   aria-pressed={outputPreset === value}
-                  className={`flex h-14 flex-col items-center justify-center rounded-xl border-2 text-sm font-bold transition-colors ${
+                  className={`flex h-14 flex-col items-center justify-center rounded-control border-2 text-sm font-bold transition-colors ${
                     outputPreset === value
                       ? 'border-brand bg-brand-soft text-brand-dark'
                       : 'border-gray-100 bg-white text-sub hover:border-gray-200'
@@ -2176,7 +2176,7 @@ export default function Editor() {
                 <button
                   key={label}
                   onClick={() => update({ transparent: value })}
-                  className={`h-10 rounded-xl border-2 text-sm font-bold transition-colors ${
+                  className={`h-10 rounded-control border-2 text-sm font-bold transition-colors ${
                     style.transparent === value
                       ? 'border-brand bg-brand-soft text-brand-dark'
                       : 'border-gray-100 bg-white text-sub hover:border-gray-200'
@@ -2232,7 +2232,7 @@ export default function Editor() {
                         updateManualCleanup({ shape })
                         if (shape === 'brush') setSelected(true)
                       }}
-                      className={`h-10 rounded-xl border-2 text-sm font-bold ${(manualCleanup.shape ?? 'rect') === shape ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-100 text-sub'}`}
+                      className={`h-10 rounded-control border-2 text-sm font-bold ${(manualCleanup.shape ?? 'rect') === shape ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-100 text-sub'}`}
                     >
                       {shape === 'rect' ? e.eraseShapeRect : e.eraseShapeBrush}
                     </button>
@@ -2243,7 +2243,7 @@ export default function Editor() {
                     <button
                       key={mode}
                       onClick={() => updateManualCleanup({ mode })}
-                      className={`h-10 rounded-xl border-2 text-sm font-bold ${manualCleanup.mode === mode ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-100 text-sub'}`}
+                      className={`h-10 rounded-control border-2 text-sm font-bold ${manualCleanup.mode === mode ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-100 text-sub'}`}
                     >
                       {mode === 'transparent' ? e.eraseTransparent : e.eraseSolid}
                     </button>
@@ -2260,7 +2260,7 @@ export default function Editor() {
                     <RangeRow label={e.brushSize} min={2} max={40} value={Math.round(brushSize)} suffix="%" onBegin={beginGesture} onLive={value => updateManualCleanup({ brushSize: value })} />
                     <button
                       onClick={clearBrushMask}
-                      className="h-10 rounded-xl border-2 border-gray-100 text-sm font-bold text-sub"
+                      className="h-10 rounded-control border-2 border-gray-100 text-sm font-bold text-sub"
                     >
                       {e.brushClear}
                     </button>
@@ -2284,14 +2284,14 @@ export default function Editor() {
             <input
               value={exportName}
               onChange={e => setExportName(e.target.value)}
-              className="mt-3 h-11 w-full rounded-xl border-2 border-gray-100 bg-white px-3 text-[14px] font-semibold outline-none focus:border-brand"
+              className="mt-3 h-11 w-full rounded-control border-2 border-gray-100 bg-white px-3 text-[14px] font-semibold outline-none focus:border-brand"
             />
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {(['PNG', 'ZIP'] as const).map(fmt => (
                 <button
                   key={fmt}
                   onClick={() => setExportFormat(fmt)}
-                  className={`flex h-9 items-center justify-center gap-1.5 rounded-xl border-2 text-xs font-bold transition-colors ${
+                  className={`flex h-9 items-center justify-center gap-1.5 rounded-control border-2 text-xs font-bold transition-colors ${
                     exportFormat === fmt
                       ? 'border-brand bg-brand-soft text-brand-dark'
                       : 'border-gray-100 bg-white text-sub hover:border-gray-200'
@@ -2316,23 +2316,23 @@ export default function Editor() {
 
       {selectionDraft && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-ink/25 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+          <div className="w-full max-w-md rounded-dialog bg-white p-5 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-ink">{e.detectedAreaTitle}</h2>
                 <p className="mt-1 text-xs font-semibold text-sub">{Math.round(selectionDraft.confidence * 100)}%</p>
               </div>
-              <button onClick={cancelAreaSelection} className="rounded-lg p-2 text-sub hover:bg-surface" aria-label={e.cancelArea}><X className="h-4 w-4" /></button>
+              <button onClick={cancelAreaSelection} className="rounded-control p-2 text-sub hover:bg-surface" aria-label={e.cancelArea}><X className="h-4 w-4" /></button>
             </div>
             <textarea
               value={selectionDraft.text}
               onChange={event => setSelectionDraft(previous => previous ? { ...previous, text: event.target.value } : previous)}
               rows={4}
-              className="mt-4 w-full resize-none rounded-xl border-2 border-gray-100 px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
+              className="mt-4 w-full resize-none rounded-control border-2 border-gray-100 px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
             />
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button onClick={cancelAreaSelection} className="h-11 rounded-xl border-2 border-gray-100 text-sm font-bold text-sub">{e.cancelArea}</button>
-              <button onClick={() => void confirmAreaSelection()} disabled={selectionSaving || !selectionDraft.text.trim()} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-brand text-sm font-extrabold text-white disabled:opacity-50">
+              <button onClick={cancelAreaSelection} className="h-11 rounded-control border-2 border-gray-100 text-sm font-bold text-sub">{e.cancelArea}</button>
+              <button onClick={() => void confirmAreaSelection()} disabled={selectionSaving || !selectionDraft.text.trim()} className="flex h-11 items-center justify-center gap-1.5 rounded-control bg-brand text-sm font-extrabold text-white disabled:opacity-50">
                 {selectionSaving && <LoaderCircle className="h-4 w-4 animate-spin" />}{e.confirmArea}
               </button>
             </div>
@@ -2343,7 +2343,7 @@ export default function Editor() {
         <h2 id="editor-png-preview" className="pr-8 font-bold">{w.preview} · {activeLanguage.label}</h2>
         <p className="mt-2 text-sm text-sub">{w.previewHint}</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div><p className="mb-2 text-sm text-sub">{e.original}</p><img src={current.analysis?.originalUrl ?? current.url} alt={current.name} className="checkerboard max-h-[60dvh] w-full rounded-xl object-contain" /></div>
+          <div><p className="mb-2 text-sm text-sub">{e.original}</p><img src={current.analysis?.originalUrl ?? current.url} alt={current.name} className="checkerboard max-h-[60dvh] w-full rounded-panel object-contain" /></div>
           <PngPreview large item={current} overlays={canvasOverlays} baseStyle={style} preset={outputPreset} />
         </div>
         <div className="mt-4 flex flex-wrap justify-between gap-2"><Button variant="outline" disabled={currentIdx === 0} onClick={goPrev}>{w.previous}</Button><Button disabled={busy} onClick={downloadCurrentPng}>PNG</Button><Button variant="outline" disabled={currentIdx === items.length - 1} onClick={goNext}>{w.next}</Button></div>

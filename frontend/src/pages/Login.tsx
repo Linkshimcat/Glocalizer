@@ -2,7 +2,6 @@ import { Loader2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
-import Header from '../components/Header'
 import NaverIcon from '../components/NaverIcon'
 import GoogleIcon from '../components/GoogleIcon'
 import { useToast } from '../components/Toast'
@@ -96,37 +95,26 @@ export default function Login() {
   }
 
   const inputClass =
-    'h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-[15px] font-medium text-ink outline-none transition-colors placeholder:text-sub focus:border-brand'
+    'h-12 w-full rounded-control border border-gray-200 bg-white px-4 text-[15px] font-medium text-ink outline-none transition-colors placeholder:text-sub focus:border-brand'
 
   if (checkingSession) return <div role="status" className="p-8 text-center">{w.checkingSession}</div>
   if (isAuthenticated && sessionError) return <div role="alert" className="mx-auto max-w-md p-8 text-center"><p>{w.sessionRetry}</p><Button className="mt-4" onClick={() => { void refreshUser() }}>{w.retry}</Button></div>
 
   return (
     <div className="flex min-h-screen flex-col bg-surface">
-      <Header
-        right={
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="rounded-xl px-3 py-1.5 text-[13px] font-bold text-sub transition-colors hover:bg-white hover:text-ink md:px-4 md:py-2 md:text-sm"
-          >
-            {t.loginBackHome}
-          </button>
-        }
-      />
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-[420px] rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-8">
+        <div className="w-full max-w-[420px] rounded-panel border border-gray-100 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-8">
           <div className="text-center">
             <h1 className="text-[26px] font-extrabold text-ink">{t.loginTitle}</h1>
             <p className="mt-2 text-sm text-sub">{t.loginSubtitle}</p>
           </div>
 
-          <div className="mt-6 flex rounded-xl bg-surface p-1">
+          <div className="mt-6 flex rounded-panel bg-surface p-1">
             <button
               type="button"
               onClick={() => { setMode('login'); setError(null) }}
-              className={`h-9 flex-1 rounded-lg text-sm font-bold transition-colors ${
+              className={`h-9 flex-1 rounded-control text-sm font-bold transition-colors ${
                 mode === 'login' ? 'bg-white text-ink shadow-sm' : 'text-sub hover:text-ink'
               }`}
             >
@@ -135,7 +123,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => { setMode('signup'); setError(null) }}
-              className={`h-9 flex-1 rounded-lg text-sm font-bold transition-colors ${
+              className={`h-9 flex-1 rounded-control text-sm font-bold transition-colors ${
                 mode === 'signup' ? 'bg-white text-ink shadow-sm' : 'text-sub hover:text-ink'
               }`}
             >

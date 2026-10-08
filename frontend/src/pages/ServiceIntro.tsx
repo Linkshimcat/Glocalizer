@@ -1,9 +1,7 @@
-import { ArrowLeft, ArrowUpRight, Archive, Check, Globe2, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowUpRight, Archive, Check, Globe2, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
-import Header from '../components/Header'
-import NavMenu from '../components/NavMenu'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { serviceDict } from '../i18n/service'
@@ -70,18 +68,12 @@ export default function ServiceIntro() {
 
   return (
     <div ref={pageRef} className="service-page flex min-h-screen flex-col bg-white" data-motion-ready={motionReady}>
-      <Header sticky center={<NavMenu />} right={
-        <Link to="/" className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold text-sub hover:bg-surface hover:text-ink">
-          <ArrowLeft className="h-4 w-4" aria-hidden />{s.home}
-        </Link>
-      } />
       <main className="flex-1">
         <section className="border-b border-brand/10 bg-white">
           <div className="layout-app service-reveal py-16 sm:py-24">
-            <p className="text-sm font-extrabold text-brand-dark">Glocalizer · {t.navService}</p>
             <h1 className="mt-5 max-w-4xl whitespace-pre-line break-words text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-5xl">{s.title}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-sub">{s.intro}</p>
-            <Link to="/dashboard" className="service-cta mt-8 inline-flex items-center gap-3 rounded-lg bg-action px-6 py-4 font-extrabold text-white">
+            <Link to="/dashboard" className="service-cta mt-8 inline-flex items-center gap-3 rounded-control bg-action px-6 py-4 font-extrabold text-white">
               {s.start}<ArrowUpRight className="service-arrow" size={20} aria-hidden />
             </Link>
             <p className="mt-4 text-sm leading-6 text-sub">{s.account}</p>
@@ -93,10 +85,9 @@ export default function ServiceIntro() {
             {s.features.map((feature, index) => {
               const { icon: Icon, path } = FEATURES[index]
               return (
-                <article key={path} className="service-reveal service-feature-card flex flex-col rounded-xl border border-gray-200 bg-surface/50 p-6 sm:p-8" style={{ '--reveal-delay': `${index * 75}ms` } as CSSProperties}>
+                <article key={path} className="service-reveal service-feature-card flex flex-col rounded-panel border border-gray-200 bg-surface/50 p-6 sm:p-8" style={{ '--reveal-delay': `${index * 75}ms` } as CSSProperties}>
                   <div className="flex items-center justify-between">
-                    <span className="service-feature-icon flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Icon size={24} aria-hidden /></span>
-                    <span aria-hidden className="text-sm font-extrabold text-sub">0{index + 1}</span>
+                    <span className="service-feature-icon flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft text-brand-dark"><Icon size={24} aria-hidden /></span>
                   </div>
                   <h3 className="mt-6 text-xl font-extrabold leading-snug text-ink sm:text-2xl">{feature.title}</h3>
                   <p className="mt-3 leading-7 text-sub">{feature.description}</p>
@@ -114,14 +105,14 @@ export default function ServiceIntro() {
             <h2 id="service-workflow" className="service-reveal text-2xl font-extrabold tracking-tight sm:text-3xl">{s.workflow}</h2>
             <div ref={workflowProgressRef} className="service-workflow-progress" aria-hidden><span /></div>
             <ol className="mt-8 grid gap-6 md:grid-cols-3">
-              {s.steps.map((step, index) => <li key={step.title} className="service-reveal service-workflow-step rounded-xl bg-white p-6" style={{ '--reveal-delay': `${index * 90}ms` } as CSSProperties}><span className="text-sm font-extrabold text-brand-dark">0{index + 1}</span><h3 className="mt-4 text-xl font-extrabold">{step.title}</h3><p className="mt-3 leading-7 text-sub">{step.description}</p></li>)}
+              {s.steps.map((step, index) => <li key={step.title} className="service-reveal service-workflow-step rounded-panel bg-white p-6" style={{ '--reveal-delay': `${index * 90}ms` } as CSSProperties}><span className="text-sm font-extrabold text-brand-dark">0{index + 1}</span><h3 className="mt-4 text-xl font-extrabold">{step.title}</h3><p className="mt-3 leading-7 text-sub">{step.description}</p></li>)}
             </ol>
           </div>
         </section>
         <section className="layout-app pt-14 sm:pt-20" aria-labelledby="service-faq">
           <h2 id="service-faq" className="service-reveal text-2xl font-extrabold sm:text-3xl">{s.faqTitle}</h2>
           <div className="mt-6 space-y-3">
-            {s.faq.map(item => <details key={item.question} className="rounded-2xl border border-gray-200 p-5 open:bg-surface">
+            {s.faq.map(item => <details key={item.question} className="rounded-panel border border-gray-200 p-5 open:bg-surface">
               <summary className="cursor-pointer font-bold leading-7 text-ink">{item.question}</summary>
               <p className="mt-3 leading-7 text-sub">{item.answer}</p>
             </details>)}
@@ -130,7 +121,7 @@ export default function ServiceIntro() {
         <section className="layout-app py-14 sm:py-20" aria-labelledby="service-notes">
           <h2 id="service-notes" className="service-reveal text-2xl font-extrabold sm:text-3xl">{s.notesTitle}</h2>
           <ul className="service-reveal mt-6 max-w-4xl list-disc space-y-3 pl-5 leading-7 text-sub">{s.notes.map(note => <li key={note}>{note}</li>)}</ul>
-          <Link to="/dashboard" className="service-cta mt-8 inline-flex items-center gap-3 rounded-2xl bg-brand-soft px-6 py-4 font-extrabold text-ink">{s.start}<ArrowUpRight className="service-arrow" size={20} aria-hidden /></Link>
+          <Link to="/dashboard" className="service-cta mt-8 inline-flex items-center gap-3 rounded-control bg-brand-soft px-6 py-4 font-extrabold text-ink">{s.start}<ArrowUpRight className="service-arrow" size={20} aria-hidden /></Link>
         </section>
       </main>
       <Footer />

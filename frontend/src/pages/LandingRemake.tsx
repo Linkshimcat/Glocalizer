@@ -7,7 +7,6 @@ import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
 import refreshIcon from '../assets/LandingAssets/refreshButton.svg'
 import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.png'
 import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.png'
-import ogqGalleryReference from '../assets/LandingAssets/ogq-gallery-reference.jpg'
 import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.png'
 import localizePhoneCapture from '../assets/LandingAssets/phone-captures/localize-upload-ko.png'
 import reviewPhoneCapture from '../assets/LandingAssets/phone-captures/review-projects-ko.png'
@@ -18,36 +17,29 @@ import workflowCreateVisual from '../assets/LandingAssets/Gen.png'
 import workflowLocalizeVisual from '../assets/LandingAssets/Local.png'
 import workflowReviewVisual from '../assets/LandingAssets/check.png'
 import Button from '../components/Button'
-import AccountMenu from '../components/AccountMenu'
 import Footer from '../components/Footer'
-import Header from '../components/Header'
-import LanguageSelect from '../components/LanguageSelect'
 import OgqStickerGallery from '../components/OgqStickerGallery'
+import RollingText from '../components/RollingText'
 import '../landing.css'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { getLandingShowcases, type LandingShowcase } from '../lib/api'
-import { useAuth } from '../store/AuthContext'
 import type { Dict, SiteLang } from '../i18n/translations'
 
 type SceneCopy = {
-  kicker: string
   title: string
   description: string
   linkLabel: string
 }
 
 type RemakeCopy = {
-  heroTitle: string
   heroDescription: string
   heroCta: string
   scrollLabel: string
   translationAlt: string
   languageLabels: [string, string, string]
-  workflowEyebrow: string
   workflowTitle: string
   workflowDescription: string
   scenes: [SceneCopy, SceneCopy, SceneCopy]
-  caseEyebrow: string
   caseTitle: string
   caseDescription: string
   caseOriginal: string
@@ -56,7 +48,6 @@ type RemakeCopy = {
   caseCompareLabel: string
   caseLocalization: string
   caseGeneration: string
-  finalEyebrow: string
   finalTitle: string
   finalDescription: string
   finalCta: string
@@ -65,62 +56,170 @@ type RemakeCopy = {
 const WORKFLOW_VISUALS = [workflowCreateVisual, workflowLocalizeVisual, workflowReviewVisual]
 
 const COPY: Record<SiteLang, RemakeCopy> = {
-  ko: {
-    heroTitle: '아이디어에서\n전 세계의 이모티콘까지,\nGlocalizer와 함께.',
-    heroDescription: '새로운 이모티콘을 만들고, 여러 언어로 다듬고, 출시 전까지 확인해요. 창작에 필요한 흐름을 한곳에서 이어 보세요.',
-    heroCta: 'Glocalizer 시작하기', scrollLabel: '둘러보기',
-    translationAlt: '한국어, 영어, 일본어로 인사하는 캐릭터', languageLabels: ['한국어', '영어', '일본어'],
-    workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: '아이디어부터 출시 준비까지', workflowDescription: '창작의 각 단계를 한곳에서 이어 가세요.',
-    scenes: [
-      { kicker: '01 · CREATE', title: '아이디어를\n이모티콘으로', description: '만들고 싶은 캐릭터와 표정을 바탕으로 새 이모티콘을 생성해요.', linkLabel: '생성 시작하기' },
-      { kicker: '02 · LOCALIZE', title: '작품의 감정을\n다른 언어로', description: '원본의 분위기를 살려 영어·일본어·중국어 문구를 만들고 직접 다듬어요.', linkLabel: '현지화 시작하기' },
-      { kicker: '03 · REVIEW', title: '출시 준비를\n꼼꼼하게 확인', description: 'OGQ 기준에 맞춰 이미지와 문구를 검토하고 출시를 준비해요.', linkLabel: '검토 시작하기' },
+  "ko": {
+    "heroDescription": "이모티콘 생성·현지화·출시 전 검토를 지원합니다.",
+    "heroCta": "작업실 열기",
+    "scrollLabel": "둘러보기",
+    "translationAlt": "한국어·영어·일본어로 인사하는 캐릭터",
+    "languageLabels": [
+      "한국어",
+      "영어",
+      "일본어"
     ],
-    caseEyebrow: 'REAL WORK · 실제 작업 사례', caseTitle: '실제 작업 결과를 비교해 보세요', caseDescription: '사용 허락을 받은 Glocalizer 작업물을 직접 비교해 보세요.', caseOriginal: '원본', caseLocalizationResult: '현지화 결과', caseGenerationResult: '생성 결과', caseCompareLabel: '원본과 작업 결과 비교', caseLocalization: '현지화', caseGeneration: '생성',
-    finalEyebrow: '이제 당신의 차례예요', finalTitle: '다음 이모티콘을\n함께 완성해요.', finalDescription: 'Glocalizer에서 아이디어를 만들고, 다듬고, 출시를 준비해 보세요.', finalCta: '작업실 열기',
-  },
-  en: {
-    heroTitle: 'From an idea,\nto emoticons worldwide,\nwith Glocalizer.',
-    heroDescription: 'Create new emoticons, refine them for other languages, and get ready to release—all in one creative workflow.',
-    heroCta: 'Start Glocalizer', scrollLabel: 'Explore',
-    translationAlt: 'A character greeting in Korean, English, and Japanese', languageLabels: ['Korean', 'English', 'Japanese'],
-    workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: 'From idea to release-ready', workflowDescription: 'Move through every stage of creating in one place.',
-    scenes: [
-      { kicker: '01 · CREATE', title: 'Turn an idea into\nan emoticon', description: 'Create new emoticons from your character and expression ideas.', linkLabel: 'Start creating' },
-      { kicker: '02 · LOCALIZE', title: 'Carry the feeling\ninto new languages', description: 'Keep the original tone while adapting captions into English, Japanese, and Chinese.', linkLabel: 'Start localizing' },
-      { kicker: '03 · REVIEW', title: 'Get ready\nfor release', description: 'Review your images and captions against OGQ requirements before release.', linkLabel: 'Start reviewing' },
+    "workflowTitle": "이모티콘 작업 과정",
+    "workflowDescription": "필요한 단계부터 시작할 수 있습니다.",
+    "scenes": [
+      {
+        "title": "이모티콘 생성",
+        "description": "캐릭터와 표정 설명으로 이모티콘을 생성합니다.",
+        "linkLabel": "생성 시작하기"
+      },
+      {
+        "title": "다국어 현지화",
+        "description": "한국어 문구를 영어·일본어·중국어로 현지화합니다.",
+        "linkLabel": "현지화 시작하기"
+      },
+      {
+        "title": "출시 전 검토",
+        "description": "OGQ 규격과 이미지·문구를 확인합니다.",
+        "linkLabel": "검토 시작하기"
+      }
     ],
-    caseEyebrow: 'REAL WORK · CREATOR CASES', caseTitle: 'See real work come together', caseDescription: 'Compare real Glocalizer work shared with permission.', caseOriginal: 'Original', caseLocalizationResult: 'Localized result', caseGenerationResult: 'Generated result', caseCompareLabel: 'Compare original and result', caseLocalization: 'Localization', caseGeneration: 'Generation',
-    finalEyebrow: 'Your turn to create', finalTitle: 'Let’s finish your\nnext emoticon.', finalDescription: 'Create, refine, and prepare your next release with Glocalizer.', finalCta: 'Open your studio',
+    "caseTitle": "작업 결과",
+    "caseDescription": "사용 허락을 받은 실제 작업물입니다.",
+    "caseOriginal": "원본",
+    "caseLocalizationResult": "현지화 결과",
+    "caseGenerationResult": "생성 결과",
+    "caseCompareLabel": "원본과 작업 결과 비교",
+    "caseLocalization": "현지화",
+    "caseGeneration": "생성",
+    "finalTitle": "이모티콘 작업을 시작하세요",
+    "finalDescription": "생성부터 출시 전 검토까지 한곳에서 진행합니다.",
+    "finalCta": "작업실 열기"
   },
-  ja: {
-    heroTitle: 'アイデアから\n世界へ届くスタンプまで、\nGlocalizerと一緒に。',
-    heroDescription: 'スタンプを作り、他の言語に合わせて整え、リリースの準備まで。制作に必要な流れをひとつに。',
-    heroCta: 'Glocalizerを始める', scrollLabel: '見る',
-    translationAlt: '韓国語、英語、日本語で挨拶するキャラクター', languageLabels: ['韓国語', '英語', '日本語'],
-    workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: 'アイデアからリリース準備まで', workflowDescription: '制作の各ステップをひとつの場所で進められます。',
-    scenes: [
-      { kicker: '01 · CREATE', title: 'アイデアを\nスタンプに', description: 'キャラクターや表情のアイデアから、新しいスタンプを作ります。', linkLabel: '制作を始める' },
-      { kicker: '02 · LOCALIZE', title: '作品の気持ちを\n他の言語へ', description: '元の雰囲気を活かし、英語・日本語・中国語の表現に整えます。', linkLabel: '現地化を始める' },
-      { kicker: '03 · REVIEW', title: 'リリース前に\nしっかり確認', description: 'OGQの基準に合わせて画像や文言を確認し、リリースに備えます。', linkLabel: '確認を始める' },
+  "en": {
+    "heroDescription": "Create stickers. Localize captions. Review before release.",
+    "heroCta": "Open studio",
+    "scrollLabel": "Explore",
+    "translationAlt": "A character greeting in Korean, English and Japanese",
+    "languageLabels": [
+      "Korean",
+      "English",
+      "Japanese"
     ],
-    caseEyebrow: 'REAL WORK · 実際の制作例', caseTitle: '実際の制作結果を比べてみましょう', caseDescription: '許可を得たGlocalizerの制作例を比較してみましょう。', caseOriginal: 'オリジナル', caseLocalizationResult: '現地化結果', caseGenerationResult: '生成結果', caseCompareLabel: 'オリジナルと制作結果を比較', caseLocalization: '現地化', caseGeneration: '生成',
-    finalEyebrow: '次はあなたの番です', finalTitle: '次のスタンプを\n一緒に完成させましょう。', finalDescription: 'Glocalizerでアイデアを形にして、リリースの準備をしましょう。', finalCta: 'スタジオを開く',
-  },
-  zh: {
-    heroTitle: '从创作灵感\n到走向世界的表情，\n与 Glocalizer 一起。',
-    heroDescription: '创作新表情、适配不同语言，并为发布做好准备。在一个工作流程中完成创作所需的一切。',
-    heroCta: '开始使用 Glocalizer', scrollLabel: '浏览',
-    translationAlt: '用韩语、英语和日语打招呼的角色', languageLabels: ['韩语', '英语', '日语'],
-    workflowEyebrow: 'CREATE · LOCALIZE · REVIEW', workflowTitle: '从灵感到发布准备', workflowDescription: '在一个工作空间中完成创作的每个阶段。',
-    scenes: [
-      { kicker: '01 · CREATE', title: '把灵感变成\n表情作品', description: '根据角色和表情灵感创作新的表情。', linkLabel: '开始创作' },
-      { kicker: '02 · LOCALIZE', title: '让作品情感\n传递到其他语言', description: '保留原作氛围，将文案调整为自然的英语、日语和中文表达。', linkLabel: '开始本地化' },
-      { kicker: '03 · REVIEW', title: '为正式发布\n做好准备', description: '根据 OGQ 要求检查图片与文案，安心准备发布。', linkLabel: '开始检查' },
+    "workflowTitle": "The sticker workflow",
+    "workflowDescription": "Start with the step you need.",
+    "scenes": [
+      {
+        "title": "Sticker creation",
+        "description": "Generate stickers from character and expression descriptions.",
+        "linkLabel": "Start creating"
+      },
+      {
+        "title": "Caption localization",
+        "description": "Adapt Korean captions into English, Japanese and Chinese.",
+        "linkLabel": "Start localizing"
+      },
+      {
+        "title": "Pre-release review",
+        "description": "Check OGQ specifications, images and captions.",
+        "linkLabel": "Start reviewing"
+      }
     ],
-    caseEyebrow: 'REAL WORK · 实际案例', caseTitle: '看看真实作品的创作成果', caseDescription: '拖动对比已获授权的 Glocalizer 实际作品。', caseOriginal: '原作', caseLocalizationResult: '本地化结果', caseGenerationResult: '生成结果', caseCompareLabel: '对比原作与创作结果', caseLocalization: '本地化', caseGeneration: '生成',
-    finalEyebrow: '现在轮到你了', finalTitle: '一起完成你的\n下一张表情吧。', finalDescription: '用 Glocalizer 创作、润色并准备发布你的下一组表情。', finalCta: '打开工作室',
+    "caseTitle": "Project results",
+    "caseDescription": "Real projects shared with permission.",
+    "caseOriginal": "Original",
+    "caseLocalizationResult": "Localized result",
+    "caseGenerationResult": "Generated result",
+    "caseCompareLabel": "Compare original and result",
+    "caseLocalization": "Localization",
+    "caseGeneration": "Generation",
+    "finalTitle": "Start your sticker project",
+    "finalDescription": "Create and prepare your stickers for release in one workspace.",
+    "finalCta": "Open studio"
   },
+  "ja": {
+    "heroDescription": "スタンプ生成・ローカライズ・公開前チェックを支援します。",
+    "heroCta": "スタジオを開く",
+    "scrollLabel": "見る",
+    "translationAlt": "韓国語・英語・日本語で挨拶するキャラクター",
+    "languageLabels": [
+      "韓国語",
+      "英語",
+      "日本語"
+    ],
+    "workflowTitle": "スタンプの制作手順",
+    "workflowDescription": "必要なステップから始められます。",
+    "scenes": [
+      {
+        "title": "スタンプ生成",
+        "description": "キャラクターと表情の説明からスタンプを生成します。",
+        "linkLabel": "生成を始める"
+      },
+      {
+        "title": "多言語ローカライズ",
+        "description": "韓国語の文言を英語・日本語・中国語に変換します。",
+        "linkLabel": "ローカライズを始める"
+      },
+      {
+        "title": "公開前チェック",
+        "description": "OGQの規格と画像・文言を確認します。",
+        "linkLabel": "チェックを始める"
+      }
+    ],
+    "caseTitle": "制作結果",
+    "caseDescription": "掲載許可を得た実際の制作例です。",
+    "caseOriginal": "オリジナル",
+    "caseLocalizationResult": "ローカライズ結果",
+    "caseGenerationResult": "生成結果",
+    "caseCompareLabel": "オリジナルと制作結果を比較",
+    "caseLocalization": "ローカライズ",
+    "caseGeneration": "生成",
+    "finalTitle": "スタンプ制作を始めましょう",
+    "finalDescription": "生成から公開前チェックまでひとつの場所で進めます。",
+    "finalCta": "スタジオを開く"
+  },
+  "zh": {
+    "heroDescription": "支持表情生成、多语言本地化和发布前检查。",
+    "heroCta": "打开工作室",
+    "scrollLabel": "浏览",
+    "translationAlt": "用韩语、英语和日语打招呼的角色",
+    "languageLabels": [
+      "韩语",
+      "英语",
+      "日语"
+    ],
+    "workflowTitle": "表情制作流程",
+    "workflowDescription": "从需要的步骤开始。",
+    "scenes": [
+      {
+        "title": "表情生成",
+        "description": "根据角色和表情描述生成图片。",
+        "linkLabel": "开始生成"
+      },
+      {
+        "title": "多语言本地化",
+        "description": "将韩语文案转换为英语、日语和中文。",
+        "linkLabel": "开始本地化"
+      },
+      {
+        "title": "发布前检查",
+        "description": "检查OGQ规格、图片和文案。",
+        "linkLabel": "开始检查"
+      }
+    ],
+    "caseTitle": "项目成果",
+    "caseDescription": "经授权展示的真实作品。",
+    "caseOriginal": "原作",
+    "caseLocalizationResult": "本地化结果",
+    "caseGenerationResult": "生成结果",
+    "caseCompareLabel": "对比原作与制作结果",
+    "caseLocalization": "本地化",
+    "caseGeneration": "生成",
+    "finalTitle": "开始制作您的表情",
+    "finalDescription": "在一个工作室完成生成到发布前检查。",
+    "finalCta": "打开工作室"
+  }
 }
 
 /** Native controls keep playback and seeking available in every motion mode. */
@@ -271,10 +370,11 @@ function ShowcaseCompare({ item, copy }: { item: LandingShowcase; copy: RemakeCo
 
 export default function LandingRemake() {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
   const { lang, t } = useSiteLang()
   const copy = COPY[lang]
   const pageRef = useRef<HTMLDivElement>(null)
+  const heroRef = useRef<HTMLElement>(null)
+  const [heroMotionPaused, setHeroMotionPaused] = useState(false)
   const storyRef = useRef<HTMLElement>(null)
   const workflowGridRef = useRef<HTMLDivElement>(null)
   const [reduceMotion, setReduceMotion] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
@@ -286,8 +386,20 @@ export default function LandingRemake() {
   const [showcases, setShowcases] = useState<LandingShowcase[]>([])
 
   useEffect(() => {
+    const hero = heroRef.current
+    if (!hero) return
+    let visible = true
+    const sync = () => setHeroMotionPaused(!visible || document.hidden)
+    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync() })
+    observer.observe(hero)
+    document.addEventListener('visibilitychange', sync)
+    sync()
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync) }
+  }, [])
+
+  useEffect(() => {
     const root = pageRef.current
-    const header = root?.querySelector('header')
+    const header = document.querySelector('.site-header')
     if (!root || !header) return
     const sync = () => root.style.setProperty('--main-header-height', `${header.getBoundingClientRect().height}px`)
     sync()
@@ -320,7 +432,7 @@ export default function LandingRemake() {
       const story = storyRef.current
       if (!story) return
       const rect = story.getBoundingClientRect()
-      const headerHeight = pageRef.current?.querySelector('header')?.getBoundingClientRect().height ?? 72
+      const headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 72
       const travel = Math.max(story.offsetHeight - window.innerHeight + headerHeight, 1)
       const progress = Math.min(Math.max((headerHeight - rect.top) / travel, 0), 1)
       const nextScene = Math.min(Math.floor(progress * 3), 2)
@@ -373,11 +485,10 @@ export default function LandingRemake() {
   const renderStoryScene = (index: number) => (
     <div className="remake-story-scene" key={index}>
       <div className="remake-scene-copy" key={`${lang}-${index}`}>
-        <p>{copy.scenes[index].kicker}</p>
         <h2>{copy.scenes[index].title.split('\n').map(line => <span key={line}>{line}</span>)}</h2>
         <div>{copy.scenes[index].description}</div>
         <div className="remake-scene-progress" aria-hidden>
-          {copy.scenes.map((item, step) => <span key={item.kicker} data-active={step <= index} />)}
+          {copy.scenes.map((item, step) => <span key={item.title} data-active={step <= index} />)}
         </div>
       </div>
       <div className="remake-device-wrap">
@@ -398,22 +509,15 @@ export default function LandingRemake() {
   )
 
   return (
-    <div ref={pageRef} className="remake-page main-restyle" data-lang={lang} style={{ '--ogq-gallery': `url(${ogqGalleryReference})` } as CSSProperties}>
-      <Header center={<nav className="remake-header-nav" aria-label={t.navStart}>
-        <button type="button" onClick={() => navigate('/dashboard')}>{t.navStart}</button>
-        <button type="button" onClick={() => navigate('/service')}>{t.navService}</button>
-      </nav>} right={<div className="remake-header-actions">
-        <LanguageSelect />
-        {isAuthenticated ? <AccountMenu /> : (
-          <button type="button" onClick={() => navigate('/login')} className="bg-surface">{t.navLogin}</button>
-        )}
-      </div>} />
+    <div ref={pageRef} className="remake-page main-restyle" data-lang={lang}>
       <main>
-        <section className="remake-hero" data-lang={lang}>
+        <section ref={heroRef} className="remake-hero" data-lang={lang} data-motion-paused={heroMotionPaused}>
           <div className="remake-hero-inner">
-            <h1 key={`title-${lang}`}>{copy.heroTitle.split('\n').map((line, index) => (
-              <span key={line} style={{ animationDelay: `${index * 0.12}s` }}>{line}</span>
-            ))}</h1>
+            <h1 key={`title-${lang}`}>
+              <span className="sr-only">{t.heroLine1} {t.heroLine2}</span>
+              <span aria-hidden="true" className="remake-hero-prefix">{t.heroLine1}</span>
+              <RollingText items={t.heroLine2Roll} className="remake-hero-roll" />
+            </h1>
             <p key={`description-${lang}`} className="remake-hero-description">{copy.heroDescription}</p>
             <div className="remake-hero-actions">
               <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.heroCta}<ArrowRight size={18} /></Button>
@@ -437,18 +541,17 @@ export default function LandingRemake() {
         </section>
 
         <section className="remake-workflow">
-          <div className="remake-workflow-heading"><p className="remake-eyebrow">{copy.workflowEyebrow}</p><h2>{copy.workflowTitle}</h2><p>{copy.workflowDescription}</p></div>
+          <div className="remake-workflow-heading"><h2>{copy.workflowTitle}</h2><p>{copy.workflowDescription}</p></div>
           <div ref={workflowGridRef} className="remake-workflow-grid" data-motion-ready="true">
             {copy.scenes.map((item, index) => (
               <article
-                key={item.kicker}
+                key={item.title}
                 data-visible={workflowVisible[index]}
                 data-active={activeWorkflowIndex === index}
                 style={{ '--workflow-delay': `${index * 120}ms` } as CSSProperties}
                 onPointerDown={() => setActiveWorkflowIndex(index)}
               >
                 <img src={WORKFLOW_VISUALS[index]} alt="" width={201} height={201} loading="lazy" decoding="async" className="remake-workflow-visual" />
-                <p>{item.kicker}</p>
                 <h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3>
                 <div>{item.description}</div>
                 <Link to={['/generate', '/localize', '/review'][index]} className="remake-workflow-link" onFocus={() => setActiveWorkflowIndex(index)}>{item.linkLabel}<ArrowRight size={17} /></Link>
@@ -458,14 +561,13 @@ export default function LandingRemake() {
         </section>
 
         {showcases.length > 0 && <section className="remake-cases">
-          <div className="remake-cases-heading"><p className="remake-eyebrow">{copy.caseEyebrow}</p><h2>{copy.caseTitle}</h2><p>{copy.caseDescription}</p></div>
+          <div className="remake-cases-heading"><h2>{copy.caseTitle}</h2><p>{copy.caseDescription}</p></div>
           <div className="remake-case-grid">{showcases.map((item) => <ShowcaseCompare key={item.id} item={item} copy={copy} />)}</div>
         </section>}
 
-        <div className="remake-ogq-proof"><OgqStickerGallery fallbackImage={ogqGalleryReference} /></div>
+        <div className="remake-ogq-proof"><OgqStickerGallery /></div>
 
         <section className="remake-final">
-          <p className="remake-eyebrow">{copy.finalEyebrow}</p>
           <h2>{copy.finalTitle.split('\n').map((line) => <span key={line}>{line}</span>)}</h2>
           <p>{copy.finalDescription}</p>
           <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.finalCta}<ArrowRight size={18} /></Button>
