@@ -2,7 +2,7 @@ import { enqueueRemainingGeneration } from '../lib/generationApi'
 import { workflowCopy } from '../i18n/workflow'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Astroid, CheckCircle2, Download, Globe2, LoaderCircle, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowRight, Astroid, CheckCircle2, Download, Globe2, LoaderCircle, Plus, ShieldCheck, Sparkles, X } from 'lucide-react'
 import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
 import Modal from '../components/Modal'
@@ -11,7 +11,7 @@ import StickerThumbnail from '../components/StickerThumbnail'
 import { useAuth } from '../store/AuthContext'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { generationCopy } from '../i18n/generation'
-import { CAPTION_ANCHOR_X, CAPTION_ANCHOR_Y, CAPTION_HORIZONTALS, CAPTION_SIZES, CAPTION_VERTICALS, DEFAULT_CAPTION_STYLE, downloadGeneration, downloadGenerationSet, fetchGenerationFile, generationRequest, latestCompletedImages, prepareReference, thumbnailImage, type CaptionStyle, type GenerationImage, type GenerationProject, type StickerPlanItem } from '../lib/generationApi'
+import { CAPTION_ANCHOR_X, CAPTION_ANCHOR_Y, CAPTION_HORIZONTALS, CAPTION_SIZES, CAPTION_VERTICALS, DEFAULT_CAPTION_STYLE, downloadGeneration, downloadGenerationSet, downloadGenerationSets, fetchGenerationFile, generationRequest, latestCompletedImages, prepareReference, thumbnailImage, type CaptionStyle, type GenerationImage, type GenerationProject, type StickerPlanItem } from '../lib/generationApi'
 import { useUploads } from '../store/uploads'
 import dragNDropImage from '../assets/GCFrontendUI/DragNDropIMG.svg'
 
@@ -21,6 +21,9 @@ const styleTags = ['simple', 'bold', 'pastel', 'vivid', 'monotone', 'watercolor'
 const moodTags = ['cute', 'chubby', 'fluffy', 'playful', 'funny', 'chic', 'warm', 'cool', 'emotional', 'energetic'] as const
 const tagGroups = [{ key: 'styleTags', values: styleTags }, { key: 'moodTags', values: moodTags }] as const
 type CaptionSaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
+type BatchDraftItem = { prompt: string; reference?: string }
+type BatchDoneItem = { projectId: string; prompt: string }
+const BATCH_STORAGE_KEY = 'glocalizer:generateBatch:v1'
 
 function sameCaptionStyle(left: CaptionStyle, right: CaptionStyle): boolean {
   return left.anchor === right.anchor && left.size === right.size && left.color === right.color && left.stroke === right.stroke
@@ -49,6 +52,12 @@ export default function Generate() {
   const [slot, setSlot] = useState(0); const [caption, setCaption] = useState(''); const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE); const [captionImageId, setCaptionImageId] = useState<string | null>(null); const [captionSaveStatus, setCaptionSaveStatus] = useState<CaptionSaveStatus>('idle'); const [revision, setRevision] = useState(''); const [planDraft, setPlanDraft] = useState<StickerPlanItem[]>([]); const [completeOpen, setCompleteOpen] = useState(false)
   const mutationLock = useRef(false); const planDirty = useRef(false); const planProjectId = useRef<string | undefined>(undefined);
   const [notice, setNotice] = useState('')
+  const [creationMode, setCreationMode] = useState<'single' | 'batch'>('single')
+  const [batchDraft, setBatchDraft] = useState<BatchDraftItem[]>([{ prompt: '' }])
+  const [batchQueue, setBatchQueue] = useState<BatchDraftItem[]>([])
+  const [batchDone, setBatchDone] = useState<BatchDoneItem[]>([])
+  const [batchActive, setBatchActive] = useState(false)
+  const batchFileInput = useRef<HTMLInputElement>(null); const batchFileIndex = useRef(0); const batchPendingItem = useRef<BatchDraftItem | null>(null)
   const fileInput = useRef<HTMLInputElement>(null); const polling = useRef(false); const captionSaveQueue = useRef<Promise<void>>(Promise.resolve()); const captionSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null); const savedCaptionDrafts = useRef(new Map<string, { caption: string; style: CaptionStyle }>())
   const activeProject = projects.find(item => (item.status ?? 'active') === 'active')
   const project = projects.find(item => item.id === params.get('project')) ?? (params.get('new') === '1' ? undefined : activeProject ?? projects[0])
@@ -68,6 +77,25 @@ export default function Generate() {
   const remainingSlots = useMemo(() => planDraft.filter(item => !completedSlots.has(item.slot) && !pendingSlots.has(item.slot)).map(item => item.slot), [planDraft, completedSlots, pendingSlots])
   const load = useCallback(async () => { if (!token) return []; const [config, result] = await Promise.all([generationRequest<{ enabled: boolean }>(token, '/config'), generationRequest<{ projects: GenerationProject[] }>(token, '/projects')]); setEnabled(config.enabled); setProjects(result.projects); return result.projects }, [token])
   useEffect(() => { let disposed = false; const refresh = async () => { try { await load() } catch (reason) { if (!disposed) setError(reason instanceof Error ? reason.message : 'API error') } finally { if (!disposed) setLoading(false) } }; void refresh(); const interval = setInterval(() => { if (polling.current && document.visibilityState === 'visible') void refresh() }, 4000); return () => { disposed = true; clearInterval(interval) } }, [load])
+  // 탭을 새로고침해도 일괄 생성 대기열/완료 목록이 유지되도록 로컬에 저장한다. 진행 중인 개별 캐릭터는
+  // 서버 워커가 계속 처리하므로, 여기서는 "다음에 뭘 만들지"만 들고 있으면 된다.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(BATCH_STORAGE_KEY)
+      if (!raw) return
+      const saved = JSON.parse(raw) as { queue?: BatchDraftItem[]; done?: BatchDoneItem[]; active?: boolean }
+      if (saved.queue?.length) setBatchQueue(saved.queue)
+      if (saved.done?.length) setBatchDone(saved.done)
+      if (saved.active) setBatchActive(true)
+    } catch { /* 저장소를 못 읽어도(프라이빗 모드 등) 이번 세션에서 새로 시작하면 된다 */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    try {
+      if (!batchActive && !batchQueue.length && !batchDone.length) { localStorage.removeItem(BATCH_STORAGE_KEY); return }
+      localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify({ queue: batchQueue, done: batchDone, active: batchActive }))
+    } catch { /* 저장소를 못 써도 이번 탭에서는 그대로 진행된다 */ }
+  }, [batchQueue, batchDone, batchActive])
   // Only hydrate drafts when selecting another image; polling updates must not replace an unsaved local draft.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setCaption(image?.caption ?? ''); setCaptionStyle(image?.caption_style ?? DEFAULT_CAPTION_STYLE); setCaptionImageId(image?.id ?? null); setCaptionSaveStatus('idle') }, [image?.id])
@@ -145,8 +173,16 @@ export default function Generate() {
     catch (reason) { setError(reason instanceof Error ? reason.message : 'API error'); await load().catch(() => undefined) }
     finally { mutationLock.current = false; setSubmitting(false) }
   }
-  const create = () => action(async () => { const instructions = [category ? `Category: ${conditions[category]}.` : '', selectedTags.length ? `Style and personality: ${selectedTags.map(tag => conditions[tag]).join(', ')}.` : '', prompt.trim()].filter(Boolean).join('\n'); const created = await generationRequest<GenerationProject>(token!, '/projects', 'POST', { prompt: instructions, reference }); setProjects(previous => [created, ...previous]); setParams({ project: created.id }); await generationRequest(token!, `/projects/${created.id}/images`, 'POST', { slot: 0, prompt: '중립 표정으로 전체 캐릭터 디자인을 보여주세요.' }) })
-  const attach = async (files: FileList | null) => { if (!files?.length || uploading) return; if (files.length !== 1) { setError(t.oneImage); return } setUploading(true); setError(''); try { setReference(await prepareReference(files[0])) } catch { setError(t.imageError) } finally { setUploading(false) } }
+  // 단일 생성과 일괄 생성이 같은 "프로젝트 생성 + 대표 캐릭터 슬롯0 요청"을 공유한다.
+  const createProject = (projectPrompt: string, projectReference?: string) => action(async () => { const created = await generationRequest<GenerationProject>(token!, '/projects', 'POST', { prompt: projectPrompt, reference: projectReference }); setProjects(previous => [created, ...previous]); setParams({ project: created.id }); await generationRequest(token!, `/projects/${created.id}/images`, 'POST', { slot: 0, prompt: '중립 표정으로 전체 캐릭터 디자인을 보여주세요.' }) })
+  const create = () => { const instructions = [category ? `Category: ${conditions[category]}.` : '', selectedTags.length ? `Style and personality: ${selectedTags.map(tag => conditions[tag]).join(', ')}.` : '', prompt.trim()].filter(Boolean).join('\n'); return createProject(instructions, reference) }
+  const attach = async (files: FileList | null, onDone?: (dataUrl: string) => void) => { if (!files?.length || uploading) return; if (files.length !== 1) { setError(t.oneImage); return } setUploading(true); setError(''); try { const dataUrl = await prepareReference(files[0]); if (onDone) onDone(dataUrl); else setReference(dataUrl) } catch { setError(t.imageError) } finally { setUploading(false) } }
+  const updateBatchRow = (index: number, patch: Partial<BatchDraftItem>) => setBatchDraft(previous => previous.map((row, current) => current === index ? { ...row, ...patch } : row))
+  const startBatch = () => {
+    const queue = batchDraft.filter(row => row.prompt.trim()).map(row => ({ prompt: row.prompt.trim(), reference: row.reference }))
+    if (!queue.length) return
+    setBatchQueue(queue); setBatchDone([]); setBatchActive(true); setBatchDraft([{ prompt: '' }]); setCreationMode('single'); setError('')
+  }
   const createPlan = () => action(async () => { const result = await generationRequest<{ plan: StickerPlanItem[] }>(token!, `/projects/${project!.id}/plan`, 'POST'); setPlanDraft(result.plan); planDirty.current = false })
   const savePlan = async () => { await generationRequest(token!, `/projects/${project!.id}/plan`, 'PATCH', { plan: planDraft }); planDirty.current = false }
   const generateAll = () => action(async () => {
@@ -177,7 +213,9 @@ export default function Generate() {
   })
   const resetToNewWork = () => { setParams({ new: '1' }); setSlot(0); setPrompt(''); setReference(undefined); setCategory(undefined); setSelectedTags([]); setError('') }
   const startNew = async () => { try { await flushCaptionDraft() } catch { return } if (activeProject) { setParams({ project: activeProject.id }); setError(t.activeExists); return } resetToNewWork() }
-  // 프로젝트 완료 후 진행 중 프로젝트가 남아 있는지 다시 확인한 다음 다음 작업을 엽니다.
+  // 프로젝트 완료 후 진행 중 프로젝트가 남아 있는지 다시 확인한 다음 다음 작업을 엽니다. 일괄 생성 중이면
+  // 방금 끝난 캐릭터를 완료 목록에 적어두기만 하고, 다음 캐릭터를 실제로 시작하는 건 아래 오케스트레이션
+  // effect가 project가 undefined로 바뀐 걸 보고 이어서 한다(락을 쥔 채로 다음 action을 호출할 수 없어서다).
   const completeProject = async () => {
     if (!project || mutationLock.current) return
     mutationLock.current = true
@@ -186,24 +224,71 @@ export default function Generate() {
       await flushCaptionDraft()
       await generationRequest(token!, `/projects/${project.id}/complete`, 'POST')
       setCompleteOpen(false)
+      if (batchActive) setBatchDone(previous => [...previous, { projectId: project.id, prompt: project.prompt }])
       const freshProjects = await load() ?? []
       const stillActive = freshProjects.find(item => (item.status ?? 'active') === 'active')
       if (stillActive) { setParams({ project: stillActive.id }); setError(t.activeExists) } else resetToNewWork()
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'API error') } finally { mutationLock.current = false; setSubmitting(false) }
   }
+  // 일괄 생성 오케스트레이션: 사람이 매번 누르던 확정→구성→생성→완료 단계를 폴링 결과를 보고 자동으로 이어간다.
+  // 대표 캐릭터 확정도 사람 승인 없이 자동 통과시킨다 — 캐릭터 하나(~24장)당 실비용이 작아서(~$1.4) 이상한
+  // 결과가 나와도 낭비가 크지 않고, "자동으로 다 돌린다"는 요청에 맞춘 선택이다. 나중에 승인 단계를 되살리고
+  // 싶으면 이 블록의 confirmBase 자동 호출 조건만 지우면 된다.
+  useEffect(() => {
+    if (!batchActive || loading || submitting || mutationLock.current) return
+    if (!activeProject) {
+      // 서버에 진행 중인 프로젝트가 없다(막 완료됐거나 아직 시작 전) — 다음 캐릭터를 만들 차례다. project가
+      // 아니라 activeProject로 판단해야, 사용자가 지난 프로젝트를 구경하는 중이어도 배치가 멈추지 않는다.
+      // action()은 실패해도 던지지 않고 error만 채우므로, 시도 중인 항목은 성공(= activeProject가 생겨남)을
+      // 직접 확인하기 전까지 큐에서 빼지 않는다 — 안 그러면 일시적 실패로 캐릭터 하나가 그냥 사라진다.
+      if (batchPendingItem.current || !batchQueue.length) { if (!batchQueue.length) setBatchActive(false); return }
+      batchPendingItem.current = batchQueue[0]
+      void createProject(batchQueue[0].prompt, batchQueue[0].reference)
+      return
+    }
+    if (!project) return // activeProject는 있지만 아직 목록에 막 반영되는 중 — 다음 폴링을 기다린다
+    if (batchPendingItem.current) { setBatchQueue(previous => previous.slice(1)); batchPendingItem.current = null }
+    // 사용자가 "생성 작업" 목록에서 다른(지난) 프로젝트를 보고 있는 동안에는 건드리지 않는다 — confirmBase 등은
+    // 화면에 보이는 project를 기준으로 동작하므로, 여기서 넘어가면 엉뚱한 프로젝트를 자동 확정/완료시킬 수 있다.
+    // 서버는 소유자당 active 프로젝트를 1개만 허용하므로, 지금 활성 프로젝트는 항상 배치가 만든 그 캐릭터다.
+    if (project.id !== activeProject.id) return
+    if (!project.confirmed) {
+      if (completedImages.some(item => item.slot === 0) && !pendingSlots.has(0)) void confirmBase()
+      return
+    }
+    if (remainingSlots.length > 0 && pendingSlots.size === 0) { void generateAll(); return }
+    if (completedImages.length === 24 && pendingSlots.size === 0) void completeProject()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchActive, loading, submitting, project, activeProject, projectStatus, completedImages, pendingSlots, remainingSlots, plan.length, batchQueue])
+  // 예산 한도 등으로 어느 단계든 실패하면(action()이 error를 채운다) 같은 요청을 계속 재시도하지 않도록 멈춘다.
+  // batchQueue/batchDone은 그대로 둬서, 사용자가 "이어서 진행"을 누르면 멈춘 지점부터 다시 시작할 수 있다.
+  useEffect(() => { if (batchActive && error) { setBatchActive(false); batchPendingItem.current = null } }, [error]) // eslint-disable-line react-hooks/exhaustive-deps
   if (checkingSession) return <div role="status" className="p-8 text-center">{w.checkingSession}</div>
   if (!token) return <Navigate to={`/login?next=${encodeURIComponent(`/generate?${params.toString()}`)}`} replace />
   const cardImage = (item: GenerationImage | undefined, label: string) => item?.url ? <img src={item.url} alt={label} className="h-full w-full object-contain" /> : <Sparkles className="h-8 w-8 text-brand/35" />
 
   return <div className="studio-generate min-h-screen bg-[#FAFBFC]"><main className="layout-app py-8 sm:py-12">
     <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-bold text-brand-dark">Glocalizer · {t.sample}</p><Button variant="outline" onClick={startNew} disabled={busy || uploading}>{t.new}</Button></div><h1 className="mt-4 text-[28px] font-extrabold tracking-tight sm:text-[36px]">{t.title}</h1><p className="mt-3 text-sub">{t.subtitle}</p><div className="mt-3"><AILocalizationBadge label={t.aiGenerated} /></div>
-    {!enabled && !loading && <p role="status" className="mt-5 rounded-panel border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t.disabled}</p>}{error && <div role="alert" className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-panel bg-red-50 p-4 text-sm text-red-700"><span>{error}</span><Button variant="ghost" size="sm" onClick={() => action(load)}>{t.retry}</Button></div>}
+    {!enabled && !loading && <p role="status" className="mt-5 rounded-panel border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t.disabled}</p>}{error && <div role="alert" className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-panel bg-red-50 p-4 text-sm text-red-700"><span>{error}</span><div className="flex gap-2">{!batchActive && batchQueue.length > 0 && <Button variant="ghost" size="sm" onClick={() => { setError(''); setBatchActive(true) }}>{t.resumeBatch}</Button>}<Button variant="ghost" size="sm" onClick={() => action(load)}>{t.retry}</Button></div></div>}
     {notice && <p role="status" className="mt-5 rounded-panel bg-brand-soft p-4 text-sm text-brand-dark">{notice}</p>}
+    {batchActive && <section role="status" aria-live="polite" className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-brand/20 bg-brand-soft/60 p-4"><p className="text-sm font-bold text-brand-dark">{t.batchProgress.replace('{done}', String(batchDone.length)).replace('{total}', String(batchDone.length + batchQueue.length + (project ? 1 : 0)))}</p><Button variant="outline" size="sm" onClick={() => setBatchActive(false)}>{t.batchCancel}</Button></section>}
+    {!batchActive && batchDone.length > 0 && <section className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-brand/20 bg-brand-soft/60 p-4"><p className="text-sm font-bold text-brand-dark">{t.batchFinished.replace('{n}', String(batchDone.length))}</p><div className="flex gap-2"><Button size="sm" disabled={submitting} onClick={() => action(async () => { await downloadGenerationSets(token!, projects.filter(item => batchDone.some(done => done.projectId === item.id))) })}><Download size={14} />{t.downloadAllSets}</Button><Button variant="ghost" size="sm" onClick={() => setBatchDone([])}>{t.dismiss}</Button></div></section>}
     {loading ? <GenerationPageSkeleton label={t.loading} /> : !project ? <section className="mx-auto mt-10 max-w-2xl rounded-panel border border-gray-200 bg-white p-5 sm:p-7">
-      <div onDragOver={event => { event.preventDefault(); setDragging(true) }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false) }} onDrop={event => { event.preventDefault(); setDragging(false); void attach(event.dataTransfer.files) }} data-dragging={dragging} className={`studio-upload relative isolate flex min-h-60 flex-col items-center justify-center gap-3 rounded-panel border-2 border-dashed p-6 text-center transition-[border-color,background-color] duration-300 ${dragging ? 'border-brand bg-brand-soft' : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70 '}`}>{reference ? <><img src={reference} alt={t.attach} className="h-32 w-full object-contain" /><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>{t.fileSelect}</Button><Button variant="ghost" size="sm" onClick={() => setReference(undefined)}>{t.remove}</Button></div></> : <><span className="flex h-16 w-16 items-center justify-center rounded-panel bg-brand-soft text-brand-dark">{uploading ? <LoaderCircle className="animate-spin" size={30} /> : <img src={dragNDropImage} alt="" aria-hidden className="h-10 w-10" />}</span><h2 className="font-extrabold">{t.dropTitle}</h2><p className="text-sm text-sub">{t.dropHelp}</p><Button size="sm" onClick={() => fileInput.current?.click()}>{t.fileSelect}</Button></>}</div><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={event => { void attach(event.target.files); event.target.value = '' }} />
+      <div className="flex gap-2"><button type="button" aria-pressed={creationMode === 'single'} onClick={() => setCreationMode('single')} className={`rounded-control border px-4 py-2 text-sm font-bold ${creationMode === 'single' ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-200 text-sub'}`}>{t.singleTab}</button><button type="button" aria-pressed={creationMode === 'batch'} onClick={() => setCreationMode('batch')} className={`rounded-control border px-4 py-2 text-sm font-bold ${creationMode === 'batch' ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-200 text-sub'}`}>{t.batchTab}</button></div>
+      {creationMode === 'single' ? <>
+      <div className={`studio-upload relative isolate mt-5 flex min-h-60 flex-col items-center justify-center gap-3 rounded-panel border-2 border-dashed p-6 text-center transition-[border-color,background-color] duration-300 ${dragging ? 'border-brand bg-brand-soft' : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70 '}`} onDragOver={event => { event.preventDefault(); setDragging(true) }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false) }} onDrop={event => { event.preventDefault(); setDragging(false); void attach(event.dataTransfer.files) }} data-dragging={dragging}>{reference ? <><img src={reference} alt={t.attach} className="h-32 w-full object-contain" /><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>{t.fileSelect}</Button><Button variant="ghost" size="sm" onClick={() => setReference(undefined)}>{t.remove}</Button></div></> : <><span className="flex h-16 w-16 items-center justify-center rounded-panel bg-brand-soft text-brand-dark">{uploading ? <LoaderCircle className="animate-spin" size={30} /> : <img src={dragNDropImage} alt="" aria-hidden className="h-10 w-10" />}</span><h2 className="font-extrabold">{t.dropTitle}</h2><p className="text-sm text-sub">{t.dropHelp}</p><Button size="sm" onClick={() => fileInput.current?.click()}>{t.fileSelect}</Button></>}</div><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={event => { void attach(event.target.files); event.target.value = '' }} />
       <fieldset className="mt-6"><legend className="text-sm font-bold">{t.category}<span className="ml-2 text-xs font-normal text-sub">{t.optional}</span></legend><div className="mt-3 flex flex-wrap gap-2">{categories.map(value => <button key={value} type="button" aria-pressed={category === value} onClick={() => setCategory(previous => previous === value ? undefined : value)} className={`rounded-control border px-4 py-2 text-sm font-bold ${category === value ? 'border-brand bg-brand-soft text-brand-dark' : 'border-gray-200 text-sub'}`}>{t[value]}</button>)}</div></fieldset>
       {tagGroups.map(group => <fieldset key={group.key} className="mt-5"><legend className="text-sm font-bold">{t[group.key]}<span className="ml-2 text-xs font-normal text-sub">{t.optional}</span></legend><div className="mt-3 flex flex-wrap gap-2">{group.values.map(value => <button key={value} type="button" aria-pressed={selectedTags.includes(value)} onClick={() => setSelectedTags(previous => previous.includes(value) ? previous.filter(tag => tag !== value) : [...previous, value])} className={`rounded-control border px-3 py-1.5 text-sm ${selectedTags.includes(value) ? 'border-brand bg-brand-soft font-bold text-brand-dark' : 'border-gray-200 text-sub'}`}># {t[value]}</button>)}</div></fieldset>)}
       <label htmlFor="character-prompt" className="mt-8 block font-bold">{t.prompt}</label><textarea id="character-prompt" value={prompt} onChange={event => setPrompt(event.target.value)} maxLength={700} placeholder={t.placeholder} className="mt-3 min-h-32 w-full resize-y rounded-control bg-surface p-4 outline-none focus:ring-2 focus:ring-brand" /><div className="mt-4 flex justify-end"><Button onClick={create} disabled={!enabled || submitting || uploading || !prompt.trim()}><Sparkles size={18} />{t.create}</Button></div>
+      </> : <div className="mt-5">
+        <p className="text-sm text-sub">{t.sample}</p>
+        <div className="mt-4 space-y-4">{batchDraft.map((row, index) => <div key={index} className="rounded-panel border border-gray-200 p-4"><div className="flex items-center justify-between gap-2"><p className="text-xs font-extrabold text-brand-dark">{t.batchCharacter.replace('{n}', String(index + 1))}</p>{batchDraft.length > 1 && <button type="button" onClick={() => setBatchDraft(previous => previous.filter((_, current) => current !== index))} className="text-xs font-bold text-sub hover:text-red-600"><X size={14} className="inline" /> {t.removeCharacter}</button>}</div>
+          <textarea value={row.prompt} onChange={event => updateBatchRow(index, { prompt: event.target.value })} maxLength={700} placeholder={t.placeholder} className="mt-2 min-h-20 w-full resize-y rounded-control bg-surface p-3 text-sm outline-none focus:ring-2 focus:ring-brand" />
+          <div className="mt-2">{row.reference ? <div className="flex items-center gap-2"><img src={row.reference} alt={t.attach} className="h-14 w-14 rounded-control object-contain" /><Button variant="ghost" size="sm" onClick={() => updateBatchRow(index, { reference: undefined })}>{t.remove}</Button></div> : <Button variant="outline" size="sm" disabled={uploading} onClick={() => { batchFileIndex.current = index; batchFileInput.current?.click() }}>{t.attach}</Button>}</div>
+        </div>)}</div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2"><Button variant="outline" size="sm" onClick={() => setBatchDraft(previous => [...previous, { prompt: '' }])}><Plus size={16} />{t.addCharacter}</Button><Button disabled={!enabled || submitting || !batchDraft.some(row => row.prompt.trim())} onClick={startBatch}><Sparkles size={18} />{t.startBatch}</Button></div>
+        <input ref={batchFileInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={event => { void attach(event.target.files, dataUrl => updateBatchRow(batchFileIndex.current, { reference: dataUrl })); event.target.value = '' }} />
+      </div>}
     </section> : <><section className="mt-8 rounded-panel border border-gray-200 bg-white p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold text-brand-dark">{projectStatus === 'completed' ? t.statusCompleted : t.statusActive}</p><h2 className="mt-1 text-xl font-extrabold">{completedImages.length}/24 {t.progress}</h2>{pendingSlots.size > 0 && <p role="status" aria-live="polite" className="mt-1 flex items-center gap-2 text-sm font-bold text-brand-dark"><LoaderCircle size={14} className="animate-spin" />{t.generating.replace('{n}', String(pendingSlots.size))}</p>}</div>{projectStatus === 'completed' && <CheckCircle2 className="text-brand" />}</div><div className="mt-4 flex h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-brand transition-[width]" style={{ width: `${completedImages.length / 24 * 100}%` }} /><div className="sticker-shimmer h-full bg-brand/30 transition-[width]" style={{ width: `${pendingSlots.size / 24 * 100}%` }} /></div></section>
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[1fr_340px]"><section className="min-w-0 rounded-panel border border-gray-200 bg-white p-5 sm:p-7"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-extrabold">{slot === 0 ? t.base : `${t.expressions} ${slot}`}</h2>{project.confirmed && <span className="rounded-badge bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">{t.confirmed}</span>}</div><p className="mt-2 break-words text-sm text-sub">{project.prompt}</p>
         <div className="relative mx-auto mt-5 flex aspect-[740/640] max-w-md items-center justify-center overflow-hidden rounded-panel border border-gray-100 bg-[repeating-conic-gradient(#f2f4f6_0%_25%,white_0%_50%)] bg-[length:20px_20px] [container-type:inline-size]">{!currentPending && cardImage(image, slot === 0 ? t.base : `${t.expressions} ${slot}`)}{caption && image && (() => { const [vertical, horizontal] = captionStyle.anchor.split('-'); const shift = horizontal === 'center' ? '-50%' : horizontal === 'right' ? '-100%' : '0'; return <span className="absolute whitespace-nowrap font-black [paint-order:stroke]" style={{ left: `${(CAPTION_ANCHOR_X[horizontal] ?? 370) / 740 * 100}%`, top: `${(CAPTION_ANCHOR_Y[vertical] ?? 56) / 640 * 100}%`, transform: `translate(${shift}, -100%)`, fontSize: `${captionStyle.size / 740 * 100}cqw`, color: captionStyle.color, WebkitTextStroke: `${captionStyle.size / 740 * 100 * 0.15}cqw ${captionStyle.stroke}` }}>{caption}</span> })()}{currentPending && <div role="status" aria-live="polite" className="sticker-shimmer absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/85"><span className="flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft text-brand-dark"><Astroid className="h-6 w-6" /></span><span className="sr-only">{latest.status === 'queued' ? t.queued : t.aiWorking}</span>{latest.status === 'queued' ? <span className="text-base font-extrabold text-brand-dark">{t.queued}</span> : <RollingText items={[t.drawingStage1, t.drawingStage2, t.drawingStage3]} className="text-base font-extrabold text-brand-dark" />}</div>}</div>{latest?.error && <p className="mt-3 text-sm text-red-600">{latest.error}</p>}{!latest && <p className="mt-3 text-sm text-sub">{t.missing}</p>}
