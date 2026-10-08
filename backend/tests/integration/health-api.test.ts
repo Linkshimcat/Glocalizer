@@ -27,4 +27,11 @@ describe('GET /api/v1/health/ready', () => {
     expect(response.status).toBe(503);
     expect(response.body).toMatchObject({ status: 'unavailable', dependencies: { database: true, storage: false } });
   });
+  it('returns 503 immediately during shutdown even if the dependency probe would hang',async()=>{
+    const {beginShutdown}=await import('../../src/utils/task-context.js');beginShutdown();
+    vi.mocked(healthRepo.checkServiceDependencies).mockImplementation(()=>new Promise(()=>{}));
+    const response=await request(app).get('/api/v1/health/ready');
+    expect(response.status).toBe(503);expect(healthRepo.checkServiceDependencies).not.toHaveBeenCalled();
+  });
+
 });

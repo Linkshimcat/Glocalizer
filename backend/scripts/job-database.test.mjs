@@ -70,6 +70,14 @@ test('backend invariants on an isolated PostgreSQL cluster', { timeout: 60000 },
    assert.equal(await scalar('select status from assets where id=$1',[x.asset]),'ocr');
    assert.equal(await scalar('select detected_text from ocr_regions where id=$1',[r.id]),'수정한 문구');
    await pool.query("update jobs set status='failed' where id=$1",[queued.id]);
+   await pool.query("update assets set status='failed' where id=$1",[x.asset]);
+   const retry=await scalar("select enqueue_localization_job($1,array['failed'],$2)",[x.project,JSON.stringify({operation:'retry',assetId:x.asset})]);
+   assert.equal(retry.initial_states[x.asset],'ocr');
+   const attempt=await scalar("select claim_localization_job('manual-retry')");
+   await scalar("select finish_localization_job($1,$2,'TEMPORARY','retry',true)",[retry.id,attempt.lease_token]);
+   assert.equal(await scalar('select status from assets where id=$1',[x.asset]),'ocr');
+   assert.equal(await scalar('select detected_text from ocr_regions where id=$1',[r.id]),'수정한 문구');
+   await pool.query("update jobs set status='failed' where id=$1",[retry.id]);
   });
   await t.test('deletion rejects active work and serializes against a concurrent enqueue',async()=>{
    const owner=randomUUID();await pool.query("insert into users(id,email,signup_method) values($1,$2,'email')",[owner,`${owner}@test.invalid`]);
@@ -102,6 +110,65 @@ test('backend invariants on an isolated PostgreSQL cluster', { timeout: 60000 },
    assert.equal(await scalar('select mutate_generation_job($1,$2,$3)',[id,claimed.lease_token,JSON.stringify({status:'completed',path:'late.png'})]),false);
    assert.equal(await scalar('select mutate_generation_job($1,$2,$3)',[id,claimed.lease_token,JSON.stringify({usage:{output_tokens:100},cost_usd:0.04})]),true);
    const image=(await pool.query('select * from generation_images where id=$1',[id])).rows[0];assert.equal(image.status,'failed');assert.equal(Number(image.reserve_usd),0.25);assert.equal(Number(image.cost_usd),0.04);assert.equal(image.path,null);
+  });
+  await t.test('legacy queued/running jobs are backfilled before resuming intermediate asset states',async()=>{
+   const x=await fixture();
+   await pool.query("update assets set status='preprocessing' where id=$1",[x.asset]);
+   const id=await scalar("insert into jobs(project_id,status,attempts) values($1,'queued',0) returning id",[x.project]);
+   const claimed=await scalar("select claim_localization_job('legacy-worker')");
+   assert.equal(claimed.id,id);assert.deepEqual(claimed.asset_ids,[x.asset]);
+   assert.equal(await scalar('select status from assets where id=$1',[x.asset]),'uploaded');
+   await assert.rejects(pool.query("update assets set status='uploaded' where id=$1",[x.asset]),/PROCESS_ALREADY_RUNNING/);
+   await scalar("select finish_localization_job($1,$2,'STOPPED','test',false)",[id,claimed.lease_token]);
+   const y=await fixture();
+   const stale=await scalar("insert into jobs(project_id,status,attempts,heartbeat_at) values($1,'running',2,now()-interval '1 hour') returning id",[y.project]);
+   await scalar('select recover_localization_jobs(1000)');
+   assert.equal(await scalar('select status from jobs where id=$1',[stale]),'failed');
+   assert.equal(await scalar('select status from assets where id=$1',[y.asset]),'failed');
+  });
+  await t.test('service-role worker writes remain fenced and artifact cleanup preserves published paths',async()=>{
+   const x=await fixture();
+   const client=await pool.connect();
+   try {
+    await client.query('set role service_role');assert.equal(Object.values((await client.query('select backend_schema_ready()')).rows[0])[0],true);
+    await client.query("select enqueue_localization_job($1,array['uploaded'])",[x.project]);
+    const g=Object.values((await client.query("select claim_localization_job('service-worker')")).rows[0])[0];
+    const path=`projects/${x.project}/cleaned/${g.id}/${g.lease_token}/${x.asset}.png`;
+    await client.query("select mutate_localization_job($1,$2,'artifact',$3,$4)",[g.id,g.lease_token,x.asset,JSON.stringify({path})]);
+    await client.query("select mutate_localization_job($1,$2,'asset',$3,$4)",[g.id,g.lease_token,x.asset,JSON.stringify({status:'completed',cleaned_path:path})]);
+    await client.query('select finish_localization_job($1,$2)',[g.id,g.lease_token]);
+    assert.ok(!Object.values((await client.query('select orphan_artifact_paths()')).rows[0])[0].includes(path));
+    await client.query('update assets set cleaned_path=null where id=$1',[x.asset]);
+    assert.ok(Object.values((await client.query('select orphan_artifact_paths()')).rows[0])[0].includes(path));
+    await client.query('select mark_orphan_artifacts($1)',[[path]]);
+    assert.ok((await client.query('select removed_at from job_artifacts where path=$1',[path])).rows[0].removed_at);
+   }
+   finally { await client.query('reset role');client.release(); }
+  });
+  await t.test('generation admission waits for deletion reservation and cannot enqueue after it',async()=>{
+   const owner=randomUUID();await pool.query("insert into users(id,email,signup_method) values($1,$2,'email')",[owner,`${owner}@test.invalid`]);
+   const project=randomUUID();await pool.query("insert into generation_projects(id,owner_id,prompt) values($1,$2,'test')",[project,owner]);
+   const lock=await pool.connect();await lock.query('begin');
+   await lock.query("select reserve_deletion('generation',$1)",[project]);
+   const concurrent=scalar("select enqueue_generation($1,$2,0,'pose',0.25,100)",[owner,project]).then(()=>({ok:true}),error=>({error}));
+   await lock.query('commit');lock.release();assert.match((await concurrent).error.message,/DELETING|NOT_FOUND/);
+   assert.equal(await scalar('select count(*)::int from generation_images where project_id=$1',[project]),0);
+  });
+  await t.test('orphan cleanup advances past the first hundred entries while retaining late-upload manifests',async()=>{
+   const seed=(await pool.query('select project_id,job_id,lease_token from job_artifacts limit 1')).rows[0];
+   const paths=Array.from({length:101},(_,i)=>`projects/${seed.project_id}/cleaned/${seed.job_id}/${seed.lease_token}/orphan-${i}.png`);
+   for(const path of paths) await pool.query('insert into job_artifacts(path,project_id,job_id,lease_token) values($1,$2,$3,$4)',[path,seed.project_id,seed.job_id,seed.lease_token]);
+   const first=await scalar('select orphan_artifact_paths()');assert.equal(first.length,100);
+   await scalar('select mark_orphan_artifacts($1)',[first]);
+   const second=await scalar('select orphan_artifact_paths()');assert.ok(paths.every(path=>first.includes(path)||second.includes(path)));
+   assert.equal(await scalar('select count(*)::int from job_artifacts where path=any($1)',[paths]),101);
+  });
+  await t.test('readiness fails closed when a required RPC is absent',async()=>{
+   const client=await pool.connect();
+   try {
+    await client.query('begin');await client.query('drop function claim_generation_job(text)');
+    assert.equal(Object.values((await client.query('select backend_schema_ready()')).rows[0])[0],false);
+   } finally { await client.query('rollback');client.release(); }
   });
   await t.test('anonymous and authenticated roles cannot execute internal RPCs',async()=>{
    for(const role of ['anon','authenticated']) for(const name of ['claim_localization_job(text)','reserve_deletion(text,uuid)','mutate_generation_job(uuid,uuid,jsonb)','backend_schema_ready()']) assert.equal(await scalar('select has_function_privilege($1,$2,\'execute\')',[role,name]),false);

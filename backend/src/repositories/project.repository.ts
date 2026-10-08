@@ -75,7 +75,7 @@ export async function findExpiredProjects(): Promise<ProjectRow[]> {
 }
 
 export async function findProjectsByOwner(ownerId: string): Promise<ProjectRow[]> {
-  const result = await supabase.from('projects').select().eq('owner_id', ownerId).order('updated_at', { ascending: false });
+  const result = await supabase.from('projects').select().eq('owner_id', ownerId).is('deleting_at', null).order('updated_at', { ascending: false });
   return unwrapList<ProjectRow>(result, '작업 목록을 불러오지 못했습니다.');
 }
 

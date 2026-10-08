@@ -4,7 +4,7 @@ import { checkServiceDependencies } from '../repositories/health.repository.js';
 import type { ReadinessResponse } from '../types/health.js';
 
 export async function getReadinessHandler(_req: Request, res: Response): Promise<void> {
-  const dependencies = await checkServiceDependencies();
+  const dependencies = isShuttingDown() ? { database: false, storage: false } : await checkServiceDependencies();
   const ready = !isShuttingDown() && dependencies.database && dependencies.storage;
   const body: ReadinessResponse = {
     status: ready ? 'ready' : 'unavailable',

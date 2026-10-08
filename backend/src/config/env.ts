@@ -126,7 +126,7 @@ export const envSchema = z.object({
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
-});
+}).refine(values => values.JOB_HEARTBEAT_INTERVAL_MS < values.JOB_STALE_AFTER_MS, { message: 'JOB_HEARTBEAT_INTERVAL_MS must be less than JOB_STALE_AFTER_MS', path: ['JOB_HEARTBEAT_INTERVAL_MS'] });
 
 const parsed = envSchema.safeParse(process.env);
 

@@ -20,3 +20,12 @@ it('terminates an OCR child process on task cancellation',async()=>{
   const exit=new Promise<string|null>(r=>child.once('exit',(_code,signal)=>r(signal)));controller.abort();expect(await exit).toBe('SIGKILL');
  });
 });
+
+it('removes per-request child listeners while retaining idle-child shutdown tracking',async()=>{
+ const {cancelChildOnAbort,stopChildProcesses}=await import('../../src/utils/task-context.js');
+ const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)']);
+ for(let i=0;i<50;i++) cancelChildOnAbort(child)();
+ expect(child.listenerCount('exit')).toBe(1);
+ const exit=new Promise<string|null>(r=>child.once('exit',(_code,signal)=>r(signal)));
+ stopChildProcesses();expect(await exit).toBe('SIGKILL');
+});

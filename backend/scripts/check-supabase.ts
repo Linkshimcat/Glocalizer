@@ -1,3 +1,4 @@
+import { checkServiceDependencies } from '../src/repositories/health.repository.js';
 import { env } from '../src/config/env.js';
 import { supabase } from '../src/config/supabase.js';
 
@@ -11,6 +12,8 @@ async function main(): Promise<void> {
     }),
   );
 
+  const dependencies = await checkServiceDependencies();
+  if (!dependencies.database || !dependencies.storage) throw new Error('Required backend migrations or private bucket size limit are missing');
   const failedTables = tableStatuses.filter((result) => result.error);
   const { data: bucket, error: bucketError } = await supabase.storage.getBucket(env.SUPABASE_STORAGE_BUCKET);
   if (failedTables.length > 0 || bucketError || !bucket) {

@@ -42,6 +42,7 @@ begin
  exists(select 1 from generation_images where project_id=any(generation_ids) and status in ('queued','running')) then raise exception 'PROCESS_ALREADY_RUNNING'; end if;
  select coalesce(array_agg(distinct path) filter(where path is not null),'{}') into manifest from (
   select original_path path from assets where project_id=any(project_ids)
+  union all select preprocessed_path from assets where project_id=any(project_ids)
   union all select cleaned_path from assets where project_id=any(project_ids)
   union all select path from job_artifacts where project_id=any(project_ids)
   union all select reference_path from generation_projects where id=any(generation_ids)
@@ -108,6 +109,8 @@ begin
  if generation then select deleting_at into deleting from generation_projects where id=pid for update;
  else select deleting_at into deleting from projects where id=pid for update;end if;
  if deleting is not null then raise exception 'PROJECT_DELETING';end if;
+ if tg_table_name='assets' and exists(select 1 from jobs where project_id=pid and status in ('queued','running')
+  and id::text is distinct from current_setting('app.localization_job',true)) then raise exception 'PROCESS_ALREADY_RUNNING';end if;
  return new;
 end $$;
 create trigger guard_user_deletion before update on users for each row execute function guard_deleting_owner_project();
@@ -127,11 +130,15 @@ do $$ declare f record; definition text;begin
 end $$;
 
 create function public.backend_schema_ready() returns boolean language sql security invoker set search_path=public as $$
- select exists(select 1 from information_schema.columns where table_schema='public' and table_name='users' and column_name='session_version')
- and exists(select 1 from information_schema.columns where table_schema='public' and table_name='jobs' and column_name='lease_token')
- and to_regclass('public.deletion_tasks') is not null
- and to_regprocedure('public.mutate_localization_job(uuid,uuid,text,uuid,jsonb)') is not null
- and to_regprocedure('public.claim_generation_job(text)') is not null;
+ select (select bool_and(exists(select 1 from information_schema.columns c where c.table_schema='public' and c.table_name=required.tab and c.column_name=required.col))
+ from (values ('users','session_version'),('users','deleting_at'),('projects','deleting_at'),('jobs','lease_token'),('jobs','asset_ids'),('jobs','initial_states'),('jobs','payload'),
+ ('generation_images','lease_token'),('generation_images','heartbeat_at'),('generation_images','artifact_path'),('deletion_tasks','paths')) required(tab,col))
+ and (select bool_and(case when to_regprocedure(signature) is null then false else has_function_privilege(current_user,to_regprocedure(signature),'EXECUTE') end)
+ from unnest(array['public.enqueue_localization_job(uuid,text[],jsonb)','public.claim_localization_job(text)','public.recover_localization_jobs(integer)',
+ 'public.mutate_localization_job(uuid,uuid,text,uuid,jsonb)','public.touch_localization_lease(uuid,uuid)','public.finish_localization_job(uuid,uuid,text,text,boolean)',
+ 'public.claim_generation_job(text)','public.touch_generation_lease(uuid,uuid)','public.recover_generation_jobs(integer)','public.mutate_generation_job(uuid,uuid,jsonb)',
+ 'public.reserve_deletion(text,uuid)','public.claim_deletion(uuid)','public.touch_deletion(uuid,uuid)','public.finish_deletion(uuid,uuid,text)','public.orphan_artifact_paths()','public.mark_orphan_artifacts(text[])']) signature);
+
 $$;
 do $$ declare f regprocedure;begin
  for f in select oid::regprocedure from pg_proc where pronamespace='public'::regnamespace and proname in
@@ -143,12 +150,18 @@ end $$;
 
 create function public.orphan_artifact_paths() returns text[] language sql security invoker set search_path=public as $$
  select coalesce(array_agg(path),'{}') from (
-  select a.path from job_artifacts a join jobs j on j.id=a.job_id
-  where (j.status<>'running' or j.lease_token is distinct from a.lease_token)
-  and not exists(select 1 from assets s where s.cleaned_path=a.path)
-  union all select artifact_path from generation_images where status='failed' and artifact_path is not null and path is null
-  limit 100
+  select path from (
+   select a.path,a.removed_at,a.created_at from job_artifacts a join jobs j on j.id=a.job_id
+   where (j.status<>'running' or j.lease_token is distinct from a.lease_token)
+   and not exists(select 1 from assets s where s.cleaned_path=a.path)
+   union all select artifact_path,artifact_removed_at,created_at from generation_images where status='failed' and artifact_path is not null and path is null
+  ) all_candidates order by removed_at nulls first,created_at,path limit 100
  ) candidates;
 $$;
-revoke all on function public.orphan_artifact_paths() from public,anon,authenticated;
-grant execute on function public.orphan_artifact_paths() to service_role;
+create function public.mark_orphan_artifacts(p_paths text[]) returns void language plpgsql security invoker set search_path=public as $$
+begin
+ update job_artifacts set removed_at=now() where path=any(p_paths);
+ update generation_images set artifact_removed_at=now() where artifact_path=any(p_paths) and status='failed' and path is null;
+end $$;
+revoke all on function public.orphan_artifact_paths(), public.mark_orphan_artifacts(text[]) from public,anon,authenticated;
+grant execute on function public.orphan_artifact_paths(), public.mark_orphan_artifacts(text[]) to service_role;

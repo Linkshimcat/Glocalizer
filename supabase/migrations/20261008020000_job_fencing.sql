@@ -10,6 +10,7 @@ alter table public.generation_images add column if not exists lease_token uuid;
 alter table public.generation_images add column if not exists worker_id text;
 alter table public.generation_images add column if not exists heartbeat_at timestamptz;
 alter table public.generation_images add column if not exists artifact_path text;
+alter table public.generation_images add column if not exists artifact_removed_at timestamptz;
 
 create table public.job_artifacts (
  path text primary key, project_id uuid not null references public.projects(id) on delete cascade,
@@ -31,11 +32,15 @@ begin
  if exists(select 1 from jobs where project_id=p_project and status in ('queued','running')) then raise exception 'PROCESS_ALREADY_RUNNING'; end if;
  if p.owner_id is not null and p.status='created' and (coalesce(array_length(p.target_languages,1),0)=0 or coalesce(array_length(p.selected_client_ids,1),0)=0 or
    (select count(*) from assets where project_id=p_project and client_id=any(p.selected_client_ids) and status='uploaded')<>array_length(p.selected_client_ids,1)) then raise exception 'UPLOAD_NOT_COMPLETED'; end if;
- select array_agg(id),jsonb_object_agg(id::text,case when p_payload->>'operation' in ('revise','create') then 'ocr' when p_payload->>'operation'='retry' then 'uploaded' else status end)
+ select array_agg(id),jsonb_object_agg(id::text,case when p_payload->>'operation' in ('revise','create') then 'ocr' when p_payload->>'operation'='retry' then case when exists(select 1 from ocr_regions r where r.asset_id=assets.id and r.contains_korean) then 'ocr' else 'uploaded' end else status end)
  into ids,states from assets where project_id=p_project
  and (case when p_payload ? 'assetId' then id=(p_payload->>'assetId')::uuid else status=any(p_statuses) end)
- and (p.status<>'created' or p.owner_id is null or client_id=any(p.selected_client_ids));
+ and (p.owner_id is null or p.selected_client_ids is null or client_id=any(p.selected_client_ids));
  if ids is null then raise exception 'UPLOAD_NOT_COMPLETED'; end if;
+ if p_payload->>'operation'='retry' and exists(select 1 from assets where id=any(ids) and status<>'failed') then raise exception 'INVALID_REQUEST';end if;
+ if p.status='created' and p.owner_id is not null then
+  update assets set status='pending_upload' where project_id=p_project and not(client_id=any(p.selected_client_ids));
+ end if;
  insert into jobs(project_id,status,attempts,asset_ids,initial_states,payload) values(p_project,'queued',0,ids,states,p_payload) returning * into j;
  update projects set status='processing',stage='queued',progress=0,result_ready=false,error_code=null,error_message=null where id=p_project;
  return to_jsonb(j);
@@ -47,8 +52,10 @@ begin
  select * into j from jobs where status='queued' order by created_at,id for update skip locked limit 1;
  if not found then return null; end if;
  if j.asset_ids='{}' then
-  select coalesce(array_agg(id),'{}'),coalesce(jsonb_object_agg(id::text,case when status in ('ocr','translating') then 'ocr' else 'uploaded' end),'{}')
+  select coalesce(array_agg(id),'{}'),coalesce(jsonb_object_agg(id::text,case when status in ('ocr','translating') or exists(select 1 from ocr_regions r where r.asset_id=assets.id and r.contains_korean) then 'ocr' else 'uploaded' end),'{}')
   into j.asset_ids,j.initial_states from assets where project_id=j.project_id and status<>'completed' and status<>'pending_upload';
+  update jobs set asset_ids=j.asset_ids,initial_states=j.initial_states where id=j.id;
+  perform reset_localization_assets(j.id);
  end if;
  update jobs set status='running',attempts=attempts+1,lease_token=gen_random_uuid(),worker_id=p_worker,heartbeat_at=now(),locked_at=now(),started_at=now(),
   asset_ids=j.asset_ids,initial_states=j.initial_states where id=j.id returning * into j;
@@ -59,6 +66,7 @@ create function public.reset_localization_assets(p_job uuid) returns void langua
 declare j jobs;
 begin
  select * into j from jobs where id=p_job;
+ perform set_config('app.localization_job',j.id::text,true);
  update assets set status=coalesce(j.initial_states->>id::text,'uploaded'),stage='retrying',progress=0,error_code=null,error_message=null,cleaned_path=null
  where project_id=j.project_id and id=any(j.asset_ids) and status<>'completed';
 end $$;
@@ -67,6 +75,11 @@ create function public.recover_localization_jobs(p_stale_ms integer) returns int
 declare j jobs; n integer:=0;
 begin
  for j in select * from jobs where status='running' and coalesce(heartbeat_at,locked_at,started_at,created_at)<now()-p_stale_ms*interval '1 millisecond' for update skip locked loop
+  if j.asset_ids='{}' then
+   select coalesce(array_agg(id),'{}'),coalesce(jsonb_object_agg(id::text,case when status in ('ocr','translating') or exists(select 1 from ocr_regions r where r.asset_id=assets.id and r.contains_korean) then 'ocr' else 'uploaded' end),'{}')
+    into j.asset_ids,j.initial_states from assets where project_id=j.project_id and status not in ('completed','pending_upload');
+   update jobs set asset_ids=j.asset_ids,initial_states=j.initial_states where id=j.id;
+  end if;
   if j.attempts<j.max_attempts then
    perform reset_localization_assets(j.id);
    update jobs set status='queued',lease_token=null,worker_id=null,heartbeat_at=null,locked_at=null,error_code='WORKER_LEASE_EXPIRED' where id=j.id;
@@ -111,6 +124,7 @@ declare j jobs; a assets; p projects; r ocr_regions; t translations;
 begin
  select * into j from jobs where id=p_job and lease_token=p_lease and status='running' for update;
  if not found then return null; end if;
+ perform set_config('app.localization_job',j.id::text,true);
  if p_operation='project' then
   if p_target<>j.project_id then raise exception 'INVALID_TARGET'; end if;
   select * into p from projects where id=p_target;

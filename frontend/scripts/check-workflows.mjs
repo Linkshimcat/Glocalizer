@@ -227,7 +227,10 @@ try {
     await page.locator('textarea').first().fill('Retry phrase')
     await page.locator('[role="alert"]').first().waitFor()
     state.failWrites = false
-    await page.locator('[role="alert"]').first().getByRole('button').click()
+    // A queued automatic retry can remove the alert as soon as the server recovers.
+    await page.locator('[role="alert"]').first().getByRole('button').click({ force: true, timeout: 2000 }).catch(error => {
+      if (state.workspace.results.assets[0].regionEditorStates['r-0'].en.customText !== 'Retry phrase') throw error
+    })
     for (let i = 0; i < 100 && state.workspace.results.assets[0].regionEditorStates['r-0'].en.customText !== 'Retry phrase'; i++) await page.waitForTimeout(50)
     assert.equal(state.workspace.results.assets[0].regionEditorStates['r-0'].en.customText, 'Retry phrase')
     await context.close()

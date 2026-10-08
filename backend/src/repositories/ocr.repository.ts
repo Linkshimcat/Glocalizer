@@ -24,8 +24,6 @@ export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): 
   unwrapVoid(deleteResult, 'OCR 결과 초기화에 실패했습니다.');
 
   if (regions.length === 0) return;
-
-  if (regions.length === 0) return;
   const insertResult = await supabase.from('ocr_regions').insert(records);
 
   // migration 010 적용 전에는 기존 OCR 흐름을 멈추지 않고 metadata만 생략한다.

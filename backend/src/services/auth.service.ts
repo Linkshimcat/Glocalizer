@@ -48,6 +48,11 @@ function toPublicUser(user: UserRow): PublicUser {
   };
 }
 
+function issueSession(user: UserRow): AuthResult {
+  if (user.deleting_at) throw new AppError('UNAUTHORIZED');
+  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
+}
+
 export async function signup(input: SignupInput): Promise<AuthResult> {
   const existing = await findUserByEmail(input.email);
   if (existing) {
@@ -60,7 +65,7 @@ export async function signup(input: SignupInput): Promise<AuthResult> {
     name: input.name,
   });
 
-  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
+  return issueSession(user);
 }
 
 export async function login(input: LoginInput): Promise<AuthResult> {
@@ -69,7 +74,7 @@ export async function login(input: LoginInput): Promise<AuthResult> {
     throw new AppError('INVALID_CREDENTIALS');
   }
 
-  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
+  return issueSession(user);
 }
 
 export async function getCurrentUser(userId: string): Promise<PublicUser> {
@@ -152,7 +157,7 @@ export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResu
     user = existingByEmail ? await linkGoogleProfile(existingByEmail, profile) : await insertGoogleUser(profile);
   }
 
-  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
+  return issueSession(user);
 }
 
 interface NaverTokenResponse {
@@ -223,5 +228,5 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
       : await insertNaverUser({ naverId: profile.id, email, name, avatarUrl });
   }
 
-  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
+  return issueSession(user);
 }

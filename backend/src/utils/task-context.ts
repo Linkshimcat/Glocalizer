@@ -10,6 +10,7 @@ export interface TaskContext {
   controller: AbortController;
 }
 const contexts = new AsyncLocalStorage<TaskContext>();
+const children = new Set<ChildProcess>();
 const active = new Set<AbortController>();
 const shutdownController = new AbortController();
 let closing = false;
@@ -26,8 +27,12 @@ export async function withTask<T>(task: TaskContext, work: () => Promise<T>): Pr
   try { return await contexts.run(task, work); }
   finally { active.delete(task.controller); }
 }
+export function stopChildProcesses() {
+  for (const child of children) child.kill('SIGKILL');
+}
 export function abortAllTasks(reason = new Error('Server shutdown deadline exceeded')) {
   shutdownController.abort(reason);
+  stopChildProcesses();
   for (const controller of active) controller.abort(reason);
 }
 export function taskFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
@@ -39,11 +44,15 @@ export function taskFetch(input: string | URL | Request, init?: RequestInit): Pr
   return fetch(input, { ...init, signal });
 }
 export function cancelChildOnAbort(child: ChildProcess): () => void {
+  if (!children.has(child)) {
+    children.add(child);
+    child.once('exit', () => children.delete(child));
+  }
   const signal = taskSignal();
   const stop = () => { child.kill('SIGKILL'); };
   if (signal.aborted) stop();
   else signal.addEventListener('abort', stop, { once: true });
-  const remove = () => signal.removeEventListener('abort', stop);
+  const remove = () => { signal.removeEventListener('abort', stop); child.removeListener('exit', remove); };
   child.once('exit', remove);
   return remove;
 }

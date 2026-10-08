@@ -11,6 +11,6 @@ export async function checkServiceDependencies(): Promise<ReadinessDependencies>
 
   return {
     database: !databaseResult.error && databaseResult.data === true,
-    storage: !storageResult.error && storageResult.data !== null,
+    storage: !storageResult.error && storageResult.data !== null && storageResult.data.public === false && storageResult.data.file_size_limit === env.MAX_FILE_SIZE_BYTES,
   };
 }

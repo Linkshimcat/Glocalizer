@@ -1,3 +1,4 @@
+import { deleteDurably } from '../services/deletion.service.js';
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import sharp from 'sharp';
@@ -24,7 +25,7 @@ generationRouter.get('/generation/projects',asyncHandler(async(req,res)=>{
  // Deploying the disabled UI before its migration should remain usable.
  if(!env.ENABLE_IMAGE_GENERATION && result.error && ['PGRST205','42P01'].includes(result.error.code)) {res.json({projects:[]});return;}
  const projects=unwrapList<GenerationProject>(result,'생성 목록 조회 실패');
- res.json({projects:await Promise.all(projects.map(generationWorkspace))});
+ res.json({projects:await Promise.all(projects.filter(project => !project.deleting_at).map(generationWorkspace))});
 }));
 generationRouter.post('/generation/projects',asyncHandler(async(req,res)=>{
  const {prompt,reference}=z.object({prompt:z.string().trim().min(1).max(1000),reference:z.string().max(850_000).optional()}).parse(req.body);
@@ -33,15 +34,22 @@ generationRouter.post('/generation/projects',asyncHandler(async(req,res)=>{
  const existing=unwrapNullableRow<GenerationProject>(await supabase.from('generation_projects').select().eq('owner_id',owner).eq('status','active').maybeSingle(),'생성 작업 조회 실패');
  if(existing) throw new AppError('GENERATION_LIMIT',undefined,'진행 중인 생성 작업이 있습니다. 먼저 완료해주세요.');
  const id=randomUUID();let referencePath:string|null=null;
+ let normalizedReference: Buffer | null = null;
  if(reference) {
   if(!/^data:image\/(png|jpeg|webp);base64,/.test(reference)) throw new AppError('INVALID_FILE_TYPE');
   const bytes=Buffer.from(reference.split(',')[1],'base64');
   if(bytes.length>600_000) throw new AppError('FILE_TOO_LARGE');
   const normalized=await sharp(bytes,{limitInputPixels:16_777_216}).rotate().resize(800,800,{fit:'inside',withoutEnlargement:true}).png().toBuffer();
-  referencePath=`generation/${owner}/${id}/reference.png`;await uploadToStorage(referencePath,normalized,'image/png');
+  referencePath=`generation/${owner}/${id}/reference.png`;normalizedReference = normalized;
  }
  const project=unwrapRow<GenerationProject>(await supabase.from('generation_projects').insert({id,owner_id:owner,prompt,reference_path:referencePath,day}).select().single(),'생성 작업 저장 실패');
- res.status(201).json(await generationWorkspace(project));
+ try {
+  if (normalizedReference && referencePath) await uploadToStorage(referencePath, normalizedReference, 'image/png');
+  res.status(201).json(await generationWorkspace(project));
+ } catch (error) {
+  await deleteDurably('generation', project.id).catch(() => undefined);
+  throw error;
+ }
 }));
 generationRouter.get('/generation/projects/:id',asyncHandler(async(req,res)=>{res.json(await generationWorkspace(await ownedGeneration(z.uuid().parse(req.params.id),requireAuth(req).sub)));}));
 generationRouter.post('/generation/projects/:id/images',asyncHandler(async(req,res)=>{
@@ -119,7 +127,7 @@ generationRouter.patch('/generation/projects/:id',asyncHandler(async(req,res)=>{
 }));
 generationRouter.delete('/generation/projects/:id',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id);
- await deleteGenerationProject(await ownedGeneration(id,requireAuth(req).sub));
+ await deleteGenerationProject(await ownedGeneration(id,requireAuth(req).sub,true));
  res.status(204).end();
 }));
 generationRouter.patch('/generation/projects/:id/images/:imageId',asyncHandler(async(req,res)=>{

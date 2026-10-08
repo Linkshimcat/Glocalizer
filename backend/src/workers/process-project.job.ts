@@ -12,7 +12,7 @@ export async function handleProcessProjectJob(job: JobRow): Promise<void> {
       const [asset] = await findAssetsByIds(job.project_id, [payload.assetId]);
       // A completed target survives recovery and must not be edited again.
       if (asset && !(job.attempts > 1 && asset.status === 'completed')) {
-        if (payload.operation === 'retry') await updateAsset(asset.id, { status: 'uploaded', stage: 'retrying', progress: 0, cleanedPath: null, cleanupMethod: null, cleanupQuality: null, needsManualCleanup: false });
+        if (payload.operation === 'retry') await updateAsset(asset.id, { status: job.initial_states?.[asset.id] === 'ocr' ? 'ocr' : 'uploaded', stage: 'retrying', progress: 0, cleanedPath: null, cleanupMethod: null, cleanupQuality: null, needsManualCleanup: false });
         else if (payload.operation === 'revise') await reviseOcrAndReprocess(job.project_id, asset.id, payload.text as string, payload.normalizedBox as PixelBox, payload.regionId as string);
         else if (payload.operation === 'create') await createOcrRegionAndReprocess(job.project_id, asset.id, payload.text as string, payload.normalizedBox as PixelBox, payload.regionId as string);
       }

@@ -9,8 +9,8 @@ import type { JobRow } from '../types/job.js';
 export async function insertJob(projectId:string,statuses:string[]=['uploaded'],payload:Record<string,unknown>={}):Promise<JobRow>{
  const result=await supabase.rpc('enqueue_localization_job',{p_project:projectId,p_statuses:statuses,p_payload:payload});
  if(result.error){
-  const code=['PROCESS_ALREADY_RUNNING','PROJECT_NOT_FOUND','UPLOAD_NOT_COMPLETED'].find(code=>result.error!.message.includes(code));
-  if(code) throw new AppError(code as 'PROCESS_ALREADY_RUNNING'|'PROJECT_NOT_FOUND'|'UPLOAD_NOT_COMPLETED',{projectId});
+  const code=['PROCESS_ALREADY_RUNNING','PROJECT_NOT_FOUND','UPLOAD_NOT_COMPLETED','INVALID_REQUEST'].find(code=>result.error!.message.includes(code));
+  if(code) throw new AppError(code as 'PROCESS_ALREADY_RUNNING'|'PROJECT_NOT_FOUND'|'UPLOAD_NOT_COMPLETED'|'INVALID_REQUEST',{projectId});
  }
  return unwrapRow<JobRow>(result,'작업 생성 실패');
 }

@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
-import { abortAllTasks, beginShutdown } from '../utils/task-context.js';
+import { abortAllTasks, beginShutdown, stopChildProcesses } from '../utils/task-context.js';
 import { stopWorker } from './worker.js';
 import { stopGenerationWorker } from './generation-worker.js';
 import { stopExpiredProjectsSweep } from './cleanup-scheduler.js';
@@ -21,6 +21,7 @@ export async function shutdownServer(server: Server, graceMs = env.SHUTDOWN_GRAC
       abortAllTasks();
       server.closeAllConnections();
     }
+    stopChildProcesses();
     return completed;
   } finally { if (timer) clearTimeout(timer); }
 }

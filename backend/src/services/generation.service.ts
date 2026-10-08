@@ -12,17 +12,17 @@ import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/d
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
 export interface GenerationProject { deleting_at?: string | null; id: string; owner_id: string; prompt: string; name: string | null; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
 export interface CaptionStyle { anchor: string; size: number; color: string; stroke: string }
-export interface GenerationImage { lease_token?: string | null; worker_id?: string | null; heartbeat_at?: string | null; artifact_path?: string | null; id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; caption_style: CaptionStyle | null; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
-export async function ownedGeneration(id: string, owner: string) {
+export interface GenerationImage { lease_token?: string | null; worker_id?: string | null; heartbeat_at?: string | null; artifact_path?: string | null; artifact_removed_at?: string | null; id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; caption_style: CaptionStyle | null; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
+export async function ownedGeneration(id: string, owner: string, allowDeleting = false) {
  const row = unwrapNullableRow<GenerationProject>(await supabase.from('generation_projects').select().eq('id',id).eq('owner_id',owner).maybeSingle(), '생성 작업 조회 실패');
- if (!row) throw new AppError('NOT_FOUND');
+ if (!row || (row.deleting_at && !allowDeleting)) throw new AppError('NOT_FOUND');
  return row;
 }
 export async function generationWorkspace(project: GenerationProject) {
  const images = unwrapList<GenerationImage>(await supabase.from('generation_images').select().eq('project_id',project.id).order('created_at'), '생성 결과 조회 실패');
  const { deleting_at: _deleting, ...publicProject } = project;
  return { ...publicProject, referenceUrl: project.reference_path ? await createSignedUrl(project.reference_path) : null,
- images: await Promise.all(images.map(async image => { const { lease_token: _lease, worker_id: _worker, heartbeat_at: _heartbeat, artifact_path: _artifact, ...publicImage } = image; return { ...publicImage, url: image.path ? await createSignedUrl(image.path) : null }; })) };
+ images: await Promise.all(images.map(async image => { const { lease_token: _lease, worker_id: _worker, heartbeat_at: _heartbeat, artifact_path: _artifact, artifact_removed_at: _removed, ...publicImage } = image; return { ...publicImage, url: image.path ? await createSignedUrl(image.path) : null }; })) };
 }
 export async function enqueueGeneration(owner: string, project: string, slot: number, prompt: string) {
  if (!env.ENABLE_IMAGE_GENERATION || !env.OPENAI_API_KEY) throw new AppError('GENERATION_DISABLED');
@@ -30,6 +30,7 @@ export async function enqueueGeneration(owner: string, project: string, slot: nu
  if (result.error) {
   if (result.error.message.includes('LIMIT')) throw new AppError('GENERATION_LIMIT');
   if (result.error.message.includes('RUNNING')) throw new AppError('PROCESS_ALREADY_RUNNING');
+  if (result.error.message.includes('DELETING')) throw new AppError('NOT_FOUND');
   if (result.error.message.includes('NOT_FOUND')) throw new AppError('NOT_FOUND');
   throw new AppError('INVALID_REQUEST',undefined,'캐릭터 확정 상태를 확인해주세요.');
  }
