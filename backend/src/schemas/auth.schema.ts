@@ -8,7 +8,7 @@ export const signupSchema = z.object({
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email('올바른 이메일 형식이 아닙니다.'),
-  password: z.string().min(1, '비밀번호를 입력해주세요.'),
+  password: z.string().min(1, '비밀번호를 입력해주세요.').max(72),
 });
 
 export const changePasswordSchema = z.object({

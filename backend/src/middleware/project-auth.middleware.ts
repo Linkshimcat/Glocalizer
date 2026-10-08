@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { verifyAuthToken } from '../utils/jwt.js';
-import { findUserById } from '../repositories/user.repository.js';
+import { authenticateAccount } from './auth.middleware.js';
 import { AppError } from '../errors/app-error.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import type { ProjectRow } from '../types/project.js';
@@ -23,11 +22,10 @@ export async function projectAuthMiddleware(req: Request, _res: Response, next: 
       throw new AppError('PROJECT_NOT_FOUND', { projectId }, '만료된 프로젝트입니다.');
     }
     if (project.owner_id) {
-      const header = req.header('authorization');
-      const payload = header?.startsWith('Bearer ') ? verifyAuthToken(header.slice(7)) : null;
-      if (!payload || !await findUserById(payload.sub)) throw new AppError('UNAUTHORIZED');
-      if (payload.sub !== project.owner_id) throw new AppError('PROJECT_NOT_FOUND', { projectId });
-      req.auth = { sub: payload.sub };
+      const user = req.account ?? await authenticateAccount(req.header('authorization'));
+      if (user.id !== project.owner_id) throw new AppError('PROJECT_NOT_FOUND', { projectId });
+      req.account = user;
+      req.auth = { sub: user.id };
     } else if (!token || !verifyProjectToken(token, project.access_token_hash)) {
       throw new AppError('INVALID_PROJECT_TOKEN', { projectId });
     }

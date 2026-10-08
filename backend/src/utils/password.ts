@@ -1,20 +1,19 @@
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 
 const KEY_LENGTH = 64;
-
-/** salt와 derived key를 함께 저장해 이후 검증 시 같은 salt로 재계산할 수 있게 한다. */
-export function hashPassword(password: string): string {
-  const salt = randomBytes(16);
-  const derivedKey = scryptSync(password, salt, KEY_LENGTH);
-  return `${salt.toString('hex')}:${derivedKey.toString('hex')}`;
+function derive(password: string, salt: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => scrypt(password, salt, KEY_LENGTH, (error, key) => error ? reject(error) : resolve(key)));
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
-  const [saltHex, keyHex] = stored.split(':');
-  if (!saltHex || !keyHex) return false;
+/** Keep the existing salt:key representation while avoiding event-loop blocking. */
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16);
+  return `${salt.toString('hex')}:${(await derive(password, salt)).toString('hex')}`;
+}
 
-  const salt = Buffer.from(saltHex, 'hex');
-  const expected = Buffer.from(keyHex, 'hex');
-  const actual = scryptSync(password, salt, KEY_LENGTH);
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (!/^[a-f0-9]{32}:[a-f0-9]{128}$/i.test(stored)) return false;
+  const [salt, key] = stored.split(':');
+  const actual = await derive(password, Buffer.from(salt, 'hex'));
+  return timingSafeEqual(actual, Buffer.from(key, 'hex'));
 }

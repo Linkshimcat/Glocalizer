@@ -1,3 +1,4 @@
+import { AppError } from '../errors/app-error.js';
 import { supabase } from '../config/supabase.js';
 import { unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 import type { UserRow } from '../types/user.js';
@@ -29,12 +30,13 @@ export async function deleteUserRow(id: string): Promise<void> {
   unwrapVoid(result, '계정 삭제에 실패했습니다.');
 }
 
-export async function updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+export async function updateUserPassword(userId: string, passwordHash: string, version: number): Promise<void> {
   const result = await supabase
     .from('users')
-    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
-    .eq('id', userId);
-  unwrapVoid(result, '비밀번호 변경에 실패했습니다.');
+    .update({ password_hash: passwordHash, session_version: version + 1, updated_at: new Date().toISOString() })
+    .eq('id', userId).eq('session_version', version).select('id').maybeSingle();
+  const user = unwrapNullableRow(result, '비밀번호 변경에 실패했습니다.');
+  if (!user) throw new AppError('UNAUTHORIZED');
 }
 
 interface InsertEmailUserInput {

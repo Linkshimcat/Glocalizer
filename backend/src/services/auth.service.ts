@@ -25,6 +25,11 @@ import { hashPassword, verifyPassword } from '../utils/password.js';
 import { deleteGenerationsByOwner } from './generation.service.js';
 import { deleteProjectAndAssets } from './project.service.js';
 
+async function fetchAuthProvider(url: string, init: RequestInit): Promise<Response> {
+  try { return await fetch(url, init); }
+  catch { throw new AppError('NAVER_LOGIN_FAILED', undefined, '인증 서버 연결이 실패하거나 시간이 초과됐습니다.'); }
+}
+
 const NAVER_TOKEN_URL = 'https://nid.naver.com/oauth2.0/token';
 const NAVER_PROFILE_URL = 'https://openapi.naver.com/v1/nid/me';
 
@@ -54,20 +59,20 @@ export async function signup(input: SignupInput): Promise<AuthResult> {
 
   const user = await insertEmailUser({
     email: input.email,
-    passwordHash: hashPassword(input.password),
+    passwordHash: await hashPassword(input.password),
     name: input.name,
   });
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
 }
 
 export async function login(input: LoginInput): Promise<AuthResult> {
   const user = await findUserByEmail(input.email);
-  if (!user || !user.password_hash || !verifyPassword(input.password, user.password_hash)) {
+  if (!user || !user.password_hash || !await verifyPassword(input.password, user.password_hash)) {
     throw new AppError('INVALID_CREDENTIALS');
   }
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
 }
 
 export async function getCurrentUser(userId: string): Promise<PublicUser> {
@@ -106,11 +111,11 @@ export async function changePassword(userId: string, input: ChangePasswordInput)
   const user = await findUserById(userId);
   if (!user) throw new AppError('UNAUTHORIZED');
   if (!user.password_hash) throw new AppError('PASSWORD_CHANGE_UNAVAILABLE');
-  if (!verifyPassword(input.currentPassword, user.password_hash)) {
+  if (!await verifyPassword(input.currentPassword, user.password_hash)) {
     throw new AppError('CURRENT_PASSWORD_INCORRECT');
   }
 
-  await updateUserPassword(userId, hashPassword(input.newPassword));
+  await updateUserPassword(userId, await hashPassword(input.newPassword), user.session_version ?? 0);
 }
 
 /** 현지화 프로젝트·생성 결과의 Storage 파일부터 지운 뒤 계정 행을 지운다 — 순서를 바꾸면
@@ -165,7 +170,7 @@ export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResu
     user = existingByEmail ? await linkGoogleProfile(existingByEmail, profile) : await insertGoogleUser(profile);
   }
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
 }
 
 interface NaverTokenResponse {
@@ -195,14 +200,15 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
     state,
   });
 
-  const tokenResponse = await fetch(`${NAVER_TOKEN_URL}?${tokenParams.toString()}`);
+  const tokenResponse = await fetchAuthProvider(`${NAVER_TOKEN_URL}?${tokenParams.toString()}`, { signal: AbortSignal.timeout(env.AUTH_PROVIDER_TIMEOUT_MS) });
   const tokenJson = (await tokenResponse.json().catch(() => ({}))) as NaverTokenResponse;
   if (!tokenResponse.ok || !tokenJson.access_token) {
     throw new AppError('NAVER_LOGIN_FAILED', { cause: tokenJson.error_description ?? tokenJson.error });
   }
 
-  const profileResponse = await fetch(NAVER_PROFILE_URL, {
+  const profileResponse = await fetchAuthProvider(NAVER_PROFILE_URL, {
     headers: { Authorization: `Bearer ${tokenJson.access_token}` },
+    signal: AbortSignal.timeout(env.AUTH_PROVIDER_TIMEOUT_MS),
   });
   const profileJson = (await profileResponse.json().catch(() => ({}))) as NaverProfileResponse;
   if (!profileResponse.ok || profileJson.resultcode !== '00' || !profileJson.response) {
@@ -235,5 +241,5 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
       : await insertNaverUser({ naverId: profile.id, email, name, avatarUrl });
   }
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
 }

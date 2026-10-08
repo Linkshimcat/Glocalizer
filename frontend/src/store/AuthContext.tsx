@@ -174,7 +174,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
     await apiChangePassword(token, currentPassword, newPassword)
-  }, [token])
+    logout()
+  }, [token, logout])
 
   const deleteAccount = useCallback(async () => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')

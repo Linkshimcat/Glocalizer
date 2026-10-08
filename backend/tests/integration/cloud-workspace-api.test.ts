@@ -21,7 +21,7 @@ const fakeProject = () => ({ id, owner_id: owner, access_token_hash: hashProject
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(repo.findProjectById).mockResolvedValue(fakeProject());
-  vi.mocked(users.findUserById).mockResolvedValue({ id: owner } as never);
+  vi.mocked(users.findUserById).mockImplementation(async id => ({ id, session_version: 0 }) as never);
   vi.mocked(workspace.listWorkspaces).mockResolvedValue([]);
   vi.mocked(workspace.restoreWorkspace).mockResolvedValue({ projectId: id, projectToken: 'account', resultReady: false, selectedClientIds: ['f1'], files: [], results: { projectId: id, status: 'completed', targetLanguages: ['en'], assets: [] }, status: { projectId: id, status: 'completed', stage: 'completed', progress: 100, message: '', assets: [] } });
 });
@@ -42,7 +42,7 @@ describe('account cloud workspaces', () => {
     expect(workspace.restoreWorkspace).toHaveBeenCalledWith(expect.objectContaining({ owner_id: owner, expires_at: null }));
   });
   it('denies other accounts even with the old project token', async () => {
-    const res = await request(app).get(`/api/v1/projects/${id}/workspace`).set('Authorization', `Bearer ${signAuthToken({ sub: 'other-account' })}`).set('X-Project-Token', 'legacy-token');
+    const res = await request(app).get(`/api/v1/projects/${id}/workspace`).set('Authorization', `Bearer ${signAuthToken({ sub: '00000000-0000-4000-8000-000000000009' })}`).set('X-Project-Token', 'legacy-token');
     expect(res.status).toBe(404);
     expect(workspace.restoreWorkspace).not.toHaveBeenCalled();
   });

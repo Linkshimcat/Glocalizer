@@ -7,3 +7,7 @@ process.env.PROJECT_TOKEN_SECRET ??= 'test-project-token-secret';
 process.env.DOWNLOAD_STATS_API_KEY ??= 'test-download-stats-api-key';
 process.env.JWT_SECRET ??= 'test-jwt-secret-for-vitest';
 process.env.OPENAI_API_KEY ??= 'test-openai-key';
+
+// Each suite tests its own behavior without sharing authentication limiter counters.
+process.env.AUTH_RATE_LIMIT_MAX_REQUESTS ??= '1000';
+process.env.PASSWORD_RATE_LIMIT_MAX_REQUESTS ??= '1000';

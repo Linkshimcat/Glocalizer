@@ -76,7 +76,7 @@ describe('PATCH /auth/me/password', () => {
   });
 
   it('rejects a wrong current password', async () => {
-    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: hashPassword('old-password') }));
+    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: await hashPassword('old-password') }));
 
     const res = await request(app)
       .patch('/api/v1/auth/me/password')
@@ -101,7 +101,7 @@ describe('PATCH /auth/me/password', () => {
   });
 
   it('stores a new scrypt hash after verifying the current password', async () => {
-    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: hashPassword('old-password') }));
+    vi.mocked(users.findUserById).mockResolvedValue(row({ password_hash: await hashPassword('old-password') }));
 
     const res = await request(app)
       .patch('/api/v1/auth/me/password')
@@ -112,6 +112,6 @@ describe('PATCH /auth/me/password', () => {
     expect(res.body).toEqual({ success: true });
     const savedHash = vi.mocked(users.updateUserPassword).mock.calls[0][1];
     expect(savedHash).not.toBe('new-password');
-    expect(verifyPassword('new-password', savedHash)).toBe(true);
+    expect(await verifyPassword('new-password', savedHash)).toBe(true);
   });
 });
