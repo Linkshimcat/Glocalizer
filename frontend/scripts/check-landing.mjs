@@ -72,7 +72,7 @@ for(const width of [360,390,768,1280,1440])for(const lang of ['ko','en','ja','zh
   assert.equal(await cards.nth(i).locator('a').getAttribute('href'),['/generate','/localize','/review'][i])
  }
  await page.locator('.remake-final').scrollIntoViewIfNeeded();await overflow(page,`${label} final`)
- assert.equal(await page.locator('.remake-final').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(34, 197, 94)')
+ assert.equal(await page.locator('.remake-final').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(233, 245, 238)')
  await page.evaluate(()=>scrollTo(0,0));await page.locator('.remake-scroll-button').click();await page.waitForTimeout(1300)
  assert.ok((await page.locator('.remake-story').boundingBox()).y<=h.height+2)
  await page.locator('.remake-final button').click();await page.waitForURL('**/dashboard')

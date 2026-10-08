@@ -65,7 +65,7 @@
 .main-restyle .remake-case-label { font-size: 12px; }
 .main-restyle .remake-case-compare:focus-within { outline: 3px solid #15803d; outline-offset: -4px; }
 .main-restyle .remake-ogq-proof { padding-block: 0; background: #fff; }
-.main-restyle .remake-final { display: flex; min-height: 70svh; align-items: center; flex-direction: column; justify-content: center; padding: 96px 24px; background: #22c55e; text-align: center; }
+.main-restyle .remake-final { display: flex; min-height: 70svh; align-items: center; flex-direction: column; justify-content: center; padding: 96px 24px; background: #e9f5ee; text-align: center; }
 .main-restyle .remake-final h2 { max-width: 100%; margin-top: 20px; font-size: clamp(38px,4.3vw,62px); letter-spacing: -.045em; line-height: 1.12; font-weight: 800; word-break: keep-all; }
 .main-restyle .remake-final > p { max-width: 640px; margin-top: 24px; color: #193a26; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
 .main-restyle .remake-final button { margin-top: 32px; }

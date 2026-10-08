@@ -4,7 +4,7 @@ The landing page keeps the original character, translation strip, video and work
 
 ## Implementation
 
-- White hero and workflow; dark green device introduction (`#15291F`); bright green closing CTA (`#22C55E`). White-background actions use `#15803D`.
+- White hero and workflow; dark green device introduction (`#15291F`); pale mint closing CTA (`#E9F5EE`). White-background actions use `#15803D`. The closing background was softened after feedback; the dark text and button retain their contrast.
 - Korean headline: “이모티콘을” followed by “만드세요”, “현지화하세요”, “검토하세요”. Each phrase lasts 2.4 seconds. Animation pauses offscreen and in hidden tabs; reduced motion keeps the first phrase. A static accessible heading conveys all three actions.
 - Shared logo / Studio / Service / language / login or account navigation. Desktop height is 72px; below 1024px it becomes two rows totaling 112px. Workspace actions remain below the navigation.
 - Controls use 6px corners, panels 8px, dialogs 12px and badges 4px. Avatars, swatches, toggle handles and device frames retain their functional shapes. Existing Pretendard typography remains.
