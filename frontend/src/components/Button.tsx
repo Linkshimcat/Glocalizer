@@ -13,8 +13,7 @@ const variantClass: Record<Variant, string> = {
   primary: 'bg-action text-white hover:bg-[#116b33]',
   secondary: 'bg-surface text-ink hover:bg-[#E8EBEE]',
   ghost: 'bg-transparent text-sub hover:bg-surface',
-  // 네이버 공식 브랜드 그린(#03C75A) — 앱 고유의 --color-brand(#22c55e)와는 별개로 고정한다.
-  naver: 'bg-[#03C75A] text-ink hover:bg-[#02b350]',
+  naver: 'bg-[#03a94d] text-white hover:bg-[#028a40]',
   outline: 'border border-gray-200 bg-white text-ink hover:bg-surface',
 }
 
