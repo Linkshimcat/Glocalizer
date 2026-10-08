@@ -4,7 +4,6 @@ import { useRef, useState, type DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
-import Header from '../components/Header'
 import OgqSamplePicker from '../components/OgqSamplePicker'
 import UploadSpecBadge from '../components/UploadSpecBadge'
 import { useToast } from '../components/Toast'
@@ -168,8 +167,8 @@ export default function Localize() {
 
   return (
     <div className="studio-localize min-h-screen bg-white">
-      <Header center={<button type="button" onClick={() => navigate('/dashboard')} className="rounded-xl px-3 py-2 text-sm font-bold text-sub hover:bg-surface">{t.hubDashboard}</button>} right={<StepIndicator />} sticky />
 
+      <div className="workspace-stepbar"><div className="layout-app"><StepIndicator /></div></div>
       <main className="layout-app pb-32 pt-10 sm:py-16 lg:pb-16">
         <p className="text-sm font-extrabold text-brand-dark">{t.dashStep1}</p>
         <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">{t.dashTitle}</h1>
@@ -181,7 +180,7 @@ export default function Localize() {
           <UploadSpecBadge />
         </div>
 
-        {!isAuthenticated && <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login?next=/localize')}>{t.navLogin}</Button></div>}
+        {!isAuthenticated && <div className="mt-6 rounded-panel border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login?next=/localize')}>{t.navLogin}</Button></div>}
         {isAuthenticated && (hasFiles || cloudError) && <div role="status" className="mt-5 flex flex-wrap items-center gap-3 text-sm text-sub">{cloudError ? <span>{cloudError}</span> : <span className="inline-flex items-center gap-1.5"><Cloud size={16} aria-hidden="true" />{cloudSaving || !projectStatus ? t.cloudSaving : t.cloudSaved}</span>}{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}</div>}
         {/* 드롭존 */}
         <div
@@ -196,13 +195,13 @@ export default function Localize() {
           role="button"
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter') { if (isAuthenticated) inputRef.current?.click(); else navigate('/login?next=/localize') } }}
-          className={`studio-upload relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-xl border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 sm:px-8 sm:py-16 ${
+          className={`studio-upload relative isolate mt-5 flex cursor-pointer flex-col items-center gap-4 rounded-panel border-2 border-dashed px-4 py-12 transition-[border-color,background-color] duration-300 sm:px-8 sm:py-16 ${
             dragging
               ? 'border-brand bg-brand-soft'
               : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70 '
           }`}
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft">
+          <span className="flex h-16 w-16 items-center justify-center rounded-panel bg-brand-soft">
             <img src={dragNDropImage} alt="" aria-hidden className="h-10 w-10" />
           </span>
           <div className="break-keep text-center">
@@ -292,7 +291,7 @@ export default function Localize() {
                   <div
                     key={file.id}
                     onClick={() => toggleFileSelection(file.id)}
-                    className={`group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border-2 transition-colors ${
+                    className={`group relative aspect-square cursor-pointer overflow-hidden rounded-panel border-2 transition-colors ${
                       selected ? 'border-brand bg-brand-soft' : 'border-transparent bg-surface'
                     }`}
                   >
@@ -357,7 +356,7 @@ export default function Localize() {
                   key={lang.code}
                   onClick={() => toggleTargetLang(lang)}
                   disabled={!hasFiles}
-                  className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left transition-colors ${
+                  className={`flex items-center gap-3 rounded-control border-2 px-4 py-4 text-left transition-colors ${
                     selected
                       ? 'border-brand bg-brand-soft'
                       : 'border-gray-100 bg-white hover:border-gray-200'
@@ -379,7 +378,7 @@ export default function Localize() {
             {LANGUAGES.length > 7 && (
               <button
                 onClick={() => setShowAllLangs(v => !v)}
-                className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 px-4 py-4 text-[15px] font-bold text-sub transition-colors hover:border-brand/50 hover:text-brand-dark"
+                className="flex items-center justify-center gap-2 rounded-control border-2 border-dashed border-gray-200 px-4 py-4 text-[15px] font-bold text-sub transition-colors hover:border-brand/50 hover:text-brand-dark"
               >
                 {showAllLangs ? t.dashCollapse : t.dashMore.replace('{n}', String(LANGUAGES.length - 7))}
               </button>
@@ -398,7 +397,7 @@ export default function Localize() {
             style={desktopStartButtonWidth ? { width: desktopStartButtonWidth } : undefined}
             className={`localize-start-button relative overflow-hidden ${starting ? 'w-full disabled:bg-brand-soft disabled:text-brand-dark' : 'min-w-[280px]'}`}
           >
-            {starting && <span role="progressbar" aria-label={t.dashUploading} className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-brand-soft"><span className="localize-progress-sweep absolute inset-y-0 left-0 w-2/5 rounded-2xl" /></span>}
+            {starting && <span role="progressbar" aria-label={t.dashUploading} className="pointer-events-none absolute inset-0 overflow-hidden rounded-panel bg-brand-soft"><span className="localize-progress-sweep absolute inset-y-0 left-0 w-2/5 rounded-panel" /></span>}
             <span className="relative">{starting ? t.dashUploading : selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}</span>
           </Button>
         </div>
@@ -427,7 +426,7 @@ export default function Localize() {
           aria-busy={starting}
           className={`localize-start-button relative w-full overflow-hidden ${starting ? 'disabled:bg-brand-soft disabled:text-brand-dark' : ''}`}
         >
-          {starting && <span role="progressbar" aria-label={t.dashUploading} className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl bg-brand-soft"><span className="localize-progress-sweep absolute inset-y-0 left-0 w-2/5 rounded-xl" /></span>}
+          {starting && <span role="progressbar" aria-label={t.dashUploading} className="pointer-events-none absolute inset-0 overflow-hidden rounded-panel bg-brand-soft"><span className="localize-progress-sweep absolute inset-y-0 left-0 w-2/5 rounded-panel" /></span>}
           <span className="relative">{starting ? t.dashUploading : selectedCount > 0 ? t.dashStart.replace('{n}', String(selectedCount)) : t.dashStartEmpty}</span>
         </Button>
         <p className="mt-1.5 text-center text-xs font-medium text-sub">

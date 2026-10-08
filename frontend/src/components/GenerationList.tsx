@@ -17,14 +17,14 @@ function GenerationListSkeleton({ label }: { label: string }) {
       {Array.from({ length: 1 }, (_, index) => (
         <div key={index} aria-hidden="true" className="flex animate-pulse flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 motion-reduce:animate-none sm:flex-row sm:items-center sm:p-6">
           <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className="h-20 w-20 shrink-0 rounded-2xl bg-brand-soft/70" />
+            <div className="h-20 w-20 shrink-0 rounded-panel bg-brand-soft/70" />
             <div className="min-w-0 flex-1">
               <div className="h-6 w-16 rounded-full bg-brand-soft" />
               <div className="mt-3 h-4 w-2/5 rounded-full bg-gray-200" />
               <div className="mt-3 h-3 w-1/3 rounded-full bg-gray-100" />
             </div>
           </div>
-          <div className="h-11 w-full rounded-xl bg-brand-soft sm:w-28 sm:shrink-0" />
+          <div className="h-11 w-full rounded-panel bg-brand-soft sm:w-28 sm:shrink-0" />
         </div>
       ))}
     </div>
@@ -99,7 +99,7 @@ export default function GenerationList({ archive = false, onCount, onLoadingChan
   if (deferRender) return null
   if (loading) return <GenerationListSkeleton label={g.loading} />
   if (error) return <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>
-  if (!visibleProjects.length) return onCount ? null : <p className="mt-4 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{g.empty}</p>
+  if (!visibleProjects.length) return onCount ? null : <p className="mt-4 rounded-panel border border-dashed border-gray-200 p-6 text-sm text-sub">{g.empty}</p>
 
   return <div className={gallery ? "studio-project-grid mt-4" : "mt-4 grid gap-4"}>
     {visibleProjects.map(project => {
@@ -124,7 +124,7 @@ export default function GenerationList({ archive = false, onCount, onLoadingChan
       </article>
     })}
     {deleteTarget ? <Modal onClose={() => { if (!deleting) setDeleteTarget(null) }} labelledBy="delete-generation-title" closeLabel={t.commonClose}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600"><Trash2 className="h-6 w-6" /></div>
+      <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-red-50 text-red-600"><Trash2 className="h-6 w-6" /></div>
       <h2 id="delete-generation-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudDeleteTitle}</h2>
       <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudDeleteDescription.replace('{name}', deleteTarget.name || deleteTarget.prompt)}</p>
       <div className="mt-7 flex gap-3">
@@ -137,7 +137,7 @@ export default function GenerationList({ archive = false, onCount, onLoadingChan
     {renameTarget ? <Modal onClose={() => { if (!renaming) setRenameTarget(null) }} labelledBy="rename-generation-title" closeLabel={t.commonClose}>
       <h2 id="rename-generation-title" className="pr-8 text-xl font-extrabold text-ink">{t.cloudRenameTitle}</h2>
       <label htmlFor="rename-generation-input" className="mt-5 block text-sm font-bold">{t.cloudRenameLabel}</label>
-      <input id="rename-generation-input" value={renameValue} maxLength={60} autoFocus disabled={renaming} placeholder={renameTarget.prompt.slice(0, 40)} onChange={event => setRenameValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !renaming) { void rename() } }} className="mt-2 w-full rounded-xl border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-brand" />
+      <input id="rename-generation-input" value={renameValue} maxLength={60} autoFocus disabled={renaming} placeholder={renameTarget.prompt.slice(0, 40)} onChange={event => setRenameValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !renaming) { void rename() } }} className="mt-2 w-full rounded-control border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-brand" />
       <p className="mt-2 text-xs leading-5 text-sub">{t.cloudRenameHint}</p>
       <div className="mt-6 flex gap-3">
         <Button variant="secondary" disabled={renaming} onClick={() => setRenameTarget(null)} className="flex-1">{t.cloudDeleteCancel}</Button>

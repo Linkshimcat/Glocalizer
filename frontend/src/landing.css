@@ -1,19 +1,9 @@
 /* Main-page composition. Keep these styles inside .main-restyle. */
-.main-restyle { --main-header-height: 72px; overflow: clip; background: #fff; color: #191f28; }
-.main-restyle .remake-eyebrow { color: #15803d; font-size: 12px; font-weight: 700; letter-spacing: .13em; }
-.main-restyle > header { position: fixed; z-index: 30; inset: 0 0 auto; background: #fff; border-color: #f0f2f3; }
-.main-restyle > header > .layout-wide { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
-.main-restyle > header > .layout-wide > div { min-width: 0; }
-.main-restyle .remake-header-nav, .main-restyle .remake-header-actions { display: flex; align-items: center; gap: 8px; }
-.main-restyle .remake-header-nav > button, .main-restyle .remake-header-actions > button { min-height: 44px; border-radius: 10px; padding: 10px 16px; color: #191f28; font-size: 14px; font-weight: 700; transition: background .2s; }
-.main-restyle .remake-header-nav > button:hover, .main-restyle .remake-header-actions > button:hover { background: #f2f4f6; }
-.main-restyle .remake-hero { display: grid; width: min(100%,1440px); grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; margin: var(--main-header-height) auto 0; padding: 42px 60px 24px; }
+.main-restyle { --main-header-height: var(--site-header-height); overflow: clip; background: #fff; color: #191f28; }
+.main-restyle .remake-hero { display: grid; width: min(100%,1440px); grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; margin: 0 auto; padding: 42px 60px 24px; }
 .main-restyle .remake-hero-inner { min-width: 0; }
 .main-restyle .remake-hero h1 { margin: 0; font-size: clamp(42px,4.59vw,66px); font-weight: 800; letter-spacing: -.04em; line-height: 1.2; word-break: keep-all; }
-.main-restyle .remake-hero h1 > span, .main-restyle .remake-final h2 span, .main-restyle .remake-scene-copy h2 span { display: block; }
-.main-restyle .remake-hero h1 > span:last-child { color: #15803d; }
 .main-restyle .remake-hero[data-lang="en"] h1, .main-restyle .remake-hero[data-lang="ja"] h1 { font-size: clamp(36px,3.75vw,54px); }
-.main-restyle .remake-hero h1 > span { animation: remake-hero-letter-in .42s cubic-bezier(.22,1,.36,1) both; }
 .main-restyle .remake-hero-description { max-width: 460px; margin-top: 28px; color: #56616e; font-size: 18px; font-weight: 400; line-height: 1.9; word-break: keep-all; animation: remake-hero-description-in .5s ease-out .55s both; }
 .main-restyle .remake-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 32px; }
 .main-restyle .remake-hero-actions > button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -24,26 +14,25 @@
 .main-restyle .remake-translation-strip { width: min(calc(100% - 120px),1120px); margin: 0 auto 64px; }
 .main-restyle .remake-translation-strip img { display: block; width: 100%; height: auto; }
 .main-restyle .remake-translation-strip figcaption { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 12px; text-align: center; font-size: 16px; font-weight: 700; }
-.main-restyle .remake-video-intro { padding: 80px 24px 96px; background: #f7f9f7; }
+.main-restyle .remake-video-intro { padding: 80px 24px 96px; background: #f5f6f5; }
 .main-restyle .remake-video-heading { max-width: 820px; margin: 0 auto 32px; text-align: center; }
 .main-restyle .remake-video-heading h2 { font-size: clamp(28px,3vw,42px); font-weight: 800; letter-spacing: -.04em; line-height: 1.25; word-break: keep-all; }
 .main-restyle .remake-video-heading p { margin-top: 16px; color: #56616e; font-size: 18px; line-height: 1.7; word-break: keep-all; }
-.main-restyle .remake-intro-video { display: block; width: min(100%,1120px); height: auto; aspect-ratio: 16 / 9; margin: auto; border-radius: 24px; background: #fff; object-fit: contain; }
+.main-restyle .remake-intro-video { display: block; width: min(100%,1120px); height: auto; aspect-ratio: 16 / 9; margin: auto; border-radius: var(--radius-panel); background: #fff; object-fit: contain; }
 .main-restyle .remake-video-footer { display: flex; max-width: 1120px; align-items: center; justify-content: space-between; gap: 24px; margin: 16px auto 0; }
 .main-restyle .remake-video-footer p { color: #56616e; font-size: 14px; line-height: 1.7; }
-.main-restyle .remake-video-replay { display: inline-flex; min-height: 44px; flex-shrink: 0; align-items: center; gap: 8px; border: 1px solid #d7e0d9; border-radius: 12px; padding: 8px 14px; background: #fff; color: #34443a; font-size: 14px; font-weight: 700; }
+.main-restyle .remake-video-replay { display: inline-flex; min-height: 44px; flex-shrink: 0; align-items: center; gap: 8px; border: 1px solid #d7e0d9; border-radius: var(--radius-control); padding: 8px 14px; background: #fff; color: #34443a; font-size: 14px; font-weight: 700; }
 .main-restyle .remake-video-replay:hover { background: #eafbf1; }
 .main-restyle .remake-video-replay img { width: 20px; height: 20px; }
-.main-restyle .remake-story { height: 250svh; background: #f4f7f4; scroll-margin-top: var(--main-header-height); }
+.main-restyle .remake-story { height: 250svh; background: #15291f; color: #fff; scroll-margin-top: var(--main-header-height); }
 .main-restyle .remake-story-sticky { position: sticky; top: var(--main-header-height); display: flex; height: calc(100svh - var(--main-header-height)); min-height: calc(100svh - var(--main-header-height)); padding: 40px 3vw; max-width: 1600px; margin: 0 auto; }
 .main-restyle .remake-story-scene { display: grid; width: 100%; grid-template-columns: minmax(300px,.8fr) minmax(0,1.9fr); align-items: center; gap: 32px; }
 .main-restyle .remake-scene-copy { position: relative; z-index: 3; min-width: 0; animation: remake-copy-in .5s cubic-bezier(.22,1,.36,1) both; }
-.main-restyle .remake-scene-copy > p { color: #15803d; font-size: 12px; font-weight: 700; letter-spacing: .15em; }
 .main-restyle .remake-scene-copy h2 { margin-top: 20px; font-size: clamp(38px,3.5vw,54px); letter-spacing: -.045em; line-height: 1.16; font-weight: 800; word-break: keep-all; overflow-wrap: normal; }
-.main-restyle .remake-scene-copy > div:not(.remake-scene-progress) { max-width: 380px; margin-top: 22px; color: #56616e; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
+.main-restyle .remake-scene-copy > div:not(.remake-scene-progress) { max-width: 380px; margin-top: 22px; color: #d6e5dc; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
 .main-restyle .remake-scene-progress { display: flex; width: min(100%,132px); gap: 6px; margin-top: 28px; }
-.main-restyle .remake-scene-progress span { height: 3px; flex: 1; border-radius: 99px; background: #dfe5e1; transition: background-color .25s; }
-.main-restyle .remake-scene-progress span[data-active="true"] { background: #15803d; }
+.main-restyle .remake-scene-progress span { height: 3px; flex: 1; border-radius: 4px; background: #476554; transition: background-color .25s; }
+.main-restyle .remake-scene-progress span[data-active="true"] { background: #22c55e; }
 .main-restyle .remake-device-wrap { width: min(100%,960px); min-width: 0; justify-self: center; }
 .main-restyle .remake-device { position: relative; isolation: isolate; width: 100%; aspect-ratio: 4096 / 2499; filter: drop-shadow(0 28px 34px rgba(25,31,40,.13)); }
 .main-restyle .remake-device-frame { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -51,39 +40,36 @@
 .main-restyle .remake-product-window { position: absolute; z-index: 1; top: 2.2%; left: 9%; width: 82%; height: 87.3%; overflow: hidden; border-radius: 2.7% 2.7% 0 0; background: #fff; pointer-events: none; animation: remake-screen-enter .5s cubic-bezier(.22,1,.36,1) both; }
 .main-restyle .remake-product-screen { position: absolute; top: 0; left: 0; display: block; transform-origin: top left; border: 0; background: #fff; pointer-events: none; }
 .main-restyle .remake-product-capture { display: none; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.main-restyle .remake-product-capture-desktop { transform: scale(1.28); transform-origin: center top; }
+.main-restyle .remake-product-capture-desktop { transform: none; }
 .main-restyle .remake-product-window[data-lang="ko"][data-captured="true"] .remake-product-capture { display: block; }
 .main-restyle .remake-workflow, .main-restyle .remake-cases { padding: 104px 5vw; background: #fff; word-break: keep-all; }
 .main-restyle .remake-workflow-heading, .main-restyle .remake-cases-heading { max-width: 820px; margin: 0 auto; text-align: center; }
-.main-restyle .remake-workflow-heading h2, .main-restyle .remake-cases-heading h2 { margin-top: 16px; font-size: clamp(36px,4.3vw,60px); letter-spacing: -.045em; line-height: 1.2; font-weight: 800; word-break: keep-all; }
+.main-restyle .remake-workflow-heading h2, .main-restyle .remake-cases-heading h2 { margin-top: 0; font-size: clamp(32px,3.2vw,46px); letter-spacing: -.045em; line-height: 1.2; font-weight: 800; word-break: keep-all; }
 .main-restyle .remake-workflow-heading > p:last-child, .main-restyle .remake-cases-heading > p:last-child { margin-top: 14px; color: #56616e; font-size: 18px; font-weight: 400; line-height: 1.7; }
 .main-restyle .remake-workflow-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 32px; width: min(100%,1280px); margin: 56px auto 0; }
 .main-restyle .remake-workflow-grid article { position: relative; display: flex; min-width: 0; flex-direction: column; transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1); transition-delay: var(--workflow-delay,0ms); }
 .main-restyle .remake-workflow-grid[data-motion-ready="true"] article[data-visible="false"] { opacity: 0; transform: translateY(18px); }
-.main-restyle .remake-workflow-visual { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 24px; object-fit: contain; transition: transform .5s cubic-bezier(.22,1,.36,1); }
+.main-restyle .remake-workflow-visual { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: var(--radius-panel); object-fit: contain; transition: transform .5s cubic-bezier(.22,1,.36,1); }
 .main-restyle .remake-workflow-grid article:hover .remake-workflow-visual { transform: translateY(-4px); }
-.main-restyle .remake-workflow-grid article > p { margin-top: 24px; color: #15803d; font-size: 12px; font-weight: 700; letter-spacing: .14em; }
-.main-restyle .remake-workflow-grid h3 { margin-top: 12px; font-size: clamp(23px,2.4vw,34px); font-weight: 800; letter-spacing: -.035em; line-height: 1.2; }
+.main-restyle .remake-workflow-grid h3 { margin-top: 24px; font-size: clamp(23px,2.4vw,34px); font-weight: 800; letter-spacing: -.035em; line-height: 1.2; }
 .main-restyle .remake-workflow-grid h3 span { display: block; }
 .main-restyle .remake-workflow-grid article > div { margin: 16px 0 24px; color: #56616e; font-size: 16px; font-weight: 400; line-height: 1.7; }
 .main-restyle .remake-workflow-link { display: inline-flex; width: fit-content; min-height: 44px; align-items: center; gap: 8px; margin-top: auto; color: #15803d; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 5px; }
 .main-restyle .remake-workflow-link svg { transition: transform .2s; }
 .main-restyle .remake-workflow-grid article[data-active="true"] .remake-workflow-link svg { transform: translateX(4px); }
 .main-restyle .remake-workflow-link:hover { color: #116b33; }
-.main-restyle .remake-case-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,330px),1fr)); gap: 22px; width: min(100%,1120px); margin: 48px auto 0; }.main-restyle .remake-case-card { min-width: 0; overflow: hidden; border: 1px solid #e7eaec; border-radius: 24px; background: #fff; box-shadow: 0 16px 48px rgba(25,31,40,.06); }.main-restyle .remake-case-meta { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; color: #168b4a; font-size: 11px; font-weight: 900; letter-spacing: .08em; }.main-restyle .remake-case-meta span + span { color: #7a838b; }.main-restyle .remake-case-compare { position: relative; aspect-ratio: 1; overflow: hidden; background: repeating-conic-gradient(#f3f5f4 0 25%,#fff 0 50%) 0 0/20px 20px; touch-action: pan-y; }.main-restyle .remake-case-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 9%; }.main-restyle .remake-case-compare img:nth-of-type(2) { clip-path: inset(0 0 0 50%); }.main-restyle .remake-case-label { position: absolute; z-index: 2; top: 14px; border-radius: 99px; padding: 6px 10px; background: rgba(255,255,255,.92); color: #343d45; font-size: 10px; font-weight: 850; box-shadow: 0 2px 12px rgba(25,31,40,.08); }.main-restyle .remake-case-label-before { left: 14px; }.main-restyle .remake-case-label-after { right: 14px; }.main-restyle .remake-case-divider { position: absolute; z-index: 2; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 0 1px rgba(25,31,40,.1),0 1px 12px rgba(25,31,40,.2); pointer-events: none; }.main-restyle .remake-case-divider i { position: absolute; top: 50%; left: 50%; display: grid; width: 36px; aspect-ratio: 1; place-items: center; transform: translate(-50%,-50%); border: 2px solid #fff; border-radius: 50%; background: #22c55e; box-shadow: 0 2px 12px rgba(25,31,40,.18); }.main-restyle .remake-case-divider i::before { width: 9px; height: 9px; border-right: 2px solid #fff; border-left: 2px solid #fff; content: ''; }.main-restyle .remake-case-compare input { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; margin: 0; cursor: ew-resize; opacity: 0; touch-action: pan-y; }.main-restyle .remake-case-compare input:focus-visible { outline: 3px solid #168b4a; outline-offset: -4px; opacity: .01; }
-.main-restyle .remake-ogq-proof { overflow: hidden; border-top: 1px solid #f0f2f3; background: #f7f8f8; }.main-restyle .ogq-gallery-fallback { display: block; width: min(100% - 40px,1500px); margin: 0 auto; border-radius: 24px; }
+.main-restyle .remake-case-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,330px),1fr)); gap: 22px; width: min(100%,1120px); margin: 48px auto 0; }.main-restyle .remake-case-card { min-width: 0; overflow: hidden; border: 1px solid #e7eaec; border-radius: var(--radius-panel); background: #fff; box-shadow: 0 16px 48px rgba(25,31,40,.06); }.main-restyle .remake-case-meta { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; color: #168b4a; font-size: 11px; font-weight: 900; letter-spacing: .08em; }.main-restyle .remake-case-meta span + span { color: #7a838b; }.main-restyle .remake-case-compare { position: relative; aspect-ratio: 1; overflow: hidden; background: repeating-conic-gradient(#f3f5f4 0 25%,#fff 0 50%) 0 0/20px 20px; touch-action: pan-y; }.main-restyle .remake-case-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 9%; }.main-restyle .remake-case-compare img:nth-of-type(2) { clip-path: inset(0 0 0 50%); }.main-restyle .remake-case-label { position: absolute; z-index: 2; top: 14px; border-radius: 4px; padding: 6px 10px; background: rgba(255,255,255,.92); color: #343d45; font-size: 10px; font-weight: 850; box-shadow: 0 2px 12px rgba(25,31,40,.08); }.main-restyle .remake-case-label-before { left: 14px; }.main-restyle .remake-case-label-after { right: 14px; }.main-restyle .remake-case-divider { position: absolute; z-index: 2; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 0 1px rgba(25,31,40,.1),0 1px 12px rgba(25,31,40,.2); pointer-events: none; }.main-restyle .remake-case-divider i { position: absolute; top: 50%; left: 50%; display: grid; width: 36px; aspect-ratio: 1; place-items: center; transform: translate(-50%,-50%); border: 2px solid #fff; border-radius: 50%; background: #22c55e; box-shadow: 0 2px 12px rgba(25,31,40,.18); }.main-restyle .remake-case-divider i::before { width: 9px; height: 9px; border-right: 2px solid #fff; border-left: 2px solid #fff; content: ''; }.main-restyle .remake-case-compare input { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; margin: 0; cursor: ew-resize; opacity: 0; touch-action: pan-y; }.main-restyle .remake-case-compare input:focus-visible { outline: 3px solid #168b4a; outline-offset: -4px; opacity: .01; }
 
 .main-restyle .remake-case-meta { color: #15803d; font-size: 13px; font-weight: 700; }
 .main-restyle .remake-case-meta span + span { color: #56616e; }
 .main-restyle .remake-case-label { font-size: 12px; }
 .main-restyle .remake-case-compare:focus-within { outline: 3px solid #15803d; outline-offset: -4px; }
-.main-restyle .remake-ogq-proof { padding-block: 0; background: #f4f7f4; }
-.main-restyle .ogq-gallery-fallback { height: auto; padding-block: 40px; }
-.main-restyle .remake-final { display: flex; min-height: 70svh; align-items: center; flex-direction: column; justify-content: center; padding: 96px 24px; background: #eafbf1; text-align: center; }
-.main-restyle .remake-final h2 { max-width: 100%; margin-top: 20px; font-size: clamp(44px,5.65vw,80px); letter-spacing: -.045em; line-height: 1.12; font-weight: 800; word-break: keep-all; }
-.main-restyle .remake-final > p:not(.remake-eyebrow) { max-width: 640px; margin-top: 24px; color: #56616e; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
+.main-restyle .remake-ogq-proof { padding-block: 0; background: #fff; }
+.main-restyle .remake-final { display: flex; min-height: 70svh; align-items: center; flex-direction: column; justify-content: center; padding: 96px 24px; background: #22c55e; text-align: center; }
+.main-restyle .remake-final h2 { max-width: 100%; margin-top: 20px; font-size: clamp(38px,4.3vw,62px); letter-spacing: -.045em; line-height: 1.12; font-weight: 800; word-break: keep-all; }
+.main-restyle .remake-final > p { max-width: 640px; margin-top: 24px; color: #193a26; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
 .main-restyle .remake-final button { margin-top: 32px; }
-.main-restyle > footer { border-radius: 24px 24px 0 0; }
+.main-restyle > footer { border-radius: 0; }
 .main-restyle .remake-story[data-static="true"] { height: auto; }
 .main-restyle .remake-story[data-static="true"] > .remake-story-scene { max-width: 1600px; margin: auto; min-height: calc(100svh - var(--main-header-height)); padding: 64px 3vw; }
 .main-restyle :is(button,a,video):focus-visible { outline: 3px solid #15803d; outline-offset: 4px; }
@@ -120,26 +106,19 @@
   .main-restyle .remake-story[data-static="true"] .remake-device-wrap { width: min(75vw,280px); height: auto; max-height: none; }
 }
 @media (max-width: 767px) {
-  .main-restyle { --main-header-height: 120px; }
-  .main-restyle .remake-header-nav { gap: 0; }
-  .main-restyle .remake-header-nav > button { padding-inline: 10px; font-size: 13px; }
-  .main-restyle .remake-header-actions { gap: 4px; }
-  .main-restyle .remake-header-actions > button { padding-inline: 12px; font-size: 13px; }
-  .main-restyle .remake-header-actions button[aria-haspopup="listbox"] { padding-inline: 10px; }
   .main-restyle .remake-hero { padding: 30px 20px 0; }
   .main-restyle .remake-hero h1 { font-size: clamp(30px,8.2vw,52px); line-height: 1.22; }
   .main-restyle .remake-hero[data-lang="en"] h1, .main-restyle .remake-hero[data-lang="ja"] h1 { font-size: clamp(28px,7.2vw,44px); }
   .main-restyle .remake-hero-description { margin-top: 24px; font-size: 16px; line-height: 1.8; }
   .main-restyle .remake-hero-actions { gap: 14px; margin-top: 24px; }
-  .main-restyle .remake-hero-actions > button:first-child { min-height: 48px; padding: 12px 18px; border-radius: 12px; }
+  .main-restyle .remake-hero-actions > button:first-child { min-height: 48px; padding: 12px 18px; border-radius: var(--radius-control); }
   .main-restyle .remake-hero-art { margin-top: 24px; }
   .main-restyle .remake-translation-strip { width: calc(100% - 40px); margin: 24px auto 40px; }
   .main-restyle .remake-translation-strip figcaption { margin-top: 12px; font-size: 14px; }
   .main-restyle .remake-video-intro { padding: 56px 20px 64px; }
   .main-restyle .remake-video-heading p { font-size: 16px; }
-  .main-restyle .remake-intro-video { border-radius: 12px; }
+  .main-restyle .remake-intro-video { border-radius: var(--radius-control); }
   .main-restyle .remake-story-sticky { padding: 20px 20px 12px; }
-  .main-restyle .remake-scene-copy > p { font-size: 11px; }
   .main-restyle .remake-scene-copy h2 { font-size: clamp(28px,7.7vw,36px); line-height: 1.16; }
   .main-restyle .remake-scene-progress { margin-top: 14px; }
   .main-restyle .remake-workflow, .main-restyle .remake-cases { padding: 72px 20px; }
@@ -147,13 +126,12 @@
   .main-restyle .remake-workflow-heading > p:last-child, .main-restyle .remake-cases-heading > p:last-child { font-size: 16px; }
   .main-restyle .remake-workflow-grid { grid-template-columns: 1fr; gap: 44px; margin-top: 36px; }
   .main-restyle .remake-workflow-grid h3 { font-size: 28px; }
-  .main-restyle .remake-workflow-visual { border-radius: 20px; }
-  .main-restyle .remake-case-card { border-radius: 18px; }
+  .main-restyle .remake-workflow-visual { border-radius: var(--radius-panel); }
+  .main-restyle .remake-case-card { border-radius: var(--radius-panel); }
   .main-restyle .remake-ogq-proof .ogq-tilt-mask { margin-top: 24px; }
-  .main-restyle .ogq-gallery-fallback { width: calc(100% - 24px); border-radius: 14px; }
   .main-restyle .remake-final { min-height: 60svh; padding: 72px 20px; }
   .main-restyle .remake-final h2 { font-size: clamp(36px,10vw,52px); }
-  .main-restyle .remake-final > p:not(.remake-eyebrow) { font-size: 16px; }
+  .main-restyle .remake-final > p { font-size: 16px; }
 }
 @media (max-height: 650px) and (max-width: 900px) {
   .main-restyle .remake-story[data-static="true"] .remake-device-wrap { width: min(55vw,220px); }
@@ -165,3 +143,13 @@
 
 /* CJK copy wraps at natural character boundaries; Korean keeps word boundaries. */
 .main-restyle:is([data-lang="ja"],[data-lang="zh"]) :is(h1,h2,h3,p,.remake-scene-copy > div,.remake-workflow-grid article > div) { word-break: normal; overflow-wrap: break-word; }
+
+.main-restyle .remake-hero-prefix { display: block; }
+.main-restyle .remake-hero-roll { color: #15803d; }
+.main-restyle .remake-hero[data-motion-paused="true"] .animate-roll-word { animation-play-state: paused; }
+.main-restyle .remake-final > p { color: #193a26; }
+.main-restyle .remake-final .studio-button { background: #15291f; color: #fff; }
+.main-restyle .remake-final .studio-button:hover { background: #0d1d15; }
+.main-restyle .remake-final :is(button,a):focus-visible { outline-color: #15291f; }
+.main-restyle .remake-ogq-proof { overflow: hidden; border-top: 1px solid #e1e5e3; background: #fff; }
+.main-restyle > footer { border-radius: 0; }

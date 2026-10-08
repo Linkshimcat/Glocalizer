@@ -2,7 +2,6 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Download, Home } from 'lucide-rea
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
-import Header from '../components/Header'
 import Modal from '../components/Modal'
 import PngPreview from '../components/PngPreview'
 import AILocalizationBadge from '../components/AILocalizationBadge'
@@ -63,7 +62,7 @@ export default function Result() {
   if (!['completed', 'failed'].includes(projectStatus.status) || !resultReady) return <Navigate to="/editor" replace />
 
   return <div className="studio-result min-h-screen bg-white">
-    <Header right={<span className="text-xs font-bold text-brand-dark">3 · {t.stepDownload}</span>} sticky />
+    <div className="workspace-stepbar"><div className="layout-app text-sm font-bold text-brand-dark">3 · {t.stepDownload}</div></div>
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <section className="studio-result-summary"><div>
         <h1 className="text-2xl font-extrabold sm:text-3xl">{lastDownload ? w.downloadStarted : w.ready}</h1>
@@ -74,10 +73,10 @@ export default function Result() {
         <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2><AILocalizationBadge /><UploadSpecBadge /></div>
         <div className="mt-5 space-y-8">{groups.map(({ language, items }) => <section key={language.code}>
           <h3 className="font-bold">{language.flag} {language.label}</h3>
-          <div className="studio-result-gallery mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{items.map(item => <article key={item.id} className="min-w-0 rounded-2xl border border-gray-200 bg-white p-3">
+          <div className="studio-result-gallery mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{items.map(item => <article key={item.id} className="min-w-0 rounded-panel border border-gray-200 bg-white p-3">
             <PngPreview item={item} overlays={textOverlaysForItem(item, language.code, styles)} baseStyle={imageStyleForItem(item, language.code, styles)} preset={outputPreset} onEnlarge={() => setEnlarged(entries.findIndex(entry => entry.item.id === item.id && entry.language.code === language.code))} />
             <p className="mt-2 truncate text-xs text-sub" title={item.name}>{item.name}</p>
-            {item.analysis?.needsManualCleanup && <button className="mt-2 w-full rounded-lg border border-amber-200 p-2 text-left text-xs font-bold text-amber-800" onClick={() => navigate(`/editor?cleanup=${encodeURIComponent(item.id)}`)}>{w.cleanupAction}</button>}
+            {item.analysis?.needsManualCleanup && <button className="mt-2 w-full rounded-control border border-amber-200 p-2 text-left text-xs font-bold text-amber-800" onClick={() => navigate(`/editor?cleanup=${encodeURIComponent(item.id)}`)}>{w.cleanupAction}</button>}
           </article>)}</div>
         </section>)}</div>
       </section>
@@ -90,7 +89,7 @@ export default function Result() {
     {active && enlarged !== null && <Modal onClose={() => setEnlarged(null)} closeLabel={w.close} labelledBy="result-preview-title" className="max-w-4xl">
       <h2 id="result-preview-title" className="break-words pr-8 font-bold">{active.language.flag} {active.item.name} · {enlarged + 1}/{entries.length}</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div><p className="mb-2 text-sm text-sub">{t.stepUpload}</p><img src={active.item.analysis?.originalUrl ?? active.item.url} alt={active.item.name} className="checkerboard max-h-[60dvh] w-full rounded-xl object-contain" /></div>
+        <div><p className="mb-2 text-sm text-sub">{t.stepUpload}</p><img src={active.item.analysis?.originalUrl ?? active.item.url} alt={active.item.name} className="checkerboard max-h-[60dvh] w-full rounded-panel object-contain" /></div>
         <div><p className="mb-2 text-sm text-sub">{w.preview}</p><PngPreview large item={active.item} overlays={textOverlaysForItem(active.item, active.language.code, styles)} baseStyle={imageStyleForItem(active.item, active.language.code, styles)} preset={outputPreset} /></div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

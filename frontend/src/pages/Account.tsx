@@ -1,10 +1,8 @@
 import { Camera, ChevronRight, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
 import GoogleIcon from '../components/GoogleIcon'
 import Modal from '../components/Modal'
-import NavMenu from '../components/NavMenu'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import type { ProfileUpdate } from '../lib/authApi'
@@ -174,12 +172,11 @@ export default function Account() {
 
   return (
     <div className="studio-account min-h-screen bg-[#FAFBFC]">
-      <Header center={<NavMenu workspace />} sticky />
       <main className="layout-app py-10 sm:py-16">
         <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{t.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{t.accountDesc}</p>
-        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-xl border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>
+        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 shrink-0">
@@ -232,7 +229,7 @@ export default function Account() {
                       onChange={event => setName(event.target.value)}
                       maxLength={NAME_MAX_LENGTH}
                       autoFocus
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-16 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                      className="w-full rounded-control border border-gray-200 px-4 py-3 pr-16 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
                     />
                     <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-sub">
                       {name.length}/{NAME_MAX_LENGTH}
@@ -292,7 +289,7 @@ export default function Account() {
         </form>
 
         {user.hasPassword && (
-          <section className="mt-6 max-w-2xl rounded-xl border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountSecurityTitle}>
+          <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountSecurityTitle}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-extrabold text-ink">{t.accountSecurityTitle}</h2>
@@ -323,7 +320,7 @@ export default function Account() {
                     maxLength={72}
                     autoFocus
                     autoComplete="current-password"
-                    className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                    className="mt-2 w-full rounded-control border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
                   />
                 </div>
                 <div>
@@ -338,7 +335,7 @@ export default function Account() {
                     minLength={8}
                     maxLength={72}
                     autoComplete="new-password"
-                    className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                    className="mt-2 w-full rounded-control border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
                   />
                 </div>
                 <div>
@@ -353,7 +350,7 @@ export default function Account() {
                     minLength={8}
                     maxLength={72}
                     autoComplete="new-password"
-                    className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                    className="mt-2 w-full rounded-control border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
@@ -370,7 +367,7 @@ export default function Account() {
           </section>
         )}
 
-        <section className="mt-6 max-w-2xl rounded-xl border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPolicyTitle}>
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPolicyTitle}>
           <h2 className="text-lg font-extrabold text-ink">{t.accountPolicyTitle}</h2>
           <p className="mt-1 text-sm text-sub">{t.accountPolicyDesc}</p>
           <div className="mt-5 divide-y divide-gray-100">
@@ -387,7 +384,7 @@ export default function Account() {
           </div>
         </section>
 
-        <section className="mt-6 max-w-2xl rounded-xl border border-red-200 bg-red-50/40 p-6 sm:p-8" aria-label={t.accountDangerZoneTitle}>
+        <section className="mt-6 max-w-2xl rounded-panel border border-red-200 bg-red-50/40 p-6 sm:p-8" aria-label={t.accountDangerZoneTitle}>
           <h2 className="text-lg font-extrabold text-red-600">{t.accountDangerZoneTitle}</h2>
           <p className="mt-2 text-sm text-red-900/70">{t.accountDangerZoneDesc}</p>
           <button

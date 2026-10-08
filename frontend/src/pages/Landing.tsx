@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
-import Header from '../components/Header'
-import NavMenu from '../components/NavMenu'
 import RollingText from '../components/RollingText'
 import OgqStickerGallery from '../components/OgqStickerGallery'
 import heroGradient from '../assets/LandingAssets/GreenBackground-web.webp'
@@ -68,7 +66,6 @@ export default function Landing() {
       style={{ '--hero-bg': `url(${heroGradient})` } as CSSProperties}
     >
       {/* NAV는 Hero와 독립된 흰색 바. gradient는 Hero section 안에서만 보인다. */}
-      <Header center={<NavMenu />} sticky />
 
       {/* 푸터가 유리처럼 그라데이션 위에 떠 보이도록 배경을 main과 푸터를 감싼 영역에 깐다. */}
       <div className="flex flex-1 flex-col bg-[image:var(--hero-bg)] bg-cover bg-center">

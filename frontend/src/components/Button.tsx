@@ -19,10 +19,10 @@ const variantClass: Record<Variant, string> = {
 }
 
 const sizeClass: Record<Size, string> = {
-  xs: 'min-h-11 px-2 py-2 text-sm rounded-lg',
-  sm: 'min-h-11 px-4 py-2 text-sm rounded-lg',
-  md: 'min-h-11 px-5 py-2.5 text-[15px] rounded-lg',
-  lg: 'min-h-14 px-7 py-3 text-base rounded-xl',
+  xs: 'min-h-11 px-2 py-2 text-sm rounded-control',
+  sm: 'min-h-11 px-4 py-2 text-sm rounded-control',
+  md: 'min-h-11 px-5 py-2.5 text-[15px] rounded-control',
+  lg: 'min-h-14 px-7 py-3 text-base rounded-control',
 }
 
 export default function Button({

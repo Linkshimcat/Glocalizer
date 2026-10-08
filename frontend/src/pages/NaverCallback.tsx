@@ -43,7 +43,7 @@ export default function NaverCallback() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <div className="w-full max-w-[360px] rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+      <div className="w-full max-w-[360px] rounded-panel border border-gray-100 bg-white p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
         {error ? (
           <>
             <AlertTriangle className="mx-auto h-8 w-8 text-red-500" />

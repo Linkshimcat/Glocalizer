@@ -17,6 +17,9 @@
   --color-ink: #191f28;
   --color-sub: #56616e;
   --color-surface: #f2f4f6;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-dialog: 12px;
 }
 
 html {

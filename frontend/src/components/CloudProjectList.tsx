@@ -20,7 +20,7 @@ function ProjectListSkeleton({ label }: { label: string }) {
           className="flex animate-pulse flex-col gap-4 rounded-[24px] border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6"
         >
           <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className="h-20 w-20 shrink-0 rounded-2xl bg-brand-soft/70" />
+            <div className="h-20 w-20 shrink-0 rounded-panel bg-brand-soft/70" />
             <div className="min-w-0 flex-1">
               <div className="h-6 w-16 rounded-full bg-brand-soft" />
               <div className="mt-3 h-4 w-2/5 rounded-full bg-gray-200" />
@@ -28,7 +28,7 @@ function ProjectListSkeleton({ label }: { label: string }) {
               <div className="mt-2 h-3 w-1/3 rounded-full bg-gray-100" />
             </div>
           </div>
-          <div className="h-11 w-full rounded-xl bg-brand-soft sm:w-28 sm:shrink-0" />
+          <div className="h-11 w-full rounded-panel bg-brand-soft sm:w-28 sm:shrink-0" />
         </div>
       ))}
     </div>
@@ -110,10 +110,10 @@ export default function CloudProjectList({ archive, onCount, onLoadingChange, de
   }
 
   if (deferRender) return null
-  if (!user) return <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
+  if (!user) return <div className="mt-4 rounded-panel border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
   if (loading) return <ProjectListSkeleton label={t.cloudLoading} />
   if (error) return <div role="alert" className="mt-5"><p className="text-sm text-sub">{t.cloudListFailed}</p><Button variant="outline" className="mt-3" onClick={() => setRetry(value => value + 1)}>{t.cloudRetry}</Button></div>
-  if (!projects.length) return onCount ? null : <p className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-sub">{archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p>
+  if (!projects.length) return onCount ? null : <p className="mt-5 rounded-panel border border-dashed border-gray-200 p-6 text-sm text-sub">{archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p>
 
   return <div className={gallery ? "studio-project-grid mt-4" : "mt-4 grid gap-4"}>
     {projects.map(project => {
@@ -137,7 +137,7 @@ export default function CloudProjectList({ archive, onCount, onLoadingChange, de
       </article>
     })}
     {deleteTarget ? <Modal onClose={() => { if (!deleting) setDeleteTarget(null) }} labelledBy="delete-project-title" closeLabel={t.commonClose}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600"><Trash2 className="h-6 w-6" /></div>
+      <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-red-50 text-red-600"><Trash2 className="h-6 w-6" /></div>
       <h2 id="delete-project-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudDeleteTitle}</h2>
       <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudDeleteDescription.replace('{name}', deleteTarget.name)}</p>
       <div className="mt-7 flex gap-3">
@@ -150,7 +150,7 @@ export default function CloudProjectList({ archive, onCount, onLoadingChange, de
     {renameTarget ? <Modal onClose={() => { if (!renaming) setRenameTarget(null) }} labelledBy="rename-project-title" closeLabel={t.commonClose}>
       <h2 id="rename-project-title" className="pr-8 text-xl font-extrabold text-ink">{t.cloudRenameTitle}</h2>
       <label htmlFor="rename-project-input" className="mt-5 block text-sm font-bold">{t.cloudRenameLabel}</label>
-      <input id="rename-project-input" value={renameValue} maxLength={60} autoFocus disabled={renaming} onChange={event => setRenameValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !renaming) { void rename() } }} className="mt-2 w-full rounded-xl border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-brand" />
+      <input id="rename-project-input" value={renameValue} maxLength={60} autoFocus disabled={renaming} onChange={event => setRenameValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !renaming) { void rename() } }} className="mt-2 w-full rounded-control border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-brand" />
       <p className="mt-2 text-xs leading-5 text-sub">{t.cloudRenameHint}</p>
       <div className="mt-6 flex gap-3">
         <Button variant="secondary" disabled={renaming} onClick={() => setRenameTarget(null)} className="flex-1">{t.cloudDeleteCancel}</Button>
