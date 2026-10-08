@@ -1,18 +1,12 @@
-import { startGenerationWorker, stopGenerationWorker } from './workers/generation-worker.js';
+import { startGenerationWorker } from './workers/generation-worker.js';
 import type { Server } from 'node:http';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { ensureStorageBucket } from './config/supabase.js';
-import { startExpiredProjectsSweep, stopExpiredProjectsSweep } from './workers/cleanup-scheduler.js';
-import { startWorker, stopWorker } from './workers/worker.js';
-import { waitForActiveJobs } from './workers/job-runner.js';
-
-function closeServer(server: Server): Promise<void> {
-  return new Promise((resolve, reject) => {
-    server.close((error) => (error ? reject(error) : resolve()));
-  });
-}
+import { startExpiredProjectsSweep } from './workers/cleanup-scheduler.js';
+import { startWorker } from './workers/worker.js';
+import { shutdownServer } from './workers/shutdown.js';
 
 function installShutdownHandlers(server: Server): void {
   let shuttingDown = false;
@@ -20,14 +14,8 @@ function installShutdownHandlers(server: Server): void {
     if (shuttingDown) return;
     shuttingDown = true;
     logger.info({ signal }, 'Graceful shutdown 시작');
-    stopWorker();
-    void stopGenerationWorker();
-    stopExpiredProjectsSweep();
-
     try {
-      await closeServer(server);
-      const completed = await waitForActiveJobs(env.SHUTDOWN_GRACE_MS);
-      if (!completed) logger.warn({ graceMs: env.SHUTDOWN_GRACE_MS }, '진행 중인 Job이 남은 상태로 종료합니다. lease recovery가 다시 처리합니다.');
+      await shutdownServer(server);
       process.exit(0);
     } catch (err) {
       logger.error({ err }, 'Graceful shutdown 실패');

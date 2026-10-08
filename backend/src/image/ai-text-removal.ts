@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -81,7 +82,7 @@ export async function removeTextWithAi(source: Buffer, target: Buffer, box: Pixe
     form.set('image[]', new Blob([new Uint8Array(image)], { type: 'image/png' }), 'source.png');
     form.set('mask', new Blob([new Uint8Array(mask)], { type: 'image/png' }), 'mask.png');
 
-    const response = await fetch(`${env.OPENAI_BASE_URL}/images/edits`, {
+    const response = await taskFetch(`${env.OPENAI_BASE_URL}/images/edits`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
       body: form,

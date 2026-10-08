@@ -1,8 +1,10 @@
+import { taskFetch } from '../utils/task-context.js';
 import { createClient } from '@supabase/supabase-js';
 import { env } from './env.js';
 import { logger } from './logger.js';
 
 export const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  global: { fetch: taskFetch },
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

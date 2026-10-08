@@ -1,3 +1,4 @@
+import { throwIfTaskCancelled } from './task-context.js';
 interface RetryOptions {
   attempts: number;
   delayMs?: number;
@@ -9,9 +10,11 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions):
 
   let lastError: unknown;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    throwIfTaskCancelled();
     try {
       return await fn();
     } catch (err) {
+      throwIfTaskCancelled();
       lastError = err;
       if (attempt === attempts || !shouldRetry(err)) {
         throw err;

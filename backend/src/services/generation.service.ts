@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { z } from 'zod';
 import { env } from '../config/env.js';
@@ -60,7 +61,7 @@ export async function suggestStickerCaptions(character:string,poses:string[]):Pr
  const controller=new AbortController();
  const timeout=setTimeout(()=>controller.abort(),env.IMAGE_CAPTION_TIMEOUT_MS);
  try {
-  const response=await fetch(`${env.OPENAI_BASE_URL}/chat/completions`,{
+  const response=await taskFetch(`${env.OPENAI_BASE_URL}/chat/completions`,{
    method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
    body:JSON.stringify({model:env.IMAGE_CAPTION_MODEL,max_completion_tokens:500,response_format:{type:'json_object'},messages:[{role:'user',content:`You write concise Korean captions for OGQ Market chat stickers. Return JSON only: {"captions":[...]}. Write exactly ${poses.length} captions in the same order as the poses. Each caption must be natural Korean used in everyday chat, one line, at most ${CAPTION_MAX_LENGTH} visible characters including spaces and punctuation, immediately readable on a mobile screen, and clearly match the pose. Keep the set varied. Avoid spelling errors, brands, copyrighted catchphrases, profanity, violence, politics, religion, sexual content, hashtags and emoji.\nCharacter: ${character.slice(0,1000)}\nPoses: ${JSON.stringify(poses)}`}]}),
    signal:controller.signal,
@@ -104,7 +105,7 @@ export async function suggestStickerPlan(character:string):Promise<StickerPlanIt
  const controller=new AbortController();
  const timeout=setTimeout(()=>controller.abort(),env.IMAGE_CAPTION_TIMEOUT_MS);
  try {
-  const response=await fetch(`${env.OPENAI_BASE_URL}/chat/completions`,{
+  const response=await taskFetch(`${env.OPENAI_BASE_URL}/chat/completions`,{
    method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
    body:JSON.stringify({model:env.IMAGE_CAPTION_MODEL,max_completion_tokens:1800,response_format:{type:'json_object'},messages:[{role:'user',content:`Plan a cohesive 24-image Korean chat sticker set for the character below. The representative character image is already slot 0. Return JSON only: {"items":[{"pose":"...","caption":"..."}, ...]}. Write exactly 23 items for slots 1 through 23 in order. Each pose must be visually distinct and practical for daily chat. Each Korean caption must be natural, immediately readable on mobile, one line, and at most ${CAPTION_MAX_LENGTH} visible characters. Cover greetings, thanks, apology, approval, celebration, affection, encouragement, surprise, sadness, anger, refusal, requests, waiting, sleep and food. Avoid brands, copyrighted catchphrases, profanity, violence, politics, religion, sexual content, hashtags and emoji. Character: ${character.slice(0,1000)}`}]}),
    signal:controller.signal,
@@ -233,7 +234,7 @@ export async function processGenerationImage(job: GenerationImage) {
   let body: string|FormData;
   if(reference) { body=new FormData();for(const [key,value] of Object.entries(options)) body.set(key,String(value));body.set('image[]',new Blob([new Uint8Array(reference)],{type:'image/png'}),'reference.png'); }
   else body=JSON.stringify(options);
-  const response=await fetch(`${env.OPENAI_BASE_URL}/images/${reference?'edits':'generations'}`,{method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,...(reference?{}:{'Content-Type':'application/json'})},body,signal:AbortSignal.timeout(180_000)});
+  const response=await taskFetch(`${env.OPENAI_BASE_URL}/images/${reference?'edits':'generations'}`,{method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,...(reference?{}:{'Content-Type':'application/json'})},body,signal:AbortSignal.timeout(180_000)});
   if(!response.ok) throw new AppError('GENERATION_FAILED',undefined,`이미지 API 요청 실패 (${response.status}). 잔액·모델 권한을 확인해주세요.`);
   const payload=await response.json() as ImageResponse;
   // Account for a paid response even if subsequent validation/storage fails.

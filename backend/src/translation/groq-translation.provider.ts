@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import type { LocalizationBatchInput } from '../ai/localization/localization-provider.types.js';
@@ -125,7 +126,7 @@ export const groqTranslationProvider: TranslationProvider = {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), env.TRANSLATION_TIMEOUT_MS);
       try {
-        const response = await fetch(`${env.GROQ_BASE_URL}/chat/completions`, {
+        const response = await taskFetch(`${env.GROQ_BASE_URL}/chat/completions`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({

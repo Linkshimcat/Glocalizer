@@ -1,3 +1,4 @@
+import { taskFetch } from '../../utils/task-context.js';
 import sharp from 'sharp';
 import { env } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
@@ -70,7 +71,7 @@ export const lunaOcrProvider: OcrProvider = {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), env.OCR_TIMEOUT_MS);
       try {
-        const response = await fetch(`${env.OPENAI_BASE_URL}/chat/completions`, {
+        const response = await taskFetch(`${env.OPENAI_BASE_URL}/chat/completions`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({

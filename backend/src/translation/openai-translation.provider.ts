@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import type { TranslationProvider } from './translation-provider.types.js';
@@ -30,7 +31,7 @@ export const openAiTranslationProvider: TranslationProvider = {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), env.OPENAI_TRANSLATION_TIMEOUT_MS);
       try {
-        const response = await fetch(`${env.OPENAI_BASE_URL}/chat/completions`, {
+        const response = await taskFetch(`${env.OPENAI_BASE_URL}/chat/completions`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({

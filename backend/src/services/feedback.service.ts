@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 import { findUserById } from '../repositories/user.repository.js';
@@ -33,7 +34,7 @@ export async function submitFeedback(userId: string, input: FeedbackInput): Prom
   const submitter = name && email ? `${name} (${email})` : (name ?? email ?? userId);
   const title = input.message.length > TITLE_MAX_LENGTH ? `${input.message.slice(0, TITLE_MAX_LENGTH)}…` : input.message;
 
-  const response = await fetch(`https://api.github.com/repos/${FEEDBACK_REPO}/issues`, {
+  const response = await taskFetch(`https://api.github.com/repos/${FEEDBACK_REPO}/issues`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${env.GITHUB_FEEDBACK_TOKEN}`,

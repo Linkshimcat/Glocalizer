@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -26,7 +27,7 @@ import { deleteGenerationsByOwner } from './generation.service.js';
 import { deleteProjectAndAssets } from './project.service.js';
 
 async function fetchAuthProvider(url: string, init: RequestInit): Promise<Response> {
-  try { return await fetch(url, init); }
+  try { return await taskFetch(url, init); }
   catch { throw new AppError('NAVER_LOGIN_FAILED', undefined, '인증 서버 연결이 실패하거나 시간이 초과됐습니다.'); }
 }
 

@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
 
@@ -49,7 +50,7 @@ export async function fetchOgqStickers(limit: number, query?: string): Promise<O
   });
   if (query) search.set('query', query);
 
-  const response = await fetch(`${env.OGQ_API_BASE_URL}/v1/assets?${search}`, {
+  const response = await taskFetch(`${env.OGQ_API_BASE_URL}/v1/assets?${search}`, {
     headers: { 'X-OGQ-API-KEY': env.OGQ_API_KEY },
     signal: AbortSignal.timeout(10_000),
   });

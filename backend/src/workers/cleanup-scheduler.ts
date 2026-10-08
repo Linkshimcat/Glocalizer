@@ -2,6 +2,7 @@ import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { runExpiredProjectsCleanup } from './cleanup-expired.job.js';
 
+let active: Promise<void> | null = null;
 let intervalHandle: NodeJS.Timeout | null = null;
 
 export function startExpiredProjectsSweep(): void {
@@ -17,11 +18,15 @@ export function startExpiredProjectsSweep(): void {
     }
   };
 
-  void sweep();
-  intervalHandle = setInterval(sweep, env.CLEANUP_SWEEP_INTERVAL_MS);
+  const run = () => {
+    if (!active) active = sweep().finally(() => { active = null; });
+  };
+  run();
+  intervalHandle = setInterval(run, env.CLEANUP_SWEEP_INTERVAL_MS);
 }
 
-export function stopExpiredProjectsSweep(): void {
+export async function stopExpiredProjectsSweep(): Promise<void> {
   if (intervalHandle) clearInterval(intervalHandle);
   intervalHandle = null;
+  if (active) await active;
 }
