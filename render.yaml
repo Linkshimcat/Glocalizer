@@ -48,6 +48,13 @@ services:
       # 티어의 처리량 한도도 없다. GROQ_API_KEY가 있으면 OpenAI 실패 시 Groq로 fallback한다.
       - key: TRANSLATION_PROVIDER
         value: openai
+      # Shared across the initial batch and per-language recovery calls.
+      - key: TRANSLATION_PRIMARY_BUDGET_MS
+        value: 30000
+      - key: TRANSLATION_OPERATION_BUDGET_MS
+        value: 90000
+      - key: LOG_LEVEL
+        value: info
       # 대회 사무국이 제공한 OGQ 마켓 API 키. 값은 Render 대시보드 → glocalizer-api →
       # Environment에서 직접 입력해야 한다(이 파일에는 실제 키를 적지 않는다). 미설정 시
       # OGQ 연동 기능(랜딩 예시 갤러리·샘플 체험·출시 검토)만 503으로 비활성화된다.

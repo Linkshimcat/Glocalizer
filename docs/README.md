@@ -7,6 +7,7 @@
 | [api.md](api.md) | Backend REST API endpoint 목록과 인증 규칙 |
 | [ocr-benchmark-2026-07-25.md](ocr-benchmark-2026-07-25.md) | 이모티콘 12장 처리 benchmark와 재시도 설정 근거 |
 | [openai-groq-render-setup.md](openai-groq-render-setup.md) | OpenAI·Groq 실측 키와 Render 백엔드 연결 안내 |
+| [backend/translation-fallback.md](backend/translation-fallback.md) | 번역 전환·저장 결과 관측, 공통 시간 예산, 105개 품질 평가와 비용 상한 |
 
 ## 로컬 보관 (Git 미포함)
 

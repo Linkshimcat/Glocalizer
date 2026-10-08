@@ -24,8 +24,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "benchmark:translation": "tsx benchmarks/translation/run.ts",
+    "check:translation": "tsc -p tsconfig.benchmarks.json",
     "benchmark:cleanup": "tsx benchmarks/cleanup/run.ts",
     "report:translation-fallback": "node scripts/report-translation-fallback.mjs",
+    "collect:translation-logs": "node scripts/collect-translation-logs.mjs",
     "report:download-funnel": "node scripts/report-download-funnel.mjs"
   },
   "keywords": [],
