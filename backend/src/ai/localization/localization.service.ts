@@ -4,7 +4,11 @@ import { AppError, describeError } from '../../errors/app-error.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../../repositories/asset.repository.js';
 import { findRegionById, findRegionsByAssetId } from '../../repositories/ocr.repository.js';
 import { findProjectById, updateProjectStage } from '../../repositories/project.repository.js';
-import { findTranslation, incrementRegenerateCount, upsertTranslation } from '../../repositories/translation.repository.js';
+import {
+  findTranslation,
+  incrementRegenerateCount,
+  upsertTranslation,
+} from '../../repositories/translation.repository.js';
 import type { AssetRow } from '../../types/asset.js';
 import { MAX_CHARACTERS_BY_LANGUAGE } from '../../types/localization.js';
 import type { TargetLanguage } from '../../types/localization.js';
@@ -15,6 +19,12 @@ import { LOCALIZATION_PROMPT_VERSION } from '../prompts/prompt-version.js';
 import { getTranslationProvider } from '../../translation/translation-provider.js';
 import { validateTranslationResult } from './localization-validator.js';
 import type { LocalizationBatchInput } from './localization-provider.types.js';
+import type { TranslationExecutionContext } from '../../translation/translation-provider.types.js';
+import {
+  createTranslationContext,
+  checkExecution,
+  safeTranslationFailure,
+} from '../../translation/translation-execution.js';
 
 export interface LanguageTranslationResult {
   languageCode: TargetLanguage;
@@ -67,9 +77,48 @@ export async function localizeRegionForLanguages(
   targetLanguages: TargetLanguage[],
   options: LocalizationOptions,
   siblingCaptions: string[] = [],
+  suppliedContext?: TranslationExecutionContext,
 ): Promise<LanguageTranslationResult[]> {
   const provider = getTranslationProvider();
-  const failedResult = (languageCode: TargetLanguage, error: unknown): LanguageTranslationResult => {
+  const context = createTranslationContext(suppliedContext, {
+    primaryMs: env.TRANSLATION_PRIMARY_BUDGET_MS ?? 30_000,
+    totalMs: env.TRANSLATION_OPERATION_BUDGET_MS ?? 90_000,
+  });
+  const started = Date.now();
+  logger.info(
+    {
+      event: 'translation_operation',
+      outcome: 'operation_started',
+      operationId: context.operationId,
+      primaryProvider: provider.name,
+      targetLanguages,
+    },
+    'Translation operation outcome',
+  );
+  const finish = (results: LanguageTranslationResult[]) => {
+    logger.info(
+      {
+        event: 'translation_operation',
+        outcome: 'operation_completed',
+        operationId: context.operationId,
+        primaryProvider: provider.name,
+        targetLanguages,
+        savedLanguages: results
+          .filter((result) => result.status === 'translated')
+          .map((result) => result.languageCode),
+        failedLanguages: results
+          .filter((result) => result.status === 'failed')
+          .map((result) => result.languageCode),
+        elapsedMs: Date.now() - started,
+      },
+      'Translation operation outcome',
+    );
+    return results;
+  };
+  const failedResult = (
+    languageCode: TargetLanguage,
+    error: unknown,
+  ): LanguageTranslationResult => {
     const { code: errorCode, message: errorMessage } = describeError(
       error,
       'TRANSLATION_PROVIDER_FAILED',
@@ -82,15 +131,24 @@ export async function localizeRegionForLanguages(
     languageCode: TargetLanguage,
     results: Awaited<ReturnType<typeof provider.localizeBatch>>,
   ): Promise<LanguageTranslationResult> => {
+    const result = results.get(languageCode);
     try {
-      const result = results.get(languageCode);
+      checkExecution(context);
       if (!result) {
-        throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode }, '번역 provider가 요청 언어를 반환하지 않았습니다.');
+        throw new AppError(
+          'TRANSLATION_PROVIDER_FAILED',
+          { languageCode, failureReason: 'missing_language' },
+          '번역 provider가 요청 언어를 반환하지 않았습니다.',
+        );
       }
 
       const validation = validateTranslationResult(result);
       if (!validation.valid) {
-        throw new AppError('TRANSLATION_PROVIDER_FAILED', { languageCode, reasons: validation.reasons }, '번역 결과가 검증을 통과하지 못했습니다.');
+        throw new AppError(
+          'TRANSLATION_PROVIDER_FAILED',
+          { languageCode, failureReason: 'validation' },
+          '번역 결과가 검증을 통과하지 못했습니다.',
+        );
       }
 
       await upsertTranslation({
@@ -100,11 +158,38 @@ export async function localizeRegionForLanguages(
         finalCandidates: result.candidates,
         recommendedStyle: result.recommendedStyle,
         generationModel: result.execution?.model ?? provider.model,
-        promptVersion: LOCALIZATION_PROMPT_VERSION,
+        promptVersion: result.execution?.promptVersion ?? LOCALIZATION_PROMPT_VERSION,
       });
+
+      logger.info(
+        {
+          event: 'translation_language',
+          outcome: 'saved',
+          operationId: context.operationId,
+          languageCode,
+          actualProvider: result.execution?.provider ?? provider.name,
+          actualModel: result.execution?.model ?? provider.model,
+          promptVersion: result.execution?.promptVersion ?? LOCALIZATION_PROMPT_VERSION,
+          needsReview: validation.needsReview,
+        },
+        'Translation language outcome',
+      );
 
       return { languageCode, status: 'translated', needsReview: validation.needsReview };
     } catch (error) {
+      const failure = safeTranslationFailure(error);
+      logger.warn(
+        {
+          event: 'translation_language',
+          outcome: 'save_failed',
+          operationId: context.operationId,
+          languageCode,
+          ...failure,
+          failureReason:
+            failure.failureReason === 'unknown' ? 'persistence' : failure.failureReason,
+        },
+        'Translation language outcome',
+      );
       return failedResult(languageCode, error);
     }
   };
@@ -112,32 +197,50 @@ export async function localizeRegionForLanguages(
   let batchResults: Awaited<ReturnType<typeof provider.localizeBatch>> | null = null;
   let batchError: unknown = null;
   try {
-    batchResults = await provider.localizeBatch(buildLocalizationInput(region, targetLanguages, options, siblingCaptions));
+    checkExecution(context);
+    batchResults = await provider.localizeBatch(
+      buildLocalizationInput(region, targetLanguages, options, siblingCaptions),
+      context,
+    );
   } catch (error) {
     batchError = error;
   }
 
-  const firstPass = await Promise.all(targetLanguages.map((languageCode) => (
-    batchResults ? persistResult(languageCode, batchResults) : Promise.resolve(failedResult(languageCode, batchError))
-  )));
-  const failedLanguages = firstPass.filter((result) => result.status === 'failed').map((result) => result.languageCode);
-  if (failedLanguages.length === 0) return firstPass;
+  const firstPass = await Promise.all(
+    targetLanguages.map((languageCode) =>
+      batchResults
+        ? persistResult(languageCode, batchResults)
+        : Promise.resolve(failedResult(languageCode, batchError)),
+    ),
+  );
+  const failedLanguages = firstPass
+    .filter((result) => result.status === 'failed')
+    .map((result) => result.languageCode);
+  if (failedLanguages.length === 0) return finish(firstPass);
 
   // 한 언어의 누락/형식 오류가 같은 캡션의 다른 언어까지 버리지 않도록 실패 언어만
   // 단일 언어 요청으로 한 번 더 복구한다. provider 내부 HTTP 재시도와는 별도 단계다.
   const retryResults: LanguageTranslationResult[] = [];
   for (const languageCode of failedLanguages) {
     try {
-      const result = await provider.localizeBatch(buildLocalizationInput(region, [languageCode], options, siblingCaptions));
+      checkExecution(context);
+      const result = await provider.localizeBatch(
+        buildLocalizationInput(region, [languageCode], options, siblingCaptions),
+        { ...context, phase: 'language_recovery' },
+      );
       retryResults.push(await persistResult(languageCode, result));
     } catch (error) {
       retryResults.push(failedResult(languageCode, error));
     }
   }
   const retriedByLanguage = new Map(retryResults.map((result) => [result.languageCode, result]));
-  return firstPass.map((result) => result.status === 'translated'
-    ? result
-    : retriedByLanguage.get(result.languageCode) ?? result);
+  return finish(
+    firstPass.map((result) =>
+      result.status === 'translated'
+        ? result
+        : (retriedByLanguage.get(result.languageCode) ?? result),
+    ),
+  );
 }
 
 export async function runTranslationsForAsset(
@@ -148,8 +251,19 @@ export async function runTranslationsForAsset(
   const regions = (await findRegionsByAssetId(asset.id)).filter((region) => region.contains_korean);
   if (regions.length === 0) {
     const errorMessage = '번역할 한국어 OCR 영역을 찾을 수 없습니다.';
-    await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage });
-    return { assetId: asset.id, status: 'failed', languages: [], errorCode: 'OCR_TEXT_NOT_FOUND', errorMessage };
+    await updateAsset(asset.id, {
+      status: 'failed',
+      stage: 'translating',
+      errorCode: 'OCR_TEXT_NOT_FOUND',
+      errorMessage,
+    });
+    return {
+      assetId: asset.id,
+      status: 'failed',
+      languages: [],
+      errorCode: 'OCR_TEXT_NOT_FOUND',
+      errorMessage,
+    };
   }
 
   const regionResults = await mapWithConcurrency(regions, env.AI_CONCURRENCY, async (region) => ({
@@ -158,36 +272,69 @@ export async function runTranslationsForAsset(
       region,
       targetLanguages,
       options,
-      regions.filter((candidate) => candidate.id !== region.id).map((candidate) => candidate.detected_text),
+      regions
+        .filter((candidate) => candidate.id !== region.id)
+        .map((candidate) => candidate.detected_text),
     ),
   }));
   const languages = targetLanguages.map((languageCode): LanguageTranslationResult => {
-    const results = regionResults.map(({ languages: values }) => values.find((value) => value.languageCode === languageCode));
-    const succeeded = results.length === regions.length
-      && results.every((result) => result?.status === 'translated');
+    const results = regionResults.map(({ languages: values }) =>
+      values.find((value) => value.languageCode === languageCode),
+    );
+    const succeeded =
+      results.length === regions.length &&
+      results.every((result) => result?.status === 'translated');
     const failure = results.find((result) => result?.status === 'failed');
     return succeeded
-      ? { languageCode, status: 'translated', needsReview: results.some((result) => result?.needsReview) }
-      : { languageCode, status: 'failed', errorCode: failure?.errorCode, errorMessage: failure?.errorMessage };
+      ? {
+          languageCode,
+          status: 'translated',
+          needsReview: results.some((result) => result?.needsReview),
+        }
+      : {
+          languageCode,
+          status: 'failed',
+          errorCode: failure?.errorCode,
+          errorMessage: failure?.errorMessage,
+        };
   });
-  const failedRegionCount = regionResults.filter(({ languages: values }) => (
-    targetLanguages.some((languageCode) => values.find((value) => value.languageCode === languageCode)?.status !== 'translated')
-  )).length;
-  const hasFailure = failedRegionCount > 0 || languages.some((language) => language.status === 'failed');
+  const failedRegionCount = regionResults.filter(({ languages: values }) =>
+    targetLanguages.some(
+      (languageCode) =>
+        values.find((value) => value.languageCode === languageCode)?.status !== 'translated',
+    ),
+  ).length;
+  const hasFailure =
+    failedRegionCount > 0 || languages.some((language) => language.status === 'failed');
   if (hasFailure) {
     const providerMessage = languages.find((language) => language.errorMessage)?.errorMessage;
     const errorMessage = `${regions.length}개 OCR 영역 중 ${failedRegionCount}개 영역의 번역을 완료하지 못했습니다.${providerMessage ? ` ${providerMessage}` : ''}`;
-    const errorCode = languages.find((language) => language.errorCode)?.errorCode ?? 'TRANSLATION_PROVIDER_FAILED';
-    logger.warn({
+    const errorCode =
+      languages.find((language) => language.errorCode)?.errorCode ?? 'TRANSLATION_PROVIDER_FAILED';
+    logger.warn(
+      {
+        assetId: asset.id,
+        projectId: asset.project_id,
+        errorCode,
+        failedRegionCount,
+        totalRegionCount: regions.length,
+        languageCodes: targetLanguages,
+      },
+      'Asset OCR 영역 번역 미완료',
+    );
+    await updateAsset(asset.id, {
+      status: 'failed',
+      stage: 'translating',
+      errorCode: 'TRANSLATION_PROVIDER_FAILED',
+      errorMessage,
+    });
+    return {
       assetId: asset.id,
-      projectId: asset.project_id,
-      errorCode,
-      failedRegionCount,
-      totalRegionCount: regions.length,
-      languageCodes: targetLanguages,
-    }, 'Asset OCR 영역 번역 미완료');
-    await updateAsset(asset.id, { status: 'failed', stage: 'translating', errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage });
-    return { assetId: asset.id, status: 'failed', languages, errorCode: 'TRANSLATION_PROVIDER_FAILED', errorMessage };
+      status: 'failed',
+      languages,
+      errorCode: 'TRANSLATION_PROVIDER_FAILED',
+      errorMessage,
+    };
   }
 
   await updateAsset(asset.id, { status: 'translating', stage: 'translating', progress: 100 });
@@ -205,7 +352,11 @@ export async function runProjectTranslations(projectId: string): Promise<AssetTr
   );
 
   if (results.length > 0 && results.every((result) => result.status === 'failed')) {
-    await updateProjectStage(projectId, { stage: 'translating', status: 'failed', errorCode: 'TRANSLATION_PROVIDER_FAILED' });
+    await updateProjectStage(projectId, {
+      stage: 'translating',
+      status: 'failed',
+      errorCode: 'TRANSLATION_PROVIDER_FAILED',
+    });
   }
   return results;
 }
@@ -227,13 +378,21 @@ export async function regenerateTranslation(
 
   const region = await findRegionById(regionId);
   if (!region || region.asset_id !== assetId) {
-    throw new AppError('INVALID_REQUEST', { regionId }, '해당 이미지에 속하지 않는 OCR 영역입니다.');
+    throw new AppError(
+      'INVALID_REQUEST',
+      { regionId },
+      '해당 이미지에 속하지 않는 OCR 영역입니다.',
+    );
   }
 
   const existing = await findTranslation(regionId, targetLanguage);
   const currentCount = existing?.regenerate_count ?? 0;
   if (currentCount >= env.MAX_REGENERATE_COUNT) {
-    throw new AppError('RATE_LIMITED', { regionId, targetLanguage, limit: env.MAX_REGENERATE_COUNT }, `번역 재생성은 최대 ${env.MAX_REGENERATE_COUNT}회까지 가능합니다.`);
+    throw new AppError(
+      'RATE_LIMITED',
+      { regionId, targetLanguage, limit: env.MAX_REGENERATE_COUNT },
+      `번역 재생성은 최대 ${env.MAX_REGENERATE_COUNT}회까지 가능합니다.`,
+    );
   }
 
   const options: LocalizationOptions = {
@@ -244,7 +403,12 @@ export async function regenerateTranslation(
   const siblingCaptions = (await findRegionsByAssetId(assetId))
     .filter((candidate) => candidate.id !== region.id && candidate.contains_korean)
     .map((candidate) => candidate.detected_text);
-  const [result] = await localizeRegionForLanguages(region, [targetLanguage], options, siblingCaptions);
+  const [result] = await localizeRegionForLanguages(
+    region,
+    [targetLanguage],
+    options,
+    siblingCaptions,
+  );
   if (result.status === 'failed') {
     throw new AppError('TRANSLATION_PROVIDER_FAILED', undefined, result.errorMessage);
   }

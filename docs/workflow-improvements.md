@@ -45,7 +45,7 @@ DB 모드는 서버용 Supabase 환경변수로 읽기 조회만 한다. 보고�
 npm run benchmark:translation -- --dry-run --variants v1,v1-gpt56
 ```
 
-동일 샘플의 Groq/OpenAI 생성과 심사를 수행하려면 --dry-run을 제거한다. 실제 호출 비용이 발생한다. 캐시는 공급자·모델·옵션·프롬프트·입력을 반영한 해시로 구분한다. 이번 작업에서는 새 품질 점수를 산출하거나 기존 25개 평가를 105개 평가로 간주하지 않았다.
+실측에는 API 키와 최근 확인한 단가 snapshot(`--prices`) 및 총 10달러 예산 장부가 필요하다. 현재 운영 비교는 `current-groq,current-openai`를 사용한다. 실행 순서와 채택 기준은 [번역 fallback 운영·평가 안내](backend/translation-fallback.md)를 따른다. 실제 호출 비용이 발생한다. 캐시는 공급자·모델·옵션·프롬프트·입력을 반영한 해시로 구분한다. 이번 작업에서는 새 품질 점수를 산출하거나 기존 25개 평가를 105개 평가로 간주하지 않았다.
 
 ## 재현 검증
 

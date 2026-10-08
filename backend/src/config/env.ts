@@ -22,7 +22,9 @@ export const envSchema = z.object({
 
   PROJECT_TOKEN_SECRET: z.string().min(16, 'PROJECT_TOKEN_SECRET must be at least 16 characters'),
   // 다운로드 완주 집계(GET /downloads/count)는 개별 프로젝트 토큰이 아니라 이 관리자 키로 보호한다.
-  DOWNLOAD_STATS_API_KEY: z.string().min(16, 'DOWNLOAD_STATS_API_KEY must be at least 16 characters'),
+  DOWNLOAD_STATS_API_KEY: z
+    .string()
+    .min(16, 'DOWNLOAD_STATS_API_KEY must be at least 16 characters'),
 
   // 이메일/네이버 로그인 세션 토큰 서명 키(HS256, 자체 구현 — utils/jwt.ts).
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
@@ -62,6 +64,8 @@ export const envSchema = z.object({
   OPENAI_TRANSLATION_MODEL: z.string().default('gpt-5.6'),
   OPENAI_TRANSLATION_REASONING_EFFORT: z.enum(['none', 'low', 'medium', 'high']).default('low'),
   OPENAI_TRANSLATION_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
+  TRANSLATION_PRIMARY_BUDGET_MS: z.coerce.number().int().positive().default(30_000),
+  TRANSLATION_OPERATION_BUDGET_MS: z.coerce.number().int().positive().default(90_000),
 
   OCR_PROVIDER: z.enum(['paddle', 'openvino-npu', 'luna']).default('paddle'),
   OCR_SHADOW_PROVIDER: z.enum(['none', 'openvino-npu']).default('none'),
@@ -74,7 +78,10 @@ export const envSchema = z.object({
   // IoU 0.637) 대비 GPT-5.6 Luna(0.914)가 정확도·안정성·비용 모두 우위였다. PaddleOCR는
   // Luna 호출이 실패하거나 한글을 전혀 찾지 못했을 때의 fallback으로 유지한다.
   OPENAI_API_KEY: z.string().min(1).optional(),
-  ENABLE_IMAGE_GENERATION: z.string().default('false').transform((v) => v === 'true'),
+  ENABLE_IMAGE_GENERATION: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
   IMAGE_GENERATION_BUDGET_USD: z.coerce.number().positive().max(10).default(8),
   // 사용량이 회신되기 전까지 잡아두는 1장당 예약 비용이다. 프로젝트 상한인 30장(24장 +
   // 재생성 6회)을 모두 사용량 미회신으로 처리해도 30 x 0.25 = 7.5 USD로 예산 안에 들어간다.
@@ -94,14 +101,23 @@ export const envSchema = z.object({
   VISION_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
   // 원본 글자 이미지를 분석해 번역 폰트를 원본과 비슷하게 고르는 기능. 번역과 병렬로 도는
   // 별도 Vision 호출이 하나 더 붙는 거라, 문제가 생기면 재배포 없이 바로 끌 수 있게 플래그로 뺐다.
-  ENABLE_FONT_STYLE_ANALYSIS: z.string().default('true').transform((v) => v === 'true'),
+  ENABLE_FONT_STYLE_ANALYSIS: z
+    .string()
+    .default('true')
+    .transform((v) => v === 'true'),
 
   // 정리한 영역을 OCR로 다시 읽어 글자가 남았는지 확인한다("성공"으로 기록됐는데 글자가 남는 부분 정리를 잡는다).
   // 검증 호출이 실패하면 통과로 취급한다(검증 때문에 정리 자체가 실패하면 안 된다).
-  ENABLE_CLEANUP_VERIFICATION: z.string().default('true').transform((v) => v === 'true'),
+  ENABLE_CLEANUP_VERIFICATION: z
+    .string()
+    .default('true')
+    .transform((v) => v === 'true'),
   CLEANUP_VERIFICATION_TIMEOUT_MS: z.coerce.number().int().positive().default(45_000),
   // 검증에서 글자가 남은 영역만 이미지 편집 API로 지운다. 유료라 기본은 끈다.
-  ENABLE_CLEANUP_AI_FALLBACK: z.string().default('false').transform((v) => v === 'true'),
+  ENABLE_CLEANUP_AI_FALLBACK: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
   CLEANUP_AI_MODEL: z.string().default('gpt-image-2.5-sunburst'),
   CLEANUP_AI_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),
   CLEANUP_AI_MAX_PER_HOUR: z.coerce.number().int().min(0).default(30),
@@ -111,13 +127,21 @@ export const envSchema = z.object({
   CLEANUP_CONCURRENCY: z.coerce.number().int().positive().default(4),
 
   WORKER_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(2000),
-  JOB_STALE_AFTER_MS: z.coerce.number().int().positive().default(5 * 60 * 1000),
+  JOB_STALE_AFTER_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5 * 60 * 1000),
   JOB_HEARTBEAT_INTERVAL_MS: z.coerce.number().int().positive().default(20_000),
   JOB_RECOVERY_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(30_000),
   WORKER_ID: z.string().optional(),
   SHUTDOWN_GRACE_MS: z.coerce.number().int().positive().default(25_000),
   MAX_REGENERATE_COUNT: z.coerce.number().int().positive().default(3),
-  CLEANUP_SWEEP_INTERVAL_MS: z.coerce.number().int().positive().default(30 * 60 * 1000),
+  CLEANUP_SWEEP_INTERVAL_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30 * 60 * 1000),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
