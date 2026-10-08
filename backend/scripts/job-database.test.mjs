@@ -38,6 +38,9 @@ test('backend invariants on an isolated PostgreSQL cluster', { timeout: 60000 },
    assert.equal(await scalar('select recover_localization_jobs(1000)'),1);
    job=await scalar("select claim_localization_job('same-worker')");assert.notEqual(job.lease_token,oldLease);
    assert.equal(await scalar('select touch_localization_lease($1,$2)',[job.id,oldLease]),false);
+   const outside=await fixture();
+   await assert.rejects(scalar("select mutate_localization_job($1,$2,'asset',$3,'{}')",[job.id,job.lease_token,outside.asset]),/INVALID_TARGET/);
+   await assert.rejects(scalar("select mutate_localization_job($1,$2,'artifact',$3,$4)",[job.id,job.lease_token,f.asset,JSON.stringify({path:'another-project.png'})]),/INVALID_PATH/);
    assert.equal(await scalar("select mutate_localization_job($1,$2,'asset',$3,'{\"status\":\"completed\"}')",[job.id,oldLease,f.asset]),null);
   });
   const region = (id=randomUUID())=>({id,asset_id:f.asset,detected_text:'수정한 문구',confidence:1,bbox:{x:1,y:1,width:20,height:10},normalized_bbox:{x:0.01,y:0.01,width:0.2,height:0.1},polygon:[],contains_korean:true,is_primary:true,reading_order:0,source:'vision-fallback',agreement_score:1,needs_manual_review:false});
