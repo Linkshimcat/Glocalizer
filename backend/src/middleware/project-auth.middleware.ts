@@ -15,7 +15,7 @@ export async function projectAuthMiddleware(req: Request, _res: Response, next: 
     if (!token && !req.header('authorization')) throw new AppError('INVALID_PROJECT_TOKEN');
 
     const project = await findProjectById(projectId);
-    if (!project) {
+    if (!project || (project.deleting_at && req.method !== 'DELETE')) {
       throw new AppError('PROJECT_NOT_FOUND', { projectId });
     }
     if (project.status === 'expired' || (project.expires_at && new Date(project.expires_at).getTime() < Date.now())) {
@@ -23,6 +23,7 @@ export async function projectAuthMiddleware(req: Request, _res: Response, next: 
     }
     if (project.owner_id) {
       const user = req.account ?? await authenticateAccount(req.header('authorization'));
+      if (user.deleting_at && req.method !== 'DELETE') throw new AppError('UNAUTHORIZED');
       if (user.id !== project.owner_id) throw new AppError('PROJECT_NOT_FOUND', { projectId });
       req.account = user;
       req.auth = { sub: user.id };

@@ -1,17 +1,18 @@
-import { taskFetch } from '../utils/task-context.js';
+import { deleteDurably } from './deletion.service.js';
+import { currentTask, taskFetch, taskSignal, withoutTask } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
-import { createSignedUrl, downloadFromStorage, removeFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
+import { createSignedUrl, downloadFromStorage, uploadToStorage } from '../repositories/storage.repository.js';
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
-export interface GenerationProject { id: string; owner_id: string; prompt: string; name: string | null; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
+export interface GenerationProject { deleting_at?: string | null; id: string; owner_id: string; prompt: string; name: string | null; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
 export interface CaptionStyle { anchor: string; size: number; color: string; stroke: string }
-export interface GenerationImage { id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; caption_style: CaptionStyle | null; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
+export interface GenerationImage { lease_token?: string | null; worker_id?: string | null; heartbeat_at?: string | null; artifact_path?: string | null; id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; caption_style: CaptionStyle | null; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
 export async function ownedGeneration(id: string, owner: string) {
  const row = unwrapNullableRow<GenerationProject>(await supabase.from('generation_projects').select().eq('id',id).eq('owner_id',owner).maybeSingle(), '생성 작업 조회 실패');
  if (!row) throw new AppError('NOT_FOUND');
@@ -19,8 +20,9 @@ export async function ownedGeneration(id: string, owner: string) {
 }
 export async function generationWorkspace(project: GenerationProject) {
  const images = unwrapList<GenerationImage>(await supabase.from('generation_images').select().eq('project_id',project.id).order('created_at'), '생성 결과 조회 실패');
- return { ...project, referenceUrl: project.reference_path ? await createSignedUrl(project.reference_path) : null,
- images: await Promise.all(images.map(async image => ({ ...image, url: image.path ? await createSignedUrl(image.path) : null }))) };
+ const { deleting_at: _deleting, ...publicProject } = project;
+ return { ...publicProject, referenceUrl: project.reference_path ? await createSignedUrl(project.reference_path) : null,
+ images: await Promise.all(images.map(async image => { const { lease_token: _lease, worker_id: _worker, heartbeat_at: _heartbeat, artifact_path: _artifact, ...publicImage } = image; return { ...publicImage, url: image.path ? await createSignedUrl(image.path) : null }; })) };
 }
 export async function enqueueGeneration(owner: string, project: string, slot: number, prompt: string) {
  if (!env.ENABLE_IMAGE_GENERATION || !env.OPENAI_API_KEY) throw new AppError('GENERATION_DISABLED');
@@ -219,9 +221,18 @@ export function imageUsageCost(usage: ImageResponse['usage']): number | null {
  return (text_tokens*5+image_tokens*8+usage.output_tokens*30)/1_000_000;
 }
 export async function processGenerationImage(job: GenerationImage) {
- const project=unwrapRow<GenerationProject>(await supabase.from('generation_projects').select().eq('id',job.project_id).single(),'생성 작업 없음');
  const started=Date.now();
+ const task = currentTask();
+ if (!task || task.kind !== 'generation') throw new Error('Generation requires a claimed lease');
+ const mutate = async (data: Record<string,unknown>, accounting = false) => {
+   const save = async () => {
+     const valid = unwrapRow<boolean>(await supabase.rpc('mutate_generation_job', {p_job: job.id, p_lease: task.leaseToken, p_data: data}), '생성 상태 저장 실패');
+     if (!valid) { task.controller.abort(new Error('Generation lease lost')); throw new Error('Generation lease lost'); }
+   };
+   if (accounting) await withoutTask(save); else { taskSignal().throwIfAborted(); await save(); }
+ };
  try {
+  const project=unwrapRow<GenerationProject>(await supabase.from('generation_projects').select().eq('id',job.project_id).single(),'생성 작업 없음');
   let reference:Buffer|null=null;
   if(job.slot===0 && project.reference_path) reference=await downloadFromStorage(project.reference_path);
   if(job.slot!==0) {
@@ -238,42 +249,21 @@ export async function processGenerationImage(job: GenerationImage) {
   if(!response.ok) throw new AppError('GENERATION_FAILED',undefined,`이미지 API 요청 실패 (${response.status}). 잔액·모델 권한을 확인해주세요.`);
   const payload=await response.json() as ImageResponse;
   // Account for a paid response even if subsequent validation/storage fails.
-  unwrapVoid(await supabase.from('generation_images').update({usage:payload.usage??null,cost_usd:imageUsageCost(payload.usage)}).eq('id',job.id),'사용량 저장 실패');
+  await mutate({usage:payload.usage??null,cost_usd:imageUsageCost(payload.usage)}, true);
   if(!payload.data?.[0]?.b64_json) throw new AppError('GENERATION_FAILED');
   const png=await normalizeSticker(Buffer.from(payload.data[0].b64_json,'base64'));
   const path=`generation/${project.owner_id}/${project.id}/${job.id}.png`;
+  await mutate({ artifact_path: path });
   await uploadToStorage(path,png,'image/png');
   const style=await autoCaptionStyle(png,job.caption);
-  unwrapVoid(await supabase.from('generation_images').update({status:'completed',path,caption_style:style,elapsed_ms:Date.now()-started}).eq('id',job.id),'결과 저장 실패');
+  await mutate({status:'completed',path,caption_style:style,elapsed_ms:Date.now()-started});
  } catch(error) {
-  unwrapVoid(await supabase.from('generation_images').update({status:'failed',error:error instanceof AppError?error.message:'이미지 생성이 중단됐습니다. 선택 재생성으로 다시 시도해주세요.',elapsed_ms:Date.now()-started}).eq('id',job.id),'실패 상태 저장 실패');
+  if (!taskSignal().aborted) await mutate({status:'failed',error:error instanceof AppError?error.message:'이미지 생성이 중단됐습니다. 선택 재생성으로 다시 시도해주세요.',elapsed_ms:Date.now()-started});
  }
 }
 /** 프로젝트 하나를 지운다. generation_images는 FK cascade로 따라 지워지지만 Storage 파일은
  *  남으므로 참조 이미지와 결과 PNG 경로를 먼저 모아 함께 삭제한다. 생성이 진행 중이면 이미
  *  비용이 발생한 호출의 결과를 버리게 되므로 거절한다. */
 export async function deleteGenerationProject(project: GenerationProject) {
- const images=unwrapList<GenerationImage>(await supabase.from('generation_images').select().eq('project_id',project.id),'생성 결과 조회 실패');
- if(images.some(image=>image.status==='queued'||image.status==='running')) throw new AppError('PROCESS_ALREADY_RUNNING');
- const paths=[project.reference_path,...images.map(image=>image.path)].filter((path):path is string=>Boolean(path));
- if(paths.length) await removeFromStorage(paths);
- unwrapVoid(await supabase.from('generation_projects').delete().eq('id',project.id),'생성 작업 삭제 실패');
-}
-/** DB 삭제는 FK cascade(generation_projects -> generation_images)로 처리되지만, Storage 파일은
- *  별도로 지워야 한다. 계정 탈퇴 시 deleteAccount에서 호출한다.
- *  생성 기능 마이그레이션이 아직 적용되지 않은 환경에서는 정리할 생성 데이터도 없으므로
- *  Postgres/PostgREST의 테이블 누락 오류만 무시한다. */
-export async function deleteGenerationsByOwner(ownerId: string): Promise<void> {
- const projectsResult = await supabase.from('generation_projects').select().eq('owner_id',ownerId);
- if (projectsResult.error) {
-  if (projectsResult.error.code === '42P01' || projectsResult.error.code === 'PGRST205') return;
-  throw new AppError('INTERNAL_ERROR', { cause: projectsResult.error.message }, '생성 작업 조회 실패');
- }
- const projects = projectsResult.data as GenerationProject[];
- if (projects.length === 0) return;
- const projectIds = projects.map(p => p.id);
- const images = unwrapList<GenerationImage>(await supabase.from('generation_images').select().in('project_id',projectIds),'생성 결과 조회 실패');
- const paths = [...projects.map(p => p.reference_path), ...images.map(i => i.path)].filter((path): path is string => Boolean(path));
- await removeFromStorage(paths);
- unwrapVoid(await supabase.from('generation_projects').delete().eq('owner_id',ownerId),'생성 작업 삭제 실패');
+ await deleteDurably('generation', project.id);
 }

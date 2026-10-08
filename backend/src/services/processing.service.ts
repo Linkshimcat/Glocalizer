@@ -1,10 +1,11 @@
 import { AppError } from '../errors/app-error.js';
-import { findAssetsByProjectId, setUnselectedAssetsPending } from '../repositories/asset.repository.js';
-import { findActiveJobForProject, insertJob } from '../repositories/job.repository.js';
+import { findAssetsByProjectId } from '../repositories/asset.repository.js';
+import { insertJob } from '../repositories/job.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import type { AssetStatus } from '../types/asset.js';
 
 const STAGE_MESSAGES: Record<string, string> = {
+  queued: '작업 순서를 기다리고 있어요',
   validating: '이미지를 확인하고 있어요',
   preprocessing: '이미지를 준비하고 있어요',
   recognizing: '이미지 속 한글을 찾고 있어요',
@@ -20,26 +21,7 @@ export async function createProcessingJob(
   projectId: string,
   processableStatuses: AssetStatus[] = ['uploaded'],
 ): Promise<{ jobId: string; status: string; job: import('../types/job.js').JobRow }> {
-  const activeJob = await findActiveJobForProject(projectId);
-  if (activeJob) {
-    throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id });
-  }
-
-  const assets = await findAssetsByProjectId(projectId);
-  const project = await findProjectById(projectId);
-  if (project?.owner_id && project.status === 'created') {
-    const selected = assets.filter(asset => project.selected_client_ids?.includes(asset.client_id ?? ''));
-    if (!project.target_languages.length || !selected.length || selected.some(asset => asset.status !== 'uploaded')) {
-      throw new AppError('UPLOAD_NOT_COMPLETED', undefined, '선택한 이미지가 모두 저장된 뒤 시작해주세요.');
-    }
-    await setUnselectedAssetsPending(projectId, assets.filter(asset => !selected.includes(asset)).map(asset => asset.id));
-  }
-  const processableCount = assets.filter((asset) => processableStatuses.includes(asset.status)).length;
-  if (processableCount === 0) {
-    throw new AppError('UPLOAD_NOT_COMPLETED', { projectId }, '처리할 이미지가 없습니다. 먼저 업로드를 완료해주세요.');
-  }
-
-  const job = await insertJob(projectId);
+  const job = await insertJob(projectId, processableStatuses);
   return { jobId: job.id, status: job.status, job };
 }
 

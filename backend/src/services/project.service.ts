@@ -1,11 +1,11 @@
+import { deleteDurably } from './deletion.service.js';
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
-import { findAssetsByProjectId, insertAssets } from '../repositories/asset.repository.js';
-import { deleteProjectRow, findProjectById, insertProject } from '../repositories/project.repository.js';
-import { removeFromStorage } from '../repositories/storage.repository.js';
+import { insertAssets } from '../repositories/asset.repository.js';
+import { deleteProjectRow, insertProject } from '../repositories/project.repository.js';
 import type { CreateProjectInput } from '../schemas/project.schema.js';
 import { generateProjectToken, hashProjectToken } from '../utils/hash.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
@@ -110,14 +110,5 @@ export async function createProject(input: CreateProjectInput, ownerId?: string,
 
 /** DB 삭제는 FK cascade로 assets/ocr_regions/translations/jobs/editor_states까지 함께 지워지지만, Storage 파일은 별도로 지워야 한다. */
 export async function deleteProjectAndAssets(projectId: string): Promise<void> {
-  const project = await findProjectById(projectId);
-  if (!project) {
-    throw new AppError('PROJECT_NOT_FOUND', { projectId });
-  }
-
-  const assets = await findAssetsByProjectId(projectId);
-  const paths = assets.flatMap((asset) => [asset.original_path, asset.cleaned_path].filter((path): path is string => Boolean(path)));
-
-  await removeFromStorage(paths);
-  await deleteProjectRow(projectId);
+  await deleteDurably('project', projectId);
 }

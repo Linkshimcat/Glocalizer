@@ -1,3 +1,4 @@
+import { jobMutation } from './job-mutation.js';
 import { AppError } from '../errors/app-error.js';
 import { supabase } from '../config/supabase.js';
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
@@ -42,9 +43,7 @@ interface ProjectStageUpdate {
 }
 
 export async function updateProjectStage(projectId: string, patch: ProjectStageUpdate): Promise<void> {
-  const result = await supabase
-    .from('projects')
-    .update({
+  const payload = {
       ...(patch.status !== undefined ? { status: patch.status } : {}),
       ...(patch.status === 'processing' ? { result_ready: false } : {}),
       ...(patch.stage !== undefined ? { stage: patch.stage } : {}),
@@ -52,7 +51,9 @@ export async function updateProjectStage(projectId: string, patch: ProjectStageU
       ...(patch.errorCode !== undefined ? { error_code: patch.errorCode } : {}),
       ...(patch.errorMessage !== undefined ? { error_message: patch.errorMessage } : {}),
       updated_at: new Date().toISOString(),
-    })
+    };
+  if (await jobMutation('project', projectId, payload)) return;
+  const result = await supabase.from('projects').update(payload)
     .eq('id', projectId);
 
   unwrapVoid(result, '프로젝트 상태를 갱신하지 못했습니다.');

@@ -1,6 +1,7 @@
 export interface UserRow {
   id: string;
   session_version: number;
+  deleting_at?: string | null;
   email: string | null;
   password_hash: string | null;
   naver_id: string | null;

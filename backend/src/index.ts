@@ -1,3 +1,4 @@
+import { checkServiceDependencies } from './repositories/health.repository.js';
 import { startGenerationWorker } from './workers/generation-worker.js';
 import type { Server } from 'node:http';
 import { createApp } from './app.js';
@@ -29,6 +30,8 @@ function installShutdownHandlers(server: Server): void {
 
 async function main() {
   await ensureStorageBucket();
+  const dependencies = await checkServiceDependencies();
+  if (!dependencies.database || !dependencies.storage) throw new Error('Required backend migrations or storage configuration are missing');
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {

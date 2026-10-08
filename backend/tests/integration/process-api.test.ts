@@ -1,3 +1,4 @@
+import { AppError } from '../../src/errors/app-error.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 
@@ -71,6 +72,7 @@ describe('POST /api/v1/projects/:projectId/process', () => {
   it('업로드된 이미지가 없으면 409 UPLOAD_NOT_COMPLETED를 반환한다', async () => {
     vi.mocked(jobRepo.findActiveJobForProject).mockResolvedValue(null);
     vi.mocked(assetRepo.findAssetsByProjectId).mockResolvedValue([]);
+    vi.mocked(jobRepo.insertJob).mockRejectedValueOnce(new AppError('UPLOAD_NOT_COMPLETED'));
 
     const res = await request(app).post(`/api/v1/projects/${PROJECT_ID}/process`).set('X-Project-Token', TOKEN);
 
@@ -79,7 +81,7 @@ describe('POST /api/v1/projects/:projectId/process', () => {
   });
 
   it('이미 처리 중인 job이 있으면 409 PROCESS_ALREADY_RUNNING을 반환한다', async () => {
-    vi.mocked(jobRepo.findActiveJobForProject).mockResolvedValue({ id: 'job-1', status: 'running' } as never);
+    vi.mocked(jobRepo.insertJob).mockRejectedValueOnce(new AppError('PROCESS_ALREADY_RUNNING'));
 
     const res = await request(app).post(`/api/v1/projects/${PROJECT_ID}/process`).set('X-Project-Token', TOKEN);
 
@@ -90,12 +92,12 @@ describe('POST /api/v1/projects/:projectId/process', () => {
   it('업로드된 이미지가 있으면 202와 함께 job을 생성한다', async () => {
     vi.mocked(jobRepo.findActiveJobForProject).mockResolvedValue(null);
     vi.mocked(assetRepo.findAssetsByProjectId).mockResolvedValue([{ status: 'uploaded' }] as never);
-    vi.mocked(jobRepo.insertJob).mockResolvedValue({ id: 'job-1', status: 'running' } as never);
+    vi.mocked(jobRepo.insertJob).mockResolvedValue({ id: 'job-1', status: 'queued' } as never);
 
     const res = await request(app).post(`/api/v1/projects/${PROJECT_ID}/process`).set('X-Project-Token', TOKEN);
 
     expect(res.status).toBe(202);
-    expect(res.body).toEqual({ jobId: 'job-1', status: 'running' });
+    expect(res.body).toEqual({ jobId: 'job-1', status: 'queued' });
   });
 });
 
@@ -146,15 +148,15 @@ describe('POST /api/v1/projects/:projectId/assets/:assetId/retry', () => {
   });
 
   it('실패 asset을 새 job으로 재처리한다', async () => {
-    vi.mocked(retryService.retryFailedAsset).mockResolvedValue({ jobId: 'retry-job-1', status: 'running', job: { id: 'retry-job-1' } } as never);
+    vi.mocked(retryService.retryFailedAsset).mockResolvedValue({ jobId: 'retry-job-1', status: 'queued', job: { id: 'retry-job-1' } } as never);
 
     const response = await request(app)
       .post(`/api/v1/projects/${PROJECT_ID}/assets/${assetId}/retry`)
       .set('X-Project-Token', TOKEN);
 
     expect(response.status).toBe(202);
-    expect(response.body).toEqual({ jobId: 'retry-job-1', status: 'running' });
+    expect(response.body).toEqual({ jobId: 'retry-job-1', status: 'queued' });
     expect(retryService.retryFailedAsset).toHaveBeenCalledWith(PROJECT_ID, assetId);
-    expect(jobRunner.processClaimedJob).toHaveBeenCalledWith({ id: 'retry-job-1' });
+    expect(jobRunner.processClaimedJob).not.toHaveBeenCalled();
   });
 });

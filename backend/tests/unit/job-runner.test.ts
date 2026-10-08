@@ -16,6 +16,7 @@ const processor = await import('../../src/workers/process-project.job.js');
 const { processClaimedJob, processNextJob } = await import('../../src/workers/job-runner.js');
 
 const job = {
+  lease_token: 'lease-test', asset_ids: ['asset-1'],
   id: 'job-1',
   project_id: 'project-1',
   status: 'running' as const,
@@ -53,11 +54,8 @@ describe('job runner', () => {
 
     await processClaimedJob(job);
 
-    expect(projectRepo.updateProjectStage).toHaveBeenCalledWith('project-1', {
-      status: 'failed',
-      errorCode: 'INTERNAL_ERROR',
-      errorMessage: '작업 처리 중 알 수 없는 오류가 발생했습니다.',
-    });
+    expect(jobRepo.markJobFailedOrRequeue).toHaveBeenCalledWith(job, 'INTERNAL_ERROR', expect.any(String));
+    expect(projectRepo.updateProjectStage).not.toHaveBeenCalled();
   });
 
   it('대기 작업이 없으면 worker는 처리하지 않는다', async () => {

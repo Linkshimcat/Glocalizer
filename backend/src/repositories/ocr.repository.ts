@@ -1,13 +1,9 @@
+import { jobMutation } from './job-mutation.js';
 import { supabase } from '../config/supabase.js';
 import { unwrapList, unwrapNullableRow, unwrapVoid } from '../utils/db-result.js';
 import type { FontStyle, OcrRegion, OcrRegionRow } from '../types/ocr.js';
 
 export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): Promise<void> {
-  const deleteResult = await supabase.from('ocr_regions').delete().eq('asset_id', assetId);
-  unwrapVoid(deleteResult, 'OCR 결과 초기화에 실패했습니다.');
-
-  if (regions.length === 0) return;
-
   const records = regions.map((region) => ({
       id: region.id,
       asset_id: assetId,
@@ -23,6 +19,13 @@ export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): 
       agreement_score: region.agreementScore,
       needs_manual_review: region.needsManualReview,
     }));
+  if (await jobMutation('ocr_replace', assetId, records)) return;
+  const deleteResult = await supabase.from('ocr_regions').delete().eq('asset_id', assetId);
+  unwrapVoid(deleteResult, 'OCR 결과 초기화에 실패했습니다.');
+
+  if (regions.length === 0) return;
+
+  if (regions.length === 0) return;
   const insertResult = await supabase.from('ocr_regions').insert(records);
 
   // migration 010 적용 전에는 기존 OCR 흐름을 멈추지 않고 metadata만 생략한다.
@@ -51,6 +54,8 @@ export async function insertOcrRegion(assetId: string, region: OcrRegion): Promi
     agreement_score: region.agreementScore,
     needs_manual_review: region.needsManualReview,
   };
+  const guarded = await jobMutation<OcrRegionRow>('ocr_insert', assetId, record);
+  if (guarded) return guarded.value;
   let result = await supabase.from('ocr_regions').insert(record).select().single();
   if (result.error?.message.includes('agreement_score') || result.error?.message.includes('needs_manual_review') || result.error?.message.includes('source')) {
     const { source: _source, agreement_score: _agreementScore, needs_manual_review: _needsManualReview, ...legacyRecord } = record;
@@ -83,6 +88,10 @@ export async function findRegionById(regionId: string): Promise<OcrRegionRow | n
 }
 
 export async function updatePrimaryRegion(assetId: string, input: { text: string; normalizedBox: OcrRegion['normalizedBox']; box: OcrRegion['box'] }): Promise<OcrRegionRow | null> {
+  const primary = await findPrimaryRegion(assetId);
+  if (!primary) return null;
+  const guarded = await jobMutation<OcrRegionRow>('ocr_patch', primary.id, { detected_text: input.text, normalized_bbox: input.normalizedBox, bbox: input.box, source: 'paddle-consensus', agreement_score: 1, needs_manual_review: false });
+  if (guarded) return guarded.value;
   const payload = {
     detected_text: input.text,
     normalized_bbox: input.normalizedBox,
@@ -111,6 +120,8 @@ export async function updateRegionById(
     agreement_score: 1,
     needs_manual_review: false,
   };
+  const guarded = await jobMutation<OcrRegionRow>('ocr_patch', regionId, payload);
+  if (guarded) return guarded.value;
   let result = await supabase.from('ocr_regions').update(payload).eq('id', regionId).select().maybeSingle();
   if (result.error?.message.includes('agreement_score') || result.error?.message.includes('needs_manual_review') || result.error?.message.includes('source')) {
     const { source: _source, agreement_score: _agreementScore, needs_manual_review: _needsManualReview, ...legacyPayload } = payload;
@@ -125,6 +136,7 @@ export async function updateRegionById(
  * 환경에서도 이 호출 하나 실패로 파이프라인이 막히지 않도록 조용히 무시한다.
  */
 export async function updateRegionFontStyle(regionId: string, fontStyle: FontStyle): Promise<void> {
+  if (await jobMutation('ocr_patch', regionId, { font_style: fontStyle })) return;
   const result = await supabase.from('ocr_regions').update({ font_style: fontStyle }).eq('id', regionId);
   if (result.error?.message.includes('font_style')) return;
   unwrapVoid(result, '원본 글자 스타일 분석 결과를 저장하지 못했습니다.');
@@ -134,6 +146,7 @@ export async function updateRegionCleanupMetadata(
   regionId: string,
   input: { textColor: { r: number; g: number; b: number } | null; needsManualCleanup: boolean },
 ): Promise<void> {
+  if (await jobMutation('ocr_patch', regionId, { text_color: input.textColor, needs_manual_cleanup: input.needsManualCleanup })) return;
   const result = await supabase.from('ocr_regions').update({
     text_color: input.textColor,
     needs_manual_cleanup: input.needsManualCleanup,

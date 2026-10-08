@@ -1,3 +1,6 @@
+import { currentTask } from '../utils/task-context.js';
+import { insertJob } from '../repositories/job.repository.js';
+import { findPrimaryRegion } from '../repositories/ocr.repository.js';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { AppError } from '../errors/app-error.js';
@@ -6,7 +9,6 @@ import { findActiveJobForProject } from '../repositories/job.repository.js';
 import { findRegionById, findRegionsByAssetId, insertOcrRegion, updatePrimaryRegion, updateRegionById } from '../repositories/ocr.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import { deleteTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
-import { removeFromStorage } from '../repositories/storage.repository.js';
 import { downloadFromStorage } from '../repositories/storage.repository.js';
 import type { PixelBox } from '../utils/bbox.js';
 import { preparePrimaryOcrImage } from '../image/vision-image-preprocessor.js';
@@ -95,13 +97,12 @@ export async function detectOcrSelection(projectId: string, assetId: string, nor
 }
 
 async function resetAssetForOcrReprocessing(asset: { id: string; cleaned_path: string | null }): Promise<void> {
-  if (asset.cleaned_path) await removeFromStorage([asset.cleaned_path]);
   await updateAsset(asset.id, { status: 'ocr', stage: 'ocr-corrected', progress: 55, cleanedPath: null, cleanupMethod: null, cleanupQuality: null, needsManualCleanup: false });
 }
 
-export async function createOcrRegionAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox): Promise<string> {
+export async function createOcrRegionAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, requestedId: string = randomUUID()): Promise<string> {
   const activeJob = await findActiveJobForProject(projectId);
-  if (activeJob) throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id }, '처리 중인 작업이 끝난 뒤 OCR 문구를 추가해주세요.');
+  if (activeJob && activeJob.id !== currentTask()?.id) throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id }, '처리 중인 작업이 끝난 뒤 OCR 문구를 추가해주세요.');
   if (!containsKorean(text)) throw new AppError('INVALID_REQUEST', { text }, '한국어가 포함된 원문을 입력해주세요.');
   const asset = await requireEditableAsset(projectId, assetId);
   const regions = await findRegionsByAssetId(assetId);
@@ -112,7 +113,7 @@ export async function createOcrRegionAndReprocess(projectId: string, assetId: st
     height: Math.round(normalizedBox.height * asset.height),
   };
   const region = await insertOcrRegion(assetId, {
-    id: randomUUID(),
+    id: requestedId,
     text,
     confidence: 1,
     confidenceTier: classifyConfidence(1),
@@ -175,7 +176,7 @@ async function refineCorrectedBox(asset: { original_path: string | null }, text:
 
 export async function reviseOcrAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, regionId?: string): Promise<void> {
   const activeJob = await findActiveJobForProject(projectId);
-  if (activeJob) {
+  if (activeJob && activeJob.id !== currentTask()?.id) {
     throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id }, '처리 중인 작업이 끝난 뒤 OCR 문구를 수정해주세요.');
   }
 
@@ -195,4 +196,17 @@ export async function reviseOcrAndReprocess(projectId: string, assetId: string, 
   if (!region) throw new AppError('INVALID_REQUEST', { assetId, regionId }, '수정할 OCR 영역을 찾을 수 없습니다.');
   await deleteTranslationsByOcrRegionId(region.id);
   await resetAssetForOcrReprocessing(target);
+}
+
+/** Reserve the queue entry before mutating OCR, translations or cleanup results. */
+export async function queueOcrEdit(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, operation: 'revise' | 'create', regionId?: string) {
+  await requireEditableAsset(projectId, assetId);
+  if (!containsKorean(text)) throw new AppError('INVALID_REQUEST', undefined, '한국어가 포함된 원문을 입력해주세요.');
+  if (operation === 'revise') {
+    const region = regionId ? await findRegionById(regionId) : await findPrimaryRegion(assetId);
+    if (!region || region.asset_id !== assetId) throw new AppError('INVALID_REQUEST', { regionId });
+    regionId = region.id;
+  } else regionId = randomUUID();
+  const job = await insertJob(projectId, ['ocr'], { operation, assetId, regionId, text, normalizedBox });
+  return { jobId: job.id, regionId };
 }

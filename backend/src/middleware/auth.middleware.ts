@@ -14,6 +14,7 @@ export async function authenticateAccount(header: string | undefined) {
 export async function authMiddleware(req: Request, _res: Response, next: NextFunction) {
   try {
     req.account = await authenticateAccount(req.header('authorization'));
+    if (req.account.deleting_at && req.method !== 'DELETE') throw new AppError('UNAUTHORIZED');
     req.auth = { sub: req.account.id };
     next();
   } catch (err) { next(err); }

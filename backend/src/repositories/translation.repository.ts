@@ -1,3 +1,4 @@
+import { jobMutation } from './job-mutation.js';
 import { supabase } from '../config/supabase.js';
 import { unwrapList, unwrapNullableRow, unwrapVoid } from '../utils/db-result.js';
 import type { RecommendedStyle, TargetLanguage, TranslationCandidate } from '../types/localization.js';
@@ -22,6 +23,7 @@ export async function upsertTranslation(input: UpsertTranslationInput): Promise<
     generation_model: input.generationModel,
     prompt_version: input.promptVersion,
   };
+  if (await jobMutation('translation', input.ocrRegionId, { ...commonPayload, generation_candidates: input.generationCandidates })) return;
   const result = await supabase.from('translations').upsert(
     { ...commonPayload, generation_candidates: input.generationCandidates },
     { onConflict: 'ocr_region_id,language_code' },
@@ -67,6 +69,7 @@ export async function incrementRegenerateCount(ocrRegionId: string, languageCode
 }
 
 export async function deleteTranslationsByOcrRegionId(ocrRegionId: string): Promise<void> {
+  if (await jobMutation('translation_delete', ocrRegionId, {})) return;
   const result = await supabase.from('translations').delete().eq('ocr_region_id', ocrRegionId);
   unwrapVoid(result, '기존 번역 결과를 초기화하지 못했습니다.');
 }

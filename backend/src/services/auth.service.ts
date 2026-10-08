@@ -1,12 +1,10 @@
+import { deleteDurably } from './deletion.service.js';
 import { taskFetch } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
-import { logger } from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
-import { findProjectsByOwner } from '../repositories/project.repository.js';
 import {
-  deleteUserRow,
   findUserByEmail,
   findUserById,
   findUserByNaverId,
@@ -23,8 +21,6 @@ import type { ChangePasswordInput, GoogleLoginInput, LoginInput, SignupInput, Up
 import type { PublicUser, UserRow } from '../types/user.js';
 import { signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
-import { deleteGenerationsByOwner } from './generation.service.js';
-import { deleteProjectAndAssets } from './project.service.js';
 
 async function fetchAuthProvider(url: string, init: RequestInit): Promise<Response> {
   try { return await taskFetch(url, init); }
@@ -123,22 +119,7 @@ export async function changePassword(userId: string, input: ChangePasswordInput)
  *  users 행 삭제가 먼저 FK cascade로 projects/generation_projects를 지워버려 Storage 파일이
  *  고아로 남는다. Google 연동 계정이면 Supabase Auth 사용자도 함께 정리한다. */
 export async function deleteAccount(userId: string): Promise<void> {
-  const user = await findUserById(userId);
-  if (!user) throw new AppError('UNAUTHORIZED');
-
-  const projects = await findProjectsByOwner(userId);
-  for (const project of projects) {
-    await deleteProjectAndAssets(project.id);
-  }
-
-  await deleteGenerationsByOwner(userId);
-
-  if (user.supabase_auth_id) {
-    const { error } = await supabase.auth.admin.deleteUser(user.supabase_auth_id);
-    if (error) logger.warn({ err: error, userId }, 'Supabase Auth 사용자 삭제 실패 (앱 계정 삭제는 계속 진행)');
-  }
-
-  await deleteUserRow(userId);
+  await deleteDurably('account', userId);
 }
 
 function identityString(value: unknown): string | null {

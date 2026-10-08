@@ -1,4 +1,6 @@
 import { supabase } from '../config/supabase.js';
+import { jobMutation } from './job-mutation.js';
+import { currentTask } from '../utils/task-context.js';
 import { unwrapList, unwrapVoid } from '../utils/db-result.js';
 import type { AssetRow, AssetStatus } from '../types/asset.js';
 
@@ -42,7 +44,10 @@ export async function findAssetsByProjectId(projectId: string): Promise<AssetRow
 }
 
 export async function findAssetsByProjectAndStatus(projectId: string, statuses: AssetStatus[]): Promise<AssetRow[]> {
-  const result = await supabase.from('assets').select().eq('project_id', projectId).in('status', statuses);
+  let query = supabase.from('assets').select().eq('project_id', projectId).in('status', statuses);
+  const task = currentTask();
+  if (task?.kind === 'localization') query = query.in('id', task.assetIds ?? []);
+  const result = await query;
   return unwrapList<AssetRow>(result, '이미지 조회에 실패했습니다.');
 }
 
@@ -51,6 +56,7 @@ export interface AssetUpdate {
   stage?: string | null;
   progress?: number;
   width?: number;
+  byteSize?: number;
   height?: number;
   hasAlpha?: boolean;
   cleanedPath?: string | null;
@@ -63,12 +69,11 @@ export interface AssetUpdate {
 }
 
 export async function updateAsset(assetId: string, patch: AssetUpdate): Promise<void> {
-  const result = await supabase
-    .from('assets')
-    .update({
+  const payload = {
       status: patch.status,
       ...(patch.stage !== undefined ? { stage: patch.stage } : {}),
       ...(patch.progress !== undefined ? { progress: patch.progress } : {}),
+      ...(patch.byteSize !== undefined ? { byte_size: patch.byteSize } : {}),
       ...(patch.width !== undefined ? { width: patch.width } : {}),
       ...(patch.height !== undefined ? { height: patch.height } : {}),
       ...(patch.hasAlpha !== undefined ? { has_alpha: patch.hasAlpha } : {}),
@@ -80,7 +85,9 @@ export async function updateAsset(assetId: string, patch: AssetUpdate): Promise<
       error_code: patch.errorCode ?? null,
       error_message: patch.errorMessage ?? null,
       updated_at: new Date().toISOString(),
-    })
+    };
+  if (await jobMutation('asset', assetId, payload)) return;
+  const result = await supabase.from('assets').update(payload)
     .eq('id', assetId);
 
   unwrapVoid(result, '이미지 상태를 갱신하지 못했습니다.');

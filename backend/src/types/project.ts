@@ -10,6 +10,7 @@ export interface LocalizationOptions {
 }
 
 export interface ProjectRow {
+  deleting_at?: string | null;
   id: string;
   access_token_hash: string;
   status: ProjectStatus;

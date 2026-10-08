@@ -13,6 +13,7 @@ const processor = await import('../../src/workers/process-project.job.js');
 const { processClaimedJob, waitForActiveJobs } = await import('../../src/workers/job-runner.js');
 
 const job = {
+  lease_token: 'lease-test', asset_ids: ['asset-1'],
   id: 'job-shutdown', project_id: 'project-shutdown', status: 'running' as const, stage: null, progress: 0,
   attempts: 1, max_attempts: 3, locked_at: new Date().toISOString(), worker_id: 'worker-test', heartbeat_at: new Date().toISOString(),
   started_at: new Date().toISOString(), completed_at: null, error_code: null, error_message: null, created_at: new Date().toISOString(),

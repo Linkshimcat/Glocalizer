@@ -1,3 +1,4 @@
+import { AppError } from '../../src/errors/app-error.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import sharp from 'sharp';
@@ -37,6 +38,7 @@ beforeEach(async () => {
   vi.mocked(assetRepo.findAssetsByIds).mockResolvedValue([asset] as never);
   vi.mocked(assetRepo.findAssetsByProjectId).mockResolvedValue([{ ...asset, status: 'ocr' }] as never);
   vi.mocked(jobRepo.insertJob).mockResolvedValue({ id: 'ocr-reprocess-job', status: 'running' } as never);
+  vi.mocked(ocrRepo.findPrimaryRegion).mockResolvedValue({ id: 'a7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d', asset_id: assetId } as never);
   vi.mocked(ocrRepo.updatePrimaryRegion).mockResolvedValue({ id: 'a7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d' } as never);
   vi.mocked(ocrRepo.updateRegionById).mockResolvedValue({ id: 'b7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d' } as never);
   vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([]);
@@ -57,8 +59,9 @@ describe('PATCH /api/v1/projects/:projectId/assets/:assetId/ocr', () => {
     const response = await request(app).patch(`/api/v1/projects/${projectId}/assets/${assetId}/ocr`).set('X-Project-Token', token).send({ text: '킹받았죠?', normalizedBox: { x: 0.1, y: 0.1, width: 0.5, height: 0.2 } });
     expect(response.status).toBe(202);
     expect(response.body).toEqual({ assetId, status: 'reprocessing', jobId: 'ocr-reprocess-job' });
-    expect(ocrRepo.updatePrimaryRegion).toHaveBeenCalledWith(assetId, expect.objectContaining({ text: '킹받았죠?', box: { x: 40, y: 20, width: 200, height: 40 } }));
-    expect(jobRunner.processClaimedJob).toHaveBeenCalledWith(expect.objectContaining({ id: 'ocr-reprocess-job' }));
+    expect(jobRepo.insertJob).toHaveBeenCalledWith(projectId, ['ocr'], expect.objectContaining({ operation: 'revise', assetId, text: '킹받았죠?' }));
+    expect(ocrRepo.updatePrimaryRegion).not.toHaveBeenCalled();
+    expect(jobRunner.processClaimedJob).not.toHaveBeenCalled();
   });
 
   it('regionId가 있으면 선택한 캡션만 수정한다', async () => {
@@ -70,15 +73,13 @@ describe('PATCH /api/v1/projects/:projectId/assets/:assetId/ocr', () => {
       .send({ regionId, text: '잼얘해줘', normalizedBox: { x: 0.2, y: 0.2, width: 0.3, height: 0.2 } });
 
     expect(response.status).toBe(202);
-    expect(ocrRepo.updateRegionById).toHaveBeenCalledWith(regionId, expect.objectContaining({
-      text: '잼얘해줘',
-      box: { x: 80, y: 40, width: 120, height: 40 },
-    }));
+    expect(jobRepo.insertJob).toHaveBeenCalledWith(projectId, ['ocr'], expect.objectContaining({ operation: 'revise', regionId, text: '잼얘해줘' }));
+    expect(ocrRepo.updateRegionById).not.toHaveBeenCalled();
     expect(ocrRepo.updatePrimaryRegion).not.toHaveBeenCalled();
   });
 
   it('project job이 진행 중이면 OCR 수정으로 상태가 경합하지 않도록 거부한다', async () => {
-    vi.mocked(jobRepo.findActiveJobForProject).mockResolvedValue({ id: 'running-job' } as never);
+    vi.mocked(jobRepo.insertJob).mockRejectedValueOnce(new AppError('PROCESS_ALREADY_RUNNING'));
 
     const response = await request(app)
       .patch(`/api/v1/projects/${projectId}/assets/${assetId}/ocr`)
@@ -142,7 +143,8 @@ describe('PATCH /api/v1/projects/:projectId/assets/:assetId/ocr', () => {
       .send({ text: '잼얘 요구권', normalizedBox: { x: 0.1, y: 0.1, width: 0.6, height: 0.2 } });
 
     expect(response.status).toBe(202);
-    expect(ocrRepo.insertOcrRegion).toHaveBeenCalledWith(assetId, expect.objectContaining({ text: '잼얘 요구권', containsKorean: true }));
-    expect(jobRunner.processClaimedJob).toHaveBeenCalledWith(expect.objectContaining({ id: 'ocr-reprocess-job' }));
+    expect(jobRepo.insertJob).toHaveBeenCalledWith(projectId, ['ocr'], expect.objectContaining({ operation: 'create', assetId, text: '잼얘 요구권', regionId: response.body.regionId }));
+    expect(ocrRepo.insertOcrRegion).not.toHaveBeenCalled();
+    expect(jobRunner.processClaimedJob).not.toHaveBeenCalled();
   });
 });

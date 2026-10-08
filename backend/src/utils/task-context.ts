@@ -47,3 +47,5 @@ export function cancelChildOnAbort(child: ChildProcess): () => void {
   child.once('exit', remove);
   return remove;
 }
+
+export function withoutTask<T>(work: () => Promise<T>): Promise<T> { return contexts.exit(work); }
