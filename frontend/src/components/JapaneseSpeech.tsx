@@ -51,7 +51,7 @@ export default function JapaneseSpeech({ text, itemKey }: { text: string; itemKe
     try { synth.speak(next) } catch { utterance.current = null; setPlaying(false); setFailed(true) }
   }
   return <div className="mt-3">
-    <button type="button" onClick={toggle} disabled={!supported || !text.trim() || hasVoice === false} aria-pressed={playing} className="flex min-h-11 items-center gap-2 rounded-xl border border-gray-200 px-3 text-sm font-bold disabled:opacity-50">
+    <button type="button" onClick={toggle} disabled={!supported || !text.trim() || hasVoice === false} aria-pressed={playing} className="flex min-h-11 items-center gap-2 rounded-control border border-gray-200 px-3 text-sm font-bold disabled:opacity-50">
       {playing ? <Square className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}{playing ? w.stop : w.listen}
     </button>
     {(!supported || hasVoice === false || failed) && <p role="status" className="mt-2 text-xs text-sub">{failed ? w.speechFailed : w.noVoice}</p>}

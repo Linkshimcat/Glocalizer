@@ -39,7 +39,7 @@ export default function OgqSamplePicker({ onClose, onSelect, selectingId }: OgqS
               type="button"
               disabled={selectingId !== null}
               onClick={() => onSelect(sticker)}
-              className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-gray-100 bg-white transition-colors hover:border-brand disabled:cursor-not-allowed disabled:opacity-50"
+              className="relative aspect-square w-full overflow-hidden rounded-control border-2 border-gray-100 bg-white transition-colors hover:border-brand disabled:cursor-not-allowed disabled:opacity-50"
             >
               <img src={sticker.thumbnailUrl} alt={sticker.title ?? ''} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-2" />
             </button>

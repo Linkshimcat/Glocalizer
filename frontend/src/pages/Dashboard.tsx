@@ -4,8 +4,6 @@ import { ArrowRight, Globe2, Loader2, ShieldCheck, SmilePlus } from 'lucide-reac
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
-import Header from '../components/Header'
-import NavMenu from '../components/NavMenu'
 import heroCharacter from '../assets/studio/hero-character.png'
 import { studioCopy } from '../i18n/studio'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -48,7 +46,6 @@ export default function Dashboard() {
 
   return (
     <div className="studio-dashboard min-h-screen">
-      <Header center={<NavMenu workspace />} sticky />
       <main className="studio-dashboard-main">
         <div className="studio-dashboard-heading">
           <h1>{hasWork ? copy.resume : t.hubTitle}</h1>
@@ -85,7 +82,7 @@ export default function Dashboard() {
         </section>
       </main>
       {newTaskOpen ? <Modal onClose={() => { if (!startingNew) setNewTaskOpen(false) }} labelledBy="new-task-title" closeLabel={t.commonClose}>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Globe2 className="h-6 w-6" /></div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft text-brand-dark"><Globe2 className="h-6 w-6" /></div>
         <h2 id="new-task-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudNewTitle}</h2>
         <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudNewConfirm}</p>
         <div className="mt-7 flex gap-3">

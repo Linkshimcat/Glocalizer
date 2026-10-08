@@ -72,7 +72,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
           aria-modal="true"
           aria-labelledby={labelledBy}
           onClick={event => event.stopPropagation()}
-          className={`relative w-full min-w-0 rounded-[28px] bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.2)] sm:p-8 ${className}`}
+          className={`relative w-full min-w-0 rounded-dialog bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.2)] sm:p-8 ${className}`}
         >
           <button
             type="button"

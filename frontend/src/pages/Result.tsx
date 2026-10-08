@@ -2,7 +2,6 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Down
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
-import Header from '../components/Header'
 import Modal from '../components/Modal'
 import PngPreview from '../components/PngPreview'
 import AILocalizationBadge from '../components/AILocalizationBadge'
@@ -70,7 +69,7 @@ export default function Result() {
   if (!['completed', 'failed'].includes(projectStatus.status) || !resultReady) return <Navigate to="/editor" replace />
 
   return <div className="studio-result min-h-screen bg-white">
-    <Header right={<span className="text-xs font-bold text-brand-dark">3 · {t.stepDownload}</span>} sticky />
+    <div className="workspace-stepbar"><div className="layout-app text-sm font-bold text-brand-dark">3 · {t.stepDownload}</div></div>
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <section className="studio-result-summary"><div>
         <div className="flex items-center gap-2.5">
@@ -103,7 +102,7 @@ export default function Result() {
     {active && enlarged !== null && <Modal onClose={() => setEnlarged(null)} closeLabel={w.close} labelledBy="result-preview-title" className="max-w-4xl">
       <h2 id="result-preview-title" className="break-words pr-8 font-bold">{active.language.flag} {active.item.name} · {enlarged + 1}/{entries.length}</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div><p className="mb-2 text-sm text-sub">{t.stepUpload}</p><img src={active.item.analysis?.originalUrl ?? active.item.url} alt={active.item.name} className="checkerboard max-h-[60dvh] w-full rounded-xl object-contain" /></div>
+        <div><p className="mb-2 text-sm text-sub">{t.stepUpload}</p><img src={active.item.analysis?.originalUrl ?? active.item.url} alt={active.item.name} className="checkerboard max-h-[60dvh] w-full rounded-panel object-contain" /></div>
         <div><p className="mb-2 text-sm text-sub">{w.preview}</p><PngPreview large item={active.item} overlays={textOverlaysForItem(active.item, active.language.code, styles)} baseStyle={imageStyleForItem(active.item, active.language.code, styles)} preset={outputPreset} /></div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

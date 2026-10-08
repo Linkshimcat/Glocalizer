@@ -12,7 +12,7 @@ export default function UploadSpecBadge() {
       href={SPEC_GUIDE_URL}
       target="_blank"
       rel="noreferrer noopener"
-      className="inline-flex min-h-[30px] shrink-0 items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-[#D1D5DB] hover:bg-[#F5F6F8]"
+      className="inline-flex min-h-[30px] shrink-0 items-center gap-1.5 rounded-control border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-[#D1D5DB] hover:bg-[#F5F6F8]"
     >
       <img src={noteIcon} alt="" aria-hidden className="h-3.5 w-3.5 shrink-0" />
       <span>{t.dashSpecNotice}</span>

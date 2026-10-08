@@ -12,8 +12,8 @@ export default function PngPreview({ item, overlays, preset, onEnlarge, baseStyl
   const { lang } = useSiteLang()
   const w = workflowCopy[lang]
   const { url, error, retry } = usePngPreview(item, overlays, preset, baseStyle)
-  const surface = `checkerboard flex w-full items-center justify-center overflow-hidden rounded-xl ${large ? 'min-h-60' : 'aspect-square'}`
-  if (error) return <div role="alert" className={`${surface} flex-col gap-3 p-4 text-center text-sm`}><p>{w.previewFailed}</p><button type="button" onClick={retry} className="rounded-lg border border-gray-300 bg-white px-3 py-2">{w.retry}</button></div>
+  const surface = `checkerboard flex w-full items-center justify-center overflow-hidden rounded-panel ${large ? 'min-h-60' : 'aspect-square'}`
+  if (error) return <div role="alert" className={`${surface} flex-col gap-3 p-4 text-center text-sm`}><p>{w.previewFailed}</p><button type="button" onClick={retry} className="rounded-control border border-gray-300 bg-white px-3 py-2">{w.retry}</button></div>
   if (!url) return <div role="status" aria-label={w.preparing} className={surface}><LoaderCircle aria-hidden="true" className="h-6 w-6 animate-spin text-sub motion-reduce:animate-none" /></div>
   const img = <img src={url} alt={item.name} className={`block w-full object-contain ${large ? 'max-h-[65dvh]' : 'h-full'}`} />
   // 미리보기가 작아 확대 가능한지 모르겠다는 피드백(W5/W6) 때문에, 클릭으로 암묵 전달하던 걸 아이콘으로 드러낸다.

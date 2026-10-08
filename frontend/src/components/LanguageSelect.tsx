@@ -28,7 +28,7 @@ export default function LanguageSelect() {
         aria-label={`${legalUi[lang].language}: ${current.label}`}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex min-h-11 items-center gap-1.5 rounded-lg border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
+        className="flex min-h-11 items-center gap-1.5 rounded-control border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
       >
         <img src={globeIcon} alt="" aria-hidden className="h-4 w-4" />
         <span className="hidden sm:inline">{current.label}</span>
@@ -40,7 +40,7 @@ export default function LanguageSelect() {
         <ul
           role="listbox"
           aria-label={legalUi[lang].language}
-          className="absolute right-0 z-40 mt-1.5 w-36 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg"
+          className="absolute right-0 z-40 mt-1.5 w-36 overflow-hidden rounded-panel border border-gray-100 bg-white py-1 shadow-lg"
         >
           {SITE_LANGS.map(item => (
             <li key={item.code}>
