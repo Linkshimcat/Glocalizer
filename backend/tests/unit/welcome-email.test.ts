@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { renderWelcomeEmail } from '../../src/emails/welcome-email.js';
 
@@ -12,6 +14,13 @@ describe('renderWelcomeEmail', () => {
     }
     expect(email.text).toContain('워크스페이스 열기: https://glocalizer.vercel.app/dashboard');
     expect(email.text).not.toContain('<');
+  });
+
+  it('only references feature GIFs that the site actually serves', () => {
+    const { html } = renderWelcomeEmail({ name: null, siteUrl: 'https://glocalizer.vercel.app' });
+    const gifs = [...html.matchAll(/https:\/\/glocalizer\.vercel\.app\/email\/([\w-]+\.gif)/g)].map(match => match[1]);
+    expect(gifs).toEqual(['welcome-generate.gif', 'welcome-localize.gif', 'welcome-review.gif']);
+    for (const gif of gifs) expect(existsSync(resolve(process.cwd(), '../frontend/public/email', gif)), gif).toBe(true);
   });
 
   it('falls back to a generic greeting without a name', () => {

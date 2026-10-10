@@ -1,7 +1,8 @@
 /** 신규 가입 환영 메일. 서비스 안내만 담고 광고성 문구는 넣지 않는다(정보통신망법상 광고 수신 동의 대상이 아님). */
 
-// 메일 클라이언트는 localhost 이미지를 못 불러오므로 로고는 항상 운영 사이트에서 받는다.
-const LOGO_URL = 'https://glocalizer.vercel.app/favicon.png';
+// 메일 클라이언트는 localhost 이미지를 못 불러오므로 이미지는 항상 운영 사이트에서 받는다.
+const ASSET_ORIGIN = 'https://glocalizer.vercel.app';
+const LOGO_URL = `${ASSET_ORIGIN}/favicon.png`;
 // frontend/src/i18n/legal.ts의 LEGAL_CONTACT와 같은 주소.
 const SUPPORT_EMAIL = 'veyrix0816@gmail.com';
 const BRAND = '#15803d';
@@ -10,10 +11,12 @@ const SUB = '#56616e';
 const SURFACE = '#f2f4f6';
 
 // 문구는 frontend/src/i18n/service.ts(ko)의 주요 기능·안내와 맞춘다.
+// 이미지는 랜딩 워크플로우 카드 영상(frontend/src/assets/LandingAssets/*.webm)을 GIF로 바꾼 것이다(frontend/public/email).
+// 메일 클라이언트는 대부분 <video>를 재생하지 못하고, GIF는 Outlook에서도 첫 프레임은 보이므로 완성 화면부터 시작한다.
 const FEATURES = [
-  { title: '이모티콘 생성', description: '캐릭터 설명과 참고 이미지로 24종 이모티콘을 생성합니다.', path: '/generate', action: '이모티콘 생성하기' },
-  { title: '다국어 현지화', description: 'PNG·JPG 이미지의 한국어 문구를 인식하고 영어·일본어·중국어 표현으로 바꿉니다.', path: '/localize', action: '현지화 시작하기' },
-  { title: '출시 전 검토', description: 'OGQ 규격과 이미지·문구를 확인합니다.', path: '/review', action: '출시 검토하기' },
+  { title: '이모티콘 생성', description: '캐릭터 설명과 참고 이미지로 24종 이모티콘을 생성합니다.', path: '/generate', action: '이모티콘 생성하기', image: 'welcome-generate.gif', alt: '캐릭터 설명을 입력해 이모티콘을 생성하는 화면' },
+  { title: '다국어 현지화', description: 'PNG·JPG 이미지의 한국어 문구를 인식하고 영어·일본어·중국어 표현으로 바꿉니다.', path: '/localize', action: '현지화 시작하기', image: 'welcome-localize.gif', alt: '이모티콘 문구가 영어·일본어·중국어로 바뀌는 화면' },
+  { title: '출시 전 검토', description: 'OGQ 규격과 이미지·문구를 확인합니다.', path: '/review', action: '출시 검토하기', image: 'welcome-review.gif', alt: 'OGQ 규격 항목을 하나씩 확인하는 화면' },
 ] as const;
 
 const NOTICE = '규격 검사와 AI 피드백은 OGQ 공식 심사나 출시 승인이 아닙니다. AI 번역·생성 결과는 직접 확인한 뒤 제출해 주세요.';
@@ -39,7 +42,12 @@ export function renderWelcomeEmail({ name, siteUrl }: { name: string | null; sit
             <td style="padding:0 0 12px">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${SURFACE};border-radius:8px">
                 <tr>
-                  <td style="padding:18px 20px">
+                  <td align="center" style="padding:20px 20px 0">
+                    <a href="${site}${feature.path}"><img src="${ASSET_ORIGIN}/email/${feature.image}" width="200" height="200" alt="${feature.alt}" style="display:block;width:200px;max-width:100%;height:auto;border:0"></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px 18px">
                     <p style="margin:0;font-size:16px;font-weight:700;color:${INK}">${feature.title}</p>
                     <p style="margin:6px 0 10px;font-size:14px;line-height:22px;color:${SUB}">${feature.description}</p>
                     <a href="${site}${feature.path}" style="font-size:14px;font-weight:700;color:${BRAND};text-decoration:none">${feature.action} &rarr;</a>
