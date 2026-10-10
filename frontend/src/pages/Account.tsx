@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { Navigate, useNavigate } from 'react-router-dom'
 import GoogleIcon from '../components/GoogleIcon'
 import Modal from '../components/Modal'
+import profileDeleteIcon from '../assets/iconsax-profile-delete.svg'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import type { ProfileUpdate } from '../lib/authApi'
@@ -259,7 +260,7 @@ export default function Account() {
                     )}
                     {user.hasNaver && (
                       <span className="flex items-center gap-2 text-base font-bold text-ink">
-                        <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-md bg-[#03C75A] text-xs font-black text-white">N</span>
+                        <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-[#03C75A] text-xs font-black text-white">N</span>
                         {t.accountNaverLogin}
                       </span>
                     )}
@@ -390,8 +391,11 @@ export default function Account() {
           <button
             type="button"
             onClick={openDeleteModal}
-            className="mt-5 rounded-control border border-red-300 bg-white px-5 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
+            className="mt-5 inline-flex items-center justify-center gap-2 rounded-control border border-red-300 bg-white px-5 py-[11px] text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
           >
+            <span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <img src={profileDeleteIcon} alt="" />
+            </span>
             {t.accountDeleteButton}
           </button>
         </section>

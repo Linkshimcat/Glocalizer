@@ -14,6 +14,7 @@ interface ToastItem {
   id: number
   message: string
   type: ToastType
+  exiting?: boolean
 }
 
 const ToastContext = createContext<(message: string, type?: ToastType) => void>(
@@ -27,7 +28,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((message: string, type: ToastType = 'warning') => {
     const id = ++idRef.current
     setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3200)
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t))
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 350)
+    }, 2850)
   }, [])
 
   return (
@@ -38,7 +42,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             role="alert"
-            className="animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-panel border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]"
+            className={`animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-panel border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]${t.exiting ? ' animate-toast-out' : ''}`}
           >
             <span
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-panel ${

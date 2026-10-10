@@ -21,6 +21,7 @@ const Landing = lazy(() => import('./pages/Landing'))
 const NaverCallback = lazy(() => import('./pages/NaverCallback'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Privacy = lazy(() => import('./pages/Privacy'))
+const Pricing = lazy(() => import('./pages/Pricing'))
 const Result = lazy(() => import('./pages/Result'))
 const Review = lazy(() => import('./pages/Review'))
 const ServiceIntro = lazy(() => import('./pages/ServiceIntro'))
@@ -74,6 +75,7 @@ function App() {
                     <Route path="/service" element={<ServiceIntro />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/pricing" element={<Pricing />} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/support" element={<Support />} />
                     <Route path="/auth/naver/callback" element={<NaverCallback />} />

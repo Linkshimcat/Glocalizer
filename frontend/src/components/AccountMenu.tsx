@@ -118,7 +118,7 @@ export default function AccountMenu() {
           </div>
           <div className="border-t border-gray-100 p-1.5">
             {[
-              { label: t.hubDashboard, path: '/dashboard', Icon: LayoutDashboard },
+              { label: t.navWorkspace, path: '/dashboard', Icon: LayoutDashboard },
               { label: t.cloudArchive, path: '/archive', Icon: LayoutDashboard },
               { label: t.accountTitle, path: '/account', Icon: Settings },
             ].map(({ label, path, Icon }) => (

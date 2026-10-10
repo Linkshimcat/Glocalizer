@@ -23,8 +23,9 @@
 .main-restyle .remake-video-footer p { color: #56616e; font-size: 14px; line-height: 1.7; }
 .main-restyle .remake-video-replay { display: inline-flex; min-height: 44px; flex-shrink: 0; align-items: center; gap: 8px; border: 1px solid #d7e0d9; border-radius: var(--radius-control); padding: 8px 14px; background: #fff; color: #34443a; font-size: 14px; font-weight: 700; }
 .main-restyle .remake-video-replay:hover { background: #eafbf1; }
-.main-restyle .remake-video-replay img { width: 20px; height: 20px; }
-.main-restyle .remake-story { height: 210svh; background: #15291f; color: #fff; scroll-margin-top: var(--main-header-height); }
+.main-restyle .remake-video-replay-icon { display: grid; width: 20px; height: 20px; flex: 0 0 20px; place-items: center; }
+.main-restyle .remake-video-replay-icon img { display: block; width: 13.333px; height: 13.333px; }
+.main-restyle .remake-story { height: 210svh; background: linear-gradient(180deg,#22c55e 0%,#498f6c 100%); color: #fff; scroll-margin-top: var(--main-header-height); }
 .main-restyle .remake-story-sticky { position: sticky; top: var(--main-header-height); display: flex; height: calc(100svh - var(--main-header-height)); min-height: calc(100svh - var(--main-header-height)); padding: 40px 3vw; max-width: 1600px; margin: 0 auto; }
 .main-restyle .remake-story-scene { display: grid; width: 100%; grid-template-columns: minmax(300px,.8fr) minmax(0,1.9fr); align-items: center; gap: 32px; }
 .main-restyle .remake-scene-copy { position: relative; z-index: 3; min-width: 0; animation: remake-copy-in .5s cubic-bezier(.22,1,.36,1) both; }
@@ -54,9 +55,8 @@
 .main-restyle .remake-workflow-grid h3 { margin-top: 24px; font-size: clamp(23px,2.4vw,34px); font-weight: 800; letter-spacing: -.035em; line-height: 1.2; }
 .main-restyle .remake-workflow-grid h3 span { display: block; }
 .main-restyle .remake-workflow-grid article > div { margin: 16px 0 24px; color: #56616e; font-size: 16px; font-weight: 400; line-height: 1.7; }
-.main-restyle .remake-workflow-link { display: inline-flex; width: fit-content; min-height: 44px; align-items: center; gap: 8px; margin-top: auto; color: #15803d; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 5px; }
-.main-restyle .remake-workflow-link svg { transition: transform .2s; }
-.main-restyle .remake-workflow-grid article[data-active="true"] .remake-workflow-link svg { transform: translateX(4px); }
+.main-restyle .remake-workflow-link { display: inline-flex; width: fit-content; min-height: 44px; align-items: center; gap: 8px; margin-top: auto; border-radius: 999px; padding: 10px 13px; background: #f5f6f5; color: #15803d; font-size: 15px; font-weight: 700; text-decoration: none; }
+.main-restyle .remake-workflow-link img { display: block; width: 17px; height: 17px; }
 .main-restyle .remake-workflow-link:hover { color: #116b33; }
 .main-restyle .remake-case-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,330px),1fr)); gap: 22px; width: min(100%,1120px); margin: 32px auto 0; }.main-restyle .remake-case-card { min-width: 0; overflow: hidden; border: 1px solid #e7eaec; border-radius: var(--radius-panel); background: #fff; box-shadow: 0 16px 48px rgba(25,31,40,.06); }.main-restyle .remake-case-meta { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; color: #168b4a; font-size: 11px; font-weight: 900; letter-spacing: .08em; }.main-restyle .remake-case-meta span + span { color: #7a838b; }.main-restyle .remake-case-compare { position: relative; aspect-ratio: 1; overflow: hidden; background: repeating-conic-gradient(#f3f5f4 0 25%,#fff 0 50%) 0 0/20px 20px; touch-action: pan-y; }.main-restyle .remake-case-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 9%; }.main-restyle .remake-case-compare img:nth-of-type(2) { clip-path: inset(0 0 0 50%); }.main-restyle .remake-case-label { position: absolute; z-index: 2; top: 14px; border-radius: 4px; padding: 6px 10px; background: rgba(255,255,255,.92); color: #343d45; font-size: 10px; font-weight: 850; box-shadow: 0 2px 12px rgba(25,31,40,.08); }.main-restyle .remake-case-label-before { left: 14px; }.main-restyle .remake-case-label-after { right: 14px; }.main-restyle .remake-case-divider { position: absolute; z-index: 2; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 0 1px rgba(25,31,40,.1),0 1px 12px rgba(25,31,40,.2); pointer-events: none; }.main-restyle .remake-case-divider i { position: absolute; top: 50%; left: 50%; display: grid; width: 36px; aspect-ratio: 1; place-items: center; transform: translate(-50%,-50%); border: 2px solid #fff; border-radius: 50%; background: #22c55e; box-shadow: 0 2px 12px rgba(25,31,40,.18); }.main-restyle .remake-case-divider i::before { width: 9px; height: 9px; border-right: 2px solid #fff; border-left: 2px solid #fff; content: ''; }.main-restyle .remake-case-compare input { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; margin: 0; cursor: ew-resize; opacity: 0; touch-action: pan-y; }.main-restyle .remake-case-compare input:focus-visible { outline: 3px solid #168b4a; outline-offset: -4px; opacity: .01; }
 
@@ -67,11 +67,23 @@
 .main-restyle .remake-ogq-proof { padding-block: 0; background: #fff; }
 .main-restyle .remake-ogq-proof > section { padding-block: 48px; }
 .main-restyle .remake-ogq-proof .ogq-tilt-mask { margin-top: 24px; }
-.main-restyle .remake-final { display: flex; min-height: 0; align-items: center; flex-direction: column; justify-content: center; padding: 64px 24px; background: #e9f5ee; text-align: center; }
+.main-restyle .remake-final { display: flex; align-items: center; justify-content: center; padding: 64px max(24px,calc((100vw - 1536px)/2)); background: #fff; text-align: center; }
+.main-restyle .remake-final-card { display: flex; width: min(100%,1280px); min-height: 500px; align-items: center; flex-direction: column; justify-content: center; border-radius: 26px; padding: 56px 32px; background: linear-gradient(90deg,rgba(34,197,94,.1) 0%,rgba(34,197,94,.1) 100%),linear-gradient(180deg,rgba(130,170,145,.68) 0%,rgba(52,68,58,.68) 100%); }
 .main-restyle .remake-final h2 { max-width: 100%; margin-top: 0; font-size: clamp(38px,4.3vw,62px); letter-spacing: -.045em; line-height: 1.12; font-weight: 800; word-break: keep-all; }
-.main-restyle .remake-final > p { max-width: 640px; margin-top: 16px; color: #193a26; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
-.main-restyle .remake-final button { margin-top: 24px; }
+.main-restyle .remake-final > .remake-final-card > p { max-width: 640px; margin-top: 16px; color: #193a26; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
+.main-restyle .remake-final .studio-button { min-height: 56px; margin-top: 54px; padding-inline: 28px; border-radius: 6px; }
+.main-restyle .remake-final .studio-button img { display: block; width: 18px; height: 18px; }
 .main-restyle > footer { border-radius: 0; }
+.main-restyle > footer.landing-footer { height: 288px; overflow: hidden; background: #fff; }
+.main-restyle > footer.landing-footer .landing-footer-inner { height: 100%; padding: 20px 0; }
+.main-restyle > footer.landing-footer .landing-footer-top { position: relative; z-index: 1; }
+.main-restyle > footer.landing-footer .landing-footer-brand { gap: 8px; }
+.main-restyle > footer.landing-footer .landing-footer-links { gap: 16px; }
+.main-restyle > footer.landing-footer .landing-footer-meta { position: relative; z-index: 1; margin-top: 12px; padding-top: 12px; }
+.main-restyle > footer.landing-footer .landing-footer-watermark { position: absolute; right: 50%; bottom: 20px; width: max-content; transform: translateX(50%); color: #779b85; font-size: clamp(72px,8.4vw,120px); font-weight: 800; letter-spacing: .014em; line-height: 1; opacity: .74; white-space: nowrap; transition: opacity .25s ease, transform .25s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .main-restyle > footer.landing-footer .landing-footer-watermark:hover { transform: translate(50%,-3px); opacity: 1; background: radial-gradient(circle 190px at var(--pointer-x,50%) var(--pointer-y,50%),#22c55e 0%,#498f6c 38%,#779b85 100%); background-clip: text; -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+}
 .main-restyle .remake-story[data-static="true"] { height: auto; }
 .main-restyle .remake-story[data-static="true"] > .remake-story-scene { max-width: 1600px; margin: auto; padding: 40px 3vw; }
 .main-restyle :is(button,a,video):focus-visible { outline: 3px solid #15803d; outline-offset: 4px; }
@@ -134,9 +146,15 @@
   .main-restyle .remake-workflow-visual { border-radius: var(--radius-panel); }
   .main-restyle .remake-case-card { border-radius: var(--radius-panel); }
   .main-restyle .remake-ogq-proof > section { padding-block: 40px; }
-  .main-restyle .remake-final { min-height: 0; padding: 40px 20px; }
+  .main-restyle .remake-final { padding: 32px 20px; }
+  .main-restyle .remake-final-card { min-height: 360px; border-radius: 20px; padding: 40px 20px; }
   .main-restyle .remake-final h2 { font-size: clamp(36px,10vw,52px); }
-  .main-restyle .remake-final > p { font-size: 16px; }
+  .main-restyle .remake-final > .remake-final-card > p { font-size: 16px; }
+  .main-restyle .remake-final .studio-button { margin-top: 32px; }
+  .main-restyle > footer.landing-footer { height: 260px; }
+  .main-restyle > footer.landing-footer .landing-footer-inner { padding-inline: 20px; }
+  .main-restyle > footer.landing-footer .landing-footer-links { gap: 4px 12px; }
+  .main-restyle > footer.landing-footer .landing-footer-watermark { bottom: 12px; font-size: 15vw; }
 }
 @media (max-height: 650px) and (max-width: 900px) {
   .main-restyle .remake-story[data-static="true"] .remake-device-wrap { width: min(55vw,220px); }
@@ -152,7 +170,7 @@
 .main-restyle .remake-hero-prefix { display: block; }
 .main-restyle .remake-hero-roll { color: #15803d; }
 .main-restyle .remake-hero[data-motion-paused="true"] .animate-roll-word { animation-play-state: paused; }
-.main-restyle .remake-final > p { color: #193a26; }
+.main-restyle .remake-final > .remake-final-card > p { color: #193a26; }
 .main-restyle .remake-final .studio-button { background: #15291f; color: #fff; }
 .main-restyle .remake-final .studio-button:hover { background: #0d1d15; }
 .main-restyle .remake-final :is(button,a):focus-visible { outline-color: #15291f; }
