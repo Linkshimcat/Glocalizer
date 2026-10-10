@@ -12,6 +12,8 @@
 .main-restyle .remake-scroll-button { text-decoration: underline; text-underline-offset: 5px; }
 /* <picture> only picks the image format; layout stays on the <img> inside it. */
 .main-restyle .remake-picture { display: contents; }
+/* Without a box of its own, <picture> would let <source> become a grid item and push the image to the next row. */
+.main-restyle .remake-picture > source { display: none; }
 .main-restyle .remake-hero-art { display: block; width: calc(100% + 12px); max-width: none; height: auto; margin-left: -12px; }
 .main-restyle .remake-translation-strip { width: min(calc(100% - 120px),1120px); margin: 0 auto 40px; }
 .main-restyle .remake-translation-strip img { display: block; width: 100%; height: auto; }
