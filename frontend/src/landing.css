@@ -151,10 +151,10 @@
   .main-restyle .remake-final h2 { font-size: clamp(36px,10vw,52px); }
   .main-restyle .remake-final > .remake-final-card > p { font-size: 16px; }
   .main-restyle .remake-final .studio-button { margin-top: 32px; }
-  .main-restyle > footer.landing-footer { height: 260px; }
-  .main-restyle > footer.landing-footer .landing-footer-inner { padding-inline: 20px; }
+  .main-restyle > footer.landing-footer { height: auto; overflow: hidden; }
+  .main-restyle > footer.landing-footer .landing-footer-inner { height: auto; padding: 20px; }
   .main-restyle > footer.landing-footer .landing-footer-links { gap: 4px 12px; }
-  .main-restyle > footer.landing-footer .landing-footer-watermark { bottom: 12px; font-size: 15vw; }
+  .main-restyle > footer.landing-footer .landing-footer-watermark { position: relative; right: auto; bottom: auto; width: 100%; margin-top: 18px; transform: none; font-size: clamp(24px,8.5vw,42px); text-align: center; }
 }
 @media (max-height: 650px) and (max-width: 900px) {
   .main-restyle .remake-story[data-static="true"] .remake-device-wrap { width: min(55vw,220px); }
