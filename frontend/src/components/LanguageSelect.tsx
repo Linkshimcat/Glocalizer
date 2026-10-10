@@ -25,12 +25,13 @@ export default function LanguageSelect() {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        aria-label={`${legalUi[lang].language}: ${current.label}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         className="flex min-h-11 items-center gap-1.5 rounded-full border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
       >
         <img src={globeIcon} alt="" aria-hidden className="h-5 w-5" />
+        {/* The name is built from the visible label so voice-control users can say what they see (WCAG 2.5.3). */}
+        <span className="sr-only">{legalUi[lang].language}: </span>
         <span className="hidden sm:inline">{current.label}</span>
         <span className="sm:hidden">{current.short}</span>
         <ChevronDown className={`h-3.5 w-3.5 text-sub transition-transform ${open ? 'rotate-180' : ''}`} />

@@ -2,7 +2,10 @@ import { ArrowDown, ArrowRight } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import heroCharacter from '../assets/studio/hero-character.webp'
+import heroCharacterAvif from '../assets/studio/hero-character.avif'
 import translationStrip from '../assets/studio/translation-strip.webp'
+import translationStripAvif from '../assets/studio/translation-strip.avif'
+import translationStripAvif720 from '../assets/studio/translation-strip-720.avif'
 import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
 import replayIcon from '../assets/LandingAssets/replay-icon.svg'
 import workflowArrow from '../assets/LandingAssets/workflow-arrow.svg'
@@ -570,11 +573,17 @@ export default function LandingRemake() {
               <button type="button" onClick={jumpToStory} className="remake-scroll-button">{copy.scrollLabel}<ArrowDown size={17} /></button>
             </div>
           </div>
-          <img src={heroCharacter} alt="" width={1391} height={1131} fetchPriority="high" className="remake-hero-art" />
+          <picture className="remake-picture">
+            <source type="image/avif" srcSet={heroCharacterAvif} />
+            <img src={heroCharacter} alt="" width={1391} height={1131} fetchPriority="high" className="remake-hero-art" />
+          </picture>
         </section>
 
         <figure className="remake-translation-strip">
-          <img src={translationStrip} alt={copy.translationAlt} width={2172} height={724} />
+          <picture className="remake-picture">
+            <source type="image/avif" srcSet={`${translationStripAvif720} 720w, ${translationStripAvif} 1120w`} sizes="(max-width: 900px) calc(100vw - 40px), min(calc(100vw - 120px), 1120px)" />
+            <img src={translationStrip} alt={copy.translationAlt} width={2172} height={724} />
+          </picture>
           <figcaption>{copy.languageLabels.map(label => <span key={label}>{label}</span>)}</figcaption>
         </figure>
 
@@ -588,7 +597,7 @@ export default function LandingRemake() {
 
         <section className="remake-workflow">
           <div className="remake-workflow-heading"><h2>{copy.workflowTitle}</h2><p>{copy.workflowDescription}</p></div>
-          <div ref={workflowGridRef} className="remake-workflow-grid" data-motion-ready="true">
+          <div ref={workflowGridRef} className="remake-workflow-grid" data-motion-ready={typeof window !== 'undefined'}>
             {copy.scenes.map((item, index) => (
               <article
                 key={item.title}

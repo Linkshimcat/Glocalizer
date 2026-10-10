@@ -48,7 +48,8 @@ export default function NavMenu() {
 
   return (
     <>
-      {createPortal(
+      {/* The build-time prerender has no document; the backdrop only matters once the menu is interactive. */}
+      {typeof document !== 'undefined' && createPortal(
         <div
           aria-hidden="true"
           className={`site-nav-backdrop${openMenu ? ' is-open' : ''}`}
