@@ -70,7 +70,7 @@ async function setup({ width = 1280, count = 8, me = 200, signedIn = true, voice
       state.generation.images.push(...slots.map(slot => ({ id: `queued-${slot}`, slot, status: 'queued', caption: '', prompt: '', url: null })))
       return route.abort('connectionreset') // server accepted the paid jobs, response was lost
     }
-    if (path === '/projects') return reply({ projects: Array.from({length:3},(_,i)=>({id:'workflow-project'+i,name:['첫 번째 작품','일상 속 작은 행복','오늘도 파이팅'][i],status:'completed',resultReady:false,targetLanguages:['en','ja'],imageCount:8,createdAt:'2026-10-07T08:00:00Z',updatedAt:'2026-10-07T08:00:00Z',thumbnailUrl:'/src/assets/studio/hero-character.png'})) })
+    if (path === '/projects') return reply({ projects: Array.from({length:3},(_,i)=>({id:'workflow-project'+i,name:['첫 번째 작품','일상 속 작은 행복','오늘도 파이팅'][i],status:'completed',resultReady:false,targetLanguages:['en','ja'],imageCount:8,createdAt:'2026-10-07T08:00:00Z',updatedAt:'2026-10-07T08:00:00Z',thumbnailUrl:'/src/assets/studio/hero-character.webp'})) })
     if (path === '/ogq/stickers') return reply({stickers: []}); if (path === '/landing/showcases') return reply({ showcases: [] })
     return reply({})
   })

@@ -51,6 +51,7 @@ import {
   textOverlaysForItem,
   zipLocalizedItems,
 } from '../lib/exportImage'
+import '../editor-fonts.css'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'

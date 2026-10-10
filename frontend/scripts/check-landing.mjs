@@ -4,7 +4,7 @@ import { chromium } from 'playwright'
 const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||undefined}),dir='/tmp/glocalizer-restyle-qa',errors=[],consoleErrors=[]
 await fs.mkdir(dir,{recursive:true})
 const base=process.env.PREVIEW_URL??'http://127.0.0.1:5173'
-const heroFixture='data:image/png;base64,'+(await fs.readFile(new URL('../src/assets/studio/hero-character.png',import.meta.url))).toString('base64')
+const heroFixture='data:image/webp;base64,'+(await fs.readFile(new URL('../src/assets/studio/hero-character.webp',import.meta.url))).toString('base64')
 const resultFixture='data:image/png;base64,'+(await fs.readFile(new URL('../src/assets/LandingAssets/Local.png',import.meta.url))).toString('base64')
 async function setup({width=1440,height=1024,lang='ko',motion='no-preference',state='empty'}={}){
  let ogqState=state
@@ -37,13 +37,13 @@ for(const width of [360,390,768,1280,1440])for(const lang of ['ko','en','ja','zh
  assert.equal(await page.locator('html').getAttribute('lang'),lang)
  assert.equal(await page.locator('.remake-hero-art').count(),1)
  assert.equal(await page.locator('.remake-translation-strip').count(),1)
- assert.equal(await page.locator('video').evaluate(v=>v.paused&&v.controls&&v.muted&&v.playsInline&&!v.autoplay),true)
+ assert.equal(await page.locator('video.remake-intro-video').evaluate(v=>v.paused&&v.controls&&v.muted&&v.playsInline&&!v.autoplay),true)
  const h=await page.locator('header').boundingBox(),title=await page.locator('h1').boundingBox();assert.ok(title.y>=h.height)
  await overflow(page,label)
  await page.screenshot({path:`${dir}/matrix-hero-${width}-${lang}.png`})
  // Aspect ratio, metadata and presentation are checked at all 20 combinations.
- await page.locator('video').scrollIntoViewIfNeeded();await page.waitForFunction(()=>document.querySelector('video').readyState>=2)
- const video=await page.locator('video').evaluate(v=>{const r=v.getBoundingClientRect(),s=getComputedStyle(v);return{width:r.width,height:r.height,w:v.videoWidth,h:v.videoHeight,duration:v.duration,filter:s.filter,fit:s.objectFit,transform:s.transform}})
+ await page.locator('video.remake-intro-video').scrollIntoViewIfNeeded();await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').readyState>=2)
+ const video=await page.locator('video.remake-intro-video').evaluate(v=>{const r=v.getBoundingClientRect(),s=getComputedStyle(v);return{width:r.width,height:r.height,w:v.videoWidth,h:v.videoHeight,duration:v.duration,filter:s.filter,fit:s.objectFit,transform:s.transform}})
  assert.ok(Math.abs(video.width/video.height-16/9)<.01);assert.ok(video.width<=1120.1);assert.equal(video.w,1920);assert.equal(video.h,1080);assert.ok(video.duration>18&&video.duration<19);assert.equal(video.filter,'none');assert.equal(video.transform,'none');assert.equal(video.fit,'contain')
  for(let i=0;i<3;i++){
   await scene(page,i)
@@ -68,7 +68,7 @@ for(const width of [360,390,768,1280,1440])for(const lang of ['ko','en','ja','zh
  for(let i=0;i<3;i++){
   await cards.nth(i).scrollIntoViewIfNeeded();await page.waitForTimeout(450)
   assert.equal(await cards.nth(i).getAttribute('data-visible'),'true')
-  assert.equal(await cards.nth(i).locator(':scope > :first-child').evaluate(n=>n.tagName),'IMG')
+  assert.ok(await cards.nth(i).locator(':scope > :first-child').evaluate(n=>n.classList.contains('remake-workflow-visual')&&(n.tagName==='IMG'||n.tagName==='VIDEO')))
   assert.equal(await cards.nth(i).locator('a').getAttribute('href'),['/generate','/localize','/review'][i])
  }
  await page.locator('.remake-final').scrollIntoViewIfNeeded();await overflow(page,`${label} final`)
@@ -105,21 +105,21 @@ for(const width of [360,390,768,1280,1440])for(const lang of ['ko','en','ja','zh
 // Native controls: half-visible autoplay, leaving/returning, manual pause, seek, end and replay.
 {
  const {page,context}=await setup()
- const v=page.locator('video')
+ const v=page.locator('video.remake-intro-video')
  const position=async fraction=>{await v.evaluate((n,f)=>{const r=n.getBoundingClientRect();scrollTo(0,scrollY+r.top-innerHeight+r.height*f)},fraction);await page.waitForTimeout(300)}
  await position(.49);assert.equal(await v.evaluate(n=>n.paused),true)
- await position(.55);await page.waitForFunction(()=>!document.querySelector('video').paused&&document.querySelector('video').currentTime>0)
- await page.evaluate(()=>scrollTo(0,0));await page.waitForFunction(()=>document.querySelector('video').paused)
+ await position(.55);await page.waitForFunction(()=>!document.querySelector('video.remake-intro-video').paused&&document.querySelector('video.remake-intro-video').currentTime>0)
+ await page.evaluate(()=>scrollTo(0,0));await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').paused)
  const stopped=await v.evaluate(n=>n.currentTime);await page.waitForTimeout(150);assert.equal(await v.evaluate(n=>n.currentTime),stopped)
- await v.scrollIntoViewIfNeeded();await page.waitForFunction(()=>!document.querySelector('video').paused)
+ await v.scrollIntoViewIfNeeded();await page.waitForFunction(()=>!document.querySelector('video.remake-intro-video').paused)
  // Exercise browser-owned play/pause button rather than dispatching a synthetic event.
- let box=await v.boundingBox();await page.mouse.click(box.x+24,box.y+box.height-48);await page.waitForFunction(()=>document.querySelector('video').paused)
+ let box=await v.boundingBox();await page.mouse.click(box.x+24,box.y+box.height-48);await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').paused)
  await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(150);await v.scrollIntoViewIfNeeded();await page.waitForTimeout(300);assert.equal(await v.evaluate(n=>n.paused),true,'respect explicit user pause')
- box=await v.boundingBox();await page.mouse.click(box.x+24,box.y+box.height-48);await page.waitForFunction(()=>!document.querySelector('video').paused)
- await page.mouse.click(box.x+box.width*.5,box.y+box.height-22);await page.waitForFunction(()=>document.querySelector('video').currentTime>7)
- await v.evaluate(n=>{n.currentTime=n.duration-.1;return n.play()});await page.waitForFunction(()=>document.querySelector('video').ended)
+ box=await v.boundingBox();await page.mouse.click(box.x+24,box.y+box.height-48);await page.waitForFunction(()=>!document.querySelector('video.remake-intro-video').paused)
+ await page.mouse.click(box.x+box.width*.5,box.y+box.height-22);await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').currentTime>7)
+ await v.evaluate(n=>{n.currentTime=n.duration-.1;return n.play()});await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').ended)
  await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(150);await v.scrollIntoViewIfNeeded();await page.waitForTimeout(250);assert.equal(await v.evaluate(n=>n.ended),true,'no automatic loop')
- await page.locator('.remake-video-replay').click();await page.waitForFunction(()=>document.querySelector('video').currentTime<1&&!document.querySelector('video').paused)
+ await page.locator('.remake-video-replay').click();await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').currentTime<1&&!document.querySelector('video.remake-intro-video').paused)
  await context.close();console.log('native video controls passed')
 }
 for(const width of [390,1440])for(const lang of ['ko','en','ja','zh']){
@@ -128,11 +128,11 @@ for(const width of [390,1440])for(const lang of ['ko','en','ja','zh']){
  assert.equal(await page.locator('.remake-hero .animate-roll-word').first().evaluate(n=>getComputedStyle(n).animationName),'none')
  assert.equal(await page.locator('.remake-hero .roll-layer').nth(1).evaluate(n=>getComputedStyle(n).opacity),'0')
  assert.equal(await page.locator('.remake-workflow-grid article[data-visible="true"]').count(),3)
- await page.locator('video').scrollIntoViewIfNeeded();await page.waitForTimeout(300)
- assert.equal(await page.locator('video').evaluate(n=>n.paused),true)
- await page.locator('.remake-video-replay').click();await page.waitForFunction(()=>!document.querySelector('video').paused)
- await page.evaluate(()=>scrollTo(0,0));await page.waitForFunction(()=>document.querySelector('video').paused)
- await page.locator('video').scrollIntoViewIfNeeded();await page.waitForTimeout(200);assert.equal(await page.locator('video').evaluate(n=>n.paused),true)
+ await page.locator('video.remake-intro-video').scrollIntoViewIfNeeded();await page.waitForTimeout(300)
+ assert.equal(await page.locator('video.remake-intro-video').evaluate(n=>n.paused),true)
+ await page.locator('.remake-video-replay').click();await page.waitForFunction(()=>!document.querySelector('video.remake-intro-video').paused)
+ await page.evaluate(()=>scrollTo(0,0));await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').paused)
+ await page.locator('video.remake-intro-video').scrollIntoViewIfNeeded();await page.waitForTimeout(200);assert.equal(await page.locator('video.remake-intro-video').evaluate(n=>n.paused),true)
  await overflow(page,`reduced ${width} ${lang}`)
  await context.close()
 }

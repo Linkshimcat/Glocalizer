@@ -1,7 +1,7 @@
 import { useSiteLang } from '../i18n/LanguageContext'
 import { legalUi } from '../i18n/legalUi'
 import { Link } from 'react-router-dom'
-import logoUrl from '../assets/GlocalizerLogo.png'
+import logoUrl from '../assets/GlocalizerLogo.webp'
 
 export default function Logo({ small = false }: { small?: boolean }) {
   const { lang } = useSiteLang()

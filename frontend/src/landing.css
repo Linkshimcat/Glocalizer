@@ -50,7 +50,7 @@
 .main-restyle .remake-workflow-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 32px; width: min(100%,1280px); margin: 32px auto 0; }
 .main-restyle .remake-workflow-grid article { position: relative; display: flex; min-width: 0; flex-direction: column; transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1); transition-delay: var(--workflow-delay,0ms); }
 .main-restyle .remake-workflow-grid[data-motion-ready="true"] article[data-visible="false"] { opacity: 0; transform: translateY(18px); }
-.main-restyle .remake-workflow-visual { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: var(--radius-panel); object-fit: contain; transition: transform .5s cubic-bezier(.22,1,.36,1); }
+.main-restyle .remake-workflow-visual { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 6.4%; object-fit: cover; transition: transform .5s cubic-bezier(.22,1,.36,1); }
 .main-restyle .remake-workflow-grid article:hover .remake-workflow-visual { transform: translateY(-4px); }
 .main-restyle .remake-workflow-grid h3 { margin-top: 24px; font-size: clamp(23px,2.4vw,34px); font-weight: 800; letter-spacing: -.035em; line-height: 1.2; }
 .main-restyle .remake-workflow-grid h3 span { display: block; }
@@ -143,7 +143,7 @@
   .main-restyle .remake-workflow-heading > p:last-child, .main-restyle .remake-cases-heading > p:last-child { font-size: 16px; }
   .main-restyle .remake-workflow-grid { grid-template-columns: 1fr; gap: 32px; margin-top: 24px; }
   .main-restyle .remake-workflow-grid h3 { font-size: 28px; }
-  .main-restyle .remake-workflow-visual { border-radius: var(--radius-panel); }
+  .main-restyle .remake-workflow-visual { border-radius: 6.4%; }
   .main-restyle .remake-case-card { border-radius: var(--radius-panel); }
   .main-restyle .remake-ogq-proof > section { padding-block: 40px; }
   .main-restyle .remake-final { padding: 32px 20px; }
