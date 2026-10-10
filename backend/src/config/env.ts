@@ -45,6 +45,19 @@ export const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value ? value : undefined)),
+  // 가입 환영 메일 발송용 SMTP. Gmail은 2단계 인증 후 발급한 앱 비밀번호를 SMTP_PASS에 넣는다.
+  // 미설정 시 메일 발송만 건너뛰고 가입·로그인은 정상 동작한다. 도메인이 생기면 HOST/PORT만 바꿔 다른 SMTP로 옮길 수 있다.
+  SMTP_USER: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  SMTP_PASS: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  MAIL_FROM_NAME: z.string().default('Glocalizer'),
   // 대회 사무국이 제공한 OGQ 마켓 API 키. 미설정 시 OGQ 연동 기능만 503으로 비활성화되고
   // 나머지는 정상 동작한다. 절대 프론트엔드로 내려보내지 않는다(서버 사이드 프록시 전용).
   OGQ_API_KEY: z.string().min(1).optional(),
