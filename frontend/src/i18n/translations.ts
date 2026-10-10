@@ -16,6 +16,7 @@ export interface Dict {
   cloudRetry: string
   cloudInProgress: string
   cloudArchive: string
+  cloudLocalizationCompleted: string
   cloudEmptyProgress: string
   cloudEmptyArchive: string
   cloudLoading: string
@@ -126,7 +127,16 @@ export interface Dict {
   feedbackCategoryOther: string
 
   navStart: string
+  navWorkspace: string
+  navWorkspaceExplore: string
+  navServiceExplore: string
+  navServiceHowTo: string
+  navServiceGithub: string
   navService: string
+  navPrice: string
+  pricingTitle: string
+  pricingDescription: string
+  pricingWorkspaceCta: string
   heroBrandTag: string
   heroLine1: string
   heroLine2: string
@@ -319,7 +329,8 @@ export const translations: Record<SiteLang, Dict> = {
     cloudSaveFailed: '클라우드 저장에 실패했어요. 다시 시도해주세요.',
     cloudRetry: '다시 시도',
     cloudInProgress: '진행 중인 작업',
-    cloudArchive: '작업 아카이브',
+    cloudArchive: '워크스페이스 아카이브',
+    cloudLocalizationCompleted: '현지화 완료',
     cloudEmptyProgress: '진행 중인 작업이 없어요. 현지화나 이모티콘 생성을 시작해보세요.',
     cloudEmptyArchive: '완료한 작업이 아직 없어요.',
     cloudLoading: '작업을 불러오는 중…',
@@ -340,7 +351,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudRename: '이름 변경', cloudRenameTitle: '작업 이름 바꾸기', cloudRenameLabel: '작업 이름', cloudRenameHint: '비워두면 기본 이름으로 돌아가요. 최대 60자.', cloudRenameSave: '저장', cloudRenameSuccess: '이름을 바꿨어요.', cloudRenameFailed: '이름을 바꾸지 못했어요. 다시 시도해주세요.',
 
     hubDashboard: "작업실",
-    hubTitle: "작업실",
+    hubTitle: "워크스페이스 대시보드",
     hubSubtitle: "이모티콘 생성·현지화·출시 전 검토를 지원합니다.",
     hubLocalize: '이모티콘 현지화',
     hubLocalizeDesc: "한국어 문구를 영어·일본어·중국어로 변환합니다.",
@@ -424,16 +435,25 @@ export const translations: Record<SiteLang, Dict> = {
     feedbackCategoryOther: '기타',
 
     navStart: "작업실",
+    navWorkspace: "워크스페이스",
+    navWorkspaceExplore: '워크스페이스 살펴보기',
+    navServiceExplore: '서비스 소개 살펴보기',
+    navServiceHowTo: 'Glocalizer 사용법',
+    navServiceGithub: 'Glocalizer Github',
     navService: '서비스 소개',
+    navPrice: '가격',
+    pricingTitle: '가격 페이지는 아직 준비 중이에요',
+    pricingDescription: '가격 안내가 준비되면 이 페이지에서 알려드릴게요.',
+    pricingWorkspaceCta: '워크스페이스로 돌아가기',
     heroBrandTag: 'Glocalizer',
     heroLine1: "이모티콘을",
     heroLine2: "생성하고 현지화하고 검토하세요",
     heroLine2Roll: ["만드세요", "현지화하세요", "검토하세요"],
     heroDesc: "이모티콘 생성·현지화·출시 전 검토를 지원합니다.",
-    heroCta: "작업실 열기",
+    heroCta: "워크스페이스 열기",
     heroReplay: '영상 처음부터 다시 보기',
     landingVideoTitle: "Glocalizer 사용 방법",
-    landingVideoDescription: "생성과 다국어 현지화 과정을 영상으로 확인하세요.",
+    landingVideoDescription: "생성,현지화,검토 과정을 영상으로 확인하세요.",
     landingVideoAutoHint: "화면에 들어오면 음소거로 재생됩니다. 재생 버튼과 탐색 막대로 조작할 수 있습니다.",
     landingVideoManualHint: "재생 버튼을 눌러 시작하세요. 탐색 막대로 원하는 장면으로 이동할 수 있습니다.",
     beforeAfter: 'Before → After',
@@ -610,6 +630,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudRetry: 'Try again',
     cloudInProgress: 'Work in progress',
     cloudArchive: 'Work archive',
+    cloudLocalizationCompleted: 'Localization complete',
     cloudEmptyProgress: 'No work in progress. Start localizing or generating emoticons.',
     cloudEmptyArchive: 'No finished work yet.',
     cloudLoading: 'Loading your work…',
@@ -630,7 +651,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudRename: 'Rename', cloudRenameTitle: 'Rename this work', cloudRenameLabel: 'Work name', cloudRenameHint: 'Leave empty to restore the default name. Up to 60 characters.', cloudRenameSave: 'Save', cloudRenameSuccess: 'Name updated.', cloudRenameFailed: 'Could not rename this work. Please try again.',
 
     hubDashboard: "Studio",
-    hubTitle: "Studio",
+    hubTitle: "Workspace dashboard",
     hubSubtitle: "Create stickers. Localize captions. Review before release.",
     hubLocalize: 'Emoticon localization',
     hubLocalizeDesc: "Adapt Korean captions into English, Japanese and Chinese.",
@@ -714,7 +735,16 @@ export const translations: Record<SiteLang, Dict> = {
     feedbackCategoryOther: 'Other',
 
     navStart: "Studio",
+    navWorkspace: "Workspace",
+    navWorkspaceExplore: 'Explore workspace',
+    navServiceExplore: 'Explore our service',
+    navServiceHowTo: 'How to use Glocalizer',
+    navServiceGithub: 'Glocalizer GitHub',
     navService: 'About',
+    navPrice: 'Pricing',
+    pricingTitle: 'Pricing is coming soon',
+    pricingDescription: 'We’ll share pricing details here when they’re ready.',
+    pricingWorkspaceCta: 'Back to workspace',
     heroBrandTag: 'Glocalizer',
     heroLine1: "Your stickers",
     heroLine2: "Create, localize and review",
@@ -900,6 +930,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudRetry: '再試行',
     cloudInProgress: '進行中の作業',
     cloudArchive: '作業アーカイブ',
+    cloudLocalizationCompleted: 'ローカライズ完了',
     cloudEmptyProgress: '進行中の作業はありません。現地化かスタンプ生成を始めましょう。',
     cloudEmptyArchive: '完了した作業はまだありません。',
     cloudLoading: '作業を読み込み中…',
@@ -920,7 +951,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudRename: '名前を変更', cloudRenameTitle: '作業名を変更', cloudRenameLabel: '作業名', cloudRenameHint: '空にすると既定の名前に戻ります。最大60文字。', cloudRenameSave: '保存', cloudRenameSuccess: '名前を変更しました。', cloudRenameFailed: '名前を変更できませんでした。もう一度お試しください。',
 
     hubDashboard: "スタジオ",
-    hubTitle: "スタジオ",
+    hubTitle: "ワークスペースダッシュボード",
     hubSubtitle: "スタンプ生成・ローカライズ・公開前チェックを支援します。",
     hubLocalize: 'スタンプの現地化',
     hubLocalizeDesc: "韓国語の文言を英語・日本語・中国語に変換します。",
@@ -1004,7 +1035,16 @@ export const translations: Record<SiteLang, Dict> = {
     feedbackCategoryOther: 'その他',
 
     navStart: "スタジオ",
+    navWorkspace: "ワークスペース",
+    navWorkspaceExplore: 'ワークスペースを見る',
+    navServiceExplore: 'サービス紹介を見る',
+    navServiceHowTo: 'Glocalizerの使い方',
+    navServiceGithub: 'Glocalizer GitHub',
     navService: 'サービス紹介',
+    navPrice: '料金',
+    pricingTitle: '料金ページはただいま準備中です',
+    pricingDescription: '料金の詳細が決まり次第、このページでお知らせします。',
+    pricingWorkspaceCta: 'ワークスペースに戻る',
     heroBrandTag: 'Glocalizer',
     heroLine1: "スタンプを",
     heroLine2: "生成・ローカライズ・チェック",
@@ -1190,6 +1230,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudRetry: '重试',
     cloudInProgress: '进行中的任务',
     cloudArchive: '任务归档',
+    cloudLocalizationCompleted: '本地化完成',
     cloudEmptyProgress: '没有进行中的任务，开始本地化或生成表情贴纸吧。',
     cloudEmptyArchive: '暂无已完成的任务。',
     cloudLoading: '正在加载任务…',
@@ -1210,7 +1251,7 @@ export const translations: Record<SiteLang, Dict> = {
     cloudRename: '重命名', cloudRenameTitle: '重命名任务', cloudRenameLabel: '任务名称', cloudRenameHint: '留空将恢复默认名称，最多60个字符。', cloudRenameSave: '保存', cloudRenameSuccess: '名称已更新。', cloudRenameFailed: '无法重命名，请重试。',
 
     hubDashboard: "工作室",
-    hubTitle: "工作室",
+    hubTitle: "工作空间仪表盘",
     hubSubtitle: "支持表情生成、多语言本地化和发布前检查。",
     hubLocalize: '表情本地化',
     hubLocalizeDesc: "将韩语文案转换为英语、日语和中文。",
@@ -1294,7 +1335,16 @@ export const translations: Record<SiteLang, Dict> = {
     feedbackCategoryOther: '其他',
 
     navStart: "工作室",
+    navWorkspace: "工作空间",
+    navWorkspaceExplore: '浏览工作空间',
+    navServiceExplore: '了解服务',
+    navServiceHowTo: 'Glocalizer 使用方法',
+    navServiceGithub: 'Glocalizer GitHub',
     navService: '服务介绍',
+    navPrice: '价格',
+    pricingTitle: '价格页面正在准备中',
+    pricingDescription: '价格详情确定后，我们会在此页面公布。',
+    pricingWorkspaceCta: '返回工作空间',
     heroBrandTag: 'Glocalizer',
     heroLine1: "让表情",
     heroLine2: "生成、本地化并检查",

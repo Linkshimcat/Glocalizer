@@ -28,9 +28,9 @@ export default function LanguageSelect() {
         aria-label={`${legalUi[lang].language}: ${current.label}`}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex min-h-11 items-center gap-1.5 rounded-control border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
+        className="flex min-h-11 items-center gap-1.5 rounded-full border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
       >
-        <img src={globeIcon} alt="" aria-hidden className="h-4 w-4" />
+        <img src={globeIcon} alt="" aria-hidden className="h-5 w-5" />
         <span className="hidden sm:inline">{current.label}</span>
         <span className="sm:hidden">{current.short}</span>
         <ChevronDown className={`h-3.5 w-3.5 text-sub transition-transform ${open ? 'rotate-180' : ''}`} />

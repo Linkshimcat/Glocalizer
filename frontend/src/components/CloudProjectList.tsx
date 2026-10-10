@@ -38,7 +38,7 @@ function ProjectListSkeleton({ label }: { label: string }) {
 /** onCount를 받으면 제목과 빈 상태를 부모가 책임진다. 생성 목록과 한 섹션에 나란히 놓일 때
  *  "작업 없음" 문구가 두 번 뜨지 않게 하기 위함이고, 불러오지 못했을 때는 null을 올려보내
  *  부모가 작업이 없다고 잘못 단정하지 않게 한다. */
-export default function CloudProjectList({ archive, onCount, onLoadingChange, deferRender = false, gallery = false }: { archive: boolean; onCount?: (count: number | null) => void; onLoadingChange?: (loading: boolean) => void; deferRender?: boolean; gallery?: boolean }) {
+export default function CloudProjectList({ archive, onCount, onLoadingChange, deferRender = false, gallery = false, loginMessage }: { archive: boolean; onCount?: (count: number | null) => void; onLoadingChange?: (loading: boolean) => void; deferRender?: boolean; gallery?: boolean; loginMessage?: string }) {
   const { user, token } = useAuth()
   const { t, lang } = useSiteLang()
   const { openCloudProject, resultReady, cloudSaving, files, flushCloudWork, projectStatus, resetWorkflow } = useUploads()
@@ -110,14 +110,14 @@ export default function CloudProjectList({ archive, onCount, onLoadingChange, de
   }
 
   if (deferRender) return null
-  if (!user) return <div className="mt-4 rounded-panel border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
+  if (!user) return <div className="mt-4 rounded-panel border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{loginMessage ?? t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login')}>{t.navLogin}</Button></div>
   if (loading) return <ProjectListSkeleton label={t.cloudLoading} />
   if (error) return <div role="alert" className="mt-5"><p className="text-sm text-sub">{t.cloudListFailed}</p><Button variant="outline" className="mt-3" onClick={() => setRetry(value => value + 1)}>{t.cloudRetry}</Button></div>
   if (!projects.length) return onCount ? null : <p className="mt-5 rounded-panel border border-dashed border-gray-200 p-6 text-sm text-sub">{archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p>
 
   return <div className={gallery ? "studio-project-grid mt-4" : "mt-4 grid gap-4"}>
     {projects.map(project => {
-      const status = project.resultReady ? t.hubResult : project.status === 'created' ? t.hubUpload : project.status === 'processing' ? t.hubProcessing : project.status === 'failed' ? t.hubFailed : t.hubEditing
+      const status = archive ? t.cloudLocalizationCompleted : project.resultReady ? t.hubResult : project.status === 'created' ? t.hubUpload : project.status === 'processing' ? t.hubProcessing : project.status === 'failed' ? t.hubFailed : t.hubEditing
       const currentDraft = project.id === projectStatus?.projectId && projectStatus.status === 'created'
       return <article key={project.id} className={gallery ? "studio-project-tile" : "flex min-w-0 flex-col gap-4 overflow-hidden rounded-panel border border-gray-200/70 bg-white p-5 sm:flex-row sm:items-center sm:p-6"}>
         <div className={gallery ? "studio-project-info" : "flex min-w-0 flex-1 items-center gap-4"}>

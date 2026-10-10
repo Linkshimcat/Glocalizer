@@ -292,6 +292,23 @@ body {
 .animate-toast-in {
   animation: toast-in 0.25s ease-out;
 }
+.animate-toast-out {
+  animation: toast-out 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+}
+@keyframes toast-out {
+  to {
+    transform: translateY(6px) scale(0.98);
+    filter: blur(8px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in,
+  .animate-toast-out {
+    animation-duration: 0.01ms;
+  }
+}
 
 /* 완료 체크 — 원 팝인 + 체크 그려지기 + 링 퍼짐 */
 @keyframes success-pop {

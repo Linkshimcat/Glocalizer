@@ -33,9 +33,9 @@ export const serviceDict: Record<SiteLang, ServiceDict> = {
             "answer": "아니요. 규격 검사는 파일 형식·용량·크기·투명도·여백을 확인하는 보조 기능입니다. 관련 콘텐츠 검색과 AI 심층 검토도 참고용이며 공식 심사나 저작권 판단이 아닙니다. 최종 결과를 확인한 뒤 해당 플랫폼에 직접 제출해야 합니다."
       }
 ],
-    home: '홈으로', title: "이모티콘 제작 서비스",
+    home: '홈으로', title: "크리에이터를 위한 이모티콘 제작 서비스",
     intro: "이모티콘 생성·다국어 현지화·출시 전 검토를 지원합니다.",
-    start: "작업실 열기", account: '생성·현지화 작업과 프로젝트 저장에는 로그인이 필요합니다.', heading: "주요 기능",
+    start: "워크스페이스 열기", account: '생성·현지화 작업과 프로젝트 저장에는 로그인이 필요합니다.', heading: "주요 기능",
     features: [
       { title: '이모티콘 생성', description: '캐릭터 설명과 참고 이미지로 24종 이모티콘을 생성합니다.', details: ['24개 슬롯의 생성 상태와 결과를 확인하고 필요한 이미지를 다시 생성합니다.', '문구와 글자 크기·색상·배치를 조정하고 개별 이미지를 다운로드합니다.', '24종을 완성하면 세트를 다운로드하거나 현지화·출시 검토로 이어갑니다.'], action: '이모티콘 생성하기' },
       { title: '다국어 현지화', description: 'PNG·JPG 이미지의 한국어 문구를 인식하고 영어·일본어·중국어 표현으로 바꿉니다.', details: ['번역 후보를 비교하고 원문이나 번역문을 직접 수정합니다.', '글자 영역과 배경 정리 결과를 확인하고 에디터에서 글꼴·크기·색상·배치를 다듬습니다.', '원하는 언어의 결과를 다운로드합니다. 복잡한 배경은 수동 보정이 필요할 수 있습니다.'], action: '현지화 시작하기' },
@@ -73,7 +73,7 @@ export const serviceDict: Record<SiteLang, ServiceDict> = {
 ],
     home: 'Home', title: "Sticker creation services",
     intro: "Create stickers, localize captions and review before release.",
-    start: "Open studio", account: 'Sign-in is required for generation, localization and saved projects.', heading: "Features",
+    start: "Open workspace", account: 'Sign-in is required for generation, localization and saved projects.', heading: "Features",
     features: [
       { title: 'Sticker creation', description: 'Describe your character and optionally add a reference image to create stickers for different emotions and situations.', details: ['Track generation and results across 24 slots and regenerate images when needed.', 'Adjust captions, text size, color and placement, then download individual images.', 'Complete all 24 to download the set or continue to localization and release review.'], action: 'Create stickers' },
       { title: 'Caption localization', description: 'Recognize Korean text in PNG and JPG images and adapt it into English, Japanese and Chinese.', details: ['Compare translation candidates and edit the source or translated text yourself.', 'Check text regions and background cleanup, then adjust font, size, color and placement in the editor.', 'Download results in your chosen languages. Complex backgrounds may need manual corrections.'], action: 'Start localizing' },
@@ -111,7 +111,7 @@ export const serviceDict: Record<SiteLang, ServiceDict> = {
 ],
     home: 'ホームへ', title: "スタンプ制作サービス",
     intro: "スタンプ生成・多言語ローカライズ・公開前チェックを支援します。",
-    start: "スタジオを開く", account: '生成・ローカライズとプロジェクト保存にはログインが必要です。', heading: "主な機能",
+    start: "ワークスペースを開く", account: '生成・ローカライズとプロジェクト保存にはログインが必要です。', heading: "主な機能",
     features: [
       { title: 'スタンプ生成', description: 'キャラクターを説明し、必要に応じて参考画像を追加して、さまざまな感情や場面のスタンプを作ります。', details: ['24枠の生成状況と結果を確認し、必要な画像を再生成します。', '文言、文字サイズ、色、配置を調整し、個別画像をダウンロードします。', '24種類を完成させると、セットをダウンロードしたり、ローカライズや公開前チェックへ進めます。'], action: 'スタンプを生成' },
       { title: '多言語ローカライズ', description: 'PNG・JPG画像内の韓国語を認識し、英語・日本語・中国語の表現に変換します。', details: ['翻訳候補を比較し、原文や翻訳文を直接編集できます。', '文字領域と背景の処理結果を確認し、エディターでフォント・サイズ・色・配置を調整します。', '選択した言語の結果をダウンロードします。複雑な背景には手動修正が必要な場合があります。'], action: 'ローカライズを始める' },
@@ -149,7 +149,7 @@ export const serviceDict: Record<SiteLang, ServiceDict> = {
 ],
     home: '返回首页', title: "表情制作服务",
     intro: "支持表情生成、多语言本地化和发布前检查。",
-    start: "打开工作室", account: '生成、本地化和项目保存需要登录。', heading: "主要功能",
+    start: "打开工作空间", account: '生成、本地化和项目保存需要登录。', heading: "主要功能",
     features: [
       { title: '用角色创作 24 张表情包', description: '描述角色，并按需添加参考图片，生成不同情绪和场景的表情包。', details: ['查看 24 个位置的生成进度和结果，按需重新生成图片。', '调整文案、字号、颜色和位置，下载单张图片。', '完成全部 24 张后，下载整套或继续本地化与发布前检查。'], action: '生成表情包' },
       { title: '将韩文表达本地化为三种语言', description: '识别 PNG、JPG 图片中的韩文，并转换为英语、日语和中文表达。', details: ['比较翻译候选，自行修改原文或译文。', '检查文字区域和背景清理效果，在编辑器中调整字体、大小、颜色与位置。', '下载所选语言的结果。复杂背景可能需要手动修正。'], action: '开始本地化' },

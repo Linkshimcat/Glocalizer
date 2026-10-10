@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import heroCharacter from '../assets/studio/hero-character.png'
 import translationStrip from '../assets/studio/translation-strip.png'
 import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
-import refreshIcon from '../assets/LandingAssets/refreshButton.svg'
+import replayIcon from '../assets/LandingAssets/replay-icon.svg'
+import workflowArrow from '../assets/LandingAssets/workflow-arrow.svg'
+import finalArrow from '../assets/LandingAssets/final-arrow.svg'
 import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.png'
 import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.png'
 import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.png'
@@ -58,7 +60,7 @@ const WORKFLOW_VISUALS = [workflowCreateVisual, workflowLocalizeVisual, workflow
 const COPY: Record<SiteLang, RemakeCopy> = {
   "ko": {
     "heroDescription": "이모티콘 생성·현지화·출시 전 검토를 지원합니다.",
-    "heroCta": "작업실 열기",
+    "heroCta": "워크스페이스 열기",
     "scrollLabel": "둘러보기",
     "translationAlt": "한국어·영어·일본어로 인사하는 캐릭터",
     "languageLabels": [
@@ -93,9 +95,9 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "caseCompareLabel": "원본과 작업 결과 비교",
     "caseLocalization": "현지화",
     "caseGeneration": "생성",
-    "finalTitle": "이모티콘 작업을 시작하세요",
+    "finalTitle": "어떤 기기든 이모티콘을 생성 하세요",
     "finalDescription": "생성부터 출시 전 검토까지 한곳에서 진행합니다.",
-    "finalCta": "작업실 열기"
+    "finalCta": "워크스페이스 열기"
   },
   "en": {
     "heroDescription": "Create stickers. Localize captions. Review before release.",
@@ -290,7 +292,7 @@ function VideoIntro({ reduceMotion, t }: { reduceMotion: boolean; t: Dict }) {
       <div className="remake-video-footer">
         <p id="landing-video-hint">{reduceMotion ? t.landingVideoManualHint : t.landingVideoAutoHint}</p>
         <button type="button" onClick={replay} className="remake-video-replay">
-          <img src={refreshIcon} alt="" aria-hidden />{t.heroReplay}
+          <span className="remake-video-replay-icon" aria-hidden="true"><img src={replayIcon} alt="" /></span>{t.heroReplay}
         </button>
       </div>
     </section>
@@ -516,7 +518,7 @@ export default function LandingRemake() {
             <h1 key={`title-${lang}`}>
               <span className="sr-only">{t.heroLine1} {t.heroLine2}</span>
               <span aria-hidden="true" className="remake-hero-prefix">{t.heroLine1}</span>
-              <RollingText items={t.heroLine2Roll} className="remake-hero-roll" />
+              <RollingText items={t.heroLine2Roll} per="char" className="remake-hero-roll" />
             </h1>
             <p key={`description-${lang}`} className="remake-hero-description">{copy.heroDescription}</p>
             <div className="remake-hero-actions">
@@ -554,7 +556,7 @@ export default function LandingRemake() {
                 <img src={WORKFLOW_VISUALS[index]} alt="" width={201} height={201} loading="lazy" decoding="async" className="remake-workflow-visual" />
                 <h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3>
                 <div>{item.description}</div>
-                <Link to={['/generate', '/localize', '/review'][index]} className="remake-workflow-link" onFocus={() => setActiveWorkflowIndex(index)}>{item.linkLabel}<ArrowRight size={17} /></Link>
+                <Link to={['/generate', '/localize', '/review'][index]} className="remake-workflow-link" onFocus={() => setActiveWorkflowIndex(index)}>{item.linkLabel}<img src={workflowArrow} alt="" aria-hidden="true" /></Link>
               </article>
             ))}
           </div>
@@ -568,12 +570,14 @@ export default function LandingRemake() {
         <div className="remake-ogq-proof"><OgqStickerGallery /></div>
 
         <section className="remake-final">
-          <h2>{copy.finalTitle.split('\n').map((line) => <span key={line}>{line}</span>)}</h2>
-          <p>{copy.finalDescription}</p>
-          <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.finalCta}<ArrowRight size={18} /></Button>
+          <div className="remake-final-card">
+            <h2>{copy.finalTitle.split('\n').map((line) => <span key={line}>{line}</span>)}</h2>
+            <p>{copy.finalDescription}</p>
+            <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.finalCta}<img src={finalArrow} alt="" aria-hidden="true" /></Button>
+          </div>
         </section>
       </main>
-      <Footer />
+      <Footer variant="landing" />
     </div>
   )
 }
