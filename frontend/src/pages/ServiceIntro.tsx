@@ -14,13 +14,13 @@ const FEATURES = [
 ] as const
 
 export default function ServiceIntro() {
-  const { lang, t } = useSiteLang()
+  const { lang } = useSiteLang()
   const s = serviceDict[lang]
   const pageRef = useRef<HTMLDivElement>(null)
   const workflowRef = useRef<HTMLElement>(null)
   const workflowProgressRef = useRef<HTMLDivElement>(null)
   const [motionReady, setMotionReady] = useState(false)
-  useDocumentMeta(t.navService, s.intro)
+  useDocumentMeta(s.title, s.intro)
 
   useEffect(() => {
     const page = pageRef.current
