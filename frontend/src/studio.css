@@ -92,8 +92,8 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .site-nav .site-nav-panel-label { justify-content: flex-start; min-height: 44px; padding: 8px 12px 8px 0; color: #56616e; font-weight: 600; }
 .site-nav .site-nav-panel-link { display: flex; width: fit-content; justify-content: flex-start; min-height: 41px; gap: 8px; padding: 0; color: #191f28; font-size: 20px; font-weight: 800; letter-spacing: -1.19px; }
 .site-nav-panel-link svg { width: 20px; height: 20px; flex: 0 0 auto; align-self: center; }
-.site-nav-backdrop { position: fixed; top: calc(var(--site-header-height) + var(--site-nav-panel-height)); right: 0; bottom: 0; left: 0; z-index: 45; border: 0; background: rgb(245 246 245 / 18%); opacity: 0; pointer-events: none; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); transition: opacity .22s ease,backdrop-filter .22s ease,-webkit-backdrop-filter .22s ease; }
-.site-nav-backdrop.is-open { opacity: 1; pointer-events: auto; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.site-nav-backdrop { position: fixed; top: var(--site-header-height); right: 0; bottom: 0; left: 0; z-index: 49; border: 0; background: rgb(245 246 245 / 18%); opacity: 0; pointer-events: none; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); transition: opacity .22s ease,backdrop-filter .22s ease,-webkit-backdrop-filter .22s ease; }
+.site-nav-backdrop.is-open { opacity: 1; pointer-events: auto; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .site-login { background: #f2f4f6; color: #191f28; }
 .site-login[aria-current="page"] { color: #15803d; }
 .workspace-stepbar { padding-block: 12px; border-bottom: 1px solid var(--studio-line); background: #fff; }
