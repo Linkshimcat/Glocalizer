@@ -1,23 +1,29 @@
 import { ArrowDown, ArrowRight } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import heroCharacter from '../assets/studio/hero-character.png'
-import translationStrip from '../assets/studio/translation-strip.png'
+import heroCharacter from '../assets/studio/hero-character.webp'
+import translationStrip from '../assets/studio/translation-strip.webp'
 import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
 import replayIcon from '../assets/LandingAssets/replay-icon.svg'
 import workflowArrow from '../assets/LandingAssets/workflow-arrow.svg'
 import finalArrow from '../assets/LandingAssets/final-arrow.svg'
-import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.png'
-import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.png'
-import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.png'
-import localizePhoneCapture from '../assets/LandingAssets/phone-captures/localize-upload-ko.png'
-import reviewPhoneCapture from '../assets/LandingAssets/phone-captures/review-projects-ko.png'
-import generateDesktopCapture from '../assets/LandingAssets/desktop-captures/generate-project-ko.png'
-import localizeDesktopCapture from '../assets/LandingAssets/desktop-captures/localize-upload-ko.png'
-import reviewDesktopCapture from '../assets/LandingAssets/desktop-captures/review-projects-ko.png'
-import workflowCreateVisual from '../assets/LandingAssets/Gen.png'
-import workflowLocalizeVisual from '../assets/LandingAssets/Local.png'
-import workflowReviewVisual from '../assets/LandingAssets/check.png'
+import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.webp'
+import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.webp'
+import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.webp'
+import localizePhoneCapture from '../assets/LandingAssets/phone-captures/localize-upload-ko.webp'
+import reviewPhoneCapture from '../assets/LandingAssets/phone-captures/review-projects-ko.webp'
+import generateDesktopCapture from '../assets/LandingAssets/desktop-captures/generate-project-ko.webp'
+import localizeDesktopCapture from '../assets/LandingAssets/desktop-captures/localize-upload-ko.webp'
+import reviewDesktopCapture from '../assets/LandingAssets/desktop-captures/review-projects-ko.webp'
+import workflowCreateWebm from '../assets/LandingAssets/Gen.webm'
+import workflowCreateMp4 from '../assets/LandingAssets/Gen.mp4'
+import workflowCreatePoster from '../assets/LandingAssets/Gen-poster.jpg'
+import workflowLocalizeWebm from '../assets/LandingAssets/Local.webm'
+import workflowLocalizeMp4 from '../assets/LandingAssets/Local.mp4'
+import workflowLocalizePoster from '../assets/LandingAssets/Local-poster.jpg'
+import workflowReviewWebm from '../assets/LandingAssets/Check.webm'
+import workflowReviewMp4 from '../assets/LandingAssets/Check.mp4'
+import workflowReviewPoster from '../assets/LandingAssets/Check-poster.jpg'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import OgqStickerGallery from '../components/OgqStickerGallery'
@@ -55,7 +61,11 @@ type RemakeCopy = {
   finalCta: string
 }
 
-const WORKFLOW_VISUALS = [workflowCreateVisual, workflowLocalizeVisual, workflowReviewVisual]
+const WORKFLOW_VISUALS = [
+  { webm: workflowCreateWebm, mp4: workflowCreateMp4, poster: workflowCreatePoster },
+  { webm: workflowLocalizeWebm, mp4: workflowLocalizeMp4, poster: workflowLocalizePoster },
+  { webm: workflowReviewWebm, mp4: workflowReviewMp4, poster: workflowReviewPoster },
+]
 
 const COPY: Record<SiteLang, RemakeCopy> = {
   "ko": {
@@ -224,6 +234,40 @@ const COPY: Record<SiteLang, RemakeCopy> = {
   }
 }
 
+/** Loads and plays only while on screen; reduced motion keeps the final frame as a still. */
+function WorkflowVisual({ visual, reduceMotion }: { visual: typeof WORKFLOW_VISUALS[number]; reduceMotion: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || reduceMotion) return
+    let visible = false
+    const syncPlayback = () => {
+      if (visible && !document.hidden) void video.play().catch(() => { /* The poster stays visible if autoplay is blocked. */ })
+      else video.pause()
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting
+      syncPlayback()
+    }, { rootMargin: '200px 0px' })
+    observer.observe(video)
+    document.addEventListener('visibilitychange', syncPlayback)
+    return () => {
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', syncPlayback)
+    }
+  }, [reduceMotion])
+
+  if (reduceMotion) return <img src={visual.poster} alt="" width={720} height={720} loading="lazy" decoding="async" className="remake-workflow-visual" />
+
+  return (
+    <video ref={videoRef} className="remake-workflow-visual" poster={visual.poster} width={720} height={720} muted loop playsInline preload="none" aria-hidden="true">
+      <source src={visual.webm} type="video/webm" />
+      <source src={visual.mp4} type="video/mp4" />
+    </video>
+  )
+}
+
 /** Native controls keep playback and seeking available in every motion mode. */
 function VideoIntro({ reduceMotion, t }: { reduceMotion: boolean; t: Dict }) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -337,7 +381,7 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
         loading="eager"
         tabIndex={-1}
       />}
-      {capture && <img src={capture} alt={title} className={`remake-product-screen remake-product-capture${isMobile ? '' : ' remake-product-capture-desktop'}`} />}
+      {capture && <img src={capture} alt={title} className={`remake-product-screen remake-product-capture${isMobile ? '' : ' remake-product-capture-desktop'}`} loading="lazy" decoding="async" />}
     </div>
   )
 }
@@ -503,8 +547,8 @@ export default function LandingRemake() {
             phoneCapture={lang === 'ko' ? [generatePhoneCapture, localizePhoneCapture, reviewPhoneCapture][index] : undefined}
             desktopCapture={lang === 'ko' ? [generateDesktopCapture, localizeDesktopCapture, reviewDesktopCapture][index] : undefined}
           />
-          <img src={macbookFrame} alt="" aria-hidden className="remake-device-frame remake-device-frame-desktop" />
-          <img src={iphoneFrame} alt="" aria-hidden className="remake-device-frame remake-device-frame-mobile" />
+          <img src={macbookFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-desktop" />
+          <img src={iphoneFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-mobile" />
         </div>
       </div>
     </div>
@@ -553,7 +597,7 @@ export default function LandingRemake() {
                 style={{ '--workflow-delay': `${index * 120}ms` } as CSSProperties}
                 onPointerDown={() => setActiveWorkflowIndex(index)}
               >
-                <img src={WORKFLOW_VISUALS[index]} alt="" width={201} height={201} loading="lazy" decoding="async" className="remake-workflow-visual" />
+                <WorkflowVisual visual={WORKFLOW_VISUALS[index]} reduceMotion={reduceMotion} />
                 <h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3>
                 <div>{item.description}</div>
                 <Link to={['/generate', '/localize', '/review'][index]} className="remake-workflow-link" onFocus={() => setActiveWorkflowIndex(index)}>{item.linkLabel}<img src={workflowArrow} alt="" aria-hidden="true" /></Link>
