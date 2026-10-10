@@ -79,7 +79,7 @@
 .main-restyle > footer.landing-footer .landing-footer-top { position: relative; z-index: 1; }
 .main-restyle > footer.landing-footer .landing-footer-brand { gap: 8px; }
 .main-restyle > footer.landing-footer .landing-footer-links { gap: 16px; }
-.main-restyle > footer.landing-footer .landing-footer-meta { position: relative; z-index: 1; margin-top: 12px; padding-top: 12px; }
+.main-restyle > footer.landing-footer .landing-footer-meta { position: relative; z-index: 1; margin-top: 12px; padding-top: 12px; text-align: left; }
 .main-restyle > footer.landing-footer .landing-footer-watermark { position: relative; width: 100%; margin-top: 18px; color: #779b85; font-size: clamp(40px,8.4vw,120px); font-weight: 800; letter-spacing: .014em; line-height: 1; opacity: .74; text-align: center; white-space: nowrap; transition: opacity .25s ease, transform .25s ease; }
 @media (hover: hover) and (pointer: fine) {
   .main-restyle > footer.landing-footer .landing-footer-watermark:hover { transform: translateY(-3px); opacity: 1; background: radial-gradient(circle 190px at var(--pointer-x,50%) var(--pointer-y,50%),#22c55e 0%,#498f6c 38%,#779b85 100%); background-clip: text; -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
@@ -153,6 +153,8 @@
   .main-restyle .remake-final .studio-button { margin-top: 32px; }
   .main-restyle > footer.landing-footer .landing-footer-inner { padding: 20px; }
   .main-restyle > footer.landing-footer .landing-footer-links { gap: 4px 12px; }
+  .main-restyle > footer.landing-footer .landing-footer-meta { text-align: center; }
+  .main-restyle > footer.landing-footer .landing-footer-meta > p:last-child { justify-content: center; }
   .main-restyle > footer.landing-footer .landing-footer-watermark { font-size: clamp(24px,8.5vw,42px); }
 }
 @media (max-height: 650px) and (max-width: 900px) {

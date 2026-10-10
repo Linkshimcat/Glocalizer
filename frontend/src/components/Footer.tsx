@@ -44,24 +44,37 @@ export default function Footer({ variant = 'default' }: { variant?: 'default' | 
           </nav>
         </div>
         <div className={`mt-4 border-t border-gray-200 pt-3 text-center text-xs font-bold leading-relaxed text-sub sm:text-sm md:text-left${isLanding ? ' landing-footer-meta' : ''}`}>
-          <p>{copy.team}</p>
-          <div className="mt-1 flex flex-col items-center gap-1 md:flex-row md:items-start md:justify-between md:gap-8">
-            <p className="flex flex-wrap justify-center gap-x-3 md:justify-start">
-              <span>{copy.copyright}</span>
-              <span>{copy.hosting}</span>
-            </p>
-            <p className="md:text-right">
-              {isLanding ? copy.school : <>{copy.school} |{' '}
-                <a
-                  href="https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-11 items-center underline underline-offset-2 transition-colors hover:text-ink"
-                >
-                  {copy.license}: Apache License 2.0
-                </a></>}
-            </p>
-          </div>
+          {isLanding ? (
+            <>
+              <p>{copy.school}</p>
+              <p className="mt-1">{copy.team}</p>
+              <p className="mt-1 flex flex-wrap justify-center gap-x-3 md:justify-start">
+                <span>{copy.copyright}</span>
+                <span>{copy.hosting}</span>
+              </p>
+            </>
+          ) : (
+            <>
+              <p>{copy.team}</p>
+              <div className="mt-1 flex flex-col items-center gap-1 md:flex-row md:items-start md:justify-between md:gap-8">
+                <p className="flex flex-wrap justify-center gap-x-3 md:justify-start">
+                  <span>{copy.copyright}</span>
+                  <span>{copy.hosting}</span>
+                </p>
+                <p className="md:text-right">
+                  {copy.school} |{' '}
+                  <a
+                    href="https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-11 items-center underline underline-offset-2 transition-colors hover:text-ink"
+                  >
+                    {copy.license}: Apache License 2.0
+                  </a>
+                </p>
+              </div>
+            </>
+          )}
         </div>
         {isLanding && <div
           className="landing-footer-watermark"
