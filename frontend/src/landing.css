@@ -41,7 +41,7 @@
 .main-restyle .remake-device-wrap { width: min(100%,960px); min-width: 0; justify-self: center; }
 .main-restyle .remake-device { position: relative; isolation: isolate; width: 100%; aspect-ratio: 4096 / 2499; filter: drop-shadow(0 28px 34px rgba(25,31,40,.13)); }
 .main-restyle .remake-device-frame { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.main-restyle .remake-device-frame-mobile { display: none; }
+.main-restyle .remake-device-frame-tablet, .main-restyle .remake-device-frame-mobile { display: none; }
 .main-restyle .remake-product-window { position: absolute; z-index: 1; top: 2.2%; left: 9%; width: 82%; height: 87.3%; overflow: hidden; border-radius: 2.7% 2.7% 0 0; background: #fff; pointer-events: none; animation: remake-screen-enter .5s cubic-bezier(.22,1,.36,1) both; }
 .main-restyle .remake-product-screen { position: absolute; top: 0; left: 0; display: block; transform-origin: top left; border: 0; background: #fff; pointer-events: none; }
 .main-restyle .remake-product-capture { display: none; width: 100%; height: 100%; object-fit: cover; object-position: top; }
@@ -59,9 +59,12 @@
 .main-restyle .remake-workflow-grid h3 { margin-top: 24px; font-size: clamp(23px,2.4vw,34px); font-weight: 800; letter-spacing: -.035em; line-height: 1.2; }
 .main-restyle .remake-workflow-grid h3 span { display: block; }
 .main-restyle .remake-workflow-grid article > div { margin: 16px 0 24px; color: #56616e; font-size: 16px; font-weight: 400; line-height: 1.7; }
-.main-restyle .remake-workflow-link { display: inline-flex; width: fit-content; min-height: 44px; align-items: center; gap: 8px; margin-top: auto; border-radius: 999px; padding: 10px 13px; background: #f5f6f5; color: #15803d; font-size: 15px; font-weight: 700; text-decoration: none; }
-.main-restyle .remake-workflow-link img { display: block; width: 17px; height: 17px; }
-.main-restyle .remake-workflow-link:hover { color: #116b33; }
+.main-restyle .remake-workflow-link { display: inline-flex; width: fit-content; min-height: 44px; align-items: center; gap: 8px; margin-top: auto; border-radius: 999px; padding: 10px 13px; background: #f5f6f5; color: #15803d; font-size: 15px; font-weight: 700; text-decoration: none; transition: color .18s ease,background-color .18s ease,box-shadow .18s ease,transform .18s ease; }
+.main-restyle .remake-workflow-link img { display: block; width: 17px; height: 17px; transition: transform .18s ease; }
+.main-restyle .remake-workflow-link:hover { transform: translateY(-2px); background: #eaf7ee; color: #116b33; box-shadow: 0 4px 12px rgba(21,128,61,.12); }
+.main-restyle .remake-workflow-link:hover img { transform: translateX(3px); }
+.main-restyle .remake-workflow-link:focus-visible { outline: 3px solid #168b4a; outline-offset: 3px; }
+.main-restyle .remake-workflow-link:active { transform: translateY(0); box-shadow: none; }
 .main-restyle .remake-case-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,330px),1fr)); gap: 22px; width: min(100%,1120px); margin: 32px auto 0; }.main-restyle .remake-case-card { min-width: 0; overflow: hidden; border: 1px solid #e7eaec; border-radius: var(--radius-panel); background: #fff; box-shadow: 0 16px 48px rgba(25,31,40,.06); }.main-restyle .remake-case-meta { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; color: #168b4a; font-size: 11px; font-weight: 900; letter-spacing: .08em; }.main-restyle .remake-case-meta span + span { color: #7a838b; }.main-restyle .remake-case-compare { position: relative; aspect-ratio: 1; overflow: hidden; background: repeating-conic-gradient(#f3f5f4 0 25%,#fff 0 50%) 0 0/20px 20px; touch-action: pan-y; }.main-restyle .remake-case-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 9%; }.main-restyle .remake-case-compare img:nth-of-type(2) { clip-path: inset(0 0 0 50%); }.main-restyle .remake-case-label { position: absolute; z-index: 2; top: 14px; border-radius: 4px; padding: 6px 10px; background: rgba(255,255,255,.92); color: #343d45; font-size: 10px; font-weight: 850; box-shadow: 0 2px 12px rgba(25,31,40,.08); }.main-restyle .remake-case-label-before { left: 14px; }.main-restyle .remake-case-label-after { right: 14px; }.main-restyle .remake-case-divider { position: absolute; z-index: 2; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 0 1px rgba(25,31,40,.1),0 1px 12px rgba(25,31,40,.2); pointer-events: none; }.main-restyle .remake-case-divider i { position: absolute; top: 50%; left: 50%; display: grid; width: 36px; aspect-ratio: 1; place-items: center; transform: translate(-50%,-50%); border: 2px solid #fff; border-radius: 50%; background: #22c55e; box-shadow: 0 2px 12px rgba(25,31,40,.18); }.main-restyle .remake-case-divider i::before { width: 9px; height: 9px; border-right: 2px solid #fff; border-left: 2px solid #fff; content: ''; }.main-restyle .remake-case-compare input { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; margin: 0; cursor: ew-resize; opacity: 0; touch-action: pan-y; }.main-restyle .remake-case-compare input:focus-visible { outline: 3px solid #168b4a; outline-offset: -4px; opacity: .01; }
 
 .main-restyle .remake-case-meta { color: #15803d; font-size: 13px; font-weight: 700; }
@@ -116,6 +119,19 @@
   .main-restyle .remake-story[data-static="true"] > .remake-story-scene { height: auto; grid-template-rows: auto auto; padding: 32px 24px; }
   .main-restyle .remake-story[data-static="true"] .remake-device-wrap { width: min(75vw,280px); height: auto; max-height: none; }
 }
+@media (min-width: 768px) and (max-width: 1199px) {
+  .main-restyle .remake-device { aspect-ratio: 2640 / 1880; }
+  .main-restyle .remake-device-frame-desktop, .main-restyle .remake-device-frame-mobile { display: none; }
+  .main-restyle .remake-device-frame-tablet { display: block; }
+  .main-restyle .remake-product-window { top: 5%; left: 3.6%; width: 92.8%; height: 90%; border-radius: 0; }
+  .main-restyle .remake-product-screen { top: 0; }
+  .main-restyle .remake-product-capture { height: 100%; }
+  .main-restyle .remake-product-capture-tablet { transform: scale(1.2); transform-origin: 10% top; }
+}
+@media (min-width: 768px) and (max-width: 900px) {
+  .main-restyle .remake-device-wrap { width: min(100%,760px,70svh); height: auto; max-width: none; max-height: none; aspect-ratio: 2640 / 1880; }
+  .main-restyle .remake-story[data-static="true"] .remake-device-wrap { width: min(100%,760px,70svh); }
+}
 @media (max-width: 767px) {
   .main-restyle .remake-hero { padding: 24px 20px 0; }
   .main-restyle .remake-hero h1 { font-size: clamp(30px,8.2vw,52px); line-height: 1.22; }
@@ -145,7 +161,7 @@
   .main-restyle > footer.landing-footer .landing-footer-meta { text-align: center; }
   .main-restyle > footer.landing-footer .landing-footer-meta > p:last-child { justify-content: center; }
 }
-@media (max-height: 650px) and (max-width: 900px) {
+@media (max-height: 650px) and (max-width: 767px) {
   .main-restyle .remake-story[data-static="true"] .remake-device-wrap { width: min(55vw,220px); }
 }
 @media (prefers-reduced-motion: reduce) {

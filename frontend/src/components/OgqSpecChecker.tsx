@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, ImagePlus, Loader2, X, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, X, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import type { Dict } from '../i18n/translations'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -7,6 +7,7 @@ import Button from './Button'
 import StateNotice from './StateNotice'
 import { experienceCopy } from '../i18n/experience'
 import { useToast } from './Toast'
+import dragNDropImage from '../assets/GCFrontendUI/DragNDropIMG.svg'
 
 function formatBytes(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)}KB` : `${(bytes / (1024 * 1024)).toFixed(2)}MB`
@@ -210,7 +211,7 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         }`}
       >
         <span className="flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft">
-          {checking ? <Loader2 className="h-6 w-6 animate-spin text-brand-dark" /> : <ImagePlus className="h-6 w-6 text-brand-dark" />}
+          {checking ? <Loader2 className="h-6 w-6 animate-spin text-brand-dark" /> : <img src={dragNDropImage} alt="" aria-hidden="true" className="h-10 w-10" />}
         </span>
         <p className="text-sm font-bold">{t.reviewUploadDrop}</p>
         <p className="text-xs font-medium text-sub">{t.reviewUploadHint}</p>
