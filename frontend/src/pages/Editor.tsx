@@ -32,9 +32,9 @@ import Modal from '../components/Modal'
 import JapaneseSpeech from '../components/JapaneseSpeech'
 import { workflowCopy } from '../i18n/workflow'
 import Button from '../components/Button'
-import AuroraBackground from '../components/AuroraBackground'
-import Logo from '../components/Logo'
-import RollingText from '../components/RollingText'
+import StateNotice from '../components/StateNotice'
+import SessionNotice from '../components/SessionNotice'
+import { experienceCopy } from '../i18n/experience'
 import { useToast } from '../components/Toast'
 import {
   COLORS,
@@ -139,17 +139,16 @@ function PanelTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="text-sm font-extrabold">{children}</h3>
 }
 
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+function Toggle({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
   return (
     <button
       role="switch"
+      aria-label={label}
       aria-checked={on}
       onClick={onToggle}
-      className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${
-        on ? 'justify-end bg-brand' : 'justify-start bg-gray-200'
-      }`}
+      className="flex h-11 w-11 items-center justify-center"
     >
-      <span className="h-5 w-5 rounded-full bg-white shadow" />
+      <span aria-hidden="true" className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${on ? 'justify-end bg-brand' : 'justify-start bg-gray-200'}`}><span className="h-5 w-5 rounded-full bg-white" /></span>
     </button>
   )
 }
@@ -172,8 +171,9 @@ function ColorRow({ value, presets, onBegin, onLive, onPick, pickColorTitle }: C
         <button
           key={c}
           onClick={() => onPick(c)}
-          aria-label={`색상 ${c}`}
-          className={`h-8 w-8 rounded-full border-2 transition-shadow ${
+          aria-label={`${pickColorTitle} ${c}`}
+          aria-pressed={value === c}
+          className={`h-11 w-11 rounded-full border-2 transition-shadow ${
             value === c
               ? 'border-brand shadow-[0_0_0_3px_rgba(34,197,94,0.25)]'
               : c.toUpperCase() === '#FFFFFF'
@@ -186,7 +186,7 @@ function ColorRow({ value, presets, onBegin, onLive, onPick, pickColorTitle }: C
       <label
         title={pickColorTitle}
         onPointerDown={onBegin}
-        className={`relative h-8 w-8 cursor-pointer rounded-full border-2 ${
+        className={`relative h-11 w-11 cursor-pointer rounded-full border-2 ${
           isCustom
             ? 'border-brand shadow-[0_0_0_3px_rgba(34,197,94,0.25)]'
             : 'border-gray-200'
@@ -204,6 +204,7 @@ function ColorRow({ value, presets, onBegin, onLive, onPick, pickColorTitle }: C
         )}
         <input
           type="color"
+          aria-label={pickColorTitle}
           value={value}
           onChange={e => onLive(e.target.value)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
@@ -233,6 +234,8 @@ function RangeRow({ label, min, max, value, suffix = '', onBegin, onLive }: Rang
       <span className="w-12 shrink-0 text-xs font-semibold text-sub">{label}</span>
       <input
         type="range"
+        aria-label={label}
+        aria-valuetext={`${value}${suffix}`}
         min={min}
         max={max}
         value={value}
@@ -244,6 +247,7 @@ function RangeRow({ label, min, max, value, suffix = '', onBegin, onLive }: Rang
       <div className="flex h-8 w-[62px] shrink-0 items-center rounded-lg border-2 border-gray-100 bg-white px-1.5 focus-within:border-brand">
         <input
           type="number"
+          aria-label={label}
           min={min}
           max={max}
           value={shown}
@@ -347,6 +351,7 @@ export default function Editor() {
   const toast = useToast()
   const { t, lang } = useSiteLang()
   const e = editorDict[lang]
+  const copy = experienceCopy[lang]
   const w = workflowCopy[lang]
 
   // AI 자동 배경 정리가 안 됐거나 OCR 문구 확인이 필요한 경우, 캡션 텍스트만으론 놓치기 쉬워서 토스트로도
@@ -392,6 +397,7 @@ export default function Editor() {
   // 원문 지우기 영역 선택 여부 — 텍스트와 마찬가지로 선택했을 때만 초록 테두리를 보여준다.
   const [cleanupSelected, setCleanupSelected] = useState(false)
   const [mobileTab, setMobileTab] = useState<MobileTab>('번역')
+  const [mobileToolsCollapsed, setMobileToolsCollapsed] = useState(false)
   const [mobileCanvasTab, setMobileCanvasTab] = useState<MobileCanvasTab>('미리보기')
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
@@ -457,6 +463,7 @@ export default function Editor() {
   }
   const openCleanupTools = () => {
     setMobileTab('스타일')
+    setMobileToolsCollapsed(false)
     setMobileCanvasTab('미리보기')
     setIsInspectorOpen(true)
     setPreview(false)
@@ -1167,55 +1174,25 @@ export default function Editor() {
   // 인식·번역이 끝나기 전에는 에디터 화면(상단 바·언어 탭·파일 목록·설정 패널 등)을 전혀
   // 그리지 않고 로딩 화면만 보여준다 — 전에는 로딩 오버레이가 캔버스 영역에만 떠서 나머지
   // UI가 먼저 다 보이는 문제가 있었다.
-  if (cloudSaving && files.length === 0) return <div role="status" className="p-8 text-center text-sub">{t.cloudLoading}</div>
+  if (cloudSaving && files.length === 0) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{t.cloudLoading}</main>
 
   if (files.length === 0 || !projectStatus) {
     return <Navigate to="/localize" replace />
   }
 
-  if (isLoading) {
-    return (
-      <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 overflow-hidden bg-white px-6 text-center">
-        <AuroraBackground />
-        <div className="relative z-10">
-          <Logo small />
-        </div>
-        <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-panel bg-brand-soft">
-          <LoaderCircle className="h-7 w-7 animate-spin text-brand-dark" />
-        </span>
-        <div className="relative z-10">
-          <p className="text-xl font-extrabold" aria-live="polite">
-            <span className="sr-only">{[t.loadingStep1, t.loadingStep2][loadingStep]}</span>
-            <RollingText
-              key={loadingStep}
-              items={[[t.loadingStep1, t.loadingStep2][loadingStep]]}
-              loop={false}
-              className="text-xl font-extrabold"
-            />
-          </p>
-          <p className="mt-2 text-sm font-medium text-sub">
-            {t.loadingSub}
-          </p>
-        </div>
-        <div className="relative z-10 h-2 w-full max-w-xs overflow-hidden rounded-full bg-white/70 shadow-[inset_0_0_0_1px_rgba(25,31,40,0.06)]">
-          <div
-            className="h-full rounded-full bg-brand transition-[width] duration-500"
-            style={{ width: `${Math.max(4, projectStatus?.progress ?? 0)}%` }}
-          />
-        </div>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="relative z-10 text-sm font-semibold text-sub hover:underline"
-        >
-          {t.hubDashboard}
-        </button>
-      </div>
-    )
-  }
+  if (isLoading) return <main id="main-content" tabIndex={-1} className="ui-recovery-page" aria-busy="true">
+    <LoaderCircle className="mx-auto h-7 w-7 animate-spin text-brand-dark" aria-hidden="true" />
+    <h1 className="mt-5 text-xl font-bold" role="status">{[t.loadingStep1, t.loadingStep2][loadingStep]}</h1>
+    <p className="mt-2 text-sm text-sub">{t.loadingSub}</p>
+    <progress className="mt-6 w-full max-w-xs accent-brand" aria-label={t.cloudLoading} max={100} value={projectStatus?.progress ?? 0} />
+    <Button variant="outline" className="mx-auto mt-6" onClick={() => navigate('/dashboard')}>{t.hubDashboard}</Button>
+  </main>
 
   return (
-    <div className="studio-editor flex min-h-screen flex-col bg-white xl:min-h-0 xl:h-[calc(100svh-var(--site-header-height))]">
-      {cloudError && <div role="alert" className="flex flex-wrap items-center gap-3 bg-amber-50 px-4 py-3 text-sm text-amber-800"><span>{cloudError}</span><Button variant="outline" size="sm" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button></div>}
+    <main id="main-content" tabIndex={-1} aria-labelledby="editor-title" className="studio-editor flex min-h-screen flex-col bg-white xl:min-h-0 xl:h-[calc(100svh-var(--site-header-height))]">
+      {cloudError && <StateNotice error action={<Button variant="outline" size="sm" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}>{cloudError}</StateNotice>}
+      <h1 id="editor-title" className="sr-only">{e.aiEditor}</h1>
+      <SessionNotice />
       {/* 상단 바 */}
       <div className="border-b border-gray-100">
         {availableLanguages.length > 1 && (
@@ -1223,12 +1200,13 @@ export default function Editor() {
             {availableLanguages.map(language => (
               <button
                 key={language.code}
+                aria-pressed={language.code === activeLanguage.code}
                 onClick={() => selectLanguage(language.code)}
                 className={`shrink-0 rounded-control px-3 py-1.5 text-xs font-extrabold transition-colors ${
                   language.code === activeLanguage.code ? 'bg-brand text-white' : 'bg-surface text-sub hover:bg-brand-soft hover:text-brand-dark'
                 }`}
               >
-                {language.flag} {language.label}
+                {language.label}
               </button>
             ))}
           </div>
@@ -1268,7 +1246,7 @@ export default function Editor() {
           {targetLangs.length > 0 && (
             <div className="px-3 pt-1.5">
               <span className="block truncate rounded-badge bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-brand-dark">
-                {activeLanguage.flag} {activeLanguage.label} {e.editingSuffix}
+                {activeLanguage.label} {e.editingSuffix}
               </span>
             </div>
           )}
@@ -1289,7 +1267,7 @@ export default function Editor() {
           <span className="text-sm font-semibold text-sub">{current.name}</span>
           {targetLangs.length > 0 && (
             <span className="rounded-badge bg-brand-soft px-3 py-1 text-xs font-bold text-brand-dark">
-              {activeLanguage.flag} {activeLanguage.label} {e.editingSuffix}
+              {activeLanguage.label} {e.editingSuffix}
             </span>
           )}
           <div className="flex-1" />
@@ -1320,9 +1298,11 @@ export default function Editor() {
                 <div
                   key={item.id}
                   role="button"
+                  aria-label={item.name}
+                  aria-pressed={active}
                   tabIndex={0}
                   onClick={() => selectItem(idx)}
-                  onKeyDown={e => e.key === 'Enter' && selectItem(idx)}
+                  onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); selectItem(idx) } }}
                   className={`group flex w-48 shrink-0 cursor-pointer items-center gap-3 rounded-panel border-2 px-3 py-2.5 text-left transition-colors xl:mb-1.5 xl:w-auto xl:shrink ${
                     active ? 'border-brand bg-brand-soft' : 'border-transparent hover:bg-surface'
                   }`}
@@ -1640,7 +1620,7 @@ export default function Editor() {
 
         {isInspectorOpen && (
           <button
-            aria-label="설정 패널 닫기"
+            aria-label={copy.hideTools}
             onClick={() => setIsInspectorOpen(false)}
             className="fixed inset-0 z-30 hidden bg-ink/20 lg:block xl:hidden"
           />
@@ -1648,10 +1628,12 @@ export default function Editor() {
 
         {/* 컨트롤 패널 — 중간 화면에서는 슬라이드 패널 */}
         <aside
+          data-collapsed={mobileToolsCollapsed}
           className={`studio-editor-inspector relative z-10 -mt-6 flex flex-col gap-7 rounded-t-panel bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.10)] xl:pb-0 lg:fixed lg:top-[var(--site-header-height)] lg:bottom-0 lg:right-0 lg:z-40 lg:mt-0 lg:w-[288px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-gray-100 lg:shadow-[0_0_24px_rgba(0,0,0,0.12)] lg:transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none ${
             isInspectorOpen ? 'lg:translate-x-0' : 'lg:translate-x-full'
           }`}
         >
+          <button type="button" className="ui-mobile-tools-toggle" aria-expanded={!mobileToolsCollapsed} onClick={() => setMobileToolsCollapsed(value => !value)}>{copy.tools}<span>{mobileToolsCollapsed ? copy.showTools : copy.hideTools}</span></button>
           <div className="-mb-2">
             <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-200 lg:hidden" />
             <div className="studio-editor-tabs mt-4 grid grid-cols-3 gap-2 lg:mt-0">
@@ -1672,7 +1654,7 @@ export default function Editor() {
             </div>
             <button
               onClick={() => setIsInspectorOpen(false)}
-              aria-label="설정 패널 닫기"
+              aria-label={copy.hideTools}
               className="absolute right-4 top-4 hidden rounded-control p-2 text-sub hover:bg-surface lg:block xl:hidden"
             >
               <X className="h-4 w-4" />
@@ -1711,7 +1693,7 @@ export default function Editor() {
             <div className={`mb-4 rounded-panel border p-3 ${needsManualOcrReview ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-surface'}`}>
               <p className="text-xs font-extrabold">{e.ocrEditTitle} {needsManualOcrReview && <span className="text-amber-700">{e.ocrNeedCheck}</span>}</p>
               <p className="mt-1 text-[11px] text-sub">{e.ocrEditHint}</p>
-              <input value={ocrDraft || activeRegion.korean} onChange={event => setOcrDraft(event.target.value)} className="mt-2 h-9 w-full rounded-control border border-gray-200 bg-white px-2 text-sm font-semibold outline-none focus:border-brand" />
+              <input aria-label={e.detectedAreaTitle} value={ocrDraft || activeRegion.korean} onChange={event => setOcrDraft(event.target.value)} className="mt-2 h-9 w-full rounded-control border border-gray-200 bg-white px-2 text-sm font-semibold outline-none focus:border-brand" />
               <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || activeRegion.korean, detectedBox, activeRegion.id).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || activeRegion.korean).trim()} className="mt-2 rounded-control bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
             </div>
             <PanelTitle>{e.aiSuggest}</PanelTitle>
@@ -1767,6 +1749,7 @@ export default function Editor() {
               {e.customHint}
             </p>
             <textarea
+              aria-label={e.customHint}
               value={style.customText}
               onFocus={beginGesture}
               onChange={e => live({ customText: e.target.value })}
@@ -1817,6 +1800,7 @@ export default function Editor() {
               </button>
             )}
             <select
+              aria-label={e.tabFont}
               value={style.font}
               onChange={e =>
                 update({
@@ -1906,6 +1890,7 @@ export default function Editor() {
             <div className="flex items-center justify-between">
               <PanelTitle>{e.textBg}</PanelTitle>
               <Toggle
+                label={e.textBg}
                 on={style.backgroundOn}
                 onToggle={() => update({ backgroundOn: !style.backgroundOn })}
               />
@@ -1955,6 +1940,7 @@ export default function Editor() {
             <div className="flex items-center justify-between">
               <PanelTitle>{e.stroke}</PanelTitle>
               <Toggle
+                label={e.stroke}
                 on={style.strokeOn}
                 onToggle={() => update({ strokeOn: !style.strokeOn })}
               />
@@ -1986,6 +1972,7 @@ export default function Editor() {
             <div className="flex items-center justify-between">
               <PanelTitle>{e.shadow}</PanelTitle>
               <Toggle
+                label={e.shadow}
                 on={style.shadowOn}
                 onToggle={() => update({ shadowOn: !style.shadowOn })}
               />
@@ -2193,6 +2180,7 @@ export default function Editor() {
             <div className="flex items-center justify-between">
               <PanelTitle>{e.eraseOriginal}</PanelTitle>
               <Toggle
+                label={e.eraseOriginal}
                 on={Boolean(manualCleanup)}
                 onToggle={() => {
                   if (manualCleanup) {
@@ -2283,6 +2271,7 @@ export default function Editor() {
           <section className="mt-auto border-t border-gray-100 bg-white pt-6 xl:sticky xl:bottom-0 xl:pb-6">
             <PanelTitle>{e.exportTitle}</PanelTitle>
             <input
+              aria-label={copy.exportName}
               value={exportName}
               onChange={e => setExportName(e.target.value)}
               className="mt-3 h-11 w-full rounded-control border-2 border-gray-100 bg-white px-3 text-[14px] font-semibold outline-none focus:border-brand"
@@ -2291,6 +2280,7 @@ export default function Editor() {
               {(['PNG', 'ZIP'] as const).map(fmt => (
                 <button
                   key={fmt}
+                  aria-pressed={exportFormat === fmt}
                   onClick={() => setExportFormat(fmt)}
                   className={`flex h-9 items-center justify-center gap-1.5 rounded-control border-2 text-xs font-bold transition-colors ${
                     exportFormat === fmt
@@ -2316,29 +2306,28 @@ export default function Editor() {
       </div>
 
       {selectionDraft && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-ink/25 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-dialog bg-white p-5 shadow-xl">
+        <Modal onClose={() => { if (!selectionSaving) cancelAreaSelection() }} labelledBy="ocr-selection-title" closeLabel={e.cancelArea}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-extrabold text-ink">{e.detectedAreaTitle}</h2>
-                <p className="mt-1 text-xs font-semibold text-sub">{Math.round(selectionDraft.confidence * 100)}%</p>
+                <h2 id="ocr-selection-title" className="text-base font-bold text-ink">{e.detectedAreaTitle}</h2>
+                <p className="mt-1 text-xs font-semibold text-sub">{copy.confidence} · {Math.round(selectionDraft.confidence * 100)}%</p>
               </div>
-              <button onClick={cancelAreaSelection} className="rounded-control p-2 text-sub hover:bg-surface" aria-label={e.cancelArea}><X className="h-4 w-4" /></button>
+
             </div>
             <textarea
+              aria-label={e.detectedAreaTitle}
               value={selectionDraft.text}
               onChange={event => setSelectionDraft(previous => previous ? { ...previous, text: event.target.value } : previous)}
               rows={4}
               className="mt-4 w-full resize-none rounded-control border-2 border-gray-100 px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
             />
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button onClick={cancelAreaSelection} className="h-11 rounded-control border-2 border-gray-100 text-sm font-bold text-sub">{e.cancelArea}</button>
+              <button disabled={selectionSaving} onClick={cancelAreaSelection} className="h-11 rounded-control border-2 border-gray-100 text-sm font-bold text-sub">{e.cancelArea}</button>
               <button onClick={() => void confirmAreaSelection()} disabled={selectionSaving || !selectionDraft.text.trim()} className="flex h-11 items-center justify-center gap-1.5 rounded-control bg-brand text-sm font-extrabold text-white disabled:opacity-50">
                 {selectionSaving && <LoaderCircle className="h-4 w-4 animate-spin" />}{e.confirmArea}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
       {downloadPreviewOpen && <Modal onClose={() => setDownloadPreviewOpen(false)} closeLabel={w.close} labelledBy="editor-png-preview" className="max-w-4xl">
         <h2 id="editor-png-preview" className="pr-8 font-bold">{w.preview} · {activeLanguage.label}</h2>
@@ -2350,6 +2339,6 @@ export default function Editor() {
         <div className="mt-4 flex flex-wrap justify-between gap-2"><Button variant="outline" disabled={currentIdx === 0} onClick={goPrev}>{w.previous}</Button><Button disabled={busy} onClick={downloadCurrentPng}>PNG</Button><Button variant="outline" disabled={currentIdx === items.length - 1} onClick={goNext}>{w.next}</Button></div>
       </Modal>}
 
-    </div>
+    </main>
   )
 }

@@ -1,7 +1,12 @@
 import { BrainCircuit, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
+import StateNotice from '../components/StateNotice'
+import SessionNotice from '../components/SessionNotice'
+import { experienceCopy } from '../i18n/experience'
+import { useUploads } from '../store/uploads'
+import { useToast } from '../components/Toast'
 import OgqSpecChecker, { type OgqProjectImage } from '../components/OgqSpecChecker'
 import { useSiteLang } from '../i18n/LanguageContext'
 import {
@@ -50,6 +55,14 @@ export default function Review() {
   const navigate = useNavigate()
   const { isAuthenticated, token } = useAuth()
   const { t, lang } = useSiteLang()
+  const copy = experienceCopy[lang]
+  const { flushCloudWork, openCloudProject } = useUploads()
+  const toast = useToast()
+  const [retry, setRetry] = useState(0)
+  const [partialFailure, setPartialFailure] = useState(false)
+  const [opening, setOpening] = useState(false)
+  const openingRef = useRef(false)
+  const deepRequest = useRef(0)
 
   const [projects, setProjects] = useState<ReviewProject[] | null>(null)
   const [projectsFailed, setProjectsFailed] = useState(false)
@@ -62,9 +75,13 @@ export default function Review() {
   const [loadingDeepFeedback, setLoadingDeepFeedback] = useState(false)
   const [deepFeedbackFailed, setDeepFeedbackFailed] = useState(false)
 
+  useEffect(() => { setProjects(null); setSelectedKeys([]) }, [token])
+
   useEffect(() => {
     if (!isAuthenticated) return
     let active = true
+    setProjectsFailed(false)
+    setPartialFailure(false)
     const loadLocalization = listCloudProjects().then(result => result.projects
       .filter(project => project.resultReady)
       .map((project): ReviewProject => ({ key: `localization:${project.id}`, kind: 'localization', project })))
@@ -81,10 +98,12 @@ export default function Review() {
       if (!active) return
       const loaded = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
       setProjects(loaded)
+      setSelectedKeys(previous => previous.every(key => loaded.some(project => project.key === key)) ? previous : previous.filter(key => loaded.some(project => project.key === key)))
       setProjectsFailed(results.every(result => result.status === 'rejected'))
+      setPartialFailure(results.some(result => result.status === 'rejected') && results.some(result => result.status === 'fulfilled'))
     })
     return () => { active = false }
-  }, [isAuthenticated, token])
+  }, [isAuthenticated, token, retry])
 
   useEffect(() => {
     if (!projects || selectedKeys.length === 0) {
@@ -138,12 +157,16 @@ export default function Review() {
       .catch(() => { if (active) setWorkspaceFailed(true) })
       .finally(() => { if (active) setLoadingWorkspace(false) })
     return () => { active = false }
-  }, [projects, selectedKeys])
+  }, [projects, selectedKeys, retry])
 
   useEffect(() => {
+    deepRequest.current++
+    setLoadingDeepFeedback(false)
     setDeepFeedback(null)
     setDeepFeedbackFailed(false)
-  }, [lang])
+  }, [lang, token, selectedKeys])
+
+  useEffect(() => () => { deepRequest.current++ }, [])
 
   const toggleProject = (key: string) => {
     setSelectedKeys(previous => previous.includes(key) ? previous.filter(value => value !== key) : [...previous, key])
@@ -152,7 +175,8 @@ export default function Review() {
   }
 
   const runDeepReview = async () => {
-    if (!projects || selectedKeys.length === 0 || selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS) return
+    if (!projects || loadingDeepFeedback || selectedKeys.length === 0 || selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS) return
+    const requestId = ++deepRequest.current
     const selected = projects.filter(project => selectedKeys.includes(project.key)).map(project => ({
       kind: project.kind,
       id: project.project.id,
@@ -160,18 +184,31 @@ export default function Review() {
     setLoadingDeepFeedback(true)
     setDeepFeedbackFailed(false)
     try {
-      setDeepFeedback(await requestDeepReview(selected, lang))
+      const feedback = await requestDeepReview(selected, lang)
+      if (requestId === deepRequest.current) setDeepFeedback(feedback)
     } catch {
-      setDeepFeedbackFailed(true)
+      if (requestId === deepRequest.current) setDeepFeedbackFailed(true)
     } finally {
-      setLoadingDeepFeedback(false)
+      if (requestId === deepRequest.current) setLoadingDeepFeedback(false)
     }
+  }
+
+  const editProject = async (selected: ReviewProject) => {
+    if (openingRef.current) return
+    openingRef.current = true
+    setOpening(true)
+    try {
+      await flushCloudWork()
+      navigate(selected.kind === 'localization' ? await openCloudProject(selected.project.id) : `/generate?project=${encodeURIComponent(selected.project.id)}`)
+    } catch (error) { toast(error instanceof Error ? error.message : copy.requestFailed) }
+    finally { openingRef.current = false; setOpening(false) }
   }
 
   return (
     <div className="studio-review min-h-screen bg-white">
 
-      <main className="layout-app pb-24 pt-10 sm:py-16">
+      <main id="main-content" tabIndex={-1} className="layout-app pb-24 pt-10 sm:py-16">
+        <SessionNotice />
         <h1 className="text-[32px] font-extrabold tracking-tight sm:text-[34px]">{t.hubReview}</h1>
         <p className="mt-2 text-[16px] font-medium text-sub">{t.hubReviewDesc}</p>
 
@@ -191,7 +228,7 @@ export default function Review() {
               {projects === null && !projectsFailed && (
                 <ReviewProjectSkeleton label={t.reviewProjectsLoading} />
               )}
-              {projectsFailed && <p role="alert" className="mt-5 text-sm text-sub">{t.reviewProjectsFailed}</p>}
+              {(projectsFailed || partialFailure) && <StateNotice error className="mt-5" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{projectsFailed ? t.reviewProjectsFailed : copy.partialFailure}</StateNotice>}
               {projects !== null && !projectsFailed && projects.length === 0 && (
                 <div className="mt-5 rounded-panel border border-dashed border-gray-200 p-6 text-center">
                   <p className="text-sm text-sub">{t.reviewProjectsEmpty}</p>
@@ -232,15 +269,17 @@ export default function Review() {
               )}
             </section>
 
+            {selectedKeys.length > 0 && <nav aria-label={t.hubReview} className="my-8 flex flex-wrap gap-6"><a className="ui-link" href="#review-specs">{copy.reviewTypes[0]}</a><a className="ui-link" href="#review-similar">{copy.reviewTypes[1]}</a><a className="ui-link" href="#review-ai">{copy.reviewTypes[2]}</a></nav>}
+            <OgqSpecChecker projectImages={projectImages} />
             {selectedKeys.length > 0 && (
-              <section className="mt-10">
+              <section id="review-similar" className="mt-10">
                 <h2 className="text-lg font-bold">{t.reviewSimilarTitle}</h2>
                 <p className="mt-1 text-sm font-medium text-sub">{t.reviewSimilarDesc}</p>
 
                 {loadingWorkspace && (
                   <StickerSearchSkeleton label={t.reviewLoadingWorkspace} />
                 )}
-                {workspaceFailed && <p role="alert" className="mt-5 text-sm text-sub">{t.reviewWorkspaceFailed}</p>}
+                {workspaceFailed && <StateNotice error className="mt-5" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{t.reviewWorkspaceFailed}</StateNotice>}
                 {keywordResults !== null && keywordResults.length === 0 && (
                   <p className="mt-5 text-sm text-sub">{t.reviewNoKeywords}</p>
                 )}
@@ -280,7 +319,7 @@ export default function Review() {
             )}
 
             {selectedKeys.length > 0 && (
-              <section className="mt-10 overflow-hidden rounded-panel border border-brand/15 bg-gradient-to-br from-brand-soft via-white to-white p-5 sm:p-7">
+              <section id="review-ai" className="mt-10 border-t border-gray-200 pt-6">
                 <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                   <div>
                     <div className="flex items-center gap-2 text-brand-dark"><BrainCircuit className="h-5 w-5" /><h2 className="text-lg font-bold">{t.reviewAiTitle}</h2></div>
@@ -293,10 +332,10 @@ export default function Review() {
 
                 {selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS && <p role="alert" className="mt-4 text-sm font-semibold text-amber-700">{t.reviewAiLimit}</p>}
 
-                {deepFeedbackFailed && <p role="alert" className="mt-5 rounded-panel bg-red-50 p-4 text-sm font-medium text-red-600">{t.reviewAiFailed}</p>}
+                {deepFeedbackFailed && <StateNotice error className="mt-5">{t.reviewAiFailed}</StateNotice>}
 
                 {deepFeedback && (
-                  <div className="mt-7 space-y-6">
+                  <div className="review-feedback mt-7 space-y-6">
                     <div className="grid gap-4 rounded-panel bg-white p-5 shadow-sm sm:grid-cols-[auto_1fr] sm:items-center">
                       <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-8 border-brand-soft text-brand-dark">
                         <strong className="text-3xl font-black">{deepFeedback.readinessScore}</strong>
@@ -306,21 +345,21 @@ export default function Review() {
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiStrengths}</h3><ul className="mt-3 space-y-2">{deepFeedback.strengths.map(item => <li key={item} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-brand" /><span>{item}</span></li>)}</ul></div>
-                      <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
+                      <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiStrengths}</h3><ul className="mt-3 space-y-2">{deepFeedback.strengths.map(item => <li key={item} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-brand" /><span>{item}</span></li>)}</ul></div>
+                      <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
                     </div>
 
-                    {deepFeedback.imageFeedback.length > 0 && <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="min-w-0 overflow-hidden rounded-panel bg-surface p-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
-                    {deepFeedback.localizationFeedback.length > 0 && <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-l-2 border-brand pl-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.imageFeedback.length > 0 && <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="min-w-0 overflow-hidden border-t border-gray-200 py-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.localizationFeedback.length > 0 && <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-t border-gray-200 pt-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
                     <p className="text-xs leading-5 text-sub">{deepFeedback.disclaimer}</p>
                   </div>
                 )}
               </section>
             )}
 
-            <OgqSpecChecker projectImages={projectImages} />
+            {selectedKeys.length > 0 && <section className="mt-8 border-t border-gray-200 pt-6"><h2 className="text-lg font-bold">{copy.reviewAction}</h2><div className="mt-4 flex flex-wrap gap-3">{projects?.filter(project => selectedKeys.includes(project.key)).map(project => <Button key={project.key} variant="outline" disabled={opening} onClick={() => { void editProject(project) }}>{project.project.name || (project.kind === 'generation' ? project.project.prompt : project.project.id.slice(0, 8))} · {copy.editing}</Button>)}</div></section>}
 
-            <section className="mt-10 rounded-panel border border-gray-100 bg-surface p-6">
+            <section className="mt-10 border-t border-gray-200 pt-6">
               <h2 className="text-lg font-bold">{t.reviewChecklistTitle}</h2>
               <ul className="mt-4 space-y-3">
                 {t.reviewChecklistItems.map(item => (

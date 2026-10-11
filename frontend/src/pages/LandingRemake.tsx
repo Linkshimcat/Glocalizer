@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowRight } from 'lucide-react'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import heroCharacter from '../assets/studio/hero-character.webp'
 import heroCharacterAvif from '../assets/studio/hero-character.avif'
@@ -9,7 +9,6 @@ import translationStripAvif720 from '../assets/studio/translation-strip-720.avif
 import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
 import replayIcon from '../assets/LandingAssets/replay-icon.svg'
 import workflowArrow from '../assets/LandingAssets/workflow-arrow.svg'
-import finalArrow from '../assets/LandingAssets/final-arrow.svg'
 import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.webp'
 import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.webp'
 import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.webp'
@@ -29,6 +28,7 @@ import workflowReviewMp4 from '../assets/LandingAssets/Check.mp4'
 import workflowReviewPoster from '../assets/LandingAssets/Check-poster.jpg'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
+import LandingEnding from '../components/LandingEnding'
 import OgqStickerGallery from '../components/OgqStickerGallery'
 import RollingText from '../components/RollingText'
 import '../landing.css'
@@ -59,9 +59,6 @@ type RemakeCopy = {
   caseCompareLabel: string
   caseLocalization: string
   caseGeneration: string
-  finalTitle: string
-  finalDescription: string
-  finalCta: string
 }
 
 const WORKFLOW_VISUALS = [
@@ -107,10 +104,7 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "caseGenerationResult": "생성 결과",
     "caseCompareLabel": "원본과 작업 결과 비교",
     "caseLocalization": "현지화",
-    "caseGeneration": "생성",
-    "finalTitle": "어떤 기기든 이모티콘을 생성 하세요",
-    "finalDescription": "생성부터 출시 전 검토까지 한곳에서 진행합니다.",
-    "finalCta": "워크스페이스 열기"
+    "caseGeneration": "생성"
   },
   "en": {
     "heroDescription": "Create stickers. Localize captions. Review before release.",
@@ -148,10 +142,7 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "caseGenerationResult": "Generated result",
     "caseCompareLabel": "Compare original and result",
     "caseLocalization": "Localization",
-    "caseGeneration": "Generation",
-    "finalTitle": "Start your sticker project",
-    "finalDescription": "Create and prepare your stickers for release in one workspace.",
-    "finalCta": "Open studio"
+    "caseGeneration": "Generation"
   },
   "ja": {
     "heroDescription": "スタンプ生成・ローカライズ・公開前チェックを支援します。",
@@ -189,10 +180,7 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "caseGenerationResult": "生成結果",
     "caseCompareLabel": "オリジナルと制作結果を比較",
     "caseLocalization": "ローカライズ",
-    "caseGeneration": "生成",
-    "finalTitle": "スタンプ制作を始めましょう",
-    "finalDescription": "生成から公開前チェックまでひとつの場所で進めます。",
-    "finalCta": "スタジオを開く"
+    "caseGeneration": "生成"
   },
   "zh": {
     "heroDescription": "支持表情生成、多语言本地化和发布前检查。",
@@ -230,10 +218,7 @@ const COPY: Record<SiteLang, RemakeCopy> = {
     "caseGenerationResult": "生成结果",
     "caseCompareLabel": "对比原作与制作结果",
     "caseLocalization": "本地化",
-    "caseGeneration": "生成",
-    "finalTitle": "开始制作您的表情",
-    "finalDescription": "在一个工作室完成生成到发布前检查。",
-    "finalCta": "打开工作室"
+    "caseGeneration": "生成"
   }
 }
 
@@ -417,7 +402,7 @@ function ShowcaseCompare({ item, copy }: { item: LandingShowcase; copy: RemakeCo
   )
 }
 
-export default function LandingRemake() {
+export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
   const navigate = useNavigate()
   const { lang, t } = useSiteLang()
   const copy = COPY[lang]
@@ -559,7 +544,7 @@ export default function LandingRemake() {
 
   return (
     <div ref={pageRef} className="remake-page main-restyle" data-lang={lang}>
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section ref={heroRef} className="remake-hero" data-lang={lang} data-motion-paused={heroMotionPaused}>
           <div className="remake-hero-inner">
             <h1 key={`title-${lang}`}>
@@ -622,15 +607,9 @@ export default function LandingRemake() {
 
         <div className="remake-ogq-proof"><OgqStickerGallery /></div>
 
-        <section className="remake-final">
-          <div className="remake-final-card">
-            <h2>{copy.finalTitle.split('\n').map((line) => <span key={line}>{line}</span>)}</h2>
-            <p>{copy.finalDescription}</p>
-            <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.finalCta}<img src={finalArrow} alt="" aria-hidden="true" /></Button>
-          </div>
-        </section>
+        {ending ?? <LandingEnding />}
       </main>
-      <Footer variant="landing" />
+      <Footer variant="landing-compact" />
     </div>
   )
 }

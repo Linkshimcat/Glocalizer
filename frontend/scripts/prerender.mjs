@@ -19,27 +19,13 @@ assert.ok(template.includes(ROOT), `index.html must contain ${ROOT}`)
 // Every route without its own HTML falls back to this client-rendered shell (vercel.json rewrites).
 await fs.writeFile(new URL('spa.html', dist), template.replace(SEO_BLOCK, shellHead()))
 
-// A prerendered page is readable and its links work before any JS runs, so the app bundle starts after the page
-// has loaded (or on the first interaction, or after 3 s) instead of competing with the hero image and CSS for bandwidth.
+// Keep the server-rendered page visible while the app loads. Start the module immediately at
+// low priority so menu buttons can become interactive without waiting for every image/video.
 const ENTRY = /<script type="module" crossorigin src="([^"]+)"><\/script>/
 const MODULE_PRELOADS = /\s*<link rel="modulepreload" crossorigin href="[^"]+">/g
 const entry = template.match(ENTRY)
 assert.ok(entry, 'index.html must load the app through a single module script')
-const deferredEntry = `<script>(() => {
-      let started = false
-      const start = () => {
-        if (started) return
-        started = true
-        const script = document.createElement('script')
-        script.type = 'module'
-        script.src = ${JSON.stringify(entry[1])}
-        document.head.append(script)
-      }
-      addEventListener('load', () => setTimeout(start), { once: true })
-      for (const type of ['pointerdown', 'keydown', 'touchstart']) addEventListener(type, start, { once: true, passive: true })
-      setTimeout(start, 3000)
-    })()</script>`
-const pageTemplate = template.replace(ENTRY, deferredEntry).replace(MODULE_PRELOADS, '')
+const pageTemplate = template.replace(ENTRY, `<script type="module" crossorigin fetchpriority="low" src="${entry[1]}"></script>`).replace(MODULE_PRELOADS, '')
 
 for (const page of PUBLIC_PAGES) {
   const app = await render(page.path)

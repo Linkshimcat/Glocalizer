@@ -1,5 +1,6 @@
 import { useToast } from '../components/Toast'
-import CloudProjectList from '../components/CloudProjectList'
+import ProjectLibrary from '../components/ProjectLibrary'
+import SessionNotice from '../components/SessionNotice'
 import { Globe2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -12,7 +13,6 @@ import arrowRightIcon from '../assets/studio/cta-arrow.svg'
 import { studioCopy } from '../i18n/studio'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useUploads } from '../store/uploads'
-import GenerationList from '../components/GenerationList'
 import Modal from '../components/Modal'
 
 export default function Dashboard() {
@@ -21,9 +21,6 @@ export default function Dashboard() {
   const { t, lang } = useSiteLang()
   const copy = studioCopy[lang]
   const [newTaskOpen, setNewTaskOpen] = useState(false)
-  // 두 목록 모두 비었을 때만 빈 상태를 한 번 보여준다. null은 아직 못 불러왔다는 뜻이다.
-  const [cloudCount, setCloudCount] = useState<number | null>(null)
-  const [generationCount, setGenerationCount] = useState<number | null>(null)
   const [startingNew, setStartingNew] = useState(false)
   const { files, projectStatus, resultReady, resetWorkflow, flushCloudWork, cloudSaving } = useUploads()
   const hasWork = files.length > 0
@@ -50,7 +47,8 @@ export default function Dashboard() {
 
   return (
     <div className="studio-dashboard min-h-screen">
-      <main className="studio-dashboard-main">
+      <main id="main-content" tabIndex={-1} className="studio-dashboard-main">
+        <SessionNotice />
         <div className="studio-dashboard-heading">
           <h1>{hasWork ? copy.resume : t.hubTitle}</h1>
           <p>{t.hubSubtitle}</p>
@@ -80,13 +78,11 @@ export default function Dashboard() {
         </div>
         <section className="studio-project-section" aria-labelledby="progress-title">
           <h2 id="progress-title">{copy.projects}</h2>
-          <CloudProjectList archive={false} gallery loginMessage={copy.loginMessage} onCount={setCloudCount} />
-          <GenerationList archive={false} gallery onCount={setGenerationCount} />
-          {cloudCount === 0 && generationCount === 0 ? <p className="mt-5 border-t border-gray-200 py-6 text-sm text-sub">{copy.emptyProgress}</p> : null}
+          <ProjectLibrary loginMessage={copy.loginMessage} />
         </section>
       </main>
       {newTaskOpen ? <Modal onClose={() => { if (!startingNew) setNewTaskOpen(false) }} labelledBy="new-task-title" closeLabel={t.commonClose}>
-        <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft text-brand-dark"><Globe2 className="h-6 w-6" /></div>
+        <div className="text-sub"><Globe2 className="h-6 w-6" /></div>
         <h2 id="new-task-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudNewTitle}</h2>
         <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudNewConfirm}</p>
         <div className="mt-7 flex gap-3">

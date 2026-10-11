@@ -128,8 +128,7 @@ export interface Dict {
 
   navStart: string
   navWorkspace: string
-  navWorkspaceExplore: string
-  navServiceExplore: string
+  navSubmenu: string
   navServiceHowTo: string
   navServiceGithub: string
   navService: string
@@ -294,6 +293,12 @@ export interface Dict {
   navLogout: string
   loginTitle: string
   loginSubtitle: string
+  loginSignupSubtitle: string
+  loginShowPassword: string
+  loginHidePassword: string
+  loginSubmitting: string
+  signupSubmitting: string
+  loginNaverNotConfigured: string
   loginTabLogin: string
   loginTabSignup: string
   loginEmailLabel: string
@@ -436,8 +441,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     navStart: "작업실",
     navWorkspace: "워크스페이스",
-    navWorkspaceExplore: '워크스페이스 살펴보기',
-    navServiceExplore: '서비스 소개 살펴보기',
+    navSubmenu: '하위 메뉴',
     navServiceHowTo: 'Glocalizer 사용법',
     navServiceGithub: 'Glocalizer Github',
     navService: '서비스 소개',
@@ -589,13 +593,19 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG 다운로드에 실패했어요.',
     toastZipFail: 'ZIP 다운로드에 실패했어요.',
     toastDownloadFail: '다운로드에 실패했어요.',
-    nfTitle: '페이지를 찾을 수 없어요😭',
+    nfTitle: '페이지를 찾을 수 없어요',
     nfDesc: '주소가 바뀌었거나 없는 페이지예요.',
     nfHome: '홈으로 돌아가기',
     navLogin: '로그인',
     navLogout: '로그아웃',
     loginTitle: "로그인",
     loginSubtitle: "로그인 후 저장한 프로젝트를 이어서 작업할 수 있습니다.",
+    loginSignupSubtitle: '계정을 만들고 프로젝트를 저장해 보세요.',
+    loginShowPassword: '비밀번호 표시',
+    loginHidePassword: '비밀번호 숨기기',
+    loginSubmitting: '로그인 중…',
+    signupSubmitting: '계정 만드는 중…',
+    loginNaverNotConfigured: '네이버 로그인이 아직 설정되지 않았어요.',
     loginTabLogin: '로그인',
     loginTabSignup: '회원가입',
     loginEmailLabel: '이메일',
@@ -736,8 +746,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     navStart: "Studio",
     navWorkspace: "Workspace",
-    navWorkspaceExplore: 'Explore workspace',
-    navServiceExplore: 'Explore our service',
+    navSubmenu: 'submenu',
     navServiceHowTo: 'How to use Glocalizer',
     navServiceGithub: 'Glocalizer GitHub',
     navService: 'About',
@@ -889,13 +898,19 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG download failed.',
     toastZipFail: 'ZIP download failed.',
     toastDownloadFail: 'Download failed.',
-    nfTitle: 'Page not found😭',
+    nfTitle: 'Page not found',
     nfDesc: 'The page may have moved or no longer exists.',
     nfHome: 'Back to home',
     navLogin: 'Log in',
     navLogout: 'Log out',
     loginTitle: "Log in",
     loginSubtitle: "Log in to continue your saved projects.",
+    loginSignupSubtitle: 'Create an account to save your projects.',
+    loginShowPassword: 'Show password',
+    loginHidePassword: 'Hide password',
+    loginSubmitting: 'Signing in…',
+    signupSubmitting: 'Creating account…',
+    loginNaverNotConfigured: 'NAVER login is not configured yet.',
     loginTabLogin: 'Log in',
     loginTabSignup: 'Sign up',
     loginEmailLabel: 'Email',
@@ -1036,8 +1051,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     navStart: "スタジオ",
     navWorkspace: "ワークスペース",
-    navWorkspaceExplore: 'ワークスペースを見る',
-    navServiceExplore: 'サービス紹介を見る',
+    navSubmenu: 'サブメニュー',
     navServiceHowTo: 'Glocalizerの使い方',
     navServiceGithub: 'Glocalizer GitHub',
     navService: 'サービス紹介',
@@ -1189,13 +1203,19 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNGのダウンロードに失敗しました。',
     toastZipFail: 'ZIPのダウンロードに失敗しました。',
     toastDownloadFail: 'ダウンロードに失敗しました。',
-    nfTitle: 'ページが見つかりません😭',
+    nfTitle: 'ページが見つかりません',
     nfDesc: 'アドレスが変わったか、存在しないページです。',
     nfHome: 'ホームに戻る',
     navLogin: 'ログイン',
     navLogout: 'ログアウト',
     loginTitle: "ログイン",
     loginSubtitle: "ログインして保存したプロジェクトを再開できます。",
+    loginSignupSubtitle: 'アカウントを作成して、プロジェクトを保存しましょう。',
+    loginShowPassword: 'パスワードを表示',
+    loginHidePassword: 'パスワードを非表示',
+    loginSubmitting: 'ログイン中…',
+    signupSubmitting: 'アカウントを作成中…',
+    loginNaverNotConfigured: 'NAVERログインはまだ設定されていません。',
     loginTabLogin: 'ログイン',
     loginTabSignup: '新規登録',
     loginEmailLabel: 'メールアドレス',
@@ -1336,8 +1356,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     navStart: "工作室",
     navWorkspace: "工作空间",
-    navWorkspaceExplore: '浏览工作空间',
-    navServiceExplore: '了解服务',
+    navSubmenu: '子菜单',
     navServiceHowTo: 'Glocalizer 使用方法',
     navServiceGithub: 'Glocalizer GitHub',
     navService: '服务介绍',
@@ -1489,13 +1508,19 @@ export const translations: Record<SiteLang, Dict> = {
     toastPngFail: 'PNG 下载失败。',
     toastZipFail: 'ZIP 下载失败。',
     toastDownloadFail: '下载失败。',
-    nfTitle: '找不到页面😭',
+    nfTitle: '找不到页面',
     nfDesc: '地址可能已更改，或该页面不存在。',
     nfHome: '返回首页',
     navLogin: '登录',
     navLogout: '退出登录',
     loginTitle: "登录",
     loginSubtitle: "登录后继续已保存的项目。",
+    loginSignupSubtitle: '创建账号，保存您的项目。',
+    loginShowPassword: '显示密码',
+    loginHidePassword: '隐藏密码',
+    loginSubmitting: '正在登录…',
+    signupSubmitting: '正在创建账号…',
+    loginNaverNotConfigured: 'NAVER 登录尚未配置。',
     loginTabLogin: '登录',
     loginTabSignup: '注册',
     loginEmailLabel: '邮箱',

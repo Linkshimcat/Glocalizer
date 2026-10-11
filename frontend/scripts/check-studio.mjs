@@ -82,13 +82,14 @@ async function setup({ width = 1280, count = 8, me = 200, signedIn = true, voice
 
 await mkdir('/tmp/glocalizer-studio-qa',{recursive:true});
 let cases=0;
-for (const width of [360,390,768,1280,1440]) {
+for (const width of (process.env.VIEWPORT_WIDTHS ?? '360,390,768,1280,1440').split(',').map(Number)) {
  for (const lang of ['ko','en','ja','zh']) {
   const {context,page}=await setup({width});
   await page.setViewportSize({width,height:1024});
   await context.addInitScript(lang=>localStorage.setItem('glocalizer:siteLang',lang),lang);
   for (const path of ['/','/dashboard','/editor','/result','/generate','/review','/localize','/account','/archive']) {
    await page.goto(base+path,{waitUntil:'domcontentloaded'});
+   if(path!=='/') await page.locator('header .site-nav-trigger[aria-current="location"]').waitFor();
    await page.locator('h1,textarea').first().waitFor();
    await page.evaluate(()=>document.fonts.ready);
    await page.waitForTimeout(100);
@@ -97,10 +98,13 @@ for (const width of [360,390,768,1280,1440]) {
    assert.equal(await page.locator('header').count(),1,`${path}: one global header`);
    const header=page.locator('.site-header');
    assert.equal((await header.boundingBox()).height,width>=1024?72:112);
-   assert.deepEqual(await header.locator('nav a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href'))),['/dashboard','/service']);
+   assert.deepEqual(await header.locator('#workspace-nav-panel a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href'))),['/generate','/localize','/review']);
+   assert.equal(await header.locator('.site-nav-entry > a[href="/dashboard"]').count(),1);
+   assert.equal(await header.locator('.site-nav-entry > a[href="/service"]').count(),1);
    assert.equal(await header.locator('button[aria-haspopup="listbox"]').count(),1);
-   assert.equal(await header.locator('button[aria-haspopup="true"]').count(),1);
-   if(path!=='/') assert.equal(await header.locator('a[aria-current="page"]').getAttribute('href'),'/dashboard');
+   assert.equal(await header.locator('.site-nav-toggle[aria-controls]').count(),2);
+   if(path!=='/') assert.equal(await header.locator('.site-nav-trigger[aria-current="location"]').count(),1);
+   assert.equal(await page.locator('main#main-content').count(), 1);
    assert.deepEqual(await header.locator('a,button').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1}).map(n=>n.textContent)),[]);
 
    if(lang==='ko') await page.screenshot({path:'/tmp/glocalizer-studio-qa/'+(path==='/'?'landing':path.slice(1))+'-'+width+'.png'});

@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowUpRight } from 'lucide-react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import { ArrowUpRight, ChevronDown } from 'lucide-react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { legalUi } from '../i18n/legalUi'
 import { useSiteLang } from '../i18n/LanguageContext'
 
@@ -12,13 +12,13 @@ type MenuName = 'workspace' | 'service'
 
 export default function NavMenu() {
   const { t, lang } = useSiteLang()
-  const { pathname } = useLocation()
+  const { pathname, key } = useLocation()
   const [openMenu, setOpenMenu] = useState<MenuName | null>(null)
-  const workspaceTrigger = useRef<HTMLButtonElement>(null)
-  const serviceTrigger = useRef<HTMLButtonElement>(null)
+  const menuOpener = useRef<HTMLElement | null>(null)
+  const openedOnHover = useRef(false)
   const inWorkspace = WORKSPACE_ROUTES.includes(pathname)
 
-  useEffect(() => setOpenMenu(null), [pathname])
+  useEffect(() => setOpenMenu(null), [key])
 
   useEffect(() => {
     if (!openMenu) return
@@ -30,7 +30,7 @@ export default function NavMenu() {
       if (event.key !== 'Escape') return
       event.preventDefault()
       setOpenMenu(null)
-      ;(openMenu === 'workspace' ? workspaceTrigger : serviceTrigger).current?.focus()
+      menuOpener.current?.focus()
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -41,9 +41,26 @@ export default function NavMenu() {
   }, [openMenu])
 
   const closeMenu = () => setOpenMenu(null)
-  const toggleMenu = (name: MenuName) => setOpenMenu(current => current === name ? null : name)
+  const visitPage = (path: string) => {
+    closeMenu()
+    if (pathname === path) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }
   const openOnHover = (event: ReactPointerEvent, name: MenuName) => {
-    if (event.pointerType === 'mouse') setOpenMenu(name)
+    if (event.pointerType !== 'mouse') return
+    openedOnHover.current = true
+    menuOpener.current = event.currentTarget as HTMLElement
+    setOpenMenu(name)
+  }
+  const openWithKeyboard = (event: ReactKeyboardEvent<HTMLElement>, name: MenuName) => {
+    if (event.key !== 'ArrowDown') return
+    event.preventDefault()
+    openedOnHover.current = false
+    menuOpener.current = event.currentTarget
+    setOpenMenu(name)
+    requestAnimationFrame(() => document.querySelector<HTMLAnchorElement>(`#${name}-nav-panel a`)?.focus())
+  }
+  const closeOtherMenu = (name: MenuName) => {
+    setOpenMenu(current => current && current !== name ? null : current)
   }
 
   return (
@@ -54,7 +71,7 @@ export default function NavMenu() {
           aria-hidden="true"
           className={`site-nav-backdrop${openMenu ? ' is-open' : ''}`}
           onPointerEnter={event => {
-            if (event.pointerType === 'mouse') closeMenu()
+            if (event.pointerType === 'mouse' && openedOnHover.current) closeMenu()
           }}
           onClick={closeMenu}
         />,
@@ -67,46 +84,64 @@ export default function NavMenu() {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeMenu()
         }}
       >
-        <div className="site-nav-entry" onPointerEnter={event => openOnHover(event, 'workspace')}>
-          <button
-            ref={workspaceTrigger}
-            type="button"
+        <div className="site-nav-entry">
+          <Link
+            to="/dashboard"
             className={`site-nav-trigger${inWorkspace ? ' is-active' : ''}`}
+            aria-current={inWorkspace ? 'location' : undefined}
+            onClick={() => visitPage('/dashboard')}
+            onFocus={() => closeOtherMenu('workspace')}
+            onPointerEnter={event => openOnHover(event, 'workspace')}
+            onKeyDown={event => openWithKeyboard(event, 'workspace')}
+          >{t.navWorkspace}</Link>
+          <button
+            type="button"
+            className="site-nav-toggle"
+            aria-label={`${t.navWorkspace} ${t.navSubmenu}`}
             aria-expanded={openMenu === 'workspace'}
-            aria-haspopup="true"
             aria-controls="workspace-nav-panel"
+            onFocus={() => closeOtherMenu('workspace')}
             onClick={event => {
-              if (event.detail > 0 && window.matchMedia('(hover: none)').matches) toggleMenu('workspace')
-              else setOpenMenu('workspace')
+              openedOnHover.current = false
+              menuOpener.current = event.currentTarget
+              setOpenMenu(current => current === 'workspace' ? null : 'workspace')
             }}
-            onFocus={event => { if (event.currentTarget.matches(':focus-visible')) setOpenMenu('workspace') }}
-          >{t.navWorkspace}</button>
+            onKeyDown={event => openWithKeyboard(event, 'workspace')}
+          ><ChevronDown aria-hidden="true" /></button>
           <div id="workspace-nav-panel" className={`site-nav-panel site-nav-panel-workspace${openMenu === 'workspace' ? ' is-open' : ''}`} aria-hidden={openMenu !== 'workspace'} inert={openMenu !== 'workspace'} onClick={event => { if (event.target === event.currentTarget) closeMenu() }}>
             <div className="site-nav-panel-content">
-              <Link to="/dashboard" className="site-nav-panel-label" onClick={closeMenu}>{t.navWorkspaceExplore}</Link>
               <Link to="/generate" className="site-nav-panel-link" onClick={closeMenu}>{t.hubGenerate}<ArrowUpRight aria-hidden="true" /></Link>
               <Link to="/localize" className="site-nav-panel-link" onClick={closeMenu}>{t.hubLocalize}<ArrowUpRight aria-hidden="true" /></Link>
               <Link to="/review" className="site-nav-panel-link" onClick={closeMenu}>{t.hubReview}<ArrowUpRight aria-hidden="true" /></Link>
             </div>
           </div>
         </div>
-        <div className="site-nav-entry" onPointerEnter={event => openOnHover(event, 'service')}>
-          <button
-            ref={serviceTrigger}
-            type="button"
+        <div className="site-nav-entry">
+          <Link
+            to="/service"
             className={`site-nav-trigger${pathname === '/service' ? ' is-active' : ''}`}
+            aria-current={pathname === '/service' ? 'page' : undefined}
+            onClick={() => visitPage('/service')}
+            onFocus={() => closeOtherMenu('service')}
+            onPointerEnter={event => openOnHover(event, 'service')}
+            onKeyDown={event => openWithKeyboard(event, 'service')}
+          >{t.navService}</Link>
+          <button
+            type="button"
+            className="site-nav-toggle"
+            aria-label={`${t.navService} ${t.navSubmenu}`}
             aria-expanded={openMenu === 'service'}
-            aria-haspopup="true"
             aria-controls="service-nav-panel"
+            onFocus={() => closeOtherMenu('service')}
             onClick={event => {
-              if (event.detail > 0 && window.matchMedia('(hover: none)').matches) toggleMenu('service')
-              else setOpenMenu('service')
+              openedOnHover.current = false
+              menuOpener.current = event.currentTarget
+              setOpenMenu(current => current === 'service' ? null : 'service')
             }}
-            onFocus={event => { if (event.currentTarget.matches(':focus-visible')) setOpenMenu('service') }}
-          >{t.navService}</button>
+            onKeyDown={event => openWithKeyboard(event, 'service')}
+          ><ChevronDown aria-hidden="true" /></button>
           <div id="service-nav-panel" className={`site-nav-panel site-nav-panel-service${openMenu === 'service' ? ' is-open' : ''}`} aria-hidden={openMenu !== 'service'} inert={openMenu !== 'service'} onClick={event => { if (event.target === event.currentTarget) closeMenu() }}>
             <div className="site-nav-panel-content">
-              <Link to="/service" className="site-nav-panel-label" onClick={closeMenu}>{t.navServiceExplore}</Link>
               <Link to="/service#service-workflow" className="site-nav-panel-link" onClick={closeMenu}>{t.navServiceHowTo}<ArrowUpRight aria-hidden="true" /></Link>
               <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="site-nav-panel-link" onClick={closeMenu}>{t.navServiceGithub}<ArrowUpRight aria-hidden="true" /></a>
             </div>
@@ -116,6 +151,8 @@ export default function NavMenu() {
           to="/pricing"
           className={`site-nav-item${pathname === '/pricing' ? ' is-active' : ''}`}
           aria-current={pathname === '/pricing' ? 'page' : undefined}
+          onClick={() => visitPage('/pricing')}
+          onFocus={closeMenu}
           onPointerEnter={closeMenu}
         >{t.navPrice}</Link>
       </nav>

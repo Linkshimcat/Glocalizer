@@ -1,6 +1,6 @@
 import { ArrowUpRight, Archive, Check, Globe2, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Footer from '../components/Footer'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
@@ -15,12 +15,21 @@ const FEATURES = [
 
 export default function ServiceIntro() {
   const { lang } = useSiteLang()
+  const { hash, key } = useLocation()
   const s = serviceDict[lang]
   const pageRef = useRef<HTMLDivElement>(null)
   const workflowRef = useRef<HTMLElement>(null)
   const workflowProgressRef = useRef<HTMLDivElement>(null)
   const [motionReady, setMotionReady] = useState(false)
   useDocumentMeta(s.title, s.intro)
+
+  useEffect(() => {
+    if (hash !== '#service-workflow') return
+    const frame = requestAnimationFrame(() => {
+      document.getElementById('service-workflow')?.scrollIntoView({ block: 'start', behavior: 'auto' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [hash, key])
 
   useEffect(() => {
     const page = pageRef.current
@@ -68,7 +77,7 @@ export default function ServiceIntro() {
 
   return (
     <div ref={pageRef} className="service-page flex min-h-screen flex-col bg-white" data-motion-ready={motionReady}>
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <section className="border-b border-brand/10 bg-white">
           <div className="layout-app service-reveal py-16 sm:py-24">
             <h1 className="mt-5 max-w-4xl whitespace-pre-line break-words text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-5xl">{s.title}</h1>
@@ -87,7 +96,7 @@ export default function ServiceIntro() {
               return (
                 <article key={path} className="service-reveal service-feature-card flex flex-col rounded-panel border border-gray-200 bg-surface/50 p-6 sm:p-8" style={{ '--reveal-delay': `${index * 75}ms` } as CSSProperties}>
                   <div className="flex items-center justify-between">
-                    <span className="service-feature-icon flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft text-brand-dark"><Icon size={24} aria-hidden /></span>
+                    <span className="service-feature-icon flex h-12 w-12 items-center justify-center text-brand-dark"><Icon size={24} aria-hidden /></span>
                   </div>
                   <h3 className="mt-6 text-xl font-extrabold leading-snug text-ink sm:text-2xl">{feature.title}</h3>
                   <p className="mt-3 leading-7 text-sub">{feature.description}</p>

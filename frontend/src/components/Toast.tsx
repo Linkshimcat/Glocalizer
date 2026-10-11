@@ -41,12 +41,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map(t => (
           <div
             key={t.id}
-            role="alert"
-            className={`animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-panel border border-gray-200/70 bg-white px-3.5 py-3 shadow-[0_12px_32px_rgba(25,31,40,0.12)]${t.exiting ? ' animate-toast-out' : ''}`}
+            role={t.type === 'warning' ? 'alert' : 'status'}
+            className={`animate-toast-in flex w-full max-w-sm items-center gap-3 rounded-panel border border-gray-200/70 bg-white px-3.5 py-3 shadow-sm${t.exiting ? ' animate-toast-out' : ''}`}
           >
             <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-panel ${
-                t.type === 'warning' ? 'bg-amber-50 text-amber-600' : 'bg-brand-soft text-brand-dark'
+              className={`flex h-6 w-6 shrink-0 items-center justify-center ${
+                t.type === 'warning' ? 'text-amber-700' : 'text-brand-dark'
               }`}
             >
               {t.type === 'warning' ? <AlertTriangle className="h-[18px] w-[18px]" /> : <CheckCircle2 className="h-[18px] w-[18px]" />}

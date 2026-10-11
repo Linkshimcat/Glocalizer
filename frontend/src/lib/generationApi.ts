@@ -1,3 +1,4 @@
+import { apiFetch, RequestError, responseFailure } from './requestError'
 import JSZip from 'jszip'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
@@ -13,8 +14,8 @@ export const DEFAULT_CAPTION_STYLE: CaptionStyle = { anchor: 'top-center', size:
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
 export interface GenerationProject { id: string; prompt: string; name?: string | null; confirmed: boolean; day: string; created_at: string; status?: 'active' | 'completed'; completed_at?: string | null; plan?: StickerPlanItem[]; referenceUrl: string | null; images: GenerationImage[] }
 export async function generationRequest<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<T> {
-  const response = await fetch(`${BASE}/generation${path}`, { method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined })
-  if (!response.ok) { const payload = await response.json().catch(() => null); throw new Error(payload?.error?.message ?? `API (${response.status})`) }
+  const response = await apiFetch(`${BASE}/generation${path}`, { method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined })
+  if (!response.ok) { const error = await responseFailure(response, `API (${response.status})`); throw new RequestError(error.message, error.status, error.code, error.retryAfterSeconds) }
   const text = await response.text()
   return text ? JSON.parse(text) as T : undefined as T
 }
@@ -50,8 +51,8 @@ export async function downloadGeneration(token: string, projectId: string, image
   const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 export async function fetchGenerationFile(token: string, projectId: string, imageId: string, slot?: number) {
-  const response = await fetch(`${BASE}/generation/projects/${projectId}/images/${imageId}/download`, { headers: { Authorization: `Bearer ${token}` } })
-  if (!response.ok) { const payload = await response.json().catch(() => null); throw new Error(payload?.error?.message ?? 'PNG download failed') }
+  const response = await apiFetch(`${BASE}/generation/projects/${projectId}/images/${imageId}/download`, { headers: { Authorization: `Bearer ${token}` } })
+  if (!response.ok) { const error = await responseFailure(response, 'PNG download failed'); throw new RequestError(error.message, error.status, error.code, error.retryAfterSeconds) }
   const suffix = slot === undefined ? imageId.slice(0, 8) : String(slot + 1)
   return new File([await response.blob()], `glocalizer-${projectId.slice(0, 8)}-${suffix}.png`, { type: 'image/png' })
 }

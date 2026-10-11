@@ -2,6 +2,8 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Down
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
+import SessionNotice from '../components/SessionNotice'
+import { experienceCopy } from '../i18n/experience'
 import Modal from '../components/Modal'
 import '../editor-fonts.css'
 import PngPreview from '../components/PngPreview'
@@ -19,6 +21,7 @@ export default function Result() {
   const toast = useToast()
   const { t, lang } = useSiteLang()
   const w = workflowCopy[lang]
+  const copy = experienceCopy[lang]
   const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady, cloudSaving, flushCloudWork, selectedFileIds, outputPreset, recordDownload, lastDownload } = useUploads()
   const [enlarged, setEnlarged] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -65,13 +68,14 @@ export default function Result() {
     } catch (error) { toast(error instanceof Error ? error.message : t.toastDownloadFail) }
     finally { exporting.current = false; setBusy(false) }
   }
-  if (cloudSaving && files.length === 0) return <div role="status" className="p-8 text-center text-sub">{t.cloudLoading}</div>
+  if (cloudSaving && files.length === 0) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{t.cloudLoading}</main>
   if (!files.length || !projectStatus) return <Navigate to="/localize" replace />
   if (!['completed', 'failed'].includes(projectStatus.status) || !resultReady) return <Navigate to="/editor" replace />
 
   return <div className="studio-result min-h-screen bg-white">
     <div className="workspace-stepbar"><div className="layout-app text-sm font-bold text-brand-dark">3 · {t.stepDownload}</div></div>
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+    <main id="main-content" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+      <SessionNotice />
       <section className="studio-result-summary"><div>
         <div className="flex items-center gap-2.5">
           {!lastDownload && (failedCount > 0
@@ -80,14 +84,15 @@ export default function Result() {
           <h1 className="text-2xl font-extrabold sm:text-3xl">{lastDownload ? w.downloadStarted : failedCount > 0 ? w.readyWithFailures.replace('{n}', String(failedCount)) : w.ready}</h1>
         </div>
         <p role="status" aria-live="polite" className="mt-3 text-sm text-sub">{busy ? w.preparing : lastDownload ? w.downloadHint : manualCleanupCount > 0 ? w.previewHintManual.replace('{n}', String(manualCleanupCount)) : w.previewHint}</p>
+        <p className="mt-2 text-sm text-sub">{copy.resultCount.replace('{n}', String(entries.length)).replace('{languages}', String(groups.length))}</p>
         </div><Button className="w-full shrink-0 sm:w-auto" disabled={busy || !entries.length} onClick={() => { void redownload() }}><Download className="h-4 w-4" />{w.downloadAgain} · ZIP</Button>
       </section>
       <section className="mt-8">
         <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{t.resultPreviewTitle}</h2><AILocalizationBadge /><UploadSpecBadge /></div>
         <div className="mt-5 space-y-8">{groups.map(({ language, items }) => <section key={language.code}>
-          <h3 className="font-bold">{language.flag} {language.label}</h3>
+          <h3 className="font-bold">{language.label}</h3>
           {/* 미리보기가 작다는 실사용 피드백(W5/W6)을 반영해 열 수를 줄이고 카드를 키웠다(기존 2/3/4열 → 2/3열). */}
-          <div className="studio-result-gallery mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">{items.map(item => <article key={item.id} className="min-w-0 rounded-2xl border border-gray-200 bg-white p-3">
+          <div className="studio-result-gallery mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">{items.map(item => <article key={item.id} className="min-w-0 rounded-panel border border-gray-200 bg-white p-3">
             <PngPreview item={item} overlays={textOverlaysForItem(item, language.code, styles)} baseStyle={imageStyleForItem(item, language.code, styles)} preset={outputPreset} onEnlarge={() => setEnlarged(entries.findIndex(entry => entry.item.id === item.id && entry.language.code === language.code))} />
             <p className="mt-2 truncate text-xs text-sub" title={item.name}>{item.name}</p>
             {item.analysis?.needsManualCleanup && <button type="button" className="mt-2 flex w-full items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-2 text-left text-xs font-bold text-amber-900" onClick={() => navigate(`/editor?cleanup=${encodeURIComponent(item.id)}`)}><AlertTriangle aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />{w.cleanupAction}</button>}
@@ -101,7 +106,7 @@ export default function Result() {
       </div>
     </main>
     {active && enlarged !== null && <Modal onClose={() => setEnlarged(null)} closeLabel={w.close} labelledBy="result-preview-title" className="max-w-4xl">
-      <h2 id="result-preview-title" className="break-words pr-8 font-bold">{active.language.flag} {active.item.name} · {enlarged + 1}/{entries.length}</h2>
+      <h2 id="result-preview-title" className="break-words pr-8 font-bold">{active.language.label} · {active.item.name} · {enlarged + 1}/{entries.length}</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div><p className="mb-2 text-sm text-sub">{t.stepUpload}</p><img src={active.item.analysis?.originalUrl ?? active.item.url} alt={active.item.name} className="checkerboard max-h-[60dvh] w-full rounded-panel object-contain" /></div>
         <div><p className="mb-2 text-sm text-sub">{w.preview}</p><PngPreview large item={active.item} overlays={textOverlaysForItem(active.item, active.language.code, styles)} baseStyle={imageStyleForItem(active.item, active.language.code, styles)} preset={outputPreset} /></div>

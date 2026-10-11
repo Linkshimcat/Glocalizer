@@ -1,7 +1,10 @@
-import { Loader2 } from 'lucide-react'
+import { requestErrorMessage } from '../lib/requestError'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import AuthBackdrop from '../components/AuthBackdrop'
 import Button from '../components/Button'
+import StateNotice from '../components/StateNotice'
 import NaverIcon from '../components/NaverIcon'
 import GoogleIcon from '../components/GoogleIcon'
 import { useToast } from '../components/Toast'
@@ -11,6 +14,9 @@ import { buildNaverAuthUrl } from '../lib/naverAuth'
 import { safeLoginReturn, rememberLoginReturn } from '../lib/loginReturn'
 import { workflowCopy } from '../i18n/workflow'
 import { preloadGoogleLogin, startGoogleLogin } from '../lib/googleAuth'
+import { legalUi } from '../i18n/legalUi'
+import { useDocumentMeta } from '../hooks/useDocumentMeta'
+import '../login.css'
 
 type Mode = 'login' | 'signup'
 
@@ -31,6 +37,16 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false)
   const [googlePreparing, setGooglePreparing] = useState(true)
   const [googleSubmitting, setGoogleSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const busy = submitting || googleSubmitting
+  const legal = legalUi[lang]
+  useDocumentMeta(mode === 'login' ? t.loginTitle : t.loginTabSignup, mode === 'login' ? t.loginSubtitle : t.loginSignupSubtitle)
+
+  const switchMode = (nextMode: Mode) => {
+    setMode(nextMode)
+    setError(null)
+    setShowPassword(false)
+  }
 
   useEffect(() => {
     let active = true
@@ -59,7 +75,7 @@ export default function Login() {
       toast(t.loginSuccessToast, 'success')
       navigate(returnTo)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '요청에 실패했어요.')
+      setError(requestErrorMessage(err, lang, w.sessionRetry))
     } finally {
       setSubmitting(false)
     }
@@ -68,7 +84,7 @@ export default function Login() {
   const handleNaverLogin = () => {
     const url = buildNaverAuthUrl()
     if (!url) {
-      toast('네이버 로그인이 아직 설정되지 않았어요.')
+      toast(t.loginNaverNotConfigured)
       return
     }
     rememberLoginReturn(returnTo)
@@ -88,139 +104,163 @@ export default function Login() {
       toast(t.loginSuccessToast, 'success')
       navigate(returnTo)
     } catch (err) {
-      toast(err instanceof Error ? err.message : t.loginGoogleFailed)
+      toast(requestErrorMessage(err, lang, t.loginGoogleFailed))
     } finally {
       setGoogleSubmitting(false)
     }
   }
 
-  const inputClass =
-    'h-12 w-full rounded-control border border-gray-200 bg-white px-4 text-[15px] font-medium text-ink outline-none transition-colors placeholder:text-sub focus:border-brand'
-
-  if (checkingSession) return <div role="status" className="p-8 text-center">{w.checkingSession}</div>
-  if (isAuthenticated && sessionError) return <div role="alert" className="mx-auto max-w-md p-8 text-center"><p>{w.sessionRetry}</p><Button className="mt-4" onClick={() => { void refreshUser() }}>{w.retry}</Button></div>
+  if (checkingSession) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
+  if (isAuthenticated && sessionError) return <main id="main-content" tabIndex={-1} className="ui-recovery-page"><h1 className="page-title">{t.loginTitle}</h1><StateNotice error className="mt-5" action={<Button onClick={() => { void refreshUser() }}>{w.retry}</Button>}>{w.sessionRetry}</StateNotice></main>
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
+    <div className="studio-login">
+      <main id="main-content" tabIndex={-1} className="login-stage">
+        <AuthBackdrop />
+        <div className="login-content">
+          <section className="login-panel" aria-labelledby="login-title">
+            <div className="login-heading">
+              <h1 id="login-title">{mode === 'login' ? t.loginTitle : t.loginTabSignup}</h1>
+              <p>{mode === 'login' ? t.loginSubtitle : t.loginSignupSubtitle}</p>
+            </div>
 
-      <main className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-[420px] rounded-panel border border-gray-100 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-8">
-          <div className="text-center">
-            <h1 className="text-[26px] font-extrabold text-ink">{t.loginTitle}</h1>
-            <p className="mt-2 text-sm text-sub">{t.loginSubtitle}</p>
-          </div>
+            <div className="login-mode">
+              <button
+                type="button"
+                aria-pressed={mode === 'login'}
+                disabled={busy}
+                onClick={() => switchMode('login')}
+              >
+                {t.loginTabLogin}
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === 'signup'}
+                disabled={busy}
+                onClick={() => switchMode('signup')}
+              >
+                {t.loginTabSignup}
+              </button>
+            </div>
 
-          <div className="mt-6 flex rounded-panel bg-surface p-1">
-            <button
-              type="button"
-              onClick={() => { setMode('login'); setError(null) }}
-              className={`h-9 flex-1 rounded-control text-sm font-bold transition-colors ${
-                mode === 'login' ? 'bg-white text-ink shadow-sm' : 'text-sub hover:text-ink'
-              }`}
-            >
-              {t.loginTabLogin}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('signup'); setError(null) }}
-              className={`h-9 flex-1 rounded-control text-sm font-bold transition-colors ${
-                mode === 'signup' ? 'bg-white text-ink shadow-sm' : 'text-sub hover:text-ink'
-              }`}
-            >
-              {t.loginTabSignup}
-            </button>
-          </div>
+            <form onSubmit={handleSubmit} className="login-form" aria-labelledby="login-title" aria-busy={submitting}>
+              {mode === 'signup' && (
+                <label className="login-field" htmlFor="login-name">
+                  <span>
+                    {t.loginNameLabel} <small>{t.loginNameOptional}</small>
+                  </span>
+                  <input
+                    id="login-name"
+                    name="name"
+                    type="text"
+                    value={name}
+                    onChange={event => setName(event.target.value)}
+                    placeholder={t.loginNamePlaceholder}
+                    maxLength={60}
+                    autoComplete="nickname"
+                    disabled={busy}
+                    className="login-input"
+                  />
+                </label>
+              )}
 
-          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-            {mode === 'signup' && (
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[13px] font-bold text-ink">
-                  {t.loginNameLabel} <span className="font-medium text-sub">{t.loginNameOptional}</span>
-                </span>
+              <label className="login-field" htmlFor="login-email">
+                <span>{t.loginEmailLabel}</span>
                 <input
-                  type="text"
-                  value={name}
-                  onChange={event => setName(event.target.value)}
-                  placeholder={t.loginNamePlaceholder}
-                  maxLength={60}
-                  className={inputClass}
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
+                  placeholder={t.loginEmailPlaceholder}
+                  required
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  inputMode="email"
+                  disabled={busy}
+                  aria-describedby={error ? 'login-error' : undefined}
+                  className="login-input"
                 />
               </label>
-            )}
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-bold text-ink">{t.loginEmailLabel}</span>
-              <input
-                type="email"
-                value={email}
-                onChange={event => setEmail(event.target.value)}
-                placeholder={t.loginEmailPlaceholder}
-                required
-                autoComplete="email"
-                className={inputClass}
-              />
-            </label>
+              <div className="login-field">
+                <label htmlFor="login-password" className="login-password-label">{t.loginPasswordLabel}</label>
+                <div className="login-password">
+                  <input
+                    id="login-password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={event => setPassword(event.target.value)}
+                    placeholder={t.loginPasswordPlaceholder}
+                    required
+                    minLength={mode === 'signup' ? 8 : undefined}
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    disabled={busy}
+                    aria-describedby={error ? 'login-error' : undefined}
+                    className="login-input"
+                  />
+                  <button
+                    type="button"
+                    className="login-password-toggle"
+                    aria-label={showPassword ? t.loginHidePassword : t.loginShowPassword}
+                    aria-pressed={showPassword}
+                    aria-controls="login-password"
+                    disabled={busy}
+                    onClick={() => setShowPassword(value => !value)}
+                  >{showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</button>
+                </div>
+              </div>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-bold text-ink">{t.loginPasswordLabel}</span>
-              <input
-                type="password"
-                value={password}
-                onChange={event => setPassword(event.target.value)}
-                placeholder={t.loginPasswordPlaceholder}
-                required
-                minLength={mode === 'signup' ? 8 : undefined}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                className={inputClass}
-              />
-            </label>
+              {error && (
+                <div id="login-error"><StateNotice error>{error}</StateNotice></div>
+              )}
 
-            {error && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-600">{error}</p>
-            )}
+              <Button type="submit" size="lg" disabled={busy} aria-busy={submitting} className="login-submit">
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                {submitting ? (mode === 'login' ? t.loginSubmitting : t.signupSubmitting) : (mode === 'login' ? t.loginSubmitLogin : t.loginSubmitSignup)}
+              </Button>
+            </form>
 
-            <Button type="submit" size="lg" glow disabled={submitting} className="w-full">
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === 'login' ? t.loginSubmitLogin : t.loginSubmitSignup}
-            </Button>
-          </form>
+            <div className="login-divider">{t.loginDivider}</div>
 
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-gray-100" />
-            <span className="text-xs font-semibold text-sub">{t.loginDivider}</span>
-            <span className="h-px flex-1 bg-gray-100" />
-          </div>
+            <div className="login-providers">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={handleGoogleLogin}
+                disabled={googlePreparing || busy}
+                aria-busy={googlePreparing || googleSubmitting}
+                className="login-provider"
+              >
+                {googlePreparing || googleSubmitting
+                  ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  : <GoogleIcon className="h-5 w-5" />}
+                {googlePreparing ? t.loginGooglePreparing : googleSubmitting ? t.loginGoogleProcessing : t.loginGoogleCta}
+              </Button>
+              <Button type="button" variant="outline" size="lg" onClick={handleNaverLogin} disabled={busy} className="login-provider login-provider--naver">
+                <NaverIcon className="h-[18px] w-[18px]" />
+                {t.loginNaverCta}
+              </Button>
+            </div>
 
-          <div className="flex flex-col gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={handleGoogleLogin}
-              disabled={googlePreparing || googleSubmitting}
-              aria-busy={googlePreparing || googleSubmitting}
-              className="w-full"
-            >
-              {googlePreparing || googleSubmitting
-                ? <Loader2 className="h-5 w-5 animate-spin" />
-                : <GoogleIcon className="h-5 w-5" />}
-              {googlePreparing ? t.loginGooglePreparing : googleSubmitting ? t.loginGoogleProcessing : t.loginGoogleCta}
-            </Button>
-            <Button type="button" variant="naver" size="lg" onClick={handleNaverLogin} className="w-full">
-              <NaverIcon className="h-[18px] w-[18px]" />
-              {t.loginNaverCta}
-            </Button>
-          </div>
-
-          <p className="mt-6 text-center text-[13px] font-semibold text-sub">
-            <button
-              type="button"
-              onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null) }}
-              className="text-brand-dark hover:underline"
-            >
-              {mode === 'login' ? t.loginSwitchToSignup : t.loginSwitchToLogin}
-            </button>
-          </p>
+            <div className="login-switch">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+              >
+                {mode === 'login' ? t.loginSwitchToSignup : t.loginSwitchToLogin}
+              </button>
+            </div>
+          </section>
+          <nav className="login-links" aria-label={legal.footerLinks}>
+            <Link to="/">{t.loginBackHome}</Link>
+            <Link to="/privacy">{legal.privacy}</Link>
+            <Link to="/terms">{legal.terms}</Link>
+          </nav>
         </div>
       </main>
     </div>

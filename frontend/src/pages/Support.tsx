@@ -11,12 +11,11 @@ export default function Support() {
 
   return (
     <div className="flex min-h-screen flex-col bg-surface">
-      <main className="layout-app flex flex-1 items-start justify-center py-10 sm:py-16">
+      <main id="main-content" tabIndex={-1} className="layout-app flex flex-1 items-start justify-center py-10 sm:py-16">
         <article className="w-full max-w-3xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-10">
-          <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
-          <h1 className="mt-3 text-[30px] font-extrabold tracking-tight text-ink sm:text-[38px]">{copy.supportTitle}</h1>
+          <h1 className="page-title">{copy.supportTitle}</h1>
           <p className="mt-3 text-base leading-7 text-sub">{copy.supportDescription}</p>
-          <section className="mt-8 rounded-panel bg-surface p-5 sm:p-6">
+          <section className="mt-8 border-t border-gray-200 pt-6">
             <h2 className="font-extrabold text-ink">{copy.supportEmail}</h2>
             <p className="mt-2 text-sm leading-6 text-sub">{copy.supportEmailHint}</p>
             <a

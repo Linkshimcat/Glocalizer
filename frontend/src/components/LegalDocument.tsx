@@ -12,10 +12,9 @@ export default function LegalDocument({ document: { title, description, sections
   const effectiveDate = new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(LEGAL_EFFECTIVE_DATE))
   return (
     <div className="flex min-h-screen flex-col bg-surface">
-      <main className="layout-app flex-1 py-10 sm:py-16">
+      <main id="main-content" tabIndex={-1} className="layout-app flex-1 py-10 sm:py-16">
         <article className="mx-auto max-w-3xl rounded-panel border border-gray-200/70 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.04)] sm:p-10">
-          <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
-          <h1 className="mt-3 text-[30px] font-extrabold tracking-tight text-ink sm:text-[38px]">{title}</h1>
+          <h1 className="page-title">{title}</h1>
           <p className="mt-3 text-base leading-7 text-sub">{description}</p>
           <p className="mt-4 text-sm font-semibold text-sub">{copy.effective}: <time dateTime={LEGAL_EFFECTIVE_DATE}>{effectiveDate}</time></p>
 

@@ -57,7 +57,6 @@ export default function LanguageSelect() {
                   item.code === lang ? 'text-brand-dark' : 'text-ink'
                 }`}
               >
-                <span className="text-base">{item.flag}</span>
                 <span>{item.short}</span>
                 {item.code === lang && <span className="ml-auto text-brand-dark">✓</span>}
               </button>
