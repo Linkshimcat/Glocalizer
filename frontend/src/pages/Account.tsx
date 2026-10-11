@@ -1,8 +1,11 @@
+import { requestErrorMessage } from '../lib/requestError'
 import { Camera, ChevronRight, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import GoogleIcon from '../components/GoogleIcon'
 import Modal from '../components/Modal'
+import SessionNotice from '../components/SessionNotice'
+import { experienceCopy } from '../i18n/experience'
 import profileDeleteIcon from '../assets/iconsax-profile-delete.svg'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -29,8 +32,8 @@ async function toAvatarDataUrl(file: File): Promise<string> {
 }
 
 export default function Account() {
-  const { user, isAuthenticated, refreshUser, updateProfile, changePassword, deleteAccount } = useAuth()
-  const { t } = useSiteLang()
+  const { user, isAuthenticated, checkingSession, refreshUser, updateProfile, changePassword, deleteAccount } = useAuth()
+  const { t, lang } = useSiteLang()
   const toast = useToast()
   const navigate = useNavigate()
   const enteredAuthenticated = useRef(isAuthenticated)
@@ -54,7 +57,8 @@ export default function Account() {
     if (isAuthenticated) void refreshUser()
   }, [isAuthenticated, refreshUser])
 
-  if (!isAuthenticated || !user) return <Navigate to={enteredAuthenticated.current ? '/' : '/login'} replace />
+  if (checkingSession && !user) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{experienceCopy[lang].loading}</main>
+  if (!isAuthenticated || !user) return <Navigate to={enteredAuthenticated.current ? '/' : '/login?next=/account'} replace />
 
   const shownName = editing ? name : user.name ?? ''
   const shownAvatar = avatar === undefined ? user.avatarUrl : avatar
@@ -107,7 +111,7 @@ export default function Account() {
       setEditing(false)
       toast(t.accountSaved, 'success')
     } catch (error) {
-      toast(error instanceof Error ? error.message : t.accountSaveFailed)
+      toast(requestErrorMessage(error, lang, t.accountSaveFailed))
     } finally {
       setSaving(false)
     }
@@ -145,7 +149,7 @@ export default function Account() {
       setChangingPassword(false)
       toast(t.accountPasswordSuccess, 'success')
     } catch (error) {
-      toast(error instanceof Error ? error.message : t.accountPasswordFailed)
+      toast(requestErrorMessage(error, lang, t.accountPasswordFailed))
     } finally {
       setPasswordSaving(false)
     }
@@ -165,7 +169,7 @@ export default function Account() {
       toast(t.accountDeleteSuccess, 'success')
       navigate('/')
     } catch (error) {
-      toast(error instanceof Error ? error.message : t.accountDeleteFailed)
+      toast(requestErrorMessage(error, lang, t.accountDeleteFailed))
     } finally {
       setDeletingAccount(false)
     }
@@ -173,8 +177,8 @@ export default function Account() {
 
   return (
     <div className="studio-account min-h-screen bg-[#FAFBFC]">
-      <main className="layout-app py-10 sm:py-16">
-        <p className="text-sm font-extrabold text-brand-dark">Glocalizer</p>
+      <main id="main-content" tabIndex={-1} className="layout-app py-10 sm:py-16">
+        <SessionNotice />
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{t.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{t.accountDesc}</p>
         <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>

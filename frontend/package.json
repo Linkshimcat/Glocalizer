@@ -12,7 +12,9 @@
     "check:workflows": "node scripts/check-workflows.mjs",
     "check:public-pages": "node scripts/check-public-pages.mjs",
     "check:landing": "node scripts/check-landing.mjs",
-    "check:studio": "node scripts/check-studio.mjs"
+    "check:studio": "node scripts/check-studio.mjs",
+    "check:projects": "node scripts/check-project-library.mjs",
+    "check:login": "node scripts/check-login.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.2",

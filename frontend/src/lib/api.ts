@@ -1,3 +1,4 @@
+import { apiFetch, RequestError, responseFailure } from './requestError'
 let accountToken: string | null | undefined
 
 export function setApiAccountToken(token: string | null) { accountToken = token }
@@ -92,21 +93,16 @@ interface CreatedProject {
   assets: Array<{ assetId: string; clientId: string; uploadUrl: string }>
 }
 
-interface ApiFailure {
-  error?: { message?: string }
-  message?: string
-}
-
-export class ApiError extends Error {
-  constructor(message: string) {
-    super(message)
+export class ApiError extends RequestError {
+  constructor(message: string, status = 0, code?: string, retryAfterSeconds?: number) {
+    super(message, status, code, retryAfterSeconds)
     this.name = 'ApiError'
   }
 }
 
 async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const authToken = currentAccountToken()
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await apiFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
@@ -116,8 +112,8 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
     },
   })
   if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as ApiFailure
-    throw new ApiError(body.error?.message ?? body.message ?? '서버 요청에 실패했어요.')
+    const error = await responseFailure(response, '서버 요청에 실패했어요.')
+    throw new ApiError(error.message, error.status, error.code, error.retryAfterSeconds)
   }
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>

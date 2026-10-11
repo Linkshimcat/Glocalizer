@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import RollingText from '../components/RollingText'
 import OgqStickerGallery from '../components/OgqStickerGallery'
-import heroGradient from '../assets/LandingAssets/GreenBackground-web.webp'
 import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
 import refreshIcon from '../assets/LandingAssets/refreshButton.svg'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -62,14 +61,13 @@ export default function Landing() {
 
   return (
     <div
-      className="flex min-h-svh flex-col"
-      style={{ '--hero-bg': `url(${heroGradient})` } as CSSProperties}
+      className="landing-legacy flex min-h-svh flex-col"
     >
       {/* NAV는 Hero와 독립된 흰색 바. gradient는 Hero section 안에서만 보인다. */}
 
       {/* 푸터가 유리처럼 그라데이션 위에 떠 보이도록 배경을 main과 푸터를 감싼 영역에 깐다. */}
-      <div className="flex flex-1 flex-col bg-[image:var(--hero-bg)] bg-cover bg-center">
-        <main className="flex w-full flex-1 flex-col">
+      <div className="flex flex-1 flex-col bg-white">
+        <main id="main-content" tabIndex={-1} className="flex w-full flex-1 flex-col">
           <section className="relative flex w-full flex-1 flex-col justify-center overflow-hidden">
             <div className="mx-auto grid w-full max-w-[1600px] content-center gap-10 px-5 py-8 sm:gap-12 sm:px-10 sm:py-14 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center lg:gap-16 lg:px-16 lg:py-10">
               <div>

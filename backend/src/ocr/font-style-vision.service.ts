@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -69,7 +70,7 @@ async function cropRegionToDataUrl(buffer: Buffer, box: PixelBox, imageWidth: nu
 
 async function requestGroqFontStyle(dataUrl: string): Promise<FontStyle | null> {
   if (!env.GROQ_API_KEY) return null;
-  const response = await fetch(`${env.GROQ_BASE_URL}/chat/completions`, {
+  const response = await taskFetch(`${env.GROQ_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
     signal: AbortSignal.timeout(env.VISION_TIMEOUT_MS),
@@ -98,7 +99,7 @@ async function requestGroqFontStyle(dataUrl: string): Promise<FontStyle | null> 
 async function requestGeminiFontStyle(dataUrl: string): Promise<FontStyle | null> {
   if (!env.GEMINI_API_KEY) return null;
   const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_VISION_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`, {
+  const response = await taskFetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_VISION_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     signal: AbortSignal.timeout(env.VISION_TIMEOUT_MS),

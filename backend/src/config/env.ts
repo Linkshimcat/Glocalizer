@@ -63,6 +63,11 @@ export const envSchema = z.object({
   OGQ_API_KEY: z.string().min(1).optional(),
   OGQ_API_BASE_URL: z.string().url().default('https://4th-ai-ogq.competition.ogq.me'),
 
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60_000),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
+  PASSWORD_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(5),
+  AUTH_PROVIDER_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   GROQ_API_KEY: z.string().min(1).optional(),
@@ -158,7 +163,7 @@ export const envSchema = z.object({
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
-});
+}).refine(values => values.JOB_HEARTBEAT_INTERVAL_MS < values.JOB_STALE_AFTER_MS, { message: 'JOB_HEARTBEAT_INTERVAL_MS must be less than JOB_STALE_AFTER_MS', path: ['JOB_HEARTBEAT_INTERVAL_MS'] });
 
 const parsed = envSchema.safeParse(process.env);
 

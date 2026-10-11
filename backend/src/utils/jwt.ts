@@ -5,9 +5,11 @@ const AUTH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60; // 30일 — 이메일/네이�
 
 export interface AuthTokenPayload {
   sub: string;
+  ver?: number;
 }
 
 interface DecodedPayload extends AuthTokenPayload {
+  ver: number;
   iat: number;
   exp: number;
 }
@@ -25,7 +27,7 @@ function sign(headerAndPayload: string): string {
 export function signAuthToken(payload: AuthTokenPayload): string {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
-  const body = base64url(JSON.stringify({ ...payload, iat: now, exp: now + AUTH_TOKEN_TTL_SECONDS }));
+  const body = base64url(JSON.stringify({ ...payload, ver: payload.ver ?? 0, iat: now, exp: now + AUTH_TOKEN_TTL_SECONDS }));
   const signature = sign(`${header}.${body}`);
   return `${header}.${body}.${signature}`;
 }
@@ -41,10 +43,15 @@ export function verifyAuthToken(token: string): DecodedPayload | null {
   if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
 
   try {
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as DecodedPayload;
-    if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    if (typeof payload.sub !== 'string') return null;
-    return payload;
+    const metadata = JSON.parse(Buffer.from(header, 'base64url').toString('utf8'));
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    if (!metadata || metadata.alg !== 'HS256' || metadata.typ !== 'JWT' || !payload) return null;
+    if (!Number.isSafeInteger(payload.exp) || payload.exp <= now || !Number.isSafeInteger(payload.iat) || payload.iat > now) return null;
+    if (typeof payload.sub !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(payload.sub)) return null;
+    const version = payload.ver ?? 0;
+    if (!Number.isSafeInteger(version) || version < 0) return null;
+    return { ...payload, ver: version };
   } catch {
     return null;
   }

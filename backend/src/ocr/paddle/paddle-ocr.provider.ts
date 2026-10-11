@@ -1,3 +1,4 @@
+import { cancelChildOnAbort, throwIfTaskCancelled } from '../../utils/task-context.js';
 import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -89,16 +90,18 @@ class PaddleBridge {
   }
 
   recognize(image: Buffer): Promise<RecognizedRegion[]> {
+    throwIfTaskCancelled();
     const child = this.start();
+    const removeCancellation = cancelChildOnAbort(child);
     const id = randomUUID();
-    return new Promise((resolveRequest, rejectRequest) => {
+    return new Promise<RecognizedRegion[]>((resolveRequest, rejectRequest) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
         rejectRequest(new AppError('OCR_PROVIDER_FAILED', { provider: 'paddle', timeoutMs: env.OCR_TIMEOUT_MS }, 'PaddleOCR 처리 시간이 초과되었습니다.'));
       }, env.OCR_TIMEOUT_MS);
       this.pending.set(id, { resolve: resolveRequest, reject: rejectRequest, timeout });
       child.stdin.write(`${JSON.stringify({ id, imageBase64: image.toString('base64') })}\n`);
-    });
+    }).finally(removeCancellation);
   }
 }
 

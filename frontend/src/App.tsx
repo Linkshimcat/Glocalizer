@@ -8,6 +8,8 @@ import LandingRemake from './pages/LandingRemake'
 import { AuthProvider } from './store/AuthContext'
 import { UploadProvider } from './store/uploads'
 import Header from './components/Header'
+import { useSiteLang } from './i18n/LanguageContext'
+import { experienceCopy } from './i18n/experience'
 
 type PageModule = { default: ComponentType }
 
@@ -29,6 +31,7 @@ const Archive = lazyPage(() => import('./pages/Archive'))
 const Editor = lazyPage(() => import('./pages/Editor'))
 const Login = lazyPage(() => import('./pages/Login'))
 const Landing = lazyPage(() => import('./pages/Landing'))
+const LandingDesignSample = lazyPage(() => import('./pages/LandingDesignSample'))
 const NaverCallback = lazyPage(() => import('./pages/NaverCallback'))
 const NotFound = lazyPage(() => import('./pages/NotFound'))
 const Privacy = lazyPage(() => import('./pages/Privacy'))
@@ -51,9 +54,11 @@ export const PRERENDERED_PAGES: Record<string, { preload: () => Promise<unknown>
 }
 
 function RouteFallback() {
+  const { lang } = useSiteLang()
+  const copy = experienceCopy[lang]
   return (
-    <div role="status" aria-label="페이지를 불러오는 중" aria-busy="true" className="min-h-screen bg-[#FAFBFC]">
-      <span className="sr-only">페이지를 불러오는 중</span>
+    <main id="main-content" tabIndex={-1} role="status" aria-label={copy.loading} aria-busy="true" className="min-h-screen bg-[#FAFBFC]">
+      <span className="sr-only">{copy.loading}</span>
 
       <div aria-hidden="true" className="layout-app animate-pulse py-10 motion-reduce:animate-none">
         <div className="h-4 w-24 rounded-full bg-brand-soft" />
@@ -65,7 +70,7 @@ function RouteFallback() {
           ))}
         </div>
       </div>
-    </div>
+    </main>
   )
 }
 
@@ -88,9 +93,9 @@ export function AppRoutes() {
   return (
     <>
       <ScrollToTop />
-      <AppErrorBoundary>
-        <ToastProvider>
-          <SiteLangProvider>
+      <SiteLangProvider>
+        <AppErrorBoundary>
+          <ToastProvider>
             <AuthProvider>
               <UploadProvider>
                 <Header />
@@ -99,6 +104,9 @@ export function AppRoutes() {
                     <Route path="/" element={<LandingRemake />} />
                     <Route path="/landing-remake" element={<LandingRemake />} />
                     <Route path="/landing-legacy" element={<Landing />} />
+                    <Route path="/sub1" element={<LandingDesignSample />} />
+                    <Route path="/sub2" element={<LandingDesignSample />} />
+                    <Route path="/sub3" element={<LandingDesignSample />} />
                     <Route path="/service" element={<ServiceIntro />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/privacy" element={<Privacy />} />
@@ -119,9 +127,9 @@ export function AppRoutes() {
                 </Suspense>
               </UploadProvider>
             </AuthProvider>
-          </SiteLangProvider>
-        </ToastProvider>
-      </AppErrorBoundary>
+          </ToastProvider>
+        </AppErrorBoundary>
+      </SiteLangProvider>
     </>
   )
 }

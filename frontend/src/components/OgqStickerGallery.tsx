@@ -100,7 +100,6 @@ export default function OgqStickerGallery() {
         </div>
       </div>
       }
-      {stickers?.length !== 0 && <div aria-hidden="true" className="ogq-gallery-base" />}
       <p className="mt-6 text-center text-xs font-medium text-sub">{t.ogqGalleryCredit}</p>
     </section>
   )

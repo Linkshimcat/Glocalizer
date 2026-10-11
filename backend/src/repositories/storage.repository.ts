@@ -1,3 +1,4 @@
+import { throwIfTaskCancelled } from '../utils/task-context.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -106,6 +107,9 @@ export async function createSignedUrl(path: string): Promise<string | null> {
 export async function removeFromStorage(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
   const withThumbnails = [...new Set(paths.flatMap((path) => path.includes('/original/') ? [path, thumbnailPathForOriginal(path)] : [path]))];
-  const result = await supabase.storage.from(env.SUPABASE_STORAGE_BUCKET).remove(withThumbnails);
-  unwrapVoid(result, '스토리지 파일 삭제에 실패했습니다.');
+  for (let offset = 0; offset < withThumbnails.length; offset += 100) {
+    throwIfTaskCancelled();
+    const result = await supabase.storage.from(env.SUPABASE_STORAGE_BUCKET).remove(withThumbnails.slice(offset, offset + 100));
+    unwrapVoid(result, '스토리지 파일 삭제에 실패했습니다.');
+  }
 }

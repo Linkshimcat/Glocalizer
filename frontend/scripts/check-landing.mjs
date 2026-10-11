@@ -20,7 +20,7 @@ async function setup({width=1440,height=1024,lang='ko',motion='no-preference',st
   return r.fulfill({json:{projects:[]}})
  })
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('Failed to load resource'))consoleErrors.push(m.text())})
- await page.goto(base+'/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(650)
+ await page.goto(base+'/',{waitUntil:'networkidle'});await page.locator('.main-restyle').waitFor();await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(650)
  return {context,page,setOgqState:value=>{ogqState=value}}
 }
 async function overflow(page,label){
@@ -28,10 +28,10 @@ async function overflow(page,label){
  const bad=await page.locator('main h1,main h2,main h3,header').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.left<-.5||r.right>innerWidth+.5||n.scrollWidth>n.clientWidth+1}).map(n=>({text:n.textContent,rect:n.getBoundingClientRect().toJSON(),scroll:n.scrollWidth,client:n.clientWidth})))
  assert.deepEqual(bad,[],'text bounds '+label)
 }
-async function scene(page,i){await page.evaluate(i=>{const s=document.querySelector('.remake-story'),h=document.querySelector('header').offsetHeight;scrollTo(0,s.offsetTop-h+(s.offsetHeight-innerHeight+h)*(i/3+.1))},i);await page.waitForTimeout(550)}
+async function scene(page,i){await page.evaluate(i=>{const s=document.querySelector('.remake-story'),h=document.querySelector('header').offsetHeight;scrollTo(0,s.offsetTop-h+(s.offsetHeight-innerHeight+h)*(i/3+.1))},i);await page.waitForFunction(index=>document.querySelectorAll('.remake-scene-progress > span[data-active="true"]').length===index+1,i);await page.waitForTimeout(550)}
 let cases=0
 try {
-for(const width of [360,390,768,1280,1440])for(const lang of ['ko','en','ja','zh']){
+for(const width of (process.env.LANDING_SKIP_MATRIX === '1' ? [] : [360,390,768,1280,1440]))for(const lang of ['ko','en','ja','zh']){
  const {page,context}=await setup({width,height:width<600?844:1024,lang})
  const label=`${width} ${lang}`
  assert.equal(await page.locator('html').getAttribute('lang'),lang)
@@ -71,11 +71,13 @@ for(const width of [360,390,768,1280,1440])for(const lang of ['ko','en','ja','zh
   assert.ok(await cards.nth(i).locator(':scope > :first-child').evaluate(n=>n.classList.contains('remake-workflow-visual')&&(n.tagName==='IMG'||n.tagName==='VIDEO')))
   assert.equal(await cards.nth(i).locator('a').getAttribute('href'),['/generate','/localize','/review'][i])
  }
- await page.locator('.remake-final').scrollIntoViewIfNeeded();await overflow(page,`${label} final`)
- assert.equal(await page.locator('.remake-final').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(233, 245, 238)')
+ await page.locator('.landing-ending').scrollIntoViewIfNeeded();await overflow(page,`${label} final`)
+ assert.equal(await page.locator('.remake-final-card, .sample-switcher, .landing-footer-watermark').count(),0)
+ assert.equal(await page.locator('.landing-ending img').count(),4)
+ assert.equal(await page.locator('footer.landing-footer-compact').count(),1)
  await page.evaluate(()=>scrollTo(0,0));await page.locator('.remake-scroll-button').click();await page.waitForTimeout(1300)
  assert.ok((await page.locator('.remake-story').boundingBox()).y<=h.height+2)
- await page.locator('.remake-final button').click();await page.waitForURL('**/dashboard')
+ await page.locator('.landing-ending-cta').click();await page.waitForURL('**/dashboard')
  await context.close();cases++;console.log('matrix passed',label)
 }
 // The rotating headline reserves its longest phrase and pauses outside the hero.
@@ -85,7 +87,7 @@ for(const width of [360,390,768,1280,1440])for(const lang of ['ko','en','ja','zh
  for(let i=0;i<22;i++) {
   const sample=await page.locator('.remake-hero-roll').evaluate(n=>{
    const r=n.getBoundingClientRect()
-   return {width:r.width,height:r.height,visible:[...n.querySelectorAll('.animate-roll-word')].filter(word=>{const b=word.getBoundingClientRect();return b.top>=r.top&&b.bottom<=r.bottom}).map(word=>word.textContent)}
+   return {width:r.width,height:r.height,visible:[...n.querySelectorAll('.roll-layer')].filter(layer=>[...layer.querySelectorAll('.animate-roll-word')].every(char=>{const b=char.getBoundingClientRect();return b.top>=r.top&&b.bottom<=r.bottom&&Number(getComputedStyle(char).opacity)>.99})).map(layer=>layer.textContent)}
   })
   sample.visible.forEach(word=>seen.add(word));sizes.add(`${sample.width}/${sample.height}`)
   await page.waitForTimeout(400)
@@ -172,13 +174,14 @@ for(const state of ['success','empty','failure']){
   assert.equal(await page.locator('html').getAttribute('lang'),lang);await overflow(page,'switch '+lang)
  }
  for(const [selector,path] of [['.remake-hero-actions > button:first-child','/dashboard'],['header a[href="/service"]','/service'],['header a[href="/login"]','/login'],['.remake-workflow-link:nth-of-type(1)','/login?next=%2Fgenerate%3F']]){
-  await page.goto(base+'/');await page.locator(selector).first().click();await page.waitForURL(url=>url.pathname+url.search===path)
+  await page.goto(base+'/',{waitUntil:'networkidle'});
+  await page.locator(selector).first().click();await page.waitForURL(url=>url.pathname+url.search===path)
  }
- for(const i of [1,2]){await page.goto(base+'/');await page.locator('.remake-workflow-link').nth(i).click();await page.waitForURL('**'+['/generate','/localize','/review'][i])}
+ for(const i of [1,2]){await page.goto(base+'/',{waitUntil:'networkidle'});await page.locator('.remake-workflow-link').nth(i).click();await page.waitForURL('**'+['/generate','/localize','/review'][i])}
  await context.close()
 }
 assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[])
 await fs.writeFile(dir+'/checks.json',JSON.stringify({responsiveLocaleCases:cases,serviceSceneChecks:cases*3,reducedMotionCases:8,ogqStates:3,nativeMediaControls:'passed',runtimeErrors:errors,consoleErrors},null,2))
-console.log('PASS: 20 viewports/locales, 60 scenes, native video controls, 8 reduced-motion cases, OGQ/showcase states and navigation.')
+console.log(`PASS: ${cases} viewport/locale matrix cases, ${cases * 3} scenes; rotating headline, native video controls, 8 reduced-motion cases, OGQ/showcase states and navigation.`)
 
 } finally { await browser.close() }

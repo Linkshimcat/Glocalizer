@@ -5,12 +5,13 @@ import { Link } from 'react-router-dom'
 import InstagramIcon from './InstagramIcon'
 import Logo from './Logo'
 
-export default function Footer({ variant = 'default' }: { variant?: 'default' | 'landing' }) {
+export default function Footer({ variant = 'default' }: { variant?: 'default' | 'landing' | 'landing-compact' }) {
   const { lang } = useSiteLang()
   const copy = legalUi[lang]
-  const isLanding = variant === 'landing'
+  const isLanding = variant !== 'default'
+  const isCompact = variant === 'landing-compact'
   return (
-    <footer className={`border-t border-gray-200 bg-white${isLanding ? ' landing-footer' : ''}`}>
+    <footer className={`border-t border-gray-200 bg-white${isLanding ? ' landing-footer' : ''}${isCompact ? ' landing-footer-compact' : ''}`}>
       <div className={`relative layout-wide py-5${isLanding ? ' landing-footer-inner' : ''}`}>
         <div className={`flex flex-col items-center justify-between gap-3 md:flex-row${isLanding ? ' landing-footer-top' : ''}`}>
           <div className={`flex items-center gap-3${isLanding ? ' landing-footer-brand' : ''}`}>
@@ -74,21 +75,9 @@ export default function Footer({ variant = 'default' }: { variant?: 'default' | 
             </div>
           )}
         </div>
-        {isLanding && <div
+        {isLanding && !isCompact && <div
           className="landing-footer-watermark"
           aria-hidden="true"
-          onPointerMove={(event) => {
-            if (event.pointerType !== 'mouse') return
-            const bounds = event.currentTarget.getBoundingClientRect()
-            const x = ((event.clientX - bounds.left) / bounds.width) * 100
-            const y = ((event.clientY - bounds.top) / bounds.height) * 100
-            event.currentTarget.style.setProperty('--pointer-x', `${x}%`)
-            event.currentTarget.style.setProperty('--pointer-y', `${y}%`)
-          }}
-          onPointerLeave={(event) => {
-            event.currentTarget.style.removeProperty('--pointer-x')
-            event.currentTarget.style.removeProperty('--pointer-y')
-          }}
         >THANK YOU CREATOR</div>}
       </div>
     </footer>

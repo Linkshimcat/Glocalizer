@@ -106,6 +106,47 @@ try {
     }
     await context.close()
   }
+  // Mobile controls retain text while collapsed; OCR uses the shared keyboard-safe modal.
+  {
+    const { context, page } = await setup({ width: 390, count: 1 })
+    await page.goto(base + '/editor')
+    const input = page.locator('.studio-editor-inspector textarea').first()
+    await input.fill('Retained mobile edit')
+    const toggle = page.locator('.ui-mobile-tools-toggle')
+    await toggle.click()
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'false')
+    assert.equal(await input.isVisible(), false)
+    await page.evaluate(() => scrollTo(0, 0))
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/editor-tools-collapsed.png', fullPage: true })
+    await toggle.click()
+    assert.equal(await input.inputValue(), 'Retained mobile edit')
+    await context.close()
+  }
+  {
+    const { context, page } = await setup({ count: 1 })
+    await page.route('**/ocr/regions/detect', route => route.fulfill({ json: { text: 'Selected caption', confidence: .98, normalizedBox: route.request().postDataJSON().normalizedBox } }))
+    await page.goto(base + '/editor')
+    await page.getByRole('button', { name: '원본', exact: true }).click()
+    await page.getByRole('button', { name: '영역 다시 지정', exact: true }).click()
+    const frame = page.locator('.cursor-crosshair').first()
+    const box = await frame.boundingBox()
+    await page.mouse.move(box.x + box.width * .2, box.y + box.height * .2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * .8, box.y + box.height * .6, { steps: 4 })
+    await page.mouse.up()
+    const dialog = page.getByRole('dialog')
+    await dialog.waitFor()
+    assert.equal(await dialog.locator('textarea').inputValue(), 'Selected caption')
+    assert.ok(await dialog.getAttribute('aria-labelledby'))
+    for (let i = 0; i < 7; i++) {
+      await page.keyboard.press('Tab')
+      assert.equal(await dialog.evaluate(node => node.contains(document.activeElement)), true)
+    }
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/ocr-dialog.png' })
+    await page.keyboard.press('Escape')
+    assert.equal(await dialog.count(), 0)
+    await context.close()
+  }
   // Batch edits go through the real React store and cloud save queue.
   for (const count of [8, 24]) {
     const { context, page, state } = await setup({ count })
@@ -181,7 +222,7 @@ try {
   for (const voice of [true, false]) {
     const { context, page } = await setup({ voice })
     await page.goto(base + '/editor')
-    await page.getByRole('button', { name: '🇯🇵 日本語', exact: true }).click()
+    await page.getByRole('button', { name: '日本語', exact: true }).click()
     const listen = page.getByRole('button', { name: '일본어 발음 듣기', exact: true })
     await listen.waitFor()
     if (!voice) {
@@ -201,10 +242,10 @@ try {
     await page.getByText('음성을 재생하지 못했어요. 다시 시도해주세요.', { exact: true }).waitFor()
     await listen.click()
     const before = await page.evaluate(() => window.__speech.cancellations)
-    await page.getByRole('button', { name: '🇺🇸 English', exact: true }).click()
+    await page.getByRole('button', { name: 'English', exact: true }).click()
     assert.ok(await page.evaluate(() => window.__speech.cancellations) > before)
     assert.equal(await listen.count(), 0)
-    await page.getByRole('button', { name: '🇯🇵 日本語', exact: true }).click()
+    await page.getByRole('button', { name: '日本語', exact: true }).click()
     await listen.click()
     const unmountBefore = await page.evaluate(() => window.__speech.cancellations)
     // Use SPA navigation through the completion preview's PNG download.
@@ -227,7 +268,10 @@ try {
     await page.locator('textarea').first().fill('Retry phrase')
     await page.locator('[role="alert"]').first().waitFor()
     state.failWrites = false
-    await page.locator('[role="alert"]').first().getByRole('button').click()
+    // A queued automatic retry can remove the alert as soon as the server recovers.
+    await page.locator('[role="alert"]').first().getByRole('button').click({ force: true, timeout: 2000 }).catch(error => {
+      if (state.workspace.results.assets[0].regionEditorStates['r-0'].en.customText !== 'Retry phrase') throw error
+    })
     for (let i = 0; i < 100 && state.workspace.results.assets[0].regionEditorStates['r-0'].en.customText !== 'Retry phrase'; i++) await page.waitForTimeout(50)
     assert.equal(state.workspace.results.assets[0].regionEditorStates['r-0'].en.customText, 'Retry phrase')
     await context.close()
@@ -257,7 +301,7 @@ try {
     })
     await page.goto(base + `/auth/naver/callback?code=test&state=${valid ? 'expected-state' : 'wrong-state'}`)
     if (valid) { await page.waitForURL('**/generate?project=gen-project'); assert.equal(state.authPosts, 1) }
-    else { await page.getByRole('button').waitFor(); assert.equal(state.authPosts, 0) }
+    else { await page.getByRole('button', { name: '로그인 화면으로 돌아가기', exact: true }).waitFor(); assert.equal(state.authPosts, 0) }
     await context.close()
   }
   {
@@ -288,8 +332,8 @@ try {
     const { context, page, state } = await setup()
     state.generation = { id: 'gen-project', prompt: 'Test', confirmed: true, status: 'active', day: '2026-10-07', created_at: new Date().toISOString(), referenceUrl: null, plan: Array.from({ length: 23 }, (_, i) => ({ slot: i + 1, pose: `pose ${i}`, caption: `caption ${i}` })), images: [{ id: 'base', slot: 0, status: 'completed', url: imageUrl, caption: '', prompt: '' }, { id: 'finished', slot: 1, status: 'completed', url: imageUrl, caption: '', prompt: '' }, { id: 'running', slot: 2, status: 'running', url: null, caption: '', prompt: '' }] }
     await page.goto(base + '/generate?project=gen-project')
-    await page.locator('summary').first().click()
-    await page.locator('details input').first().waitFor()
+    await page.locator('main summary').filter({ hasText: '표정·문구 23개 편집' }).click()
+    await page.locator('.generation-plan-list input').first().waitFor()
     await page.locator('details input').nth(4).fill('Unsaved pose')
     // Wait for a real 4-second poll and prove the local edit remains.
     await page.waitForTimeout(4500)

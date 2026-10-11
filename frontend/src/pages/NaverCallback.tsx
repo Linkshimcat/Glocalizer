@@ -42,12 +42,12 @@ export default function NaverCallback() {
   }, [])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
+    <main id="main-content" tabIndex={-1} className="ui-recovery-page">
       <div className="w-full max-w-[360px] rounded-panel border border-gray-100 bg-white p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
         {error ? (
           <>
             <AlertTriangle className="mx-auto h-8 w-8 text-red-500" />
-            <p className="mt-4 text-sm font-semibold text-ink">{error}</p>
+            <h1 role="alert" className="mt-4 text-base font-bold text-ink">{error}</h1>
             <Button
               type="button"
               variant="secondary"
@@ -61,10 +61,10 @@ export default function NaverCallback() {
         ) : (
           <>
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand" />
-            <p className="mt-4 text-sm font-semibold text-sub">{t.loginNaverProcessing}</p>
+            <h1 role="status" className="mt-4 text-base font-bold text-sub">{t.loginNaverProcessing}</h1>
           </>
         )}
       </div>
-    </div>
+    </main>
   )
 }

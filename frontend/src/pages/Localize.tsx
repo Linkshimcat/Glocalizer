@@ -4,6 +4,8 @@ import { useRef, useState, type DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AILocalizationBadge from '../components/AILocalizationBadge'
 import Button from '../components/Button'
+import StateNotice from '../components/StateNotice'
+import SessionNotice from '../components/SessionNotice'
 import OgqSamplePicker from '../components/OgqSamplePicker'
 import UploadSpecBadge from '../components/UploadSpecBadge'
 import { useToast } from '../components/Toast'
@@ -169,8 +171,8 @@ export default function Localize() {
     <div className="studio-localize min-h-screen bg-white">
 
       <div className="workspace-stepbar"><div className="layout-app"><StepIndicator /></div></div>
-      <main className="layout-app pb-32 pt-10 sm:py-16 lg:pb-16">
-        <p className="text-sm font-extrabold text-brand-dark">{t.dashStep1}</p>
+      <main id="main-content" tabIndex={-1} className="layout-app pb-32 pt-10 sm:py-16 lg:pb-16">
+        <SessionNotice />
         <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">{t.dashTitle}</h1>
         <p className="mt-2 text-[16px] font-medium text-sub">
           {t.dashSubtitle}
@@ -181,7 +183,7 @@ export default function Localize() {
         </div>
 
         {!isAuthenticated && <div className="mt-6 rounded-panel border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login?next=/localize')}>{t.navLogin}</Button></div>}
-        {isAuthenticated && (hasFiles || cloudError) && <div role="status" className="mt-5 flex flex-wrap items-center gap-3 text-sm text-sub">{cloudError ? <span>{cloudError}</span> : <span className="inline-flex items-center gap-1.5"><Cloud size={16} aria-hidden="true" />{cloudSaving || !projectStatus ? t.cloudSaving : t.cloudSaved}</span>}{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}</div>}
+        {isAuthenticated && (hasFiles || cloudError) && <StateNotice error={Boolean(cloudError)} className="mt-5">{cloudError ? <span>{cloudError}</span> : <span className="inline-flex items-center gap-1.5"><Cloud size={16} aria-hidden="true" />{cloudSaving || !projectStatus ? t.cloudSaving : t.cloudSaved}</span>}{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}</StateNotice>}
         {/* 드롭존 */}
         <div
           data-dragging={dragging}
@@ -354,6 +356,7 @@ export default function Localize() {
               return (
                 <button
                   key={lang.code}
+                  aria-pressed={selected}
                   onClick={() => toggleTargetLang(lang)}
                   disabled={!hasFiles}
                   className={`flex items-center gap-3 rounded-control border-2 px-4 py-4 text-left transition-colors ${
@@ -365,7 +368,7 @@ export default function Localize() {
                   {FLAG_IMG[lang.code] ? (
                     <img src={FLAG_IMG[lang.code]} alt="" className="h-5 w-auto rounded-sm" />
                   ) : (
-                    <span className="text-2xl">{lang.flag}</span>
+                    <span aria-hidden="true" className="text-xs font-bold uppercase text-sub">{lang.code}</span>
                   )}
                   <span className="flex-1 text-[15px] font-bold">{lang.label}</span>
                   {selected && (

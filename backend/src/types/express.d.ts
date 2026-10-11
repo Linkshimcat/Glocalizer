@@ -1,3 +1,4 @@
+import type { UserRow } from './user.js';
 import type { ProjectRow } from './project.js';
 
 declare global {
@@ -6,6 +7,7 @@ declare global {
       id: string;
       project?: ProjectRow;
       auth?: { sub: string };
+      account?: UserRow;
     }
   }
 }

@@ -62,6 +62,30 @@ afterEach(() => {
 });
 
 describe('shared production translation execution', () => {
+  it('aborts an in-flight translation when its worker task is cancelled', async () => {
+    const { observed } = await setup();
+    const { withTask } = await import('../../src/utils/task-context.js');
+    const controller = new AbortController();
+    let requestSignal: AbortSignal | undefined;
+    const fetch = vi.fn().mockImplementation((_url, init) => {
+      requestSignal = init.signal;
+      return new Promise(() => {});
+    });
+    vi.stubGlobal('fetch', fetch);
+    const work = withTask(
+      { kind: 'localization', id: 'job', projectId: 'project', leaseToken: 'lease', controller },
+      () => observed().localizeBatch(input),
+    );
+    const assertion = expect(work).rejects.toMatchObject({
+      details: { failureReason: 'cancelled' },
+    });
+    await vi.advanceTimersByTimeAsync(1);
+    controller.abort(new Error('Worker lease lost'));
+    await assertion;
+    expect(requestSignal?.aborted).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('bounds a hung primary to 30 seconds, aborts it and returns Groq provenance', async () => {
     const { observed } = await setup();
     let primarySignal: AbortSignal | undefined;

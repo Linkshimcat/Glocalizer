@@ -3,6 +3,10 @@ export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
 export interface JobRow {
   id: string;
   project_id: string;
+  lease_token?: string | null;
+  asset_ids?: string[];
+  initial_states?: Record<string, string>;
+  payload?: Record<string, unknown>;
   status: JobStatus;
   stage: string | null;
   progress: number;

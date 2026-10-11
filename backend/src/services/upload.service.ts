@@ -1,3 +1,4 @@
+import { mapWithConcurrency } from '../utils/concurrency.js';
 import sharp, { type Metadata } from 'sharp';
 import { env } from '../config/env.js';
 import { findAssetsByIds, updateAsset } from '../repositories/asset.repository.js';
@@ -32,6 +33,8 @@ async function validateAndStoreAsset(asset: AssetRow): Promise<AssetUploadResult
     return fail(asset.id, 'UPLOAD_NOT_COMPLETED', '스토리지에서 파일을 찾을 수 없습니다. 업로드가 완료되었는지 확인해주세요.');
   }
 
+  if (buffer.length > env.MAX_FILE_SIZE_BYTES) return fail(asset.id, 'FILE_TOO_LARGE', '이미지 파일 용량이 제한을 초과했습니다.');
+
   let metadata: Metadata;
   try {
     metadata = await sharp(buffer).metadata();
@@ -62,6 +65,7 @@ async function validateAndStoreAsset(asset: AssetRow): Promise<AssetUploadResult
 
   await updateAsset(asset.id, {
     status: 'uploaded',
+    byteSize: buffer.length,
     width: metadata.width,
     height: metadata.height,
     hasAlpha: Boolean(metadata.hasAlpha),
@@ -83,7 +87,7 @@ export async function completeUploads(projectId: string, assetIds: string[]): Pr
       errorMessage: '해당 프로젝트에 속하지 않는 이미지입니다.',
     }));
 
-  const results = await Promise.all(assets.map((asset) => validateAndStoreAsset(asset)));
+  const results = await mapWithConcurrency(assets, 4, validateAndStoreAsset);
 
   return [...results, ...missing];
 }

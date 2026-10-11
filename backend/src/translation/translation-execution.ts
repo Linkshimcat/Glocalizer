@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { AppError } from '../errors/app-error.js';
+import { taskSignal } from '../utils/task-context.js';
 import type { TranslationExecutionContext } from './translation-provider.types.js';
 
 export function createTranslationContext(
@@ -9,7 +10,10 @@ export function createTranslationContext(
   if (context) {
     if (!Number.isFinite(context.deadlineAt) || !Number.isFinite(context.primaryDeadlineAt))
       throw new Error('Translation deadlines must be finite');
-    return context;
+    return {
+      ...context,
+      signal: AbortSignal.any([taskSignal(), ...(context.signal ? [context.signal] : [])]),
+    };
   }
   if (![budgets.primaryMs, budgets.totalMs].every((value) => Number.isFinite(value) && value > 0))
     throw new Error('Translation budgets must be positive');
@@ -17,6 +21,7 @@ export function createTranslationContext(
   return {
     operationId: randomUUID(),
     phase: 'batch',
+    signal: taskSignal(),
     primaryDeadlineAt: now + budgets.primaryMs,
     deadlineAt: now + budgets.totalMs,
   };

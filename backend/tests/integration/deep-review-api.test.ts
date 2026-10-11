@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 
+vi.mock('../../src/repositories/user.repository.js', () => ({ findUserById: vi.fn(async (id: string) => ({ id, session_version: 0 })) }));
 vi.mock('../../src/services/deep-review.service.js', () => ({ createDeepReview: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');

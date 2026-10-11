@@ -12,11 +12,13 @@ interface ModalProps {
 
 export default function Modal({ onClose, children, labelledBy, closeLabel, className = 'max-w-md' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null
     if (!dialogRef.current?.contains(document.activeElement)) dialogRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') { event.preventDefault(); onCloseRef.current() }
       if (event.key === 'Tab') {
         const targets = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]') ?? []).filter(node => node.getClientRects().length > 0)
         const first = targets[0], last = targets.at(-1)
@@ -27,7 +29,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
     }
     document.addEventListener('keydown', onKeyDown)
     return () => { document.removeEventListener('keydown', onKeyDown); previousFocus?.focus() }
-  }, [onClose])
+  }, [])
 
   // 모달이 떠 있는 동안 배경 페이지 스크롤을 막는다. iOS Safari는 overflow:hidden만으로는
   // 텍스트 입력창 포커스 시 키보드가 뜨면서 배경 페이지를 스크롤시켜버리는 경우가 있어,
@@ -59,7 +61,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
   // 포털해 조상 영향을 끊는다.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 min-h-[100dvh] overflow-y-auto bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] min-h-[100dvh] overflow-y-auto bg-black/40"
       onClick={onClose}
     >
       {/* min-h-full + 이 wrapper에서 중앙 정렬해야, 모달이 화면보다 커도 위쪽이 잘리지 않고
@@ -72,13 +74,13 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
           aria-modal="true"
           aria-labelledby={labelledBy}
           onClick={event => event.stopPropagation()}
-          className={`relative w-full min-w-0 rounded-dialog bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.2)] sm:p-8 ${className}`}
+          className={`relative w-full min-w-0 rounded-dialog border border-gray-200 bg-white p-6 shadow-lg sm:p-8 ${className}`}
         >
           <button
             type="button"
             onClick={onClose}
             aria-label={closeLabel}
-            className="absolute right-5 top-5 rounded-full p-1 text-sub transition-colors hover:bg-surface hover:text-ink"
+            className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-control text-sub transition-colors hover:bg-surface hover:text-ink"
           >
             <X className="h-5 w-5" />
           </button>

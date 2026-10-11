@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'naver' | 'outline'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'naver' | 'outline' | 'danger'
 type Size = 'xs' | 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -10,6 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClass: Record<Variant, string> = {
+  danger: 'bg-red-700 text-white hover:bg-red-800',
   primary: 'bg-action text-white hover:bg-[#116b33]',
   secondary: 'bg-surface text-ink hover:bg-[#E8EBEE]',
   ghost: 'bg-transparent text-sub hover:bg-surface',
@@ -25,6 +26,7 @@ const sizeClass: Record<Size, string> = {
 }
 
 export default function Button({
+  type = 'button',
   variant = 'primary',
   size = 'md',
   glow = false,
@@ -33,6 +35,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
+      type={type}
       className={`inline-flex items-center justify-center gap-2 studio-button text-center leading-snug font-bold transition-colors disabled:cursor-not-allowed disabled:bg-surface disabled:text-sub ${variantClass[variant]} ${sizeClass[size]} ${
         glow ? 'shadow-sm' : ''
       } ${className}`}

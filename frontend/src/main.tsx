@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './experience.css'
 import App, { PRERENDERED_PAGES } from './App.tsx'
 
 const container = document.getElementById('root')!

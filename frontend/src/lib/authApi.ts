@@ -1,3 +1,4 @@
+import { apiFetch, RequestError, responseFailure } from './requestError'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
 
 export interface AuthUser {
@@ -17,22 +18,15 @@ interface AuthResult {
   user: AuthUser
 }
 
-interface ApiFailure {
-  error?: { message?: string }
-  message?: string
-}
-
-export class AuthApiError extends Error {
-  readonly status: number
-  constructor(message: string, status = 0) {
-    super(message)
+export class AuthApiError extends RequestError {
+  constructor(message: string, status = 0, code?: string, retryAfterSeconds?: number) {
+    super(message, status, code, retryAfterSeconds)
     this.name = 'AuthApiError'
-    this.status = status
   }
 }
 
 async function authRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await apiFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
@@ -40,8 +34,8 @@ async function authRequest<T>(path: string, init: RequestInit = {}): Promise<T> 
     },
   })
   if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as ApiFailure
-    throw new AuthApiError(body.error?.message ?? body.message ?? '요청에 실패했어요.', response.status)
+    const error = await responseFailure(response, '요청에 실패했어요.')
+    throw new AuthApiError(error.message, error.status, error.code, error.retryAfterSeconds)
   }
   return response.json() as Promise<T>
 }

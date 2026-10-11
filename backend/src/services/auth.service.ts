@@ -1,11 +1,10 @@
+import { deleteDurably } from './deletion.service.js';
+import { taskFetch } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
-import { logger } from '../config/logger.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
-import { findProjectsByOwner } from '../repositories/project.repository.js';
 import {
-  deleteUserRow,
   findUserByEmail,
   findUserById,
   findUserByNaverId,
@@ -23,8 +22,11 @@ import type { PublicUser, UserRow } from '../types/user.js';
 import { signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { sendWelcomeEmail } from './email.service.js';
-import { deleteGenerationsByOwner } from './generation.service.js';
-import { deleteProjectAndAssets } from './project.service.js';
+
+async function fetchAuthProvider(url: string, init: RequestInit): Promise<Response> {
+  try { return await taskFetch(url, init); }
+  catch { throw new AppError('NAVER_LOGIN_FAILED', undefined, '인증 서버 연결이 실패하거나 시간이 초과됐습니다.'); }
+}
 
 const NAVER_TOKEN_URL = 'https://nid.naver.com/oauth2.0/token';
 const NAVER_PROFILE_URL = 'https://openapi.naver.com/v1/nid/me';
@@ -47,6 +49,11 @@ function toPublicUser(user: UserRow): PublicUser {
   };
 }
 
+function issueSession(user: UserRow): AuthResult {
+  if (user.deleting_at) throw new AppError('UNAUTHORIZED');
+  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
+}
+
 export async function signup(input: SignupInput): Promise<AuthResult> {
   const existing = await findUserByEmail(input.email);
   if (existing) {
@@ -55,22 +62,22 @@ export async function signup(input: SignupInput): Promise<AuthResult> {
 
   const user = await insertEmailUser({
     email: input.email,
-    passwordHash: hashPassword(input.password),
+    passwordHash: await hashPassword(input.password),
     name: input.name,
   });
   // 메일은 기다리지 않는다: 발송이 느리거나 실패해도 가입 응답에 영향을 주지 않는다.
   void sendWelcomeEmail(user);
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return issueSession(user);
 }
 
 export async function login(input: LoginInput): Promise<AuthResult> {
   const user = await findUserByEmail(input.email);
-  if (!user || !user.password_hash || !verifyPassword(input.password, user.password_hash)) {
+  if (!user || !user.password_hash || !await verifyPassword(input.password, user.password_hash)) {
     throw new AppError('INVALID_CREDENTIALS');
   }
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return issueSession(user);
 }
 
 export async function getCurrentUser(userId: string): Promise<PublicUser> {
@@ -109,33 +116,18 @@ export async function changePassword(userId: string, input: ChangePasswordInput)
   const user = await findUserById(userId);
   if (!user) throw new AppError('UNAUTHORIZED');
   if (!user.password_hash) throw new AppError('PASSWORD_CHANGE_UNAVAILABLE');
-  if (!verifyPassword(input.currentPassword, user.password_hash)) {
+  if (!await verifyPassword(input.currentPassword, user.password_hash)) {
     throw new AppError('CURRENT_PASSWORD_INCORRECT');
   }
 
-  await updateUserPassword(userId, hashPassword(input.newPassword));
+  await updateUserPassword(userId, await hashPassword(input.newPassword), user.session_version ?? 0);
 }
 
 /** 현지화 프로젝트·생성 결과의 Storage 파일부터 지운 뒤 계정 행을 지운다 — 순서를 바꾸면
  *  users 행 삭제가 먼저 FK cascade로 projects/generation_projects를 지워버려 Storage 파일이
  *  고아로 남는다. Google 연동 계정이면 Supabase Auth 사용자도 함께 정리한다. */
 export async function deleteAccount(userId: string): Promise<void> {
-  const user = await findUserById(userId);
-  if (!user) throw new AppError('UNAUTHORIZED');
-
-  const projects = await findProjectsByOwner(userId);
-  for (const project of projects) {
-    await deleteProjectAndAssets(project.id);
-  }
-
-  await deleteGenerationsByOwner(userId);
-
-  if (user.supabase_auth_id) {
-    const { error } = await supabase.auth.admin.deleteUser(user.supabase_auth_id);
-    if (error) logger.warn({ err: error, userId }, 'Supabase Auth 사용자 삭제 실패 (앱 계정 삭제는 계속 진행)');
-  }
-
-  await deleteUserRow(userId);
+  await deleteDurably('account', userId);
 }
 
 function identityString(value: unknown): string | null {
@@ -173,7 +165,7 @@ export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResu
     }
   }
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return issueSession(user);
 }
 
 interface NaverTokenResponse {
@@ -203,14 +195,15 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
     state,
   });
 
-  const tokenResponse = await fetch(`${NAVER_TOKEN_URL}?${tokenParams.toString()}`);
+  const tokenResponse = await fetchAuthProvider(`${NAVER_TOKEN_URL}?${tokenParams.toString()}`, { signal: AbortSignal.timeout(env.AUTH_PROVIDER_TIMEOUT_MS) });
   const tokenJson = (await tokenResponse.json().catch(() => ({}))) as NaverTokenResponse;
   if (!tokenResponse.ok || !tokenJson.access_token) {
     throw new AppError('NAVER_LOGIN_FAILED', { cause: tokenJson.error_description ?? tokenJson.error });
   }
 
-  const profileResponse = await fetch(NAVER_PROFILE_URL, {
+  const profileResponse = await fetchAuthProvider(NAVER_PROFILE_URL, {
     headers: { Authorization: `Bearer ${tokenJson.access_token}` },
+    signal: AbortSignal.timeout(env.AUTH_PROVIDER_TIMEOUT_MS),
   });
   const profileJson = (await profileResponse.json().catch(() => ({}))) as NaverProfileResponse;
   if (!profileResponse.ok || profileJson.resultcode !== '00' || !profileJson.response) {
@@ -246,5 +239,5 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
     }
   }
 
-  return { token: signAuthToken({ sub: user.id }), user: toPublicUser(user) };
+  return issueSession(user);
 }

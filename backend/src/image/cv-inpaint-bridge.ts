@@ -1,3 +1,4 @@
+import { cancelChildOnAbort, throwIfTaskCancelled } from '../utils/task-context.js';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -27,8 +28,10 @@ function scriptPath(): string {
  * 프로세스를 띄운다 — 상주 브릿지로 유지할 만큼 자주 호출되지도, 초기화가 비싸지도 않다.
  */
 export function runCvInpaint(request: CvInpaintRequest): Promise<Buffer> {
-  return new Promise((resolvePromise, rejectPromise) => {
+  throwIfTaskCancelled();
+  return new Promise<Buffer>((resolvePromise, rejectPromise) => {
     const child = spawn(env.OCR_PYTHON_EXECUTABLE, [scriptPath()], { stdio: ['pipe', 'pipe', 'pipe'] });
+    cancelChildOnAbort(child);
     let stdout = '';
     let stderr = '';
     let settled = false;

@@ -1,3 +1,4 @@
+import { throwIfTaskCancelled } from './task-context.js';
 /**
  * items를 최대 concurrency개씩 동시에 처리한다. 이미지별 OCR/번역은 서로 독립적인데도
  * 지금까지는 for-of로 하나씩 순서대로 기다렸다 — 프로젝트에 이미지가 여러 장이면 그만큼
@@ -10,6 +11,7 @@ export async function mapWithConcurrency<T, R>(items: T[], concurrency: number, 
 
   async function worker(): Promise<void> {
     for (;;) {
+      throwIfTaskCancelled();
       const current = nextIndex;
       nextIndex += 1;
       if (current >= items.length) return;

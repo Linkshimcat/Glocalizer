@@ -1,0 +1,660 @@
+{
+  "layouts": [
+    {
+      "width": 320,
+      "lang": "ko",
+      "mode": "login",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 592
+      }
+    },
+    {
+      "width": 320,
+      "lang": "ko",
+      "mode": "signup",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 657
+      }
+    },
+    {
+      "width": 320,
+      "lang": "en",
+      "mode": "login",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 572.5
+      }
+    },
+    {
+      "width": 320,
+      "lang": "en",
+      "mode": "signup",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 657
+      }
+    },
+    {
+      "width": 320,
+      "lang": "ja",
+      "mode": "login",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 592
+      }
+    },
+    {
+      "width": 320,
+      "lang": "ja",
+      "mode": "signup",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 676.5
+      }
+    },
+    {
+      "width": 320,
+      "lang": "zh",
+      "mode": "login",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 572.5
+      }
+    },
+    {
+      "width": 320,
+      "lang": "zh",
+      "mode": "signup",
+      "scroll": 320,
+      "height": 740,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 288,
+        "height": 657
+      }
+    },
+    {
+      "width": 390,
+      "lang": "ko",
+      "mode": "login",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 158.5,
+        "width": 358,
+        "height": 591
+      }
+    },
+    {
+      "width": 390,
+      "lang": "ko",
+      "mode": "signup",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 358,
+        "height": 676.5
+      }
+    },
+    {
+      "width": 390,
+      "lang": "en",
+      "mode": "login",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 158.5,
+        "width": 358,
+        "height": 591
+      }
+    },
+    {
+      "width": 390,
+      "lang": "en",
+      "mode": "signup",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 358,
+        "height": 676.5
+      }
+    },
+    {
+      "width": 390,
+      "lang": "ja",
+      "mode": "login",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 158.5,
+        "width": 358,
+        "height": 591
+      }
+    },
+    {
+      "width": 390,
+      "lang": "ja",
+      "mode": "signup",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 358,
+        "height": 676.5
+      }
+    },
+    {
+      "width": 390,
+      "lang": "zh",
+      "mode": "login",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 158.5,
+        "width": 358,
+        "height": 591
+      }
+    },
+    {
+      "width": 390,
+      "lang": "zh",
+      "mode": "signup",
+      "scroll": 390,
+      "height": 844,
+      "card": {
+        "x": 16,
+        "y": 124,
+        "width": 358,
+        "height": 676.5
+      }
+    },
+    {
+      "width": 768,
+      "lang": "ko",
+      "mode": "login",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 215.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 768,
+      "lang": "ko",
+      "mode": "signup",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 170.203125,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 768,
+      "lang": "en",
+      "mode": "login",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 215.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 768,
+      "lang": "en",
+      "mode": "signup",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 170.203125,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 768,
+      "lang": "ja",
+      "mode": "login",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 215.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 768,
+      "lang": "ja",
+      "mode": "signup",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 160,
+        "width": 440,
+        "height": 778.6875
+      }
+    },
+    {
+      "width": 768,
+      "lang": "zh",
+      "mode": "login",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 215.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 768,
+      "lang": "zh",
+      "mode": "signup",
+      "scroll": 768,
+      "height": 1024,
+      "card": {
+        "x": 164,
+        "y": 170.203125,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "ko",
+      "mode": "login",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 133.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "ko",
+      "mode": "signup",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 120,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "en",
+      "mode": "login",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 133.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "en",
+      "mode": "signup",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 120,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "ja",
+      "mode": "login",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 133.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "ja",
+      "mode": "signup",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 120,
+        "width": 440,
+        "height": 778.6875
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "zh",
+      "mode": "login",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 133.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1024,
+      "lang": "zh",
+      "mode": "signup",
+      "scroll": 1024,
+      "height": 900,
+      "card": {
+        "x": 292,
+        "y": 120,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "ko",
+      "mode": "login",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 183.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "ko",
+      "mode": "signup",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 138.203125,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "mode": "login",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 183.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "mode": "signup",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 138.203125,
+        "width": 440,
+        "height": 755.59375
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "ja",
+      "mode": "login",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 183.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "ja",
+      "mode": "signup",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 126.65625,
+        "width": 440,
+        "height": 778.6875
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "zh",
+      "mode": "login",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 183.453125,
+        "width": 440,
+        "height": 665.09375
+      }
+    },
+    {
+      "width": 1440,
+      "lang": "zh",
+      "mode": "signup",
+      "scroll": 1440,
+      "height": 1000,
+      "card": {
+        "x": 500,
+        "y": 138.203125,
+        "width": 440,
+        "height": 755.59375
+      }
+    }
+  ],
+  "viewportFits": [
+    {
+      "width": 1366,
+      "height": 768,
+      "lang": "ko",
+      "pageHeight": 768
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "lang": "ko",
+      "pageHeight": 720
+    },
+    {
+      "width": 1440,
+      "height": 800,
+      "lang": "ko",
+      "pageHeight": 800
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "lang": "ko",
+      "pageHeight": 812
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "lang": "ko",
+      "pageHeight": 844
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "lang": "en",
+      "pageHeight": 768
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "lang": "en",
+      "pageHeight": 720
+    },
+    {
+      "width": 1440,
+      "height": 800,
+      "lang": "en",
+      "pageHeight": 800
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "lang": "en",
+      "pageHeight": 812
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "lang": "en",
+      "pageHeight": 844
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "lang": "ja",
+      "pageHeight": 768
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "lang": "ja",
+      "pageHeight": 720
+    },
+    {
+      "width": 1440,
+      "height": 800,
+      "lang": "ja",
+      "pageHeight": 800
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "lang": "ja",
+      "pageHeight": 812
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "lang": "ja",
+      "pageHeight": 844
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "lang": "zh",
+      "pageHeight": 768
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "lang": "zh",
+      "pageHeight": 720
+    },
+    {
+      "width": 1440,
+      "height": 800,
+      "lang": "zh",
+      "pageHeight": 800
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "lang": "zh",
+      "pageHeight": 812
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "lang": "zh",
+      "pageHeight": 844
+    }
+  ],
+  "checks": [
+    "keyboard login, pending controls, reduced motion, original return URL",
+    "native validation, visible linked server errors, signup name trimming and original API payload",
+    "Google preparation, GIS nonce, Supabase exchange and backend callback with fixtures",
+    "Naver authorization, return and valid state with fixtures",
+    "Naver authorization, return and rejected state with fixtures",
+    "existing session 200 behavior",
+    "existing session 401 behavior",
+    "existing session 503 behavior",
+    "external return URL rejected",
+    "small visual viewport: login/signup fields, social buttons and legal links remain scrollable"
+  ],
+  "errors": [],
+  "oauth": "mocked provider and API responses; no real accounts"
+}

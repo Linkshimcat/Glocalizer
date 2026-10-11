@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import type { RecognizedRegion } from './ocr-provider.types.js';
@@ -39,7 +40,7 @@ function buildPrompt(candidate?: RecognizedRegion, options: VisionOcrOptions = {
 
 async function requestGroqVisionOcr(image: Buffer, candidate?: RecognizedRegion, options?: VisionOcrOptions): Promise<VisionFallbackResult | null> {
   if (!env.GROQ_API_KEY) return null;
-  const response = await fetch(`${env.GROQ_BASE_URL}/chat/completions`, {
+  const response = await taskFetch(`${env.GROQ_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
     signal: AbortSignal.timeout(env.VISION_TIMEOUT_MS),
@@ -67,7 +68,7 @@ async function requestGroqVisionOcr(image: Buffer, candidate?: RecognizedRegion,
 
 async function requestGeminiVisionOcr(image: Buffer, candidate?: RecognizedRegion, options?: VisionOcrOptions): Promise<VisionFallbackResult | null> {
   if (!env.GEMINI_API_KEY) return null;
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_VISION_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`, {
+  const response = await taskFetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_VISION_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(env.VISION_TIMEOUT_MS),
     body: JSON.stringify({ contents: [{ parts: [{ text: buildPrompt(candidate, options) }, { inline_data: { mime_type: 'image/png', data: image.toString('base64') } }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0 } }),
   });

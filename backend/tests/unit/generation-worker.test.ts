@@ -1,0 +1,30 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const mocks=vi.hoisted(()=>({rpc:vi.fn(),process:vi.fn()}));
+vi.mock('../../src/config/env.js',()=>({env:{ENABLE_IMAGE_GENERATION:true,OPENAI_API_KEY:'fake',WORKER_POLL_INTERVAL_MS:10,JOB_HEARTBEAT_INTERVAL_MS:1000,JOB_STALE_AFTER_MS:5000}}));
+vi.mock('../../src/config/logger.js',()=>({logger:{error:vi.fn(),warn:vi.fn()}}));
+vi.mock('../../src/config/runtime.js',()=>({runtime:{workerId:'same-worker'}}));
+vi.mock('../../src/config/supabase.js',()=>({supabase:{rpc:mocks.rpc}}));
+vi.mock('../../src/services/generation.service.js',()=>({processGenerationImage:mocks.process}));
+beforeEach(()=>{vi.resetModules();vi.clearAllMocks();});
+it('does not start duplicate loops and waits for an in-flight claim and its paid work before stopping',async()=>{
+ const {startGenerationWorker,stopGenerationWorker}=await import('../../src/workers/generation-worker.js');
+ const {currentTask}=await import('../../src/utils/task-context.js');
+ let releaseClaim!:(value:unknown)=>void,releaseWork!:()=>void, entered!:()=>void;
+ const workEntered=new Promise<void>(r=>{entered=r});
+ mocks.rpc.mockImplementation(async name=>name==='claim_generation_job'?new Promise(r=>{releaseClaim=r}):{data:0,error:null});
+ mocks.process.mockImplementation(()=>{expect(currentTask()).toMatchObject({kind:'generation',id:'job',leaseToken:'fresh-lease'});entered();return new Promise<void>(r=>{releaseWork=r});});
+ startGenerationWorker();startGenerationWorker();
+ for(let i=0;i<20&&!releaseClaim;i++)await Promise.resolve();
+ let finished=false;const stopped=stopGenerationWorker().then(()=>{finished=true});
+ expect(finished).toBe(false);
+ releaseClaim({data:{id:'job',project_id:'project',lease_token:'fresh-lease'},error:null});
+ await workEntered;expect(finished).toBe(false);releaseWork();await stopped;
+ expect(mocks.process).toHaveBeenCalledOnce();expect(mocks.rpc.mock.calls.filter(([name])=>name==='claim_generation_job')).toHaveLength(1);
+});
+it('stops admission when shutdown begins during the recovery probe',async()=>{
+ const {startGenerationWorker,stopGenerationWorker}=await import('../../src/workers/generation-worker.js');
+ let release!:(value:unknown)=>void;
+ mocks.rpc.mockImplementation(()=>new Promise(r=>{release=r}));
+ startGenerationWorker();const stopped=stopGenerationWorker();release({data:0,error:null});await stopped;
+ expect(mocks.rpc).toHaveBeenCalledTimes(1);expect(mocks.rpc).toHaveBeenCalledWith('recover_generation_jobs',{p_stale_ms:5000});expect(mocks.process).not.toHaveBeenCalled();
+});

@@ -1,3 +1,4 @@
+import { taskFetch } from '../utils/task-context.js';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -65,7 +66,7 @@ async function loadGenerationProject(id: string, ownerId: string): Promise<Revie
 }
 
 async function toVisionImage(image: ReviewImage) {
-  const response = await fetch(image.url, { signal: AbortSignal.timeout(15_000) });
+  const response = await taskFetch(image.url, { signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new AppError('AI_REVIEW_FAILED', { status: response.status }, '검토할 이미지를 불러오지 못했습니다.');
   const source = Buffer.from(await response.arrayBuffer());
   const normalized = await sharp(source, { limitInputPixels: 16_777_216 })
@@ -105,7 +106,7 @@ export async function createDeepReview(input: DeepReviewRequest, ownerId: string
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.AI_REVIEW_TIMEOUT_MS);
   try {
-    const response = await fetch(`${env.OPENAI_BASE_URL}/chat/completions`, {
+    const response = await taskFetch(`${env.OPENAI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({

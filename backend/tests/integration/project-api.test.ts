@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 
+vi.mock('../../src/services/deletion.service.js', () => ({deleteDurably: vi.fn().mockResolvedValue(undefined)}));
+const { deleteDurably } = await import('../../src/services/deletion.service.js');
+
 const createSignedUploadUrl = vi.hoisted(() => vi.fn());
 
 vi.mock('../../src/repositories/project.repository.js', () => ({
@@ -40,7 +43,6 @@ vi.mock('../../src/config/supabase.js', () => ({
 const { createApp } = await import('../../src/app.js');
 const projectRepo = await import('../../src/repositories/project.repository.js');
 const assetRepo = await import('../../src/repositories/asset.repository.js');
-const storageRepo = await import('../../src/repositories/storage.repository.js');
 const { hashProjectToken } = await import('../../src/utils/hash.js');
 
 const app = createApp();
@@ -159,8 +161,8 @@ describe('DELETE /api/v1/projects/:projectId', () => {
     const res = await request(app).delete(`/api/v1/projects/${PROJECT_ID}`).set('X-Project-Token', TOKEN);
 
     expect(res.status).toBe(204);
-    expect(storageRepo.removeFromStorage).toHaveBeenCalledWith(['projects/x/original/a.png', 'projects/x/cleaned/a.png']);
-    expect(projectRepo.deleteProjectRow).toHaveBeenCalledWith(PROJECT_ID);
+    expect(deleteDurably).toHaveBeenCalledWith('project', PROJECT_ID);
+    expect(projectRepo.deleteProjectRow).not.toHaveBeenCalled();
   });
 
   it('만료된 프로젝트는 404를 반환한다', async () => {

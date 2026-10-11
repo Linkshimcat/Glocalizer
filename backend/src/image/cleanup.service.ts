@@ -1,3 +1,5 @@
+import { currentTask } from '../utils/task-context.js';
+import { jobMutation } from '../repositories/job-mutation.js';
 import { findAssetsByProjectAndStatus, updateAsset } from '../repositories/asset.repository.js';
 import { findRegionsByAssetId, updateRegionCleanupMetadata } from '../repositories/ocr.repository.js';
 import { findProjectById, updateProjectStage } from '../repositories/project.repository.js';
@@ -126,7 +128,9 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
       }
     }
 
-    const cleanedPath = `projects/${asset.project_id}/cleaned/${asset.id}.png`;
+    const task = currentTask();
+    const cleanedPath = task?.kind === 'localization' ? `projects/${asset.project_id}/cleaned/${task.id}/${task.leaseToken}/${asset.id}.png` : `projects/${asset.project_id}/cleaned/${asset.id}.png`;
+    if (task?.kind === 'localization') await jobMutation('artifact', asset.id, { path: cleanedPath });
     const hasAutomaticCleanup = methods.some((method) => method !== 'manual-required');
     if (hasAutomaticCleanup) await uploadToStorage(cleanedPath, cleanedBuffer, 'image/png');
 

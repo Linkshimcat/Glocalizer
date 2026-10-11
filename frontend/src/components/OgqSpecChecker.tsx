@@ -4,6 +4,8 @@ import type { Dict } from '../i18n/translations'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { checkOgqSpec, type OgqSpecCheckItem, type OgqSpecCheckResult } from '../lib/ogqSpecCheck'
 import Button from './Button'
+import StateNotice from './StateNotice'
+import { experienceCopy } from '../i18n/experience'
 import { useToast } from './Toast'
 
 function formatBytes(bytes: number): string {
@@ -108,13 +110,16 @@ export interface OgqProjectImage {
 }
 
 export default function OgqSpecChecker({ projectImages = [] }: { projectImages?: OgqProjectImage[] }) {
-  const { t } = useSiteLang()
+  const { t, lang } = useSiteLang()
+  const copy = experienceCopy[lang]
   const toast = useToast()
   const [results, setResults] = useState<OgqSpecCheckResult[]>([])
   const [projectResults, setProjectResults] = useState<OgqSpecCheckResult[]>([])
   const [checking, setChecking] = useState(false)
   const [checkingProjects, setCheckingProjects] = useState(false)
   const [projectCheckFailed, setProjectCheckFailed] = useState(false)
+  const [retry, setRetry] = useState(0)
+  const [uploadFailed, setUploadFailed] = useState(false)
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -143,15 +148,18 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
       })
       .finally(() => { if (active) setCheckingProjects(false) })
     return () => { active = false }
-  }, [projectImages])
+  }, [projectImages, retry])
 
   const handleFiles = async (incoming: File[]) => {
     const images = incoming.filter(f => f.type === 'image/png' || f.type === 'image/jpeg')
     if (images.length < incoming.length) toast(t.dashToastFormat)
     if (images.length === 0) return
     setChecking(true)
+    setUploadFailed(false)
     try {
-      const checked = await Promise.all(images.map(file => checkOgqSpec(file)))
+      const outcomes = await Promise.allSettled(images.map(file => checkOgqSpec(file)))
+      const checked = outcomes.flatMap(outcome => outcome.status === 'fulfilled' ? [outcome.value] : [])
+      setUploadFailed(outcomes.some(outcome => outcome.status === 'rejected'))
       setResults(prev => [...prev, ...checked])
     } finally {
       setChecking(false)
@@ -172,13 +180,14 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
   }
 
   return (
-    <section className="mt-10">
+    <section id="review-specs" className="mt-10" aria-labelledby="review-specs-title">
+      <h2 id="review-specs-title" className="mb-4 text-xl font-bold">{copy.reviewTypes[0]}</h2>
       {projectImages.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-bold">{t.reviewProjectCheckTitle}</h2>
           <p className="mt-1 text-sm font-medium text-sub">{t.reviewProjectCheckDesc.replace('{n}', String(projectImages.length))}</p>
           {checkingProjects && <p role="status" className="mt-4 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.reviewProjectCheckLoading}</p>}
-          {projectCheckFailed && <p role="alert" className="mt-4 text-sm text-red-600">{t.reviewProjectCheckFailed}</p>}
+          {projectCheckFailed && <StateNotice error className="mt-4" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{t.reviewProjectCheckFailed}</StateNotice>}
           {projectResults.length > 0 && (
             <div className="mt-5 flex flex-col gap-4">
               {projectResults.map((result, index) => <ResultCard key={`${result.fileName}-${index}`} result={result} />)}
@@ -187,7 +196,8 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         </div>
       )}
 
-      <h2 className="text-lg font-bold">{t.reviewUploadTitle}</h2>
+      {uploadFailed && <StateNotice error className="mb-4">{t.reviewProjectCheckFailed}</StateNotice>}
+      <h3 className="text-lg font-bold">{t.reviewUploadTitle}</h3>
       <p className="mt-1 text-sm font-medium text-sub">{t.reviewUploadDesc}</p>
 
       <div
@@ -195,11 +205,7 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        onClick={() => inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={e => { if (e.key === 'Enter') inputRef.current?.click() }}
-        className={`mt-4 flex cursor-pointer flex-col items-center gap-3 rounded-panel border-2 border-dashed px-4 py-8 text-center transition-colors ${
+        className={`mt-4 flex flex-col items-center gap-3 rounded-panel border-2 border-dashed px-4 py-8 text-center transition-colors ${
           dragging ? 'border-brand bg-brand-soft' : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70'
         }`}
       >
@@ -208,7 +214,7 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         </span>
         <p className="text-sm font-bold">{t.reviewUploadDrop}</p>
         <p className="text-xs font-medium text-sub">{t.reviewUploadHint}</p>
-        <Button size="sm" onClick={e => e.stopPropagation()} className="pointer-events-none">
+        <Button size="sm" disabled={checking} onClick={() => inputRef.current?.click()}>
           {t.reviewUploadSelectFile}
         </Button>
         <input
@@ -216,6 +222,7 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
           type="file"
           accept="image/png,image/jpeg"
           multiple
+          aria-label={t.reviewUploadSelectFile}
           className="hidden"
           onChange={e => {
             void handleFiles(Array.from(e.target.files ?? []))
