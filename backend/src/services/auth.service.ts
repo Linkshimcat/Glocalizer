@@ -21,6 +21,7 @@ import type { ChangePasswordInput, GoogleLoginInput, LoginInput, SignupInput, Up
 import type { PublicUser, UserRow } from '../types/user.js';
 import { signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
+import { sendWelcomeEmail } from './email.service.js';
 
 async function fetchAuthProvider(url: string, init: RequestInit): Promise<Response> {
   try { return await taskFetch(url, init); }
@@ -64,6 +65,8 @@ export async function signup(input: SignupInput): Promise<AuthResult> {
     passwordHash: await hashPassword(input.password),
     name: input.name,
   });
+  // 메일은 기다리지 않는다: 발송이 느리거나 실패해도 가입 응답에 영향을 주지 않는다.
+  void sendWelcomeEmail(user);
 
   return issueSession(user);
 }
@@ -154,7 +157,12 @@ export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResu
     if (existingByEmail?.supabase_auth_id && existingByEmail.supabase_auth_id !== authUser.id) {
       throw new AppError('GOOGLE_ACCOUNT_CONFLICT');
     }
-    user = existingByEmail ? await linkGoogleProfile(existingByEmail, profile) : await insertGoogleUser(profile);
+    if (existingByEmail) {
+      user = await linkGoogleProfile(existingByEmail, profile);
+    } else {
+      user = await insertGoogleUser(profile);
+      void sendWelcomeEmail(user);
+    }
   }
 
   return issueSession(user);
@@ -219,13 +227,16 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
     });
   } else {
     const existingByEmail = email ? await findUserByEmail(email) : null;
-    user = existingByEmail
-      ? await linkNaverProfile(existingByEmail.id, {
-          naverId: profile.id,
-          name: existingByEmail.name_customized ? undefined : name ?? existingByEmail.name,
-          avatarUrl: existingByEmail.avatar_customized ? undefined : avatarUrl ?? existingByEmail.avatar_url,
-        })
-      : await insertNaverUser({ naverId: profile.id, email, name, avatarUrl });
+    if (existingByEmail) {
+      user = await linkNaverProfile(existingByEmail.id, {
+        naverId: profile.id,
+        name: existingByEmail.name_customized ? undefined : name ?? existingByEmail.name,
+        avatarUrl: existingByEmail.avatar_customized ? undefined : avatarUrl ?? existingByEmail.avatar_url,
+      });
+    } else {
+      user = await insertNaverUser({ naverId: profile.id, email, name, avatarUrl });
+      void sendWelcomeEmail(user);
+    }
   }
 
   return issueSession(user);

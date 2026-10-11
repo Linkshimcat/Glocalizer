@@ -74,7 +74,7 @@ function ResultCard({ result }: { result: OgqSpecCheckResult }) {
   const issueCount = result.items.filter(item => item.status !== 'pass').length
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+    <div className="overflow-hidden rounded-panel border border-gray-100 bg-white">
       <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
         <p className="truncate text-sm font-bold">{result.fileName}</p>
         <span className={`shrink-0 text-xs font-bold ${issueCount === 0 ? 'text-brand-dark' : 'text-red-500'}`}>
@@ -82,12 +82,12 @@ function ResultCard({ result }: { result: OgqSpecCheckResult }) {
         </span>
       </div>
       <div className="flex flex-col gap-4 p-4 sm:flex-row">
-        <img src={result.previewUrl} alt="" className="h-32 w-32 shrink-0 self-center rounded-xl border border-gray-100 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,white_0%_50%)] bg-[length:16px_16px] object-contain sm:self-start" />
+        <img src={result.previewUrl} alt="" className="h-32 w-32 shrink-0 self-center rounded-panel border border-gray-100 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,white_0%_50%)] bg-[length:16px_16px] object-contain sm:self-start" />
         <ul className="flex min-w-0 flex-1 flex-col gap-2">
           {result.items.map(item => {
             const { label, message } = describeItem(t, result, item)
             return (
-              <li key={item.key} className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${STATUS_BG[item.status]}`}>
+              <li key={item.key} className={`flex items-start gap-2 rounded-panel px-3 py-2 text-sm ${STATUS_BG[item.status]}`}>
                 <StatusIcon status={item.status} />
                 <span>
                   <span className="font-bold">{label}</span> — {message}
@@ -199,11 +199,11 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         role="button"
         tabIndex={0}
         onKeyDown={e => { if (e.key === 'Enter') inputRef.current?.click() }}
-        className={`mt-4 flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
+        className={`mt-4 flex cursor-pointer flex-col items-center gap-3 rounded-panel border-2 border-dashed px-4 py-8 text-center transition-colors ${
           dragging ? 'border-brand bg-brand-soft' : 'border-gray-200 bg-[#FAFBFC] hover:border-brand/70'
         }`}
       >
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-soft">
+        <span className="flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft">
           {checking ? <Loader2 className="h-6 w-6 animate-spin text-brand-dark" /> : <ImagePlus className="h-6 w-6 text-brand-dark" />}
         </span>
         <p className="text-sm font-bold">{t.reviewUploadDrop}</p>

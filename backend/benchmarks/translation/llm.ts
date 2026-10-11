@@ -1,6 +1,13 @@
-import { env } from '../../src/config/env.js';
+import type { LocalizationBatchInput } from '../../src/ai/localization/localization-provider.types.js';
+import { executeChat, executeTranslation } from '../../src/translation/translation-http.js';
+import { createTranslationContext } from '../../src/translation/translation-execution.js';
+import { translationRequestConfig } from '../../src/translation/translation-request.js';
+import type { EvaluationBudget } from './budget.js';
 
-export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string }
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
 export interface ChatOptions {
   provider: 'groq' | 'openai';
   model: string;
@@ -8,61 +15,93 @@ export interface ChatOptions {
   maxTokens?: number;
   reasoningEffort?: string;
 }
-export interface ChatResult { content: string; ms: number; promptTokens: number; completionTokens: number }
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/** 벤치마크용 얇은 채팅 호출. 429/5xx는 백오프로 재시도하고, 모델이 거부하는 선택 파라미터는 빼고 다시 보낸다. */
-export async function chat(messages: ChatMessage[], options: ChatOptions): Promise<ChatResult> {
-  const base = options.provider === 'groq' ? env.GROQ_BASE_URL : env.OPENAI_BASE_URL;
-  const key = options.provider === 'groq' ? env.GROQ_API_KEY : env.OPENAI_API_KEY;
-  if (!key) throw new Error(`${options.provider} API key is not configured`);
-  const optional: Record<string, unknown> = {};
-  if (options.temperature !== undefined) optional.temperature = options.temperature;
-  if (options.reasoningEffort) optional.reasoning_effort = options.reasoningEffort;
-
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    const started = Date.now();
-    const body: Record<string, unknown> = {
-      model: options.model,
-      messages,
-      response_format: { type: 'json_object' },
-      ...(options.provider === 'groq' ? { max_tokens: options.maxTokens ?? 1500 } : { max_completion_tokens: options.maxTokens ?? 4000 }),
-      ...optional,
-    };
-    const response = await fetch(`${base}/chat/completions`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(120_000),
-    });
-    const text = await response.text();
-    if (response.ok) {
-      const parsed = JSON.parse(text) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
-      return { content: parsed.choices?.[0]?.message?.content ?? '', ms: Date.now() - started, promptTokens: parsed.usage?.prompt_tokens ?? 0, completionTokens: parsed.usage?.completion_tokens ?? 0 };
-    }
-    if (response.status === 400) {
-      const unsupported = ['temperature', 'reasoning_effort'].find((name) => name in optional && text.includes(name));
-      if (unsupported) { delete optional[unsupported]; continue; }
-    }
-    if (response.status === 429 || response.status >= 500) {
-      const wait = Math.min(60_000, Math.max(2_000, Number(/try again in ([\d.]+)s/i.exec(text)?.[1] ?? 0) * 1000 + 1_000, 2_000 * 2 ** attempt));
-      await sleep(wait);
-      continue;
-    }
-    throw new Error(`${options.provider} ${response.status}: ${text.slice(0, 200)}`);
-  }
-  throw new Error(`${options.provider} request kept failing`);
+export interface ChatResult {
+  content: string;
+  ms: number;
+  promptTokens: number;
+  completionTokens: number;
 }
-
-export async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
+let budget: EvaluationBudget | undefined;
+export function setEvaluationBudget(value: EvaluationBudget) {
+  budget = value;
+}
+export function configFor(options: ChatOptions) {
+  return {
+    ...translationRequestConfig(options.provider),
+    model: options.model,
+    maxTokens: options.maxTokens ?? (options.provider === 'groq' ? 1500 : 4000),
+    temperature: options.temperature,
+    reasoningEffort: options.reasoningEffort,
+  };
+}
+function contextFor(options: ChatOptions, judge = false) {
+  if (!budget)
+    throw new Error('A persistent evaluation budget must be configured before API calls');
+  const context = createTranslationContext(
+    undefined,
+    judge
+      ? { primaryMs: 120_000, totalMs: 120_000 }
+      : {
+          primaryMs: Number(process.env.TRANSLATION_PRIMARY_BUDGET_MS ?? 30_000),
+          totalMs: Number(process.env.TRANSLATION_OPERATION_BUDGET_MS ?? 90_000),
+        },
+  );
+  return {
+    ...context,
+    beforeRequest: (body: Record<string, unknown>) => budget!.reserve(options.provider, body),
+  };
+}
+export async function chat(messages: ChatMessage[], options: ChatOptions): Promise<ChatResult> {
+  return executeChat(
+    { ...configFor(options), timeoutMs: 120_000 },
+    messages,
+    contextFor(options, true),
+  );
+}
+export async function generateTranslation(
+  input: LocalizationBatchInput,
+  messages: ChatMessage[],
+  options: ChatOptions,
+) {
+  const started = Date.now();
+  const metrics = {
+    completionTokens: 0,
+    promptTokens: 0,
+    attempts: 0,
+    queueWaitMs: 0,
+    cooldownWaitMs: 0,
+  };
+  const context = {
+    ...contextFor(options),
+    onAttempt: (row: Record<string, unknown>) => {
+      if (row.outcome === 'attempt_started') metrics.attempts++;
+      if (row.outcome === 'attempt_success') {
+        metrics.completionTokens += Number(row.completionTokens ?? 0);
+        metrics.promptTokens += Number(row.promptTokens ?? 0);
+      }
+      metrics.queueWaitMs += Number(row.queueWaitMs ?? 0);
+      metrics.cooldownWaitMs += Number(row.cooldownWaitMs ?? 0);
+    },
+  };
+  const parsed = await executeTranslation(configFor(options), input, context, messages);
+  return { parsed, ms: Date.now() - started, ...metrics };
+}
+export async function mapLimit<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (!Number.isInteger(limit) || limit < 1)
+    throw new Error('Concurrency must be a positive integer');
   const results = new Array<R>(items.length);
   let next = 0;
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const index = next; next += 1;
-      results[index] = await worker(items[index], index);
-    }
-  }));
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const index = next++;
+        results[index] = await worker(items[index], index);
+      }
+    }),
+  );
   return results;
 }

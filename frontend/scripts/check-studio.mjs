@@ -70,7 +70,7 @@ async function setup({ width = 1280, count = 8, me = 200, signedIn = true, voice
       state.generation.images.push(...slots.map(slot => ({ id: `queued-${slot}`, slot, status: 'queued', caption: '', prompt: '', url: null })))
       return route.abort('connectionreset') // server accepted the paid jobs, response was lost
     }
-    if (path === '/projects') return reply({ projects: Array.from({length:3},(_,i)=>({id:'workflow-project'+i,name:['첫 번째 작품','일상 속 작은 행복','오늘도 파이팅'][i],status:'completed',resultReady:false,targetLanguages:['en','ja'],imageCount:8,createdAt:'2026-10-07T08:00:00Z',updatedAt:'2026-10-07T08:00:00Z',thumbnailUrl:'/src/assets/studio/hero-character.png'})) })
+    if (path === '/projects') return reply({ projects: Array.from({length:3},(_,i)=>({id:'workflow-project'+i,name:['첫 번째 작품','일상 속 작은 행복','오늘도 파이팅'][i],status:'completed',resultReady:false,targetLanguages:['en','ja'],imageCount:8,createdAt:'2026-10-07T08:00:00Z',updatedAt:'2026-10-07T08:00:00Z',thumbnailUrl:'/src/assets/studio/hero-character.webp'})) })
     if (path === '/ogq/stickers') return reply({stickers: []}); if (path === '/landing/showcases') return reply({ showcases: [] })
     return reply({})
   })
@@ -94,6 +94,15 @@ for (const width of [360,390,768,1280,1440]) {
    await page.waitForTimeout(100);
    const sizes=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
    assert.ok(sizes.scroll<=sizes.width+1,JSON.stringify({path,lang,...sizes}));
+   assert.equal(await page.locator('header').count(),1,`${path}: one global header`);
+   const header=page.locator('.site-header');
+   assert.equal((await header.boundingBox()).height,width>=1024?72:112);
+   assert.deepEqual(await header.locator('nav a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href'))),['/dashboard','/service']);
+   assert.equal(await header.locator('button[aria-haspopup="listbox"]').count(),1);
+   assert.equal(await header.locator('button[aria-haspopup="true"]').count(),1);
+   if(path!=='/') assert.equal(await header.locator('a[aria-current="page"]').getAttribute('href'),'/dashboard');
+   assert.deepEqual(await header.locator('a,button').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1}).map(n=>n.textContent)),[]);
+
    if(lang==='ko') await page.screenshot({path:'/tmp/glocalizer-studio-qa/'+(path==='/'?'landing':path.slice(1))+'-'+width+'.png'});
    cases++;
   }

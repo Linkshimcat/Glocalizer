@@ -1,5 +1,4 @@
-/* 에디터 오버레이 텍스트용 폰트 (폰트별 지원 굵기 로드) */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Baloo+2:wght@400;500;600;700;800&family=Bangers&family=Black+Han+Sans&family=Caveat:wght@400;700&family=Comic+Neue:wght@400;700&family=Do+Hyeon&family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&family=Gothic+A1:wght@400;500;700;900&family=Jua&family=Lobster&family=Luckiest+Guy&family=Nanum+Pen+Script&family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+SC:wght@400;500;700;900&family=Poppins:wght@400;500;600;700&display=swap');
+@import './fonts/pretendard-variable-dynamic-subset.css';
 @import 'tailwindcss';
 @import './studio.css';
 
@@ -17,6 +16,10 @@
   --color-ink: #191f28;
   --color-sub: #56616e;
   --color-surface: #f2f4f6;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-dialog: 12px;
+  --radius-badge: 4px;
 }
 
 html {
@@ -287,6 +290,23 @@ body {
 }
 .animate-toast-in {
   animation: toast-in 0.25s ease-out;
+}
+.animate-toast-out {
+  animation: toast-out 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+}
+@keyframes toast-out {
+  to {
+    transform: translateY(6px) scale(0.98);
+    filter: blur(8px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in,
+  .animate-toast-out {
+    animation-duration: 0.01ms;
+  }
 }
 
 /* 완료 체크 — 원 팝인 + 체크 그려지기 + 링 퍼짐 */

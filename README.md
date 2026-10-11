@@ -449,7 +449,7 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | Anton, Baloo 2, Bangers, Black Han Sans, Caveat, Comic Neue, Do Hyeon, Fredoka, Gaegu, Gothic A1, Jua, Lobster, Luckiest Guy, Nanum Pen Script, Noto Sans JP/KR/SC, Poppins | [Google Fonts](https://fonts.google.com/)에서 웹폰트로 로드하며 각 글꼴의 SIL Open Font License 1.1을 따름 | 에디터 번역문 글꼴 선택 |
 | Lucide 아이콘 | [Lucide](https://lucide.dev/), ISC License | 공통 버튼과 상태 아이콘 |
 | `iconsax-*.svg` 기반 아이콘 | [Iconsax](https://github.com/lusaxweb/iconsax), MIT License | AI 배지·안내 아이콘 |
-| `GlocalizerLogo.png`, `GCFrontendUI/*`, `ServicePageLending/about-*.png`, `ProCards.png` | Glocalizer Team이 제작·편집한 Figma 및 서비스 UI 에셋 | 로고, 업로드·소개 화면 |
+| `GlocalizerLogo.webp`, `GCFrontendUI/*`, `ServicePageLending/about-*.png`, `ProCards.png` | Glocalizer Team이 제작·편집한 Figma 및 서비스 UI 에셋 | 로고, 업로드·소개 화면 |
 | `ServicePageLending/IntroduceVideo.mp4` | Glocalizer Team 제작 서비스 소개 영상 | 서비스 소개 페이지 |
 | `LendingPage/GreenBackground-web.jpg` | [Magnific 원본](https://www.magnific.com/kr/free-vector/colorful-gradient-blur-background_16330574.htm), [라이선스 증명서](docs/licenses/GreenBackground-Magnific-license.pdf) · Free for commercial use WITH ATTRIBUTION · 저작자 `rawpixel.com - Magnific.com` · 웹 표시 문구 `designed by rawpixel.com - Magnific.com` | 결과·랜딩 배경 |
 | `github-mark.svg` | [GitHub Logos and Usage](https://github.com/logos)의 표시 지침을 따름 | 공통 푸터 |

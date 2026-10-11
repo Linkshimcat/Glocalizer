@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Style } from '../lib/style'
 import type { DemoItem } from '../data/demo'
 import { renderItemToPng, type OutputPreset, type TextOverlay } from '../lib/exportImage'
+import '../editor-fonts.css'
 
 let activeRenders = 0
 const waiting: Array<() => void> = []

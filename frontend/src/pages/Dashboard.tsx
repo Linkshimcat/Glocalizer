@@ -1,12 +1,14 @@
 import { useToast } from '../components/Toast'
 import CloudProjectList from '../components/CloudProjectList'
-import { ArrowRight, Globe2, Loader2, ShieldCheck, SmilePlus } from 'lucide-react'
+import { Globe2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
-import Header from '../components/Header'
-import NavMenu from '../components/NavMenu'
-import heroCharacter from '../assets/studio/hero-character.png'
+import heroCharacter from '../assets/studio/hero-character.webp'
+import createIcon from '../assets/studio/create.svg'
+import localizeIcon from '../assets/studio/localize.svg'
+import reviewIcon from '../assets/studio/review.svg'
+import arrowRightIcon from '../assets/studio/cta-arrow.svg'
 import { studioCopy } from '../i18n/studio'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useUploads } from '../store/uploads'
@@ -41,14 +43,13 @@ export default function Dashboard() {
   }
   const requestNewTask = () => { if (hasWork) setNewTaskOpen(true); else void startNew() }
   const cards = [
-    { title: t.hubGenerate, Icon: SmilePlus, run: () => navigate('/generate') },
-    { title: t.hubLocalize, Icon: Globe2, run: requestNewTask },
-    { title: t.hubReview, Icon: ShieldCheck, run: () => navigate('/review') },
+    { title: t.hubGenerate, icon: createIcon, run: () => navigate('/generate') },
+    { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask },
+    { title: t.hubReview, icon: reviewIcon, run: () => navigate('/review') },
   ]
 
   return (
     <div className="studio-dashboard min-h-screen">
-      <Header center={<NavMenu workspace />} sticky />
       <main className="studio-dashboard-main">
         <div className="studio-dashboard-heading">
           <h1>{hasWork ? copy.resume : t.hubTitle}</h1>
@@ -62,7 +63,7 @@ export default function Dashboard() {
               <p>{hasWork ? t.hubFiles.replace('{n}', String(files.length)) : t.hubLocalizeDesc}</p>
               <div className="studio-resume-actions">
                 <Button disabled={cloudSaving || startingNew} onClick={() => hasWork ? navigate(resumePath) : requestNewTask()}>
-                  {hasWork ? t.hubContinue : t.hubStart}<ArrowRight size={17} />
+                  {hasWork ? t.hubContinue : t.hubStart}<img src={arrowRightIcon} alt="" aria-hidden="true" />
                 </Button>
                 {hasWork && <Button variant="ghost" disabled={cloudSaving || startingNew} onClick={requestNewTask}>{t.hubNew}</Button>}
               </div>
@@ -71,21 +72,21 @@ export default function Dashboard() {
           <section className="studio-new-work" aria-labelledby="new-work-title">
             <h2 id="new-work-title">{copy.newWork}</h2>
             <div className="studio-work-menu">
-              {cards.map(({ title, Icon, run }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
-                <Icon aria-hidden="true" /><strong>{title}</strong>
+              {cards.map(({ title, icon, run }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
+                <img src={icon} alt="" aria-hidden="true" /><strong>{title}</strong>
               </button>)}
             </div>
           </section>
         </div>
         <section className="studio-project-section" aria-labelledby="progress-title">
           <h2 id="progress-title">{copy.projects}</h2>
-          <CloudProjectList archive={false} gallery onCount={setCloudCount} />
+          <CloudProjectList archive={false} gallery loginMessage={copy.loginMessage} onCount={setCloudCount} />
           <GenerationList archive={false} gallery onCount={setGenerationCount} />
-          {cloudCount === 0 && generationCount === 0 ? <p className="mt-5 border-t border-gray-200 py-6 text-sm text-sub">{t.cloudEmptyProgress}</p> : null}
+          {cloudCount === 0 && generationCount === 0 ? <p className="mt-5 border-t border-gray-200 py-6 text-sm text-sub">{copy.emptyProgress}</p> : null}
         </section>
       </main>
       {newTaskOpen ? <Modal onClose={() => { if (!startingNew) setNewTaskOpen(false) }} labelledBy="new-task-title" closeLabel={t.commonClose}>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-dark"><Globe2 className="h-6 w-6" /></div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft text-brand-dark"><Globe2 className="h-6 w-6" /></div>
         <h2 id="new-task-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudNewTitle}</h2>
         <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudNewConfirm}</p>
         <div className="mt-7 flex gap-3">

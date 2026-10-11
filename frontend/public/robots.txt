@@ -1,13 +1,45 @@
+# Public pages are open to search engines and AI assistants; the signed-in workspace is not.
 User-agent: *
 Allow: /
 Disallow: /login
 Disallow: /dashboard
 Disallow: /generate
 Disallow: /localize
+Disallow: /review
 Disallow: /account
 Disallow: /archive
 Disallow: /editor
 Disallow: /result
 Disallow: /auth/
+Disallow: /landing-remake
+Disallow: /landing-legacy
+Disallow: /spa.html
+
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Yeti
+Allow: /
+Allow: /llms.txt
+Disallow: /login
+Disallow: /dashboard
+Disallow: /generate
+Disallow: /localize
+Disallow: /review
+Disallow: /account
+Disallow: /archive
+Disallow: /editor
+Disallow: /result
+Disallow: /auth/
+Disallow: /landing-remake
+Disallow: /landing-legacy
+Disallow: /spa.html
 
 Sitemap: https://glocalizer.vercel.app/sitemap.xml

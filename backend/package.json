@@ -25,8 +25,10 @@
     "test:db": "node --test scripts/job-database.test.mjs",
     "test:watch": "vitest",
     "benchmark:translation": "tsx benchmarks/translation/run.ts",
+    "check:translation": "tsc -p tsconfig.benchmarks.json",
     "benchmark:cleanup": "tsx benchmarks/cleanup/run.ts",
     "report:translation-fallback": "node scripts/report-translation-fallback.mjs",
+    "collect:translation-logs": "node scripts/collect-translation-logs.mjs",
     "report:download-funnel": "node scripts/report-download-funnel.mjs"
   },
   "keywords": [],
@@ -39,6 +41,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.0",
+    "nodemailer": "10.0.10",
     "pg": "^8.22.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",

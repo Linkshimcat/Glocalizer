@@ -2,7 +2,6 @@ import { BrainCircuit, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
-import Header from '../components/Header'
 import OgqSpecChecker, { type OgqProjectImage } from '../components/OgqSpecChecker'
 import { useSiteLang } from '../i18n/LanguageContext'
 import {
@@ -36,14 +35,14 @@ type ReviewProject =
 function ReviewProjectSkeleton({ label }: { label: string }) {
   return <div role="status" aria-label={label} aria-busy="true" className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
     <span className="sr-only">{label}</span>
-    {Array.from({ length: 3 }, (_, index) => <div key={index} aria-hidden="true" className="flex animate-pulse items-center gap-4 rounded-2xl border-2 border-gray-100 p-4 motion-reduce:animate-none"><div className="h-16 w-16 shrink-0 rounded-xl bg-brand-soft" /><div className="min-w-0 flex-1"><div className="h-4 w-2/3 rounded-full bg-gray-200" /><div className="mt-3 h-3 w-1/3 rounded-full bg-gray-100" /></div></div>)}
+    {Array.from({ length: 3 }, (_, index) => <div key={index} aria-hidden="true" className="flex animate-pulse items-center gap-4 rounded-panel border-2 border-gray-100 p-4 motion-reduce:animate-none"><div className="h-16 w-16 shrink-0 rounded-panel bg-brand-soft" /><div className="min-w-0 flex-1"><div className="h-4 w-2/3 rounded-full bg-gray-200" /><div className="mt-3 h-3 w-1/3 rounded-full bg-gray-100" /></div></div>)}
   </div>
 }
 
 function StickerSearchSkeleton({ label }: { label: string }) {
   return <div role="status" aria-label={label} aria-busy="true" className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
     <span className="sr-only">{label}</span>
-    {Array.from({ length: 6 }, (_, index) => <div key={index} aria-hidden="true" className="aspect-square animate-pulse rounded-2xl bg-surface motion-reduce:animate-none" />)}
+    {Array.from({ length: 6 }, (_, index) => <div key={index} aria-hidden="true" className="aspect-square animate-pulse rounded-panel bg-surface motion-reduce:animate-none" />)}
   </div>
 }
 
@@ -171,14 +170,13 @@ export default function Review() {
 
   return (
     <div className="studio-review min-h-screen bg-white">
-      <Header center={<button type="button" onClick={() => navigate('/dashboard')} className="rounded-xl px-3 py-2 text-sm font-bold text-sub hover:bg-surface">{t.hubDashboard}</button>} sticky />
 
       <main className="layout-app pb-24 pt-10 sm:py-16">
         <h1 className="text-[32px] font-extrabold tracking-tight sm:text-[34px]">{t.hubReview}</h1>
         <p className="mt-2 text-[16px] font-medium text-sub">{t.hubReviewDesc}</p>
 
         {!isAuthenticated && (
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+          <div className="mt-6 rounded-panel border border-gray-200 bg-white p-5">
             <p className="text-sm text-sub">{t.cloudLogin}</p>
             <Button className="mt-3" onClick={() => navigate('/login?next=/review')}>{t.navLogin}</Button>
           </div>
@@ -195,7 +193,7 @@ export default function Review() {
               )}
               {projectsFailed && <p role="alert" className="mt-5 text-sm text-sub">{t.reviewProjectsFailed}</p>}
               {projects !== null && !projectsFailed && projects.length === 0 && (
-                <div className="mt-5 rounded-2xl border border-dashed border-gray-200 p-6 text-center">
+                <div className="mt-5 rounded-panel border border-dashed border-gray-200 p-6 text-center">
                   <p className="text-sm text-sub">{t.reviewProjectsEmpty}</p>
                   <Button className="mt-3" onClick={() => navigate('/localize')}>{t.reviewProjectsEmptyCta}</Button>
                 </div>
@@ -216,11 +214,11 @@ export default function Review() {
                       type="button"
                       onClick={() => toggleProject(reviewProject.key)}
                       aria-pressed={selected}
-                      className={`flex min-w-0 items-center gap-4 overflow-hidden rounded-2xl border-2 p-4 text-left transition-colors ${
+                      className={`flex min-w-0 items-center gap-4 overflow-hidden rounded-control border-2 p-4 text-left transition-colors ${
                         selected ? 'border-brand bg-brand-soft' : 'border-gray-100 bg-white hover:border-gray-200'
                       }`}
                     >
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-panel bg-surface">
                         {thumbnailSticker?.url ? <StickerThumbnail image={thumbnailSticker} /> : thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
                       </div>
                       <div className="min-w-0">
@@ -258,11 +256,11 @@ export default function Review() {
                           const category = sticker.categories[0]
                           const categoryLabel = category ? (lang === 'ko' ? category.krName : category.enName) : null
                           return (
-                            <div key={sticker.assetId} className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+                            <div key={sticker.assetId} className="overflow-hidden rounded-panel border border-gray-100 bg-white">
                               <div className="relative aspect-square">
                                 <img src={sticker.thumbnailUrl} alt={sticker.title ?? ''} loading="lazy" className="h-full w-full object-contain p-2" />
                                 {sticker.animated && (
-                                  <span className="absolute right-1.5 top-1.5 rounded-full bg-ink/70 px-2 py-0.5 text-[10px] font-bold text-white">{t.reviewAnimatedBadge}</span>
+                                  <span className="absolute right-1.5 top-1.5 rounded-badge bg-ink/70 px-2 py-0.5 text-[10px] font-bold text-white">{t.reviewAnimatedBadge}</span>
                                 )}
                               </div>
                               {(sticker.title || categoryLabel) && (
@@ -282,7 +280,7 @@ export default function Review() {
             )}
 
             {selectedKeys.length > 0 && (
-              <section className="mt-10 overflow-hidden rounded-xl border border-brand/15 bg-gradient-to-br from-brand-soft via-white to-white p-5 sm:p-7">
+              <section className="mt-10 overflow-hidden rounded-panel border border-brand/15 bg-gradient-to-br from-brand-soft via-white to-white p-5 sm:p-7">
                 <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                   <div>
                     <div className="flex items-center gap-2 text-brand-dark"><BrainCircuit className="h-5 w-5" /><h2 className="text-lg font-bold">{t.reviewAiTitle}</h2></div>
@@ -295,11 +293,11 @@ export default function Review() {
 
                 {selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS && <p role="alert" className="mt-4 text-sm font-semibold text-amber-700">{t.reviewAiLimit}</p>}
 
-                {deepFeedbackFailed && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600">{t.reviewAiFailed}</p>}
+                {deepFeedbackFailed && <p role="alert" className="mt-5 rounded-panel bg-red-50 p-4 text-sm font-medium text-red-600">{t.reviewAiFailed}</p>}
 
                 {deepFeedback && (
                   <div className="mt-7 space-y-6">
-                    <div className="grid gap-4 rounded-2xl bg-white p-5 shadow-sm sm:grid-cols-[auto_1fr] sm:items-center">
+                    <div className="grid gap-4 rounded-panel bg-white p-5 shadow-sm sm:grid-cols-[auto_1fr] sm:items-center">
                       <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-8 border-brand-soft text-brand-dark">
                         <strong className="text-3xl font-black">{deepFeedback.readinessScore}</strong>
                         <span className="text-[11px] font-bold">/ 100</span>
@@ -308,12 +306,12 @@ export default function Review() {
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiStrengths}</h3><ul className="mt-3 space-y-2">{deepFeedback.strengths.map(item => <li key={item} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-brand" /><span>{item}</span></li>)}</ul></div>
-                      <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
+                      <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiStrengths}</h3><ul className="mt-3 space-y-2">{deepFeedback.strengths.map(item => <li key={item} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-brand" /><span>{item}</span></li>)}</ul></div>
+                      <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
                     </div>
 
-                    {deepFeedback.imageFeedback.length > 0 && <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="min-w-0 overflow-hidden rounded-xl bg-surface p-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
-                    {deepFeedback.localizationFeedback.length > 0 && <div className="rounded-2xl bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-l-2 border-brand pl-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.imageFeedback.length > 0 && <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="min-w-0 overflow-hidden rounded-panel bg-surface p-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.localizationFeedback.length > 0 && <div className="rounded-panel bg-white p-5 shadow-sm"><h3 className="font-bold">{t.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-l-2 border-brand pl-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
                     <p className="text-xs leading-5 text-sub">{deepFeedback.disclaimer}</p>
                   </div>
                 )}
@@ -322,7 +320,7 @@ export default function Review() {
 
             <OgqSpecChecker projectImages={projectImages} />
 
-            <section className="mt-10 rounded-2xl border border-gray-100 bg-surface p-6">
+            <section className="mt-10 rounded-panel border border-gray-100 bg-surface p-6">
               <h2 className="text-lg font-bold">{t.reviewChecklistTitle}</h2>
               <ul className="mt-4 space-y-3">
                 {t.reviewChecklistItems.map(item => (

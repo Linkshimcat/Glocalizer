@@ -75,6 +75,29 @@ export async function downloadGenerationSet(token: string, project: GenerationPr
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } })
   const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `glocalizer-${project.id.slice(0, 8)}-24.zip`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+/** 파일 시스템에 안전한 폴더명으로 줄인다 — 프롬프트 원문에 경로 구분자가 섞여 있어도 중첩 폴더가 생기지 않는다. */
+function safeFolderName(name: string): string {
+  return name.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 40) || 'character'
+}
+/** 일괄 생성으로 완료한 캐릭터 여러 개를 캐릭터별 폴더로 나눠 하나의 ZIP에 담는다. */
+export async function downloadGenerationSets(token: string, projects: GenerationProject[]): Promise<void> {
+  const zip = new JSZip()
+  const usedNames = new Set<string>()
+  for (const project of projects) {
+    const images = latestCompletedImages(project)
+    const baseName = safeFolderName(project.name?.trim() || project.prompt || project.id.slice(0, 8))
+    let folderName = baseName
+    for (let suffix = 2; usedNames.has(folderName); suffix += 1) folderName = `${baseName} (${suffix})`
+    usedNames.add(folderName)
+    const folder = zip.folder(folderName) ?? zip
+    for (let start = 0; start < images.length; start += 4) {
+      const files = await Promise.all(images.slice(start, start + 4).map(image => fetchGenerationFile(token, project.id, image.id, image.slot)))
+      for (const file of files) folder.file(file.name, file)
+    }
+  }
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } })
+  const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `glocalizer-batch-${projects.length}.zip`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 export async function prepareReference(file: File): Promise<string> {
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('PNG / JPEG / WebP')
   if (file.size > 10_000_000) throw new Error('10MB')
