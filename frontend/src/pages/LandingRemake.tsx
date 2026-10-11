@@ -10,6 +10,7 @@ import motionGraphic from '../assets/LandingAssets/MotionGrap.mp4'
 import replayIcon from '../assets/LandingAssets/replay-icon.svg'
 import workflowArrow from '../assets/LandingAssets/workflow-arrow.svg'
 import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.webp'
+import ipadFrame from '../assets/LandingAssets/ipad_frame.webp'
 import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.webp'
 import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.webp'
 import localizePhoneCapture from '../assets/LandingAssets/phone-captures/localize-upload-ko.webp'
@@ -334,18 +335,27 @@ function VideoIntro({ reduceMotion, t }: { reduceMotion: boolean; t: Dict }) {
 function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }: { lang: SiteLang; title: string; scene: number; phoneCapture?: string; desktopCapture?: string }) {
   const frameRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isTablet, setIsTablet] = useState(false)
   const [scale, setScale] = useState(1)
-  const width = isMobile ? 390 : 1000
-  const height = isMobile ? 844 : 650
+  const width = isMobile ? 390 : isTablet ? 834 : 1000
+  const height = isMobile ? 844 : isTablet ? 560 : 650
   const capture = isMobile ? phoneCapture : desktopCapture
   const screenRoute = ['/generate', '/localize', '/review'][scene]
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 900px)')
-    const syncViewport = () => setIsMobile(media.matches)
+    const mobileMedia = window.matchMedia('(max-width: 767px)')
+    const tabletMedia = window.matchMedia('(min-width: 768px) and (max-width: 1199px)')
+    const syncViewport = () => {
+      setIsMobile(mobileMedia.matches)
+      setIsTablet(tabletMedia.matches)
+    }
     syncViewport()
-    media.addEventListener('change', syncViewport)
-    return () => media.removeEventListener('change', syncViewport)
+    mobileMedia.addEventListener('change', syncViewport)
+    tabletMedia.addEventListener('change', syncViewport)
+    return () => {
+      mobileMedia.removeEventListener('change', syncViewport)
+      tabletMedia.removeEventListener('change', syncViewport)
+    }
   }, [])
 
   useEffect(() => {
@@ -369,7 +379,7 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
         loading="eager"
         tabIndex={-1}
       />}
-      {capture && <img src={capture} alt={title} className={`remake-product-screen remake-product-capture${isMobile ? '' : ' remake-product-capture-desktop'}`} loading="lazy" decoding="async" />}
+      {capture && <img src={capture} alt={title} className={`remake-product-screen remake-product-capture${isTablet ? ' remake-product-capture-tablet' : isMobile ? '' : ' remake-product-capture-desktop'}`} loading="lazy" decoding="async" />}
     </div>
   )
 }
@@ -517,7 +527,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
   }
 
   const renderStoryScene = (index: number) => (
-    <div className="remake-story-scene" key={index}>
+    <div className="remake-story-scene" key={staticStory ? index : 'active'}>
       <div className="remake-scene-copy" key={`${lang}-${index}`}>
         <h2>{copy.scenes[index].title.split('\n').map(line => <span key={line}>{line}</span>)}</h2>
         <div>{copy.scenes[index].description}</div>
@@ -536,6 +546,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
             desktopCapture={lang === 'ko' ? [generateDesktopCapture, localizeDesktopCapture, reviewDesktopCapture][index] : undefined}
           />
           <img src={macbookFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-desktop" />
+          <img src={ipadFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-tablet" />
           <img src={iphoneFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-mobile" />
         </div>
       </div>

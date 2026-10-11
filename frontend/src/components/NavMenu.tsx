@@ -144,6 +144,7 @@ export default function NavMenu() {
             <div className="site-nav-panel-content">
               <Link to="/service#service-workflow" className="site-nav-panel-link" onClick={closeMenu}>{t.navServiceHowTo}<ArrowUpRight aria-hidden="true" /></Link>
               <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="site-nav-panel-link" onClick={closeMenu}>{t.navServiceGithub}<ArrowUpRight aria-hidden="true" /></a>
+              <a href="https://www.instagram.com/glocalizer__ogq/" target="_blank" rel="noreferrer" className="site-nav-panel-link" onClick={closeMenu}>Glocalizer Instagram<ArrowUpRight aria-hidden="true" /></a>
             </div>
           </div>
         </div>
