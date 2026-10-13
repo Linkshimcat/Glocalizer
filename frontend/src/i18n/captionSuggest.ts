@@ -1,0 +1,51 @@
+import type { SiteLang } from './translations'
+
+const copy = {
+  loading: ['이미지를 처리하는 중…', 'Processing images…', '画像を処理中…', '正在处理图片…'],
+  // detect
+  detectTitle: ['이모티콘 {n}개를 올렸어요', 'You uploaded {n} stickers', 'スタンプを{n}枚アップロードしました', '已上传{n}张表情'],
+  detectSubtitle: ['번역할 언어를 고르고 시작하면 돼요.', 'Choose languages and start whenever you\'re ready.', '翻訳する言語を選んで開始しましょう。', '选择翻译语言后即可开始。'],
+  bannerTitle: ['문구가 없는 이모티콘 {n}개를 찾았어요', 'We found {n} stickers with no caption', '文言のないスタンプを{n}枚見つけました', '发现{n}张没有文案的表情'],
+  bannerDesc: ['AI가 표정과 동작을 분석해서 어울리는 한국어 문구를 추천해 드려요. 추가한 문구는 번역할 때 함께 현지화돼요.', 'AI analyzes the expression and pose to suggest a matching Korean caption. Added captions get localized along with the rest.', 'AIが表情と動作を分析して合う韓国語の文言を提案します。追加した文言は翻訳時に一緒にローカライズされます。', 'AI会分析表情和动作推荐合适的韩语文案，添加的文案会在翻译时一并本地化。'],
+  skip: ['건너뛰기', 'Skip', 'スキップ', '跳过'],
+  getSuggestions: ['AI 문구 추천받기', 'Get AI caption suggestions', 'AI文言の提案を受ける', '获取AI文案推荐'],
+  hasCaption: ['문구 있음', 'Has caption', '文言あり', '有文案'],
+  noCaption: ['문구 없음', 'No caption', '文言なし', '无文案'],
+  // analyze
+  analyzeTitle: ['AI 문구 추천', 'AI caption suggestions', 'AI文言の提案', 'AI文案推荐'],
+  analyzeSubtitle: ['이모티콘마다 추천 문구를 골라주세요. 직접 고쳐 써도 돼요.', 'Pick a suggested caption for each sticker, or write your own.', 'スタンプごとに提案文言を選んでください。自由に書き換えても構いません。', '请为每张表情选择推荐文案，也可以自行修改。'],
+  backToDetect: ['업로드로 돌아가기', 'Back to upload', 'アップロードに戻る', '返回上传'],
+  reviewAllAtOnce: ['한 번에 검토하기', 'Review all at once', 'まとめて確認', '一次性查看'],
+  noCaptionCount: ['문구 없는 이모티콘 {n}', '{n} stickers with no caption', '文言のないスタンプ{n}', '{n}张无文案表情'],
+  editing: ['편집 중', 'Editing', '編集中', '编辑中'],
+  waiting: ['추천 대기', 'Waiting', '待機中', '等待中'],
+  analyzing: ['AI가 분석하는 중…', 'AI is analyzing…', 'AIが分析中…', 'AI正在分析…'],
+  analyzeFailed: ['문구 추천에 실패했어요.', 'Could not get suggestions.', '文言の提案に失敗しました。', '获取文案推荐失败。'],
+  retry: ['다시 시도', 'Retry', '再試行', '重试'],
+  original: ['원본', 'Original', '元画像', '原图'],
+  withCaption: ['문구 적용', 'With caption', '文言適用', '应用文案'],
+  aiAnalysis: ['AI 분석 결과', 'AI analysis', 'AI分析結果', 'AI分析结果'],
+  emotionLabel: ['감정', 'Emotion', '感情', '情绪'],
+  actionLabel: ['동작', 'Action', '動作', '动作'],
+  situationLabel: ['상황', 'Situation', '状況', '场景'],
+  suggestedCaptions: ['추천 문구', 'Suggested captions', '提案文言', '推荐文案'],
+  recommended: ['추천', 'Recommended', 'おすすめ', '推荐'],
+  customInput: ['직접 입력', 'Write your own', '直接入力', '自定义输入'],
+  customPlaceholder: ['원하는 문구를 써주세요 (최대 12자)', 'Write your own caption (up to 12 characters)', 'ご希望の文言を入力してください（最大12文字）', '请输入文案（最多12字）'],
+  position: ['문구 위치', 'Caption position', '文言の位置', '文案位置'],
+  positionTop: ['위', 'Top', '上', '上方'],
+  positionBottom: ['아래', 'Bottom', '下', '下方'],
+  // review
+  reviewTitle: ['추가한 문구를 확인해 주세요', 'Check the captions you added', '追加した文言を確認してください', '请确认添加的文案'],
+  reviewSubtitle: ['이모티콘 {n}개에 문구를 넣었어요. 번역을 시작하면 이 문구도 함께 현지화돼요.', 'You added captions to {n} stickers. They\'ll be localized once translation starts.', 'スタンプ{n}枚に文言を追加しました。翻訳開始時に一緒にローカライズされます。', '已为{n}张表情添加文案，翻译开始后会一并本地化。'],
+  backToAnalyze: ['추천 화면으로', 'Back to suggestions', '提案画面へ', '返回推荐'],
+  changeCaption: ['문구 바꾸기', 'Change caption', '文言を変更', '更改文案'],
+  removeCaption: ['문구 빼기', 'Remove caption', '文言を削除', '移除文案'],
+  removedNotice: ['이 이모티콘은 문구 없이 그대로 둘게요.', 'This sticker will stay without a caption.', 'このスタンプは文言なしのままにします。', '这张表情将保持无文案状态。'],
+  undoRemove: ['되돌리기', 'Undo', '元に戻す', '撤销'],
+  applyAndContinue: ['{n}개 적용하고 계속', 'Apply {n} and continue', '{n}件を適用して続行', '应用{n}个并继续'],
+  applying: ['{done}/{total} 적용 중…', 'Applying {done}/{total}…', '{done}/{total}件適用中…', '正在应用{done}/{total}个…'],
+  applyFailed: ['일부 이모티콘에 문구를 적용하지 못했어요. 나머지는 그대로 에디터로 넘어가요.', 'Some captions could not be applied. The rest will continue into the editor.', '一部のスタンプには文言を適用できませんでした。残りはそのままエディターに進みます。', '部分表情未能应用文案，其余将继续进入编辑器。'],
+} satisfies Record<string, [string, string, string, string]>
+
+export function captionSuggestCopy(lang: SiteLang) { const index = ({ ko: 0, en: 1, ja: 2, zh: 3 })[lang]; return Object.fromEntries(Object.entries(copy).map(([key, values]) => [key, values[index]])) as Record<keyof typeof copy, string> }

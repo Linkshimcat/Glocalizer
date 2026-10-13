@@ -26,9 +26,9 @@ export interface DetectedSelection {
   normalizedBox: PixelBox;
 }
 
-type EditableAsset = AssetRow & { width: number; height: number; original_path: string };
+export type EditableAsset = AssetRow & { width: number; height: number; original_path: string };
 
-async function requireEditableAsset(projectId: string, assetId: string): Promise<EditableAsset> {
+export async function requireEditableAsset(projectId: string, assetId: string): Promise<EditableAsset> {
   const [project, assets] = await Promise.all([findProjectById(projectId), findAssetsByIds(projectId, [assetId])]);
   if (!project) throw new AppError('PROJECT_NOT_FOUND', { projectId });
   const asset = assets[0];

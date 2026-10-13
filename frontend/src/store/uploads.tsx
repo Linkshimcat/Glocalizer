@@ -24,6 +24,7 @@ import {
   completeUploads,
   createOcrRegion,
   detectOcrRegion,
+  suggestCaption,
   regenerateTranslation,
   saveEditorState,
   reviseOcr,
@@ -31,6 +32,7 @@ import {
   type ProjectResults,
   type ProjectStatus,
   type DetectedOcrSelection,
+  type ApiCaptionSuggestion,
 } from '../lib/api'
 
 export interface UploadFile {
@@ -173,6 +175,7 @@ interface UploadState {
   reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => Promise<void>
   detectOcrRegion: (fileId: string, normalizedBox: NormalizedRect) => Promise<DetectedOcrSelection>
   addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
+  suggestCaption: (fileId: string) => Promise<ApiCaptionSuggestion>
   retryTranslation: (fileId: string, regionId: string, languageCode: string) => Promise<void>
 }
 
@@ -568,6 +571,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
   }, [files, projectId, projectToken])
 
+  const suggestAssetCaption = useCallback(async (fileId: string) => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
+    return suggestCaption(projectId, projectToken, file.assetId)
+  }, [files, projectId, projectToken])
+
   const retryAssetTranslation = useCallback(async (fileId: string, regionId: string, languageCode: string) => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('번역 세션을 찾을 수 없어요.')
@@ -608,6 +617,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       reviseOcr: reviseAssetOcr,
       detectOcrRegion: detectAssetOcrRegion,
       addOcrRegion: addAssetOcrRegion,
+      suggestCaption: suggestAssetCaption,
       retryTranslation: retryAssetTranslation,
     }),
     [
@@ -642,6 +652,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       reviseAssetOcr,
       detectAssetOcrRegion,
       addAssetOcrRegion,
+      suggestAssetCaption,
       retryAssetTranslation,
     ],
   )
