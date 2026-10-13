@@ -3,6 +3,7 @@ import { regenerateTranslation } from '../ai/localization/localization.service.j
 import { requireProject } from '../middleware/project-auth.middleware.js';
 import { saveEditorState } from '../services/editor-state.service.js';
 import { queueOcrEdit, detectOcrSelection } from '../services/ocr-review.service.js';
+import { suggestCaptionForAsset } from '../ocr/caption-suggestion.service.js';
 import { requireParam } from '../utils/request-params.js';
 
 export async function saveEditorStateHandler(req: Request, res: Response) {
@@ -38,4 +39,9 @@ export async function createOcrRegionHandler(req: Request, res: Response) {
   const job = await queueOcrEdit(projectId, assetId, req.body.text, req.body.normalizedBox, 'create');
   const regionId = job.regionId;
   res.status(202).json({ assetId, regionId, status: 'reprocessing', jobId: job.jobId });
+}
+
+export async function suggestCaptionHandler(req: Request, res: Response) {
+  const suggestion = await suggestCaptionForAsset(requireProject(req).id, requireParam(req, 'assetId'));
+  res.json(suggestion);
 }

@@ -182,6 +182,18 @@ export async function createOcrRegion(projectId: string, token: string, assetId:
   }, token)
 }
 
+export interface ApiCaptionSuggestion {
+  emotion: string
+  emotionConfidence: number
+  action: string
+  situations: string[]
+  candidates: Array<{ text: string; tone: string; best: boolean }>
+}
+
+export function suggestCaption(projectId: string, token: string, assetId: string): Promise<ApiCaptionSuggestion> {
+  return request(`/projects/${projectId}/assets/${assetId}/ocr/caption-suggestion`, { method: 'POST' }, token)
+}
+
 export async function regenerateTranslation(projectId: string, token: string, assetId: string, regionId: string, languageCode: string): Promise<void> {
   await request(`/projects/${projectId}/assets/${assetId}/regenerate`, {
     method: 'POST',

@@ -30,6 +30,7 @@ export const ERROR_CODES = {
   OCR_KOREAN_NOT_FOUND: { status: 422, message: '이미지에서 한국어 텍스트를 찾지 못했습니다. 선명한 PNG 파일로 다시 시도해주세요.' },
   OCR_PROVIDER_UNAVAILABLE: { status: 503, message: 'OCR 엔진을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.' },
   OCR_PROVIDER_FAILED: { status: 502, message: 'OCR 처리 중 오류가 발생했습니다.' },
+  CAPTION_SUGGESTION_FAILED: { status: 502, message: '문구 추천에 실패했습니다. 다시 시도해주세요.' },
   TRANSLATION_PROVIDER_UNAVAILABLE: { status: 503, message: '번역 엔진이 설정되어 있지 않습니다.' },
   TRANSLATION_PROVIDER_FAILED: { status: 502, message: '번역 처리 중 오류가 발생했습니다.' },
   IMAGE_CLEANUP_FAILED: { status: 500, message: '이미지 정리 중 오류가 발생했습니다.' },

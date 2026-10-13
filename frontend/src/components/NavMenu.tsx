@@ -6,7 +6,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { legalUi } from '../i18n/legalUi'
 import { useSiteLang } from '../i18n/LanguageContext'
 
-const WORKSPACE_ROUTES = ['/dashboard', '/generate', '/localize', '/review', '/editor', '/result', '/archive', '/account']
+const WORKSPACE_ROUTES = ['/dashboard', '/generate', '/localize', '/caption-suggest', '/review', '/editor', '/result', '/archive', '/account']
 const GITHUB_URL = 'https://github.com/Linkshimcat/Glocalizer'
 type MenuName = 'workspace' | 'service'
 
@@ -112,6 +112,7 @@ export default function NavMenu() {
             <div className="site-nav-panel-content">
               <Link to="/generate" className="site-nav-panel-link" onClick={closeMenu}>{t.hubGenerate}<ArrowUpRight aria-hidden="true" /></Link>
               <Link to="/localize" className="site-nav-panel-link" onClick={closeMenu}>{t.hubLocalize}<ArrowUpRight aria-hidden="true" /></Link>
+              <Link to="/caption-suggest" className="site-nav-panel-link" onClick={closeMenu}>{t.hubCaption}<ArrowUpRight aria-hidden="true" /></Link>
               <Link to="/review" className="site-nav-panel-link" onClick={closeMenu}>{t.hubReview}<ArrowUpRight aria-hidden="true" /></Link>
             </div>
           </div>

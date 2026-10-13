@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, updateOcrHandler } from '../controllers/editor.controller.js';
+import { createOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, suggestCaptionHandler, updateOcrHandler } from '../controllers/editor.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { assetParamsSchema, createOcrRegionSchema, detectOcrRegionSchema, regenerateSchema, saveEditorStateSchema, updateOcrSchema } from '../schemas/editor-state.schema.js';
@@ -45,4 +45,11 @@ editorRouter.post(
   projectAuthMiddleware,
   validate(createOcrRegionSchema, 'body'),
   asyncHandler(createOcrRegionHandler),
+);
+
+editorRouter.post(
+  '/projects/:projectId/assets/:assetId/ocr/caption-suggestion',
+  validate(assetParamsSchema, 'params'),
+  projectAuthMiddleware,
+  asyncHandler(suggestCaptionHandler),
 );

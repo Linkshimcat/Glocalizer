@@ -51,6 +51,8 @@ export interface Dict {
   hubReviewDesc: string
   hubGenerate: string
   hubGenerateDesc: string
+  hubCaption: string
+  hubCaptionDesc: string
   hubSoon: string
   hubStart: string
   hubContinue: string
@@ -362,6 +364,8 @@ export const translations: Record<SiteLang, Dict> = {
     hubLocalizeDesc: "한국어 문구를 영어·일본어·중국어로 변환합니다.",
     hubReview: 'OGQ 출시 검토',
     hubReviewDesc: "OGQ 규격과 이미지·문구를 확인합니다.",
+    hubCaption: 'AI 문구 추천',
+    hubCaptionDesc: "문구 없는 이모티콘에 AI가 어울리는 한국어 문구를 추천합니다.",
     hubGenerate: '이모티콘 생성',
     hubGenerateDesc: "캐릭터와 표정 설명으로 이모티콘을 생성합니다.",
     hubSoon: '준비 중',
@@ -667,6 +671,8 @@ export const translations: Record<SiteLang, Dict> = {
     hubLocalizeDesc: "Adapt Korean captions into English, Japanese and Chinese.",
     hubReview: 'OGQ release review',
     hubReviewDesc: "Check OGQ specifications, images and captions.",
+    hubCaption: 'AI caption suggestions',
+    hubCaptionDesc: "AI suggests a matching Korean caption for stickers with no text.",
     hubGenerate: 'Emoticon generation',
     hubGenerateDesc: "Generate stickers from character and expression descriptions.",
     hubSoon: 'Coming soon',
@@ -972,6 +978,8 @@ export const translations: Record<SiteLang, Dict> = {
     hubLocalizeDesc: "韓国語の文言を英語・日本語・中国語に変換します。",
     hubReview: 'OGQリリース確認',
     hubReviewDesc: "OGQの規格と画像・文言を確認します。",
+    hubCaption: 'AI文言の提案',
+    hubCaptionDesc: "文言のないスタンプに、AIが合う韓国語の文言を提案します。",
     hubGenerate: 'スタンプ生成',
     hubGenerateDesc: "キャラクターと表情の説明からスタンプを生成します。",
     hubSoon: '準備中',
@@ -1277,6 +1285,8 @@ export const translations: Record<SiteLang, Dict> = {
     hubLocalizeDesc: "将韩语文案转换为英语、日语和中文。",
     hubReview: 'OGQ发布检查',
     hubReviewDesc: "检查OGQ规格、图片和文案。",
+    hubCaption: 'AI文案推荐',
+    hubCaptionDesc: "AI会为没有文字的表情推荐合适的韩语文案。",
     hubGenerate: '表情生成',
     hubGenerateDesc: "根据角色和表情描述生成图片。",
     hubSoon: '即将推出',

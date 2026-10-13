@@ -28,6 +28,7 @@ const Generate = lazyPage(() => import('./pages/Generate'))
 const Localize = lazyPage(() => import('./pages/Localize'))
 const Account = lazyPage(() => import('./pages/Account'))
 const Archive = lazyPage(() => import('./pages/Archive'))
+const CaptionSuggest = lazyPage(() => import('./pages/CaptionSuggest'))
 const Editor = lazyPage(() => import('./pages/Editor'))
 const Login = lazyPage(() => import('./pages/Login'))
 const Landing = lazyPage(() => import('./pages/Landing'))
@@ -117,6 +118,7 @@ export function AppRoutes() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/generate" element={<Generate />} />
                     <Route path="/localize" element={<Localize />} />
+                    <Route path="/caption-suggest" element={<CaptionSuggest />} />
                     <Route path="/account" element={<Account />} />
                     <Route path="/archive" element={<Archive />} />
                     <Route path="/editor" element={<Editor />} />

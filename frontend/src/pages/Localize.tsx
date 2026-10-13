@@ -118,7 +118,7 @@ export default function Localize() {
     }
     try {
       await startLocalization()
-      navigate('/editor')
+      navigate('/caption-suggest')
     } catch (error) {
       if (desktopStartFrameRef.current !== null) {
         window.cancelAnimationFrame(desktopStartFrameRef.current)
