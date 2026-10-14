@@ -172,6 +172,7 @@ interface UploadState {
   processingError: string | null
   startLocalization: () => Promise<void>
   refreshProject: () => Promise<ProjectStatus | null>
+  getLatestProjectResults: () => Promise<ProjectResults>
   reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => Promise<void>
   detectOcrRegion: (fileId: string, normalizedBox: NormalizedRect) => Promise<DetectedOcrSelection>
   addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
@@ -549,6 +550,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setProjectResults(null)
   }, [user, token, selectedFileIds, targetLangs, saveDraft, t.cloudLogin, t.dashHintNoLang])
 
+  const getLatestProjectResults = useCallback(async () => {
+    if (!projectId || !projectToken) throw new ApiError('편집 세션을 찾을 수 없어요.')
+    return getProjectResults(projectId, projectToken)
+  }, [projectId, projectToken])
+
   const reviseAssetOcr = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
@@ -614,6 +620,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       processingError,
       startLocalization,
       refreshProject,
+      getLatestProjectResults,
       reviseOcr: reviseAssetOcr,
       detectOcrRegion: detectAssetOcrRegion,
       addOcrRegion: addAssetOcrRegion,
@@ -649,6 +656,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       processingError,
       startLocalization,
       refreshProject,
+      getLatestProjectResults,
       reviseAssetOcr,
       detectAssetOcrRegion,
       addAssetOcrRegion,

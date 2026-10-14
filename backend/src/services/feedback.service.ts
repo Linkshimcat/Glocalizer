@@ -1,7 +1,6 @@
 import { taskFetch } from '../utils/task-context.js';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
-import { findUserById } from '../repositories/user.repository.js';
 import type { FeedbackInput } from '../schemas/feedback.schema.js';
 
 const FEEDBACK_REPO = 'Linkshimcat/Glocalizer';
@@ -23,36 +22,43 @@ interface FeedbackResult {
   issueUrl: string;
 }
 
-export async function submitFeedback(userId: string, input: FeedbackInput): Promise<FeedbackResult> {
+export async function submitFeedback(_userId: string, input: FeedbackInput): Promise<FeedbackResult> {
   if (!env.GITHUB_FEEDBACK_TOKEN) {
     throw new AppError('FEEDBACK_NOT_CONFIGURED');
   }
 
-  const user = await findUserById(userId);
-  const name = user?.name?.trim() || undefined;
-  const email = user?.email ?? undefined;
-  const submitter = name && email ? `${name} (${email})` : (name ?? email ?? userId);
   const title = input.message.length > TITLE_MAX_LENGTH ? `${input.message.slice(0, TITLE_MAX_LENGTH)}…` : input.message;
 
-  const response = await taskFetch(`https://api.github.com/repos/${FEEDBACK_REPO}/issues`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_FEEDBACK_TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-    body: JSON.stringify({
-      title: `[${CATEGORY_TITLES[input.category]}] ${title}`,
-      body: `${input.message}\n\n---\n제출자: ${submitter}`,
-      labels: ['feedback', CATEGORY_LABELS[input.category]],
-    }),
-  });
+  let response: Response;
+  try {
+    response = await taskFetch(`https://api.github.com/repos/${FEEDBACK_REPO}/issues`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(15_000),
+      headers: {
+        Authorization: `Bearer ${env.GITHUB_FEEDBACK_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      body: JSON.stringify({
+        title: `[${CATEGORY_TITLES[input.category]}] ${title}`,
+        body: input.message,
+        labels: ['feedback', CATEGORY_LABELS[input.category]],
+      }),
+    });
+  } catch {
+    throw new AppError('FEEDBACK_SUBMIT_FAILED', undefined, '피드백 전송이 실패하거나 시간이 초과됐습니다.');
+  }
 
   if (!response.ok) {
     throw new AppError('FEEDBACK_SUBMIT_FAILED');
   }
 
-  const data = (await response.json()) as { html_url: string };
-  return { issueUrl: data.html_url };
+  try {
+    const data: unknown = await response.json();
+    if (!data || typeof data !== 'object' || !('html_url' in data) || typeof data.html_url !== 'string') throw new Error();
+    return { issueUrl: data.html_url };
+  } catch {
+    throw new AppError('FEEDBACK_SUBMIT_FAILED');
+  }
 }

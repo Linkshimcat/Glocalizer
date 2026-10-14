@@ -21,3 +21,15 @@ describe('API security defaults', () => {
     expect(response.headers['referrer-policy']).toBe('no-referrer');
   });
 });
+
+it('returns 400 for malformed JSON without echoing its password', async () => {
+  const response = await request(app).post('/api/v1/auth/login').set('Content-Type', 'application/json').send('{"password":"synthetic-secret",');
+  expect(response.status).toBe(400);
+  expect(response.body.error.code).toBe('INVALID_REQUEST');
+  expect(JSON.stringify(response.body)).not.toContain('synthetic-secret');
+});
+it('returns 413 for a body exceeding the limit', async () => {
+  const response = await request(app).post('/api/v1/auth/login').send({ password: 'x'.repeat(1024 * 1024 + 1) });
+  expect(response.status).toBe(413);
+  expect(response.body.error.code).toBe('FILE_TOO_LARGE');
+});

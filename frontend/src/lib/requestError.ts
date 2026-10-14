@@ -21,6 +21,7 @@ export class RequestError extends Error {
 export function requestErrorMessage(error: unknown, lang: SiteLang, fallback: string): string {
   const copy = experienceCopy[lang]
   if (error instanceof RequestError) {
+    if (error.code === 'REQUEST_TIMEOUT') return copy.requestTimeout
     if (error.status === 0) return copy.unavailable
     if (error.status === 429) return copy.rateLimited
     if (error.status >= 500) return copy.serverFailed
@@ -43,12 +44,25 @@ export async function responseFailure(response: Response, fallback: string) {
   }
 }
 
-/** Never retry a mutation here; callers reconcile paid jobs explicitly. */
-export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
-  try { return await fetch(input, init) }
-  catch (error) {
+/** Buffer the response under one deadline, including JSON/file body reads. Never retry mutations. */
+export async function apiFetch(input: string, init?: RequestInit, timeoutMs = 120_000): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeoutMs)
+  const signal = init?.signal ? AbortSignal.any([init.signal, controller.signal]) : controller.signal
+  try {
+    const response = await fetch(input, { ...init, signal })
+    const body = await response.arrayBuffer()
+    signal.throwIfAborted()
+    return new Response([204, 205, 304].includes(response.status) ? null : body, {
+      status: response.status, statusText: response.statusText, headers: response.headers,
+    })
+  } catch (error) {
+    if (init?.signal?.aborted) throw init.signal.reason
+    if (controller.signal.aborted) throw new RequestError('요청 시간이 초과됐어요. 작업 상태를 확인한 뒤 다시 시도해주세요.', 0, 'REQUEST_TIMEOUT')
     if (error instanceof Error && error.name === 'AbortError') throw error
     throw new RequestError('서버에 연결하지 못했어요. 연결 상태를 확인한 뒤 다시 시도해주세요.', 0, 'NETWORK_FAILURE')
+  } finally {
+    window.clearTimeout(timeout)
   }
 }
 import { experienceCopy } from '../i18n/experience'

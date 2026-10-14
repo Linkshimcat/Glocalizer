@@ -16,18 +16,27 @@ export function notFoundHandler(req: Request, res: Response) {
 
 // Express는 err 핸들러를 인자 개수(4개)로 구분하므로 _next를 실제로 쓰지 않아도 시그니처에 남겨둔다.
 export function errorMiddleware(err: unknown, req: Request, res: Response, _next: NextFunction) {
+  const parserError = err as { type?: unknown } | null;
+  if (parserError?.type === 'entity.parse.failed' || parserError?.type === 'entity.too.large') {
+    const code = parserError.type === 'entity.too.large' ? 'FILE_TOO_LARGE' : 'INVALID_REQUEST';
+    req.log?.warn({ code }, 'Invalid request body');
+    res.status(ERROR_CODES[code].status).json({ error: { code, message: ERROR_CODES[code].message, requestId: req.id } });
+    return;
+  }
+
   if (err instanceof AppError) {
+    const definition = ERROR_CODES[err.code];
     if (err.statusCode >= 500) {
-      req.log?.error({ err, code: err.code }, err.message);
+      req.log?.error({ err, code: err.code }, definition.message);
     } else {
-      req.log?.warn({ code: err.code, details: err.details }, err.message);
+      req.log?.warn({ code: err.code }, definition.message);
     }
     res.status(err.statusCode).json({
       error: {
         code: err.code,
-        message: err.message,
+        message: err.statusCode >= 500 ? definition.message : err.message,
         requestId: req.id,
-        ...(err.details ? { details: err.details } : {}),
+        ...(err.statusCode < 500 && err.details ? { details: err.details } : {}),
       },
     });
     return;
