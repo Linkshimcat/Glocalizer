@@ -33,7 +33,7 @@ export default function Result() {
   const entries = useMemo(() => groups.flatMap(group => group.items.map(item => ({ item, language: group.language }))), [groups])
   // 실사용 피드백(W5/W6): 일부 항목이 실패했거나 수동 보정이 필요할 때도 화면 상단은 항상 "준비됐어요"로만
   // 보여 완료 여부를 체감하기 어렵다는 제보가 있었다. 두 신호를 상단 배너에 그대로 드러낸다.
-  const failedCount = projectStatus?.assets.filter(asset => asset.status === 'failed').length ?? 0
+  const failedCount = projectStatus?.assets?.filter(asset => asset.status === 'failed').length ?? 0
   const manualCleanupCount = useMemo(
     () => new Set(entries.filter(({ item }) => item.analysis?.needsManualCleanup).map(({ item }) => item.id)).size,
     [entries],

@@ -148,7 +148,10 @@ export default function CaptionSuggest() {
   if (checkingSession) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
   if (!token) return <Navigate to="/login" replace />
   if (!files.length || !projectStatus) return <Navigate to="/localize" replace />
-  if (step !== 'review' && (pipelineLoading || !resultsReady)) return <main id="main-content" tabIndex={-1} role="status" aria-busy="true" className="ui-recovery-page">{t.loading}</main>
+  if (step !== 'review' && (pipelineLoading || !resultsReady)) return <main id="main-content" tabIndex={-1} role="status" aria-busy="true" className="ui-recovery-page">
+    <Loader2 className="mx-auto h-7 w-7 animate-spin text-brand-dark" aria-hidden="true" />
+    <span className="mt-5 block">{t.loading}</span>
+  </main>
   if (textless.length === 0 && step !== 'review') return null
 
   const activeFile = activeFileId ? textless.find(file => file.id === activeFileId) : undefined
