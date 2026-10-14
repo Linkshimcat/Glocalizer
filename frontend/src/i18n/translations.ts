@@ -112,6 +112,12 @@ export interface Dict {
   accountDeleteConfirmCta: string
   accountPolicyTitle: string
   accountPolicyDesc: string
+  accountPlanTitle: string
+  accountPlanDesc: string
+  accountPlanStatus: string
+  accountPlanPricing: string
+  accountPlanManage: string
+  accountPlanComingSoon: string
   privacyPolicy: string
   termsOfService: string
 
@@ -427,6 +433,12 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: '탈퇴하기',
     accountPolicyTitle: '정책 및 약관',
     accountPolicyDesc: '개인정보 처리와 서비스 이용 조건을 확인하세요.',
+    accountPlanTitle: '현재 이용 플랜',
+    accountPlanDesc: '현재 이용 중인 서비스 상태를 확인하세요.',
+    accountPlanStatus: '무료/베타 이용 중',
+    accountPlanPricing: '가격 안내 보기',
+    accountPlanManage: '플랜 관리',
+    accountPlanComingSoon: '준비 중',
     privacyPolicy: '개인정보처리방침',
     termsOfService: '서비스 이용약관',
 
@@ -456,7 +468,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: "이모티콘을",
     heroLine2: "생성하고 현지화하고 검토하세요",
-    heroLine2Roll: ["만드세요", "현지화하세요", "검토하세요"],
+    heroLine2Roll: ["만드세요", "현지화하세요", "검토하세요", "AI로 추천 받으세요"],
     heroDesc: "이모티콘 생성·현지화·출시 전 검토를 지원합니다.",
     heroCta: "워크스페이스 열기",
     heroReplay: '영상 처음부터 다시 보기',
@@ -734,6 +746,12 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: 'Delete my account',
     accountPolicyTitle: 'Policies and terms',
     accountPolicyDesc: 'Review how your information is handled and the service terms.',
+    accountPlanTitle: 'Current plan',
+    accountPlanDesc: 'Check the service status for your account.',
+    accountPlanStatus: 'Free / beta access',
+    accountPlanPricing: 'View pricing',
+    accountPlanManage: 'Manage plan',
+    accountPlanComingSoon: 'Coming soon',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
 
@@ -763,7 +781,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: "Your stickers",
     heroLine2: "Create, localize and review",
-    heroLine2Roll: ["Create them", "Localize them", "Review them"],
+    heroLine2Roll: ["Create them", "Localize them", "Review them", "Get AI recommendations"],
     heroDesc: "Create stickers. Localize captions. Review before release.",
     heroCta: "Open studio",
     heroReplay: 'Replay the video from the start',
@@ -1041,6 +1059,12 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: '削除する',
     accountPolicyTitle: 'ポリシーと利用規約',
     accountPolicyDesc: '個人情報の取り扱いとサービス利用条件を確認できます。',
+    accountPlanTitle: '現在のプラン',
+    accountPlanDesc: 'アカウントのサービス利用状況を確認できます。',
+    accountPlanStatus: '無料・ベータ利用中',
+    accountPlanPricing: '料金を見る',
+    accountPlanManage: 'プラン管理',
+    accountPlanComingSoon: '準備中',
     privacyPolicy: 'プライバシーポリシー',
     termsOfService: '利用規約',
 
@@ -1070,7 +1094,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: "スタンプを",
     heroLine2: "生成・ローカライズ・チェック",
-    heroLine2Roll: ["生成しましょう", "翻訳しましょう", "確認しましょう"],
+    heroLine2Roll: ["生成しましょう", "翻訳しましょう", "確認しましょう", "AIのおすすめを受け取る"],
     heroDesc: "スタンプ生成・ローカライズ・公開前チェックを支援します。",
     heroCta: "スタジオを開く",
     heroReplay: '動画を最初から再生',
@@ -1348,6 +1372,12 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: '确认删除',
     accountPolicyTitle: '政策与条款',
     accountPolicyDesc: '查看个人信息处理方式和服务使用条件。',
+    accountPlanTitle: '当前方案',
+    accountPlanDesc: '查看账号当前的服务使用状态。',
+    accountPlanStatus: '免费/测试版使用中',
+    accountPlanPricing: '查看价格',
+    accountPlanManage: '管理方案',
+    accountPlanComingSoon: '即将推出',
     privacyPolicy: '隐私政策',
     termsOfService: '服务条款',
 
@@ -1377,7 +1407,7 @@ export const translations: Record<SiteLang, Dict> = {
     heroBrandTag: 'Glocalizer',
     heroLine1: "让表情",
     heroLine2: "生成、本地化并检查",
-    heroLine2Roll: ["生成", "本地化", "检查"],
+    heroLine2Roll: ["生成", "本地化", "检查", "获取 AI 推荐"],
     heroDesc: "支持表情生成、多语言本地化和发布前检查。",
     heroCta: "打开工作室",
     heroReplay: '从头播放视频',
