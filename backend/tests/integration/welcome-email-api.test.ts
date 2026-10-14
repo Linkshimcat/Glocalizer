@@ -47,7 +47,7 @@ describe('welcome email on account creation', () => {
     expect(sendWelcomeEmail).toHaveBeenCalledWith(created);
   });
 
-  it('sends it for a new Google account but not when linking an existing account', async () => {
+  it('sends it for a new Google account but not when rejecting an email collision', async () => {
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: { id: '00000000-0000-4000-8000-000000000002', email: 'user@example.com', email_confirmed_at: '2026-10-11T00:00:00Z', identities: [{ provider: 'google', identity_data: {} }] } },
       error: null,
@@ -58,8 +58,7 @@ describe('welcome email on account creation', () => {
 
     vi.mocked(sendWelcomeEmail).mockClear();
     vi.mocked(users.findUserByEmail).mockResolvedValue(row({ password_hash: 'hash' }));
-    vi.mocked(users.linkGoogleProfile).mockResolvedValue(row({ password_hash: 'hash' }));
-    expect((await request(app).post('/api/v1/auth/google').send({ accessToken: 'token' })).status).toBe(200);
+    expect((await request(app).post('/api/v1/auth/google').send({ accessToken: 'token' })).status).toBe(409);
     expect(sendWelcomeEmail).not.toHaveBeenCalled();
   });
 

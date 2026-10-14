@@ -62,11 +62,15 @@ describe('POST /feedback', () => {
     );
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.title).toBe('[기능 제안] 개선했으면 하는 부분이 있어요');
-    expect(body.body).toContain('제출자: 기존 (a@b.com)');
+    expect(body.body).toBe('개선했으면 하는 부분이 있어요');
+    expect(JSON.stringify(body)).not.toContain('a@b.com');
+    expect(JSON.stringify(body)).not.toContain('기존');
+    expect(JSON.stringify(body)).not.toContain(owner);
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
     expect(body.labels).toEqual(['feedback', 'enhancement']);
   });
 
-  it('falls back to email alone when the profile has no nickname', async () => {
+  it('does not disclose an email even when the profile has no nickname', async () => {
     (env as { GITHUB_FEEDBACK_TOKEN?: string }).GITHUB_FEEDBACK_TOKEN = 'token';
     vi.mocked(users.findUserById).mockResolvedValue(row({ name: null }));
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ html_url: 'https://github.com/Linkshimcat/Glocalizer/issues/1' }) });
@@ -75,7 +79,7 @@ describe('POST /feedback', () => {
     await request(app).post('/api/v1/feedback').set('Authorization', auth).send({ category: 'other', message: '개선했으면 하는 부분이 있어요' });
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.body).toContain('제출자: a@b.com');
+    expect(body.body).not.toContain('a@b.com');
     expect(body.body).not.toContain('기존');
   });
 
@@ -87,3 +91,12 @@ describe('POST /feedback', () => {
     expect(res.status).toBe(502);
   });
 });
+
+ it('maps upstream network/timeouts to a controlled 502 without leaking secrets', async () => {
+   env.GITHUB_FEEDBACK_TOKEN = 'token';
+   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new DOMException('secret-token', 'TimeoutError')));
+   const res = await request(app).post('/api/v1/feedback').set('Authorization', auth).send({ category: 'bug', message: '개선했으면 하는 부분이 있어요' });
+   expect(res.status).toBe(502);
+   expect(res.body.error.code).toBe('FEEDBACK_SUBMIT_FAILED');
+   expect(JSON.stringify(res.body)).not.toContain('secret-token');
+ });

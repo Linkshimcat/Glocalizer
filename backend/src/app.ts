@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { safeLogError } from './utils/log-error.js';
 import express from 'express';
 import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
@@ -22,8 +23,9 @@ export function createApp() {
   app.use(
     pinoHttp({
       logger,
+      serializers: { err: safeLogError },
       redact: {
-        paths: ['req.headers.x-project-token', 'req.headers.authorization'],
+        paths: ['req.headers.x-project-token', 'req.headers.authorization', 'req.headers.x-admin-key', 'req.headers.cookie', 'res.headers.set-cookie'],
         censor: '[REDACTED]',
       },
       genReqId: (req) => (req as express.Request).id,

@@ -45,7 +45,12 @@ const copy = {
   undoRemove: ['되돌리기', 'Undo', '元に戻す', '撤销'],
   applyAndContinue: ['{n}개 적용하고 계속', 'Apply {n} and continue', '{n}件を適用して続行', '应用{n}个并继续'],
   applying: ['{done}/{total} 적용 중…', 'Applying {done}/{total}…', '{done}/{total}件適用中…', '正在应用{done}/{total}个…'],
-  applyFailed: ['일부 이모티콘에 문구를 적용하지 못했어요. 나머지는 그대로 에디터로 넘어가요.', 'Some captions could not be applied. The rest will continue into the editor.', '一部のスタンプには文言を適用できませんでした。残りはそのままエディターに進みます。', '部分表情未能应用文案，其余将继续进入编辑器。'],
+  applyFailed: ['문구를 적용하지 못했거나 완료를 확인하지 못한 이미지가 있어요. 아래 상태를 확인해주세요.', 'Some captions failed or could not be confirmed. Check the statuses below.', '適用に失敗したか完了を確認できない画像があります。以下の状態を確認してください。', '部分文案应用失败或尚无法确认完成，请查看下方状态。'],
+  applySuccess: ['적용 완료', 'Applied', '適用完了', '已应用'],
+  applyError: ['적용 실패. 편집기에서 확인해주세요.', 'Application failed. Review it in the editor.', '適用に失敗しました。エディターで確認してください。', '应用失败，请在编辑器中确认。'],
+  applyPending: ['완료를 확인하지 못했어요. 상태를 확인하면 문구를 중복 추가하지 않아요.', 'Completion is unconfirmed. Check status without adding the caption again.', '完了を確認できません。文言を再追加せず状態を確認できます。', '尚未确认完成，可查看状态，不会重复添加文案。'],
+  checkStatus: ['상태 확인하고 계속', 'Check status and continue', '状態を確認して続行', '确认状态并继续'],
+  openEditor: ['편집기에서 확인', 'Review in editor', 'エディターで確認', '在编辑器中确认'],
 } satisfies Record<string, [string, string, string, string]>
 
 export function captionSuggestCopy(lang: SiteLang) { const index = ({ ko: 0, en: 1, ja: 2, zh: 3 })[lang]; return Object.fromEntries(Object.entries(copy).map(([key, values]) => [key, values[index]])) as Record<keyof typeof copy, string> }

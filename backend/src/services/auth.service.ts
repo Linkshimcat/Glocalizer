@@ -154,11 +154,8 @@ export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResu
     user = await linkGoogleProfile(user, profile);
   } else {
     const existingByEmail = await findUserByEmail(email);
-    if (existingByEmail?.supabase_auth_id && existingByEmail.supabase_auth_id !== authUser.id) {
-      throw new AppError('GOOGLE_ACCOUNT_CONFLICT');
-    }
     if (existingByEmail) {
-      user = await linkGoogleProfile(existingByEmail, profile);
+      throw new AppError('ACCOUNT_LINK_REQUIRED');
     } else {
       user = await insertGoogleUser(profile);
       void sendWelcomeEmail(user);
@@ -215,9 +212,8 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
   const name = profile.name ?? null;
   const avatarUrl = profile.profile_image ?? null;
 
-  // naver_id로 먼저 찾고(재로그인), 없으면 같은 이메일로 가입된 계정이 있는지 확인해 연결한다.
-  // email에도 UNIQUE 제약이 있어서, 이 순서 없이 바로 insert/upsert(naver_id)만 하면 이메일
-  // 회원가입 계정과 이메일이 겹치는 순간 제약 위반으로 로그인 자체가 실패한다.
+  // A matching email alone is not proof of ownership of an existing local account.
+  // Only the already linked provider identity may authenticate that account.
   let user = await findUserByNaverId(profile.id);
   if (user) {
     user = await linkNaverProfile(user.id, {
@@ -228,11 +224,7 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
   } else {
     const existingByEmail = email ? await findUserByEmail(email) : null;
     if (existingByEmail) {
-      user = await linkNaverProfile(existingByEmail.id, {
-        naverId: profile.id,
-        name: existingByEmail.name_customized ? undefined : name ?? existingByEmail.name,
-        avatarUrl: existingByEmail.avatar_customized ? undefined : avatarUrl ?? existingByEmail.avatar_url,
-      });
+      throw new AppError('ACCOUNT_LINK_REQUIRED');
     } else {
       user = await insertNaverUser({ naverId: profile.id, email, name, avatarUrl });
       void sendWelcomeEmail(user);

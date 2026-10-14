@@ -432,7 +432,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     feedbackMenuLabel: '피드백',
     feedbackModalTitle: '피드백 보내기',
-    feedbackModalDesc: '불편한 점이나 개선 아이디어를 알려주세요. 저희 GitHub 저장소에 이슈로 등록돼요.',
+    feedbackModalDesc: '메시지는 공개 GitHub 이슈로 등록돼요. 계정 이름과 이메일은 자동으로 첨부하지 않아요. 공개를 원하지 않는 정보는 입력하지 마세요.',
     feedbackPlaceholder: '자유롭게 의견을 남겨주세요 (10자 이상)',
     feedbackSubmit: '보내기',
     feedbackSending: '보내는 중…',
@@ -739,7 +739,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     feedbackMenuLabel: 'Feedback',
     feedbackModalTitle: 'Send feedback',
-    feedbackModalDesc: "Tell us what's bothering you or what could be better. This is posted as an issue on our GitHub repo.",
+    feedbackModalDesc: "Your message becomes a public GitHub issue. Your account name and email are not attached automatically. Do not enter private information.",
     feedbackPlaceholder: 'Share your thoughts freely (at least 10 characters)',
     feedbackSubmit: 'Send',
     feedbackSending: 'Sending…',
@@ -1046,7 +1046,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     feedbackMenuLabel: 'フィードバック',
     feedbackModalTitle: 'フィードバックを送る',
-    feedbackModalDesc: '不便な点や改善アイデアを教えてください。GitHubリポジトリのIssueとして登録されます。',
+    feedbackModalDesc: 'メッセージは公開GitHubイシューになります。アカウント名とメールアドレスは自動添付しません。非公開にしたい情報は入力しないでください。',
     feedbackPlaceholder: 'ご自由にご意見をお書きください（10文字以上）',
     feedbackSubmit: '送信',
     feedbackSending: '送信中…',
@@ -1353,7 +1353,7 @@ export const translations: Record<SiteLang, Dict> = {
 
     feedbackMenuLabel: '反馈',
     feedbackModalTitle: '发送反馈',
-    feedbackModalDesc: '告诉我们不方便的地方或改进建议，会作为 Issue 提交到我们的 GitHub 仓库。',
+    feedbackModalDesc: '消息会作为公开 GitHub issue 发布，不会自动附加账号姓名和邮箱。请勿输入不希望公开的信息。',
     feedbackPlaceholder: '请自由留下您的意见（至少10个字）',
     feedbackSubmit: '发送',
     feedbackSending: '发送中…',

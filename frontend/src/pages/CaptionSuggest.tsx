@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Loader2, Sparkles, Undo2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import SessionNotice from '../components/SessionNotice'
@@ -10,6 +10,8 @@ import { workflowCopy } from '../i18n/workflow'
 import { captionSuggestCopy } from '../i18n/captionSuggest'
 import { useUploads, type UploadFile } from '../store/uploads'
 import type { ApiCaptionSuggestion } from '../lib/api'
+import { RequestError } from '../lib/requestError'
+import { CaptionApplicationError, waitForCaptionApplication } from '../lib/captionApplication'
 import type { NormalizedRect } from '../lib/style'
 
 type Anchor = 'top' | 'bottom'
@@ -20,7 +22,6 @@ const TOP_BOX: NormalizedRect = { x: 0.1, y: 0.04, width: 0.8, height: 0.22 }
 const BOTTOM_BOX: NormalizedRect = { x: 0.1, y: 0.74, width: 0.8, height: 0.22 }
 const defaultBoxFor = (anchor: Anchor): NormalizedRect => (anchor === 'top' ? TOP_BOX : BOTTOM_BOX)
 const truncate12 = (value: string) => Array.from(value).slice(0, 12).join('')
-const sleep = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms))
 
 export default function CaptionSuggest() {
   const { token, checkingSession } = useAuth()
@@ -29,7 +30,7 @@ export default function CaptionSuggest() {
   const { lang } = useSiteLang()
   const t = captionSuggestCopy(lang)
   const w = workflowCopy[lang]
-  const { files, selectedFileIds, projectStatus, refreshProject, addOcrRegion, suggestCaption } = useUploads()
+  const { files, selectedFileIds, projectStatus, refreshProject, getLatestProjectResults, addOcrRegion, suggestCaption } = useUploads()
 
   const [pipelineLoading, setPipelineLoading] = useState(true)
   const [step, setStep] = useState<Step>('detect')
@@ -39,6 +40,10 @@ export default function CaptionSuggest() {
   const [analyzeErrors, setAnalyzeErrors] = useState<Record<string, boolean>>({})
   const [choices, setChoices] = useState<Record<string, Choice>>({})
   const [removed, setRemoved] = useState<Set<string>>(new Set())
+  const [reviewFiles, setReviewFiles] = useState<UploadFile[] | null>(null)
+  const [applyResults, setApplyResults] = useState<Record<string, 'applied' | 'failed' | 'pending'>>({})
+  const submitted = useRef(new Set<string>())
+  const applyLock = useRef(false)
   const [applying, setApplying] = useState(false)
   const [applyProgress, setApplyProgress] = useState({ done: 0, total: 0 })
 
@@ -49,19 +54,19 @@ export default function CaptionSuggest() {
   const resultsReady = selectedFiles.length > 0 && selectedFiles.every(file => Boolean(file.analysis))
 
   useEffect(() => {
-    if (!projectStatus || projectStatus.status === 'completed') { setPipelineLoading(false); return }
+    if (step === 'review' || !projectStatus || projectStatus.status === 'completed') { setPipelineLoading(false); return }
     if (projectStatus.status === 'failed') { setPipelineLoading(false); toast(projectStatus.message || t.loading); return }
     setPipelineLoading(true)
     const timer = window.setInterval(() => {
       refreshProject().catch(error => { setPipelineLoading(false); toast(error instanceof Error ? error.message : t.loading) })
     }, 1500)
     return () => window.clearInterval(timer)
-  }, [projectStatus, refreshProject, t.loading, toast])
+  }, [projectStatus, refreshProject, t.loading, toast, step])
 
   useEffect(() => {
-    if (pipelineLoading || !resultsReady) return
+    if (pipelineLoading || !resultsReady || step !== 'detect') return
     if (textless.length === 0) navigate('/editor', { replace: true })
-  }, [pipelineLoading, resultsReady, textless.length, navigate])
+  }, [pipelineLoading, resultsReady, textless.length, navigate, step])
 
   const fetchSuggestion = async (file: UploadFile) => {
     setAnalyzing(prev => ({ ...prev, [file.id]: true }))
@@ -93,43 +98,58 @@ export default function CaptionSuggest() {
     setChoices(prev => ({ ...prev, [fileId]: { text: prev[fileId]?.text ?? '', anchor } }))
   }
 
-  const reviewItems = useMemo(() => textless.filter(file => !removed.has(file.id) && choices[file.id]?.text.trim()), [textless, removed, choices])
+  const reviewPool = reviewFiles ?? textless
+  const reviewItems = reviewPool.filter(file => !removed.has(file.id) && choices[file.id]?.text.trim() && applyResults[file.id] !== 'applied')
   const canReview = textless.some(file => choices[file.id]?.text.trim())
 
-  const waitForProjectReady = async () => {
-    for (let attempt = 0; attempt < 240; attempt += 1) {
-      const status = await refreshProject()
-      if (!status || status.status !== 'processing') return
-      await sleep(1500)
-    }
-  }
-
   const handleApply = async () => {
+    if (applyLock.current) return
     const chosen = reviewItems
     if (chosen.length === 0) { navigate('/editor'); return }
+    applyLock.current = true
     setApplying(true)
     setApplyProgress({ done: 0, total: chosen.length })
     let hadFailure = false
-    for (const file of chosen) {
-      const choice = choices[file.id]
-      try {
-        await addOcrRegion(file.id, choice.text, defaultBoxFor(choice.anchor))
-        await waitForProjectReady()
-      } catch {
-        hadFailure = true
+    try {
+      for (const file of chosen) {
+        const choice = choices[file.id]
+        let accepted = submitted.current.has(file.id)
+        try {
+          if (!accepted) {
+            await addOcrRegion(file.id, choice.text, defaultBoxFor(choice.anchor))
+            submitted.current.add(file.id)
+            accepted = true
+          }
+          await waitForCaptionApplication(refreshProject, file.assetId ?? '')
+          const results = await getLatestProjectResults()
+          const asset = results.assets.find(asset => asset.id === file.assetId)
+          const box = defaultBoxFor(choice.anchor)
+          // Reconcile a lost POST response before allowing another submission.
+          const applied = asset?.ocr.regions.some(region => region.text === choice.text && region.normalizedBox &&
+            ['x', 'y', 'width', 'height'].every(key => Math.abs(region.normalizedBox![key as keyof NormalizedRect] - box[key as keyof NormalizedRect]) < 0.01))
+          if (!applied) throw new CaptionApplicationError('failed')
+          setApplyResults(previous => ({ ...previous, [file.id]: 'applied' }))
+        } catch (error) {
+          hadFailure = true
+          const uncertain = accepted || (error instanceof RequestError && error.status === 0)
+          if (uncertain) submitted.current.add(file.id)
+          setApplyResults(previous => ({ ...previous, [file.id]: uncertain && !(error instanceof CaptionApplicationError && error.reason === 'failed') ? 'pending' : 'failed' }))
+        }
+        setApplyProgress(progress => ({ ...progress, done: progress.done + 1 }))
       }
-      setApplyProgress(progress => ({ ...progress, done: progress.done + 1 }))
+    } finally {
+      applyLock.current = false
+      setApplying(false)
     }
-    setApplying(false)
     if (hadFailure) toast(t.applyFailed)
-    navigate('/editor')
+    else navigate('/editor')
   }
 
   if (checkingSession) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
   if (!token) return <Navigate to="/login" replace />
   if (!files.length || !projectStatus) return <Navigate to="/localize" replace />
-  if (pipelineLoading || !resultsReady) return <main id="main-content" tabIndex={-1} role="status" aria-busy="true" className="ui-recovery-page">{t.loading}</main>
-  if (textless.length === 0) return null
+  if (step !== 'review' && (pipelineLoading || !resultsReady)) return <main id="main-content" tabIndex={-1} role="status" aria-busy="true" className="ui-recovery-page">{t.loading}</main>
+  if (textless.length === 0 && step !== 'review') return null
 
   const activeFile = activeFileId ? textless.find(file => file.id === activeFileId) : undefined
   const activeSuggestion = activeFile ? suggestions[activeFile.id] : undefined
@@ -225,7 +245,7 @@ export default function CaptionSuggest() {
         </div>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Button variant="secondary" className="min-h-12 flex-1" onClick={() => setStep('detect')}><ArrowLeft className="h-4 w-4" />{t.backToDetect}</Button>
-          <Button className="min-h-12 flex-1" disabled={!canReview} onClick={() => setStep('review')}>{t.reviewAllAtOnce}</Button>
+          <Button className="min-h-12 flex-1" disabled={!canReview} onClick={() => { setReviewFiles([...textless]); setStep('review') }}>{t.reviewAllAtOnce}</Button>
         </div>
       </section>}
 
@@ -233,7 +253,7 @@ export default function CaptionSuggest() {
         <h1 className="text-2xl font-extrabold sm:text-3xl">{t.reviewTitle}</h1>
         <p className="mt-2 text-sm text-sub">{t.reviewSubtitle.replace('{n}', String(reviewItems.length))}</p>
         <div className="mt-6 space-y-3">
-          {textless.map(file => {
+          {reviewPool.map(file => {
             const isRemoved = removed.has(file.id)
             const choice = choices[file.id]
             if (!choice?.text.trim() && !isRemoved) return null
@@ -242,22 +262,24 @@ export default function CaptionSuggest() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold" title={file.name}>{file.name}</p>
                 <p className="text-sm text-sub">{isRemoved ? t.removedNotice : choice?.text}</p>
+                {applyResults[file.id] && <p role="status" className="mt-1 text-sm text-sub">{applyResults[file.id] === 'applied' ? t.applySuccess : applyResults[file.id] === 'pending' ? t.applyPending : t.applyError}</p>}
               </div>
               {isRemoved ? (
-                <Button variant="outline" size="sm" onClick={() => setRemoved(prev => { const next = new Set(prev); next.delete(file.id); return next })}><Undo2 className="h-4 w-4" />{t.undoRemove}</Button>
+                <Button variant="outline" size="sm" disabled={applying} onClick={() => setRemoved(prev => { const next = new Set(prev); next.delete(file.id); return next })}><Undo2 className="h-4 w-4" />{t.undoRemove}</Button>
               ) : (
                 <div className="flex shrink-0 gap-2">
-                  <Button variant="outline" size="sm" onClick={() => { setStep('analyze'); setActiveFileId(file.id) }}>{t.changeCaption}</Button>
-                  <Button variant="outline" size="sm" onClick={() => setRemoved(prev => new Set(prev).add(file.id))}><X className="h-4 w-4" />{t.removeCaption}</Button>
+                  <Button variant="outline" size="sm" disabled={applying || submitted.current.has(file.id)} onClick={() => { setStep('analyze'); setActiveFileId(file.id) }}>{t.changeCaption}</Button>
+                  <Button variant="outline" size="sm" disabled={applying || submitted.current.has(file.id)} onClick={() => setRemoved(prev => new Set(prev).add(file.id))}><X className="h-4 w-4" />{t.removeCaption}</Button>
                 </div>
               )}
             </div>
           })}
         </div>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button variant="secondary" className="min-h-12 flex-1" disabled={applying} onClick={() => setStep('analyze')}><ArrowLeft className="h-4 w-4" />{t.backToAnalyze}</Button>
+          <Button variant="secondary" className="min-h-12 flex-1" disabled={applying || submitted.current.size > 0} onClick={() => setStep('analyze')}><ArrowLeft className="h-4 w-4" />{t.backToAnalyze}</Button>
+          {Object.keys(applyResults).length > 0 && <Button variant="outline" className="min-h-12 flex-1" disabled={applying} onClick={() => navigate('/editor')}>{t.openEditor}</Button>}
           <Button className="min-h-12 flex-1" disabled={applying} onClick={() => void handleApply()}>
-            {applying ? <><Loader2 className="h-4 w-4 animate-spin" />{t.applying.replace('{done}', String(applyProgress.done)).replace('{total}', String(applyProgress.total))}</> : t.applyAndContinue.replace('{n}', String(reviewItems.length))}
+            {applying ? <><Loader2 className="h-4 w-4 animate-spin" />{t.applying.replace('{done}', String(applyProgress.done)).replace('{total}', String(applyProgress.total))}</> : submitted.current.size > 0 ? t.checkStatus : t.applyAndContinue.replace('{n}', String(reviewItems.length))}
           </Button>
         </div>
       </section>}
