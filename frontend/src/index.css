@@ -240,11 +240,33 @@ body {
     opacity: 0;
   }
 }
+@keyframes roll-word-four {
+  0% {
+    transform: translateY(90%);
+    filter: blur(10px);
+    opacity: 0;
+  }
+  6.25%,
+  25% {
+    transform: translateY(0);
+    filter: blur(0);
+    opacity: 1;
+  }
+  31.25%,
+  100% {
+    transform: translateY(-90%);
+    filter: blur(10px);
+    opacity: 0;
+  }
+}
 .animate-roll-word {
   /* easeOutQuint처럼 앞에 몰린 커브를 쓰면 0.1초 만에 끝나 블러가 안 보인다.
      완만한 커브를 써야 굴러가는 게 읽힌다. */
   animation: roll-word 7.2s cubic-bezier(0.33, 1, 0.68, 1) infinite both;
   will-change: transform, filter, opacity;
+}
+.animate-roll-word[data-roll-count="4"] {
+  animation-name: roll-word-four;
 }
 
 /* 한 번만 굴러 올라와 멈추는 버전(RollingText loop={false}). 진입 구간만 떼어 쓴다.

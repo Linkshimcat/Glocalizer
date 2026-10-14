@@ -6,11 +6,13 @@ import { Fragment } from 'react'
  *  고정된다 — 단어가 바뀌어도 제목이 좌우로 흔들리지 않는다.
  *  타이밍은 index.css의 `roll-word` 키프레임에 있고, 슬롯 길이만 여기서 맞춘다. */
 
-/** 한 어절이 화면에 머무는 시간(초). roll-word 키프레임의 7.2s ÷ 3과 맞아야 한다. */
+/** 한 어절이 화면에 머무는 시간(초). 전체 애니메이션 길이는 items 수에 맞춰 계산한다. */
 const SLOT_SECONDS = 2.4
 
 /** per="char"에서 글자 하나씩 늦게 출발하는 간격(초). 왼쪽부터 물결처럼 넘어간다. */
 const CHAR_STAGGER_SECONDS = 0.06
+/** 긴 다국어 문구도 첫 글자와 마지막 글자의 등장 차이를 이 안에 맞춘다. */
+const MAX_CHAR_SPREAD_SECONDS = 0.36
 
 /** loop={false}의 글자 간격(초). 짧은 문장은 이 간격 그대로 흐른다. */
 const ONCE_STAGGER_SECONDS = 0.03
@@ -119,6 +121,7 @@ export default function RollingText({ items, className = '', per = 'word', loop 
     >
       {items.map((item, itemIndex) => {
         const delayBase = itemIndex * SLOT_SECONDS
+        const charStagger = Math.min(CHAR_STAGGER_SECONDS, MAX_CHAR_SPREAD_SECONDS / Math.max([...item].length - 1, 1))
 
         // 글자 단위여도 어절은 통째로 한 겹에 두고 그 안의 글자만 굴린다.
         // 글자마다 폭을 고정하면 가변폭인 라틴 문자의 자간이 깨진다("in Engl i sh").
@@ -129,13 +132,21 @@ export default function RollingText({ items, className = '', per = 'word', loop 
                 <span
                   key={charIndex}
                   className="animate-roll-word inline-block whitespace-pre"
-                  style={{ animationDelay: `${delaySeconds + delayBase + charIndex * CHAR_STAGGER_SECONDS}s` }}
+                  data-roll-count={items.length}
+                  style={{
+                    animationDelay: `${delaySeconds + delayBase + charIndex * charStagger}s`,
+                    animationDuration: `${items.length * SLOT_SECONDS}s`,
+                  }}
                 >
                   {char}
                 </span>
               ))
             ) : (
-              <span className="animate-roll-word inline-block" style={{ animationDelay: `${delaySeconds + delayBase}s` }}>
+              <span
+                className="animate-roll-word inline-block"
+                data-roll-count={items.length}
+                style={{ animationDelay: `${delaySeconds + delayBase}s`, animationDuration: `${items.length * SLOT_SECONDS}s` }}
+              >
                 {item}
               </span>
             )}

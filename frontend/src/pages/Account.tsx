@@ -293,6 +293,26 @@ export default function Account() {
           )}
         </form>
 
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPlanTitle}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-extrabold text-ink">{t.accountPlanTitle}</h2>
+              <p className="mt-1 text-sm text-sub">{t.accountPlanDesc}</p>
+            </div>
+            <span className="inline-flex w-fit rounded-full bg-brand-soft px-3 py-1 text-sm font-bold text-brand-dark">
+              {t.accountPlanStatus}
+            </span>
+          </div>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={() => navigate('/pricing')} className="rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
+              {t.accountPlanPricing}
+            </button>
+            <button type="button" disabled className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-sub disabled:cursor-not-allowed disabled:opacity-70">
+              {t.accountPlanManage} · {t.accountPlanComingSoon}
+            </button>
+          </div>
+        </section>
+
         {user.hasPassword && (
           <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountSecurityTitle}>
             <div className="flex items-start justify-between gap-4">
