@@ -27,7 +27,7 @@ export default function LanguageSelect() {
         onClick={() => setOpen(o => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex min-h-11 items-center gap-1.5 rounded-full border-2 border-gray-100 bg-white px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 md:text-sm"
+        className="flex min-h-11 items-center gap-1.5 rounded-full border-2 border-line bg-card px-2.5 py-1.5 text-[13px] font-bold text-ink transition-colors hover:border-gray-200 dark:hover:border-gray-700 md:text-sm"
       >
         <img src={globeIcon} alt="" aria-hidden className="h-5 w-5" />
         {/* The name is built from the visible label so voice-control users can say what they see (WCAG 2.5.3). */}
@@ -41,7 +41,7 @@ export default function LanguageSelect() {
         <ul
           role="listbox"
           aria-label={legalUi[lang].language}
-          className="absolute right-0 z-40 mt-1.5 w-36 overflow-hidden rounded-panel border border-gray-100 bg-white py-1 shadow-lg"
+          className="absolute right-0 z-40 mt-1.5 w-36 overflow-hidden rounded-panel border border-line bg-card py-1 shadow-lg"
         >
           {SITE_LANGS.map(item => (
             <li key={item.code}>

@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // 저장된 테마(또는 시스템 설정)를 React 렌더 전에 적용해, 다크 모드에서 밝은 화면이 잠깐 번쩍이는 걸 막는다.
+      (function () {
+        try {
+          var stored = localStorage.getItem('glocalizer:theme')
+          var dark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {}
+      })()
+    </script>
     <!-- Pretendard @font-face rules ship in our CSS (src/fonts); the font files still come from jsDelivr. -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <!-- Per-page tags: scripts/prerender.mjs replaces this block for each prerendered page (src/seo.ts). -->

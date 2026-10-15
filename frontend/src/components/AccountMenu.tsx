@@ -101,7 +101,7 @@ export default function AccountMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+10px)] z-40 w-64 overflow-hidden rounded-panel border border-gray-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
+          className="absolute right-0 top-[calc(100%+10px)] z-40 w-64 overflow-hidden rounded-panel border border-line bg-card shadow-[0_20px_60px_rgba(0,0,0,0.12)]"
         >
           <div className="flex items-center gap-3 px-4 py-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-action text-base font-bold text-white">
@@ -116,7 +116,7 @@ export default function AccountMenu() {
               {user.email && <p className="truncate text-xs font-medium text-sub">{user.email}</p>}
             </div>
           </div>
-          <div className="border-t border-gray-100 p-1.5">
+          <div className="border-t border-line p-1.5">
             {[
               { label: t.navWorkspace, path: '/dashboard', Icon: LayoutDashboard },
               { label: t.cloudArchive, path: '/archive', Icon: LayoutDashboard },
@@ -164,7 +164,7 @@ export default function AccountMenu() {
                 type="button"
                 onClick={() => setFeedbackCategory(category)}
                 className={`h-9 flex-1 rounded-control text-sm font-bold transition-colors ${
-                  feedbackCategory === category ? 'bg-white text-ink shadow-sm' : 'text-sub hover:text-ink'
+                  feedbackCategory === category ? 'bg-card text-ink shadow-sm' : 'text-sub hover:text-ink'
                 }`}
               >
                 {t[FEEDBACK_CATEGORY_LABEL_KEYS[category]]}
@@ -178,10 +178,10 @@ export default function AccountMenu() {
             placeholder={t.feedbackPlaceholder}
             rows={5}
             autoFocus
-            className="mt-4 w-full resize-none rounded-control border border-gray-200 px-4 py-3 text-sm font-medium text-ink outline-none transition-colors focus:border-brand"
+            className="mt-4 w-full resize-none rounded-control border border-line px-4 py-3 text-sm font-medium text-ink outline-none transition-colors focus:border-brand"
           />
           <div className="mt-5 flex justify-end gap-2">
-            <button type="button" onClick={() => setFeedbackOpen(false)} disabled={feedbackSending} className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
+            <button type="button" onClick={() => setFeedbackOpen(false)} disabled={feedbackSending} className="rounded-control border border-line px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
               {t.accountCancel}
             </button>
             <button type="button" onClick={onSubmitFeedback} disabled={feedbackSending} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">

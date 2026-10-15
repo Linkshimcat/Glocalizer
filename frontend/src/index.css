@@ -1,5 +1,7 @@
 @import './fonts/pretendard-variable-dynamic-subset.css';
 @import 'tailwindcss';
+/* .dark를 조상으로 둔 요소에서 dark: variant가 켜지도록 — <html>에 토글이 이 클래스를 토글한다. */
+@custom-variant dark (&:where(.dark, .dark *));
 @import './studio.css';
 
 @theme {
@@ -16,10 +18,29 @@
   --color-ink: #191f28;
   --color-sub: #56616e;
   --color-surface: #f2f4f6;
+  --color-card: #ffffff;
+  --color-line: #e1e5e3;
   --radius-control: 6px;
   --radius-panel: 8px;
   --radius-dialog: 12px;
   --radius-badge: 4px;
+}
+
+/* 다크 모드 팔레트. 오늘은 공용 헤더/내비·모달·버튼·대시보드까지만 다듬었고, 나머지 페이지는
+   아래 세이프티넷(.dark .bg-white 등)으로 최소한의 대비만 보장한다 — 다음 작업에서 넓힌다. */
+:root.dark {
+  --color-ink: #eef1f4;
+  --color-sub: #9aa4ae;
+  --color-surface: #23262b;
+  --color-brand-soft: #123524;
+  --color-card: #1b1e22;
+  --color-line: #2a2d31;
+
+  --studio-line: #2a2d31;
+  --studio-paper: #121417;
+  --ui-line: #2a2d31;
+  --ui-page: #121417;
+  --ui-muted: #23262b;
 }
 
 html {
@@ -27,12 +48,32 @@ html {
   /* 모달이 body를 fixed로 고정하는 동안 드러나는 canvas가 흰색으로 튀지 않게 한다. */
   background-color: #fafbfc;
 }
+html.dark {
+  background-color: var(--ui-page);
+}
 
 body {
   @apply bg-white text-ink antialiased;
   letter-spacing: -0.02em;
   line-height: 1.5;
 }
+
+/* 세이프티넷: 아직 다크 모드를 세세히 다듬지 않은 페이지에서도 최소한의 대비는 깨지지 않게 한다.
+   text-ink/text-sub 같은 공용 토큰은 다크에서 밝은 색으로 바뀌는데, 이 둘이 없으면 literal
+   bg-white/border-gray-* 위에서 글자가 거의 안 보이게 된다. */
+.dark body { background-color: var(--color-card); }
+.dark .bg-white { background-color: var(--color-card); }
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-gray-200 { background-color: var(--color-surface); }
+/* 페이지 전체 배경으로 흔히 쓰는 임의값 클래스(html 기본 배경과 같은 색) */
+.dark .bg-\[\#FAFBFC\],
+.dark .bg-\[\#fafbfc\] { background-color: var(--ui-page); }
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 { border-color: var(--color-line); }
+.dark .text-gray-300,
+.dark .text-gray-400 { color: var(--color-sub); }
 
 /* Service page scroll reveals and direct interaction feedback. */
 .service-page[data-motion-ready="true"] .service-reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); filter: blur(2px); }

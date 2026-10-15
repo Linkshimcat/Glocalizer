@@ -6,6 +6,7 @@ import { ToastProvider } from './components/Toast'
 import { SiteLangProvider } from './i18n/LanguageContext'
 import LandingRemake from './pages/LandingRemake'
 import { AuthProvider } from './store/AuthContext'
+import { ThemeProvider } from './store/ThemeContext'
 import { UploadProvider } from './store/uploads'
 import Header from './components/Header'
 import { useSiteLang } from './i18n/LanguageContext'
@@ -94,44 +95,46 @@ export function AppRoutes() {
   return (
     <>
       <ScrollToTop />
-      <SiteLangProvider>
-        <AppErrorBoundary>
-          <ToastProvider>
-            <AuthProvider>
-              <UploadProvider>
-                <Header />
-                <Suspense fallback={<RouteFallback />}>
-                  <Routes>
-                    <Route path="/" element={<LandingRemake />} />
-                    <Route path="/landing-remake" element={<LandingRemake />} />
-                    <Route path="/landing-legacy" element={<Landing />} />
-                    <Route path="/sub1" element={<LandingDesignSample />} />
-                    <Route path="/sub2" element={<LandingDesignSample />} />
-                    <Route path="/sub3" element={<LandingDesignSample />} />
-                    <Route path="/service" element={<ServiceIntro />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    <Route path="/pricing" element={<Pricing />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/support" element={<Support />} />
-                    <Route path="/auth/naver/callback" element={<NaverCallback />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/generate" element={<Generate />} />
-                    <Route path="/localize" element={<Localize />} />
-                    <Route path="/caption-suggest" element={<CaptionSuggest />} />
-                    <Route path="/account" element={<Account />} />
-                    <Route path="/archive" element={<Archive />} />
-                    <Route path="/editor" element={<Editor />} />
-                    <Route path="/result" element={<Result />} />
-                    <Route path="/review" element={<Review />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </UploadProvider>
-            </AuthProvider>
-          </ToastProvider>
-        </AppErrorBoundary>
-      </SiteLangProvider>
+      <ThemeProvider>
+        <SiteLangProvider>
+          <AppErrorBoundary>
+            <ToastProvider>
+              <AuthProvider>
+                <UploadProvider>
+                  <Header />
+                  <Suspense fallback={<RouteFallback />}>
+                    <Routes>
+                      <Route path="/" element={<LandingRemake />} />
+                      <Route path="/landing-remake" element={<LandingRemake />} />
+                      <Route path="/landing-legacy" element={<Landing />} />
+                      <Route path="/sub1" element={<LandingDesignSample />} />
+                      <Route path="/sub2" element={<LandingDesignSample />} />
+                      <Route path="/sub3" element={<LandingDesignSample />} />
+                      <Route path="/service" element={<ServiceIntro />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/privacy" element={<Privacy />} />
+                      <Route path="/pricing" element={<Pricing />} />
+                      <Route path="/terms" element={<Terms />} />
+                      <Route path="/support" element={<Support />} />
+                      <Route path="/auth/naver/callback" element={<NaverCallback />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/generate" element={<Generate />} />
+                      <Route path="/localize" element={<Localize />} />
+                      <Route path="/caption-suggest" element={<CaptionSuggest />} />
+                      <Route path="/account" element={<Account />} />
+                      <Route path="/archive" element={<Archive />} />
+                      <Route path="/editor" element={<Editor />} />
+                      <Route path="/result" element={<Result />} />
+                      <Route path="/review" element={<Review />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </UploadProvider>
+              </AuthProvider>
+            </ToastProvider>
+          </AppErrorBoundary>
+        </SiteLangProvider>
+      </ThemeProvider>
     </>
   )
 }
