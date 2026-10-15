@@ -129,6 +129,6 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .site-nav-panel, .site-nav-backdrop, .site-nav-toggle svg { transition: none; }
 }
 
-.ogq-gallery-error { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 32px; padding: 32px 16px; border-block: 1px solid var(--studio-line); text-align: center; color: #56616e; }
-.ogq-gallery-error button { min-height: 44px; padding: 8px 20px; border: 1px solid #d5ddd8; border-radius: var(--radius-control); background: #fff; color: #191f28; font-weight: 700; }
+.ogq-gallery-error { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 32px; padding: 32px 16px; border-block: 1px solid var(--studio-line); text-align: center; color: var(--color-sub); }
+.ogq-gallery-error button { min-height: 44px; padding: 8px 20px; border: 1px solid var(--studio-line); border-radius: var(--radius-control); background: var(--color-card); color: var(--color-ink); font-weight: 700; }
 .ogq-gallery-error button:hover { border-color: #15803d; color: #15803d; }
