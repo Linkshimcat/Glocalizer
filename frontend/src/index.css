@@ -71,9 +71,18 @@ body {
 .dark .bg-\[\#fafbfc\] { background-color: var(--ui-page); }
 .dark .border-gray-100,
 .dark .border-gray-200,
-.dark .border-gray-300 { border-color: var(--color-line); }
+.dark .border-gray-300,
+.dark .border-gray-100\/70,
+.dark .border-gray-200\/70,
+.dark .border-gray-300\/70 { border-color: var(--color-line); }
 .dark .text-gray-300,
 .dark .text-gray-400 { color: var(--color-sub); }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-line); }
+.dark .bg-white\/80,
+.dark .bg-white\/85,
+.dark .bg-white\/90,
+.dark .bg-white\/95 { background-color: var(--color-card); }
 
 /* Service page scroll reveals and direct interaction feedback. */
 .service-page[data-motion-ready="true"] .service-reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); filter: blur(2px); }
@@ -89,8 +98,8 @@ body {
 .service-arrow { transition: transform .22s cubic-bezier(.22,1,.36,1); }
 .service-feature-link:hover .service-arrow, .service-feature-link:focus-visible .service-arrow, .service-cta:hover .service-arrow { transform: translate(3px,-2px); }
 .service-cta { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
-.service-cta:hover, .service-cta:focus-visible { background-color: #e8f4ed; }
-.service-cta:active { background-color: #e8f4ed; }
+.service-cta:hover, .service-cta:focus-visible { background-color: var(--color-brand-soft); }
+.service-cta:active { background-color: var(--color-brand-soft); }
 .service-workflow-progress { height: 3px; overflow: hidden; margin-top: 26px; border-radius: 99px; background: #dfe7e2; }
 .service-workflow-progress span { display: block; width: 100%; height: 100%; transform: scaleX(var(--workflow-progress, 0)); transform-origin: left center; background: #20b45a; transition: transform .12s linear; }
 .service-workflow-step { transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), filter .55s ease, box-shadow .2s ease; }

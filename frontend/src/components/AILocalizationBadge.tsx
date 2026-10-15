@@ -9,7 +9,7 @@ export default function AILocalizationBadge({ label }: { label?: string }) {
       className="inline-flex min-h-[30px] shrink-0 items-center gap-1.5 rounded-md bg-surface border border-line px-3 py-1.5 text-xs font-semibold text-ink"
 
     >
-      <img src={aiSparkle} alt="" aria-hidden className="h-3.5 w-3.5 shrink-0" />
+      <img src={aiSparkle} alt="" aria-hidden className="h-3.5 w-3.5 shrink-0 dark:invert" />
       <span>{label ?? t.dashAiNotice}</span>
     </span>
   )

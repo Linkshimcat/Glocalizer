@@ -105,7 +105,7 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .site-login { background: var(--color-surface); color: var(--color-ink); }
 .site-login[aria-current="page"] { color: #15803d; }
 .workspace-stepbar { padding-block: 12px; border-bottom: 1px solid var(--studio-line); background: var(--color-card); }
-.service-feature-card { background: #fff; }
+.service-feature-card { background: var(--color-card); }
 #service-workflow { scroll-margin-top: calc(var(--site-header-height) + 24px); }
 .studio-generate details > div > div { border: 0; border-bottom: 1px solid var(--studio-line); border-radius: 0; padding-inline: 0; }
 @media (min-width: 1024px) {
