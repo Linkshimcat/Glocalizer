@@ -44,8 +44,9 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
     body.style.top = `-${scrollY}px`
     body.style.width = '100%'
     body.style.overflow = 'hidden'
-    // bg-black/40을 앱 배경(#fafbfc) 위에 얹은 색. 오버레이가 닿지 못한 띠도 딤처럼 보인다.
-    root.style.backgroundColor = '#969797'
+    // bg-black/40을 앱 배경 위에 얹은 색. 오버레이가 닿지 못한 띠도 딤처럼 보인다.
+    // 라이트는 #fafbfc, 다크는 --ui-page(#121417) 기준으로 각각 계산.
+    root.style.backgroundColor = root.classList.contains('dark') ? '#2b2d2f' : '#969797'
     return () => {
       body.style.position = prevStyle.position
       body.style.top = prevStyle.top
@@ -74,7 +75,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
           aria-modal="true"
           aria-labelledby={labelledBy}
           onClick={event => event.stopPropagation()}
-          className={`relative w-full min-w-0 rounded-dialog border border-gray-200 bg-white p-6 shadow-lg sm:p-8 ${className}`}
+          className={`relative w-full min-w-0 rounded-dialog border border-line bg-card p-6 shadow-lg sm:p-8 ${className}`}
         >
           <button
             type="button"

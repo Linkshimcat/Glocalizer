@@ -15,7 +15,7 @@ const variantClass: Record<Variant, string> = {
   secondary: 'bg-surface text-ink hover:bg-[#E8EBEE]',
   ghost: 'bg-transparent text-sub hover:bg-surface',
   naver: 'bg-[#03a94d] text-white hover:bg-[#028a40]',
-  outline: 'border border-gray-200 bg-white text-ink hover:bg-surface',
+  outline: 'border border-line bg-card text-ink hover:bg-surface',
 }
 
 const sizeClass: Record<Size, string> = {

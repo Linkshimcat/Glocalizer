@@ -3,6 +3,7 @@ import Logo from './Logo'
 import NavMenu from './NavMenu'
 import AccountMenu from './AccountMenu'
 import LanguageSelect from './LanguageSelect'
+import ThemeToggle from './ThemeToggle'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { experienceCopy } from '../i18n/experience'
 import { useAuth } from '../store/AuthContext'
@@ -18,6 +19,7 @@ export default function Header() {
         <div className="site-header-logo"><Logo /></div>
         <NavMenu />
         <div className="site-header-actions">
+          <ThemeToggle />
           <LanguageSelect />
           {isAuthenticated ? <AccountMenu /> : (
             <NavLink to="/login" className="site-login">{t.navLogin}</NavLink>
