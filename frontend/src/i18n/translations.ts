@@ -112,6 +112,10 @@ export interface Dict {
   accountDeleteConfirmCta: string
   accountPolicyTitle: string
   accountPolicyDesc: string
+  accountThemeTitle: string
+  accountThemeDesc: string
+  accountThemeLight: string
+  accountThemeDark: string
   accountPlanTitle: string
   accountPlanDesc: string
   accountPlanStatus: string
@@ -433,6 +437,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: '탈퇴하기',
     accountPolicyTitle: '정책 및 약관',
     accountPolicyDesc: '개인정보 처리와 서비스 이용 조건을 확인하세요.',
+    accountThemeTitle: '화면 테마',
+    accountThemeDesc: '라이트 모드와 다크 모드 중 원하는 화면을 골라주세요.',
+    accountThemeLight: '라이트',
+    accountThemeDark: '다크',
     accountPlanTitle: '현재 이용 플랜',
     accountPlanDesc: '현재 이용 중인 서비스 상태를 확인하세요.',
     accountPlanStatus: '무료/베타 이용 중',
@@ -746,6 +754,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: 'Delete my account',
     accountPolicyTitle: 'Policies and terms',
     accountPolicyDesc: 'Review how your information is handled and the service terms.',
+    accountThemeTitle: 'Display theme',
+    accountThemeDesc: 'Choose between light mode and dark mode.',
+    accountThemeLight: 'Light',
+    accountThemeDark: 'Dark',
     accountPlanTitle: 'Current plan',
     accountPlanDesc: 'Check the service status for your account.',
     accountPlanStatus: 'Free / beta access',
@@ -1059,6 +1071,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: '削除する',
     accountPolicyTitle: 'ポリシーと利用規約',
     accountPolicyDesc: '個人情報の取り扱いとサービス利用条件を確認できます。',
+    accountThemeTitle: '画面テーマ',
+    accountThemeDesc: 'ライトモードとダークモードから選べます。',
+    accountThemeLight: 'ライト',
+    accountThemeDark: 'ダーク',
     accountPlanTitle: '現在のプラン',
     accountPlanDesc: 'アカウントのサービス利用状況を確認できます。',
     accountPlanStatus: '無料・ベータ利用中',
@@ -1372,6 +1388,10 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteConfirmCta: '确认删除',
     accountPolicyTitle: '政策与条款',
     accountPolicyDesc: '查看个人信息处理方式和服务使用条件。',
+    accountThemeTitle: '显示主题',
+    accountThemeDesc: '在浅色模式和深色模式中选择。',
+    accountThemeLight: '浅色',
+    accountThemeDark: '深色',
     accountPlanTitle: '当前方案',
     accountPlanDesc: '查看账号当前的服务使用状态。',
     accountPlanStatus: '免费/测试版使用中',

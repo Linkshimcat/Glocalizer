@@ -11,6 +11,7 @@ import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import type { ProfileUpdate } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
+import { useTheme } from '../store/ThemeContext'
 
 const NAME_MAX_LENGTH = 30
 const PHOTO_MAX_BYTES = 10 * 1024 * 1024
@@ -33,6 +34,7 @@ async function toAvatarDataUrl(file: File): Promise<string> {
 
 export default function Account() {
   const { user, isAuthenticated, checkingSession, refreshUser, updateProfile, changePassword, deleteAccount } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const { t, lang } = useSiteLang()
   const toast = useToast()
   const navigate = useNavigate()
@@ -409,13 +411,32 @@ export default function Account() {
           </div>
         </section>
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-red-200 bg-red-50/40 p-6 sm:p-8" aria-label={t.accountDangerZoneTitle}>
-          <h2 className="text-lg font-extrabold text-red-600">{t.accountDangerZoneTitle}</h2>
-          <p className="mt-2 text-sm text-red-900/70">{t.accountDangerZoneDesc}</p>
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountThemeTitle}>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-ink">{t.accountThemeTitle}</h2>
+              <p className="mt-1 text-sm text-sub">{t.accountThemeDesc}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={theme === 'dark'}
+              aria-label={theme === 'dark' ? t.accountThemeLight : t.accountThemeDark}
+              onClick={toggleTheme}
+              className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors ${theme === 'dark' ? 'bg-action' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-6 w-6 transform rounded-full bg-[#ffffff] shadow transition-transform ${theme === 'dark' ? 'translate-x-7' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-6 max-w-2xl rounded-panel border border-red-200 bg-red-50/40 p-6 dark:border-red-900/50 dark:bg-red-950/20 sm:p-8" aria-label={t.accountDangerZoneTitle}>
+          <h2 className="text-lg font-extrabold text-red-600 dark:text-red-400">{t.accountDangerZoneTitle}</h2>
+          <p className="mt-2 text-sm text-red-900/70 dark:text-red-300/70">{t.accountDangerZoneDesc}</p>
           <button
             type="button"
             onClick={openDeleteModal}
-            className="mt-5 inline-flex items-center justify-center gap-2 rounded-control border border-red-300 bg-white px-5 py-[11px] text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
+            className="mt-5 inline-flex items-center justify-center gap-2 rounded-control border border-red-300 bg-white px-5 py-[11px] text-sm font-bold text-red-600 transition-colors hover:bg-red-100 dark:border-red-800 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-950/40"
           >
             <span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center">
               <img src={profileDeleteIcon} alt="" />
@@ -433,7 +454,7 @@ export default function Account() {
         >
           {deletingAccount ? (
             <div className="flex flex-col items-center py-6 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-red-600 dark:text-red-400" />
               <h2 id="delete-account-title" className="mt-4 text-lg font-extrabold text-ink">{t.accountDeleteProcessingTitle}</h2>
               <p className="mt-2 text-sm text-sub">{t.accountDeleteProcessingDesc}</p>
             </div>
@@ -475,7 +496,7 @@ export default function Account() {
                   type="button"
                   disabled={!ackDataLoss || !ackResignup}
                   onClick={() => { void onConfirmDelete() }}
-                  className="rounded-control bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-control bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-red-700"
                 >
                   {t.accountDeleteConfirmCta}
                 </button>
