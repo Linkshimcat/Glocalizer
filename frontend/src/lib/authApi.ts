@@ -68,7 +68,30 @@ export function loginWithGoogle(accessToken: string): Promise<AuthResult> {
   })
 }
 
-export function fetchCurrentUser(token: string): Promise<{ user: AuthUser }> {
+declare global {
+  interface Window {
+    /** index.html의 인라인 스크립트가 번들 로딩과 겹쳐 미리 보낸 /auth/me 요청. */
+    __earlyMe?: { token: string; response: Promise<Response> }
+  }
+}
+
+/** 미리 보낸 /auth/me 요청이 같은 토큰용이면 한 번만 꺼내 쓴다. */
+function takeEarlySession(token: string): Promise<Response> | null {
+  const early = window.__earlyMe
+  window.__earlyMe = undefined
+  return early && early.token === token ? early.response : null
+}
+
+export async function fetchCurrentUser(token: string): Promise<{ user: AuthUser }> {
+  const early = takeEarlySession(token)
+  if (early) {
+    try {
+      const response = await early
+      if (response.ok) return await response.json() as { user: AuthUser }
+    } catch {
+      // 미리 보낸 요청이 실패했거나 거절됐다면 아래에서 평소처럼 다시 확인해 오류 처리를 그대로 둔다.
+    }
+  }
   return authRequest<{ user: AuthUser }>('/auth/me', {
     headers: { Authorization: `Bearer ${token}` },
   })

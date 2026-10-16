@@ -24,7 +24,7 @@ const defaultBoxFor = (anchor: Anchor): NormalizedRect => (anchor === 'top' ? TO
 const truncate12 = (value: string) => Array.from(value).slice(0, 12).join('')
 
 export default function CaptionSuggest() {
-  const { token, checkingSession } = useAuth()
+  const { token, user, checkingSession } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
   const { lang } = useSiteLang()
@@ -145,7 +145,7 @@ export default function CaptionSuggest() {
     else navigate('/editor')
   }
 
-  if (checkingSession) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
+  if (checkingSession && !user) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
   if (!token) return <Navigate to="/login" replace />
   if (!files.length || !projectStatus) return <Navigate to="/localize" replace />
   if (step !== 'review' && (pipelineLoading || !resultsReady)) return <main id="main-content" tabIndex={-1} role="status" aria-busy="true" className="ui-recovery-page">

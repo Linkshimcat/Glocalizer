@@ -14,6 +14,24 @@
         } catch (e) {}
       })()
     </script>
+    <script>
+      // 저장된 로그인 세션이 있으면 /auth/me 확인을 JS 번들 다운로드·실행과 겹쳐 미리 시작한다.
+      // 이전에는 번들을 다 받고 React가 그려진 뒤에야 요청을 보내서, 그 시간만큼 "로그인 상태를 확인" 대기가 길어졌다.
+      // 결과는 src/lib/authApi.ts의 fetchCurrentUser가 한 번만 꺼내 쓴다. (%VITE_API_BASE_URL%은 빌드 때 Vite가 채운다)
+      (function () {
+        try {
+          var api = '%VITE_API_BASE_URL%'
+          var token = localStorage.getItem('glocalizer:authToken')
+          if (!token || !/^https?:/.test(api)) return
+          // 서버가 응답하지 않아도 무한정 기다리지 않는다. 중단되면 fetchCurrentUser가 평소 경로(타임아웃 포함)로 다시 확인한다.
+          var controller = new AbortController()
+          var timer = setTimeout(function () { controller.abort() }, 15000)
+          var response = fetch(api + '/auth/me', { headers: { Authorization: 'Bearer ' + token }, signal: controller.signal })
+          response.then(function () { clearTimeout(timer) }, function () { clearTimeout(timer) })
+          window.__earlyMe = { token: token, response: response }
+        } catch (e) {}
+      })()
+    </script>
     <!-- Pretendard @font-face rules ship in our CSS (src/fonts); the font files still come from jsDelivr. -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <!-- Per-page tags: scripts/prerender.mjs replaces this block for each prerendered page (src/seo.ts). -->
