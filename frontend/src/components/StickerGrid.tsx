@@ -7,8 +7,8 @@ export interface GridSticker {
 interface StickerGridProps {
   items: GridSticker[] | null
   emptyLabel: string
-  retryLabel: string
-  onRetry: () => void
+  retryLabel?: string
+  onRetry?: () => void
 }
 
 /** OgqStickerGallery의 카드 마크업(테두리·배경·스켈레톤)을 그대로 쓰되, 랜딩 전용 3D 틸트 연출은 뺀 정적 그리드. */
@@ -17,7 +17,7 @@ export default function StickerGrid({ items, emptyLabel, retryLabel, onRetry }: 
     return (
       <div className="ogq-gallery-error">
         <p role="status">{emptyLabel}</p>
-        <button type="button" onClick={onRetry}>{retryLabel}</button>
+        {onRetry && <button type="button" onClick={onRetry}>{retryLabel}</button>}
       </div>
     )
   }

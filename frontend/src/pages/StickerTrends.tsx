@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchOgqStickers } from '../lib/api'
-import { fetchTrendingStickers } from '../lib/giphy'
+import { STICKER_TRENDS } from '../data/stickerTrends'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { stickerTrendsCopy } from '../i18n/stickerTrends'
 import StickerGrid, { type GridSticker } from '../components/StickerGrid'
@@ -14,31 +14,29 @@ export default function StickerTrends() {
   const { lang } = useSiteLang()
   const t = stickerTrendsCopy(lang)
   const tabLabel: Record<Tab, string> = { KR: t.tabKorea, JP: t.tabJapan, CN: t.tabChina, US: t.tabUs }
-  const sourceLabel: Record<Tab, string> = { KR: t.sourceOgq, JP: t.sourceGiphy, CN: t.sourceGiphy, US: t.sourceGiphy }
+  const sourceLabel: Record<Tab, string> = { KR: t.sourceOgq, JP: t.sourceCurated, CN: t.sourceCurated, US: t.sourceCurated }
 
   const [activeTab, setActiveTab] = useState<Tab>('KR')
-  const [cache, setCache] = useState<Partial<Record<Tab, GridSticker[]>>>({})
-  const [loadError, setLoadError] = useState<Partial<Record<Tab, string>>>({})
+  const [ogqCache, setOgqCache] = useState<GridSticker[]>()
+  const [ogqError, setOgqError] = useState<string>()
 
-  const load = useCallback(async (tab: Tab) => {
-    setLoadError(prev => ({ ...prev, [tab]: undefined }))
+  const loadKorea = useCallback(async () => {
+    setOgqError(undefined)
     try {
-      const items = tab === 'KR'
-        ? (await fetchOgqStickers(STICKER_LIMIT)).map(sticker => ({ id: sticker.assetId, title: sticker.title ?? '', thumbnailUrl: sticker.thumbnailUrl }))
-        : await fetchTrendingStickers(tab, STICKER_LIMIT)
-      setCache(prev => ({ ...prev, [tab]: items }))
+      const stickers = await fetchOgqStickers(STICKER_LIMIT)
+      setOgqCache(stickers.map(sticker => ({ id: sticker.assetId, title: sticker.title ?? '', thumbnailUrl: sticker.thumbnailUrl })))
     } catch (error) {
-      setCache(prev => ({ ...prev, [tab]: [] }))
-      setLoadError(prev => ({ ...prev, [tab]: error instanceof Error ? error.message : undefined }))
+      setOgqCache([])
+      setOgqError(error instanceof Error ? error.message : undefined)
     }
   }, [])
 
   useEffect(() => {
-    if (cache[activeTab] === undefined) void load(activeTab)
-  }, [activeTab, cache, load])
+    if (activeTab === 'KR' && ogqCache === undefined) void loadKorea()
+  }, [activeTab, ogqCache, loadKorea])
 
-  const items = cache[activeTab] ?? null
-  const emptyLabel = loadError[activeTab] ?? t.empty
+  const items = activeTab === 'KR' ? (ogqCache ?? null) : STICKER_TRENDS[activeTab]
+  const emptyLabel = activeTab === 'KR' ? (ogqError ?? t.empty) : t.curationPending
 
   return (
     <main id="main-content" tabIndex={-1} className="layout-app py-10 sm:py-16">
@@ -69,7 +67,7 @@ export default function StickerTrends() {
           items={items}
           emptyLabel={emptyLabel}
           retryLabel={t.retry}
-          onRetry={() => { setCache(prev => ({ ...prev, [activeTab]: undefined })) }}
+          onRetry={activeTab === 'KR' ? () => { setOgqCache(undefined) } : undefined}
         />
       </div>
     </main>
