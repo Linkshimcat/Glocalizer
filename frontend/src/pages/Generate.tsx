@@ -51,7 +51,7 @@ function GenerationPageSkeleton({ label }: { label: string }) {
 }
 
 export default function Generate() {
-  const { token, checkingSession } = useAuth(); const navigate = useNavigate(); const { addFiles } = useUploads(); const { lang } = useSiteLang(); const t = generationCopy(lang); const w = workflowCopy[lang]; const copy = experienceCopy[lang]
+  const { token, user, checkingSession } = useAuth(); const navigate = useNavigate(); const { addFiles } = useUploads(); const { lang } = useSiteLang(); const t = generationCopy(lang); const w = workflowCopy[lang]; const copy = experienceCopy[lang]
   const [params, setParams] = useSearchParams(); const [projects, setProjects] = useState<GenerationProject[]>([]); const [enabled, setEnabled] = useState(false); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
   const [prompt, setPrompt] = useState(''); const [reference, setReference] = useState<string>(); const [category, setCategory] = useState<typeof categories[number]>(); const [selectedTags, setSelectedTags] = useState<(typeof styleTags[number] | typeof moodTags[number])[]>([]); const [dragging, setDragging] = useState(false); const [uploading, setUploading] = useState(false)
   const [slot, setSlot] = useState(0); const [caption, setCaption] = useState(''); const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE); const [captionImageId, setCaptionImageId] = useState<string | null>(null); const [captionSaveStatus, setCaptionSaveStatus] = useState<CaptionSaveStatus>('idle'); const [revision, setRevision] = useState(''); const [planDraft, setPlanDraft] = useState<StickerPlanItem[]>([]); const [completeOpen, setCompleteOpen] = useState(false)
@@ -268,7 +268,8 @@ export default function Generate() {
   // 예산 한도 등으로 어느 단계든 실패하면(action()이 error를 채운다) 같은 요청을 계속 재시도하지 않도록 멈춘다.
   // batchQueue/batchDone은 그대로 둬서, 사용자가 "이어서 진행"을 누르면 멈춘 지점부터 다시 시작할 수 있다.
   useEffect(() => { if (batchActive && error) { setBatchActive(false); batchPendingItem.current = null } }, [error]) // eslint-disable-line react-hooks/exhaustive-deps
-  if (checkingSession) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
+  // 저장된 로그인 정보가 있으면 서버 확인(/auth/me)을 기다리지 않고 바로 그린다. 만료됐다면 확인 결과가 logout()으로 이어져 아래 로그인 이동이 처리한다.
+  if (checkingSession && !user) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
   if (!token) return <Navigate to={`/login?next=${encodeURIComponent(`/generate?${params.toString()}`)}`} replace />
   const cardImage = (item: GenerationImage | undefined, label: string) => item?.url ? <img src={item.url} alt={label} className="h-full w-full object-contain" /> : <Sparkles className="h-8 w-8 text-brand/35" />
 

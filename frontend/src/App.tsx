@@ -90,11 +90,58 @@ function ScrollToTop() {
   return null
 }
 
+// Pages a visitor most likely opens next, in the order to fetch them.
+const LIKELY_NEXT_PAGES = [Login, Dashboard, Localize, ServiceIntro, Pricing, Generate]
+
+/**
+ * Fetches the code of likely next pages once the current screen has settled and the browser is idle.
+ * Without it the code is requested only when a menu item is first tapped, and on mobile the previous page then
+ * stays on screen with no sign of progress for 1-4 seconds.
+ * Starting a navigation stops the remaining fetches so they never share bandwidth with the page being opened;
+ * they are scheduled again once the new page is on screen.
+ */
+function PrefetchLikelyPages() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
+    if (connection?.saveData || /2g$/.test(connection?.effectiveType ?? '')) return
+    let cancelled = false
+    const run = async () => {
+      // One at a time so this never competes with images or video that are still loading.
+      for (const page of LIKELY_NEXT_PAGES) {
+        if (cancelled) return
+        await page.preload().catch(() => undefined)
+      }
+    }
+    const schedule = () => {
+      if (cancelled) return
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(() => { void run() }, { timeout: 4000 })
+      else window.setTimeout(() => { void run() }, 1500) // Safari has no requestIdleCallback
+    }
+    // The router only reports the new location once the page is ready, so stop at the click itself.
+    const stopForNavigation = (event: MouseEvent) => {
+      if ((event.target as Element | null)?.closest?.('a[href]')) cancelled = true
+    }
+    document.addEventListener('click', stopForNavigation, true)
+    if (document.readyState === 'complete') schedule()
+    else window.addEventListener('load', schedule, { once: true })
+    return () => {
+      cancelled = true
+      window.removeEventListener('load', schedule)
+      document.removeEventListener('click', stopForNavigation, true)
+    }
+  }, [pathname])
+
+  return null
+}
+
 /** Everything below the router, shared by the browser app and the build-time prerender. */
 export function AppRoutes() {
   return (
     <>
       <ScrollToTop />
+      <PrefetchLikelyPages />
       <ThemeProvider>
         <SiteLangProvider>
           <AppErrorBoundary>
