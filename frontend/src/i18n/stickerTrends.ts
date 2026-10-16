@@ -13,7 +13,9 @@ const copy = {
   tabChina: ['중국', 'China', '中国', '中国'],
   tabUs: ['미국', 'US', 'アメリカ', '美国'],
   sourceOgq: ['OGQ 마켓 인기순', 'OGQ Market · Popular', 'OGQ マーケット・人気順', 'OGQ 商店 · 热门'],
-  sourceCurated: ['팀이 직접 고른 인기 스티커', 'Hand-picked by our team', 'チームが選んだ人気スタンプ', '团队精选热门表情'],
+  sourceLine: ['LINE 인기 스티커', 'LINE · Popular', 'LINE・人気スタンプ', 'LINE · 热门'],
+  sourceWechat: ['WeChat 인기 스티커', 'WeChat · Popular', 'WeChat・人気スタンプ', 'WeChat · 热门'],
+  sourceGiphy: ['GIPHY 인기 스티커', 'GIPHY · Popular', 'GIPHY・人気スタンプ', 'GIPHY · 热门'],
   empty: ['지금은 불러올 수 없어요.', 'Unable to load right now.', '現在読み込めません。', '暂时无法加载。'],
   retry: ['다시 시도', 'Retry', '再試行', '重试'],
   curationPending: [
@@ -22,6 +24,7 @@ const copy = {
     '只今準備中です。近日中に更新予定です。',
     '正在准备中，敬请期待更新。',
   ],
+  stickerAlt: ['인기 스티커', 'Popular sticker', '人気スタンプ', '热门表情'],
 } satisfies Record<string, [string, string, string, string]>
 
 export function stickerTrendsCopy(lang: SiteLang) {

@@ -14,7 +14,7 @@ export default function StickerTrends() {
   const { lang } = useSiteLang()
   const t = stickerTrendsCopy(lang)
   const tabLabel: Record<Tab, string> = { KR: t.tabKorea, JP: t.tabJapan, CN: t.tabChina, US: t.tabUs }
-  const sourceLabel: Record<Tab, string> = { KR: t.sourceOgq, JP: t.sourceCurated, CN: t.sourceCurated, US: t.sourceCurated }
+  const sourceLabel: Record<Tab, string> = { KR: t.sourceOgq, JP: t.sourceLine, CN: t.sourceWechat, US: t.sourceGiphy }
 
   const [activeTab, setActiveTab] = useState<Tab>('KR')
   const [ogqCache, setOgqCache] = useState<GridSticker[]>()
@@ -35,7 +35,10 @@ export default function StickerTrends() {
     if (activeTab === 'KR' && ogqCache === undefined) void loadKorea()
   }, [activeTab, ogqCache, loadKorea])
 
-  const items = activeTab === 'KR' ? (ogqCache ?? null) : STICKER_TRENDS[activeTab]
+  const items =
+    activeTab === 'KR'
+      ? (ogqCache ?? null)
+      : STICKER_TRENDS[activeTab].map(sticker => ({ ...sticker, title: t.stickerAlt }))
   const emptyLabel = activeTab === 'KR' ? (ogqError ?? t.empty) : t.curationPending
 
   return (
