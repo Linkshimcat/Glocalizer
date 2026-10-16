@@ -44,8 +44,6 @@
   .main-restyle .landing-ending p span + span::before { content: ' '; }
   .main-restyle .landing-ending-cta { margin-top: 26px; }
   .main-restyle .landing-ending-devices { width: min(100%,520px); margin: auto; }
-  .main-restyle .landing-ending-laptop { top: 10%; left: 0; width: 95%; }
-  .main-restyle .landing-ending-tablet { display: none; }
   .main-restyle > footer.landing-footer.landing-footer-compact .landing-footer-inner { width: calc(100% - 40px); }
 }
 @media (prefers-reduced-motion: reduce) {
