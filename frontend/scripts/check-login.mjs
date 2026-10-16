@@ -110,7 +110,10 @@ async function geometry(page, label) {
   assert.equal(await page.locator('.auth-backdrop[aria-hidden="true"][inert]').count(), 1)
   assert.equal(await page.locator('.auth-backdrop').evaluate(node => getComputedStyle(node).pointerEvents), 'none')
   for (const input of await page.locator('.login-panel input').all()) {
-    assert.ok((await input.boundingBox()).height >= 48)
+    // 체크박스는 18px 칸이 아니라 문구를 포함한 라벨 전체가 누르는 영역이다.
+    const checkbox = (await input.getAttribute('type')) === 'checkbox'
+    const target = checkbox ? await input.locator('xpath=ancestor::label').boundingBox() : await input.boundingBox()
+    assert.ok(target.height >= (checkbox ? 44 : 48), `${label}: touch target too small`)
     assert.ok(await input.evaluate(node => node.labels?.length))
   }
   const uncovered = await page.locator('.login-panel input').first().evaluate(node => {
@@ -255,10 +258,22 @@ try {
     assert.equal(await page.locator('#login-password').evaluate(node => node.validity.tooShort), true)
     state.failure = null
     await page.locator('#login-password').fill('signup-password')
+    // 약관·개인정보처리방침 동의 없이는 이메일 가입도, 가입 탭의 소셜 버튼도 진행되지 않는다.
+    assert.deepEqual(await page.locator('.login-consent a').evaluateAll(links => links.map(link => [link.getAttribute('href'), link.getAttribute('target')])), [['/terms', '_blank'], ['/privacy', '_blank']])
+    assert.equal(await page.locator('#login-consent').isChecked(), false)
+    await page.locator('.login-submit').click()
+    assert.equal(state.requests.length, 1)
+    assert.equal(await page.locator('#login-consent').evaluate(node => node.validity.valueMissing), true)
+    await page.locator('.login-provider').first().click()
+    await page.getByRole('alert').filter({ hasText: /동의/ }).waitFor()
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'login-consent')
+    assert.equal(state.requests.length, 1)
+    await page.locator('#login-consent').check()
+    assert.equal(await page.locator('#login-error').count(), 0)
     await page.locator('.login-submit').click()
     await page.waitForURL('**/archive')
     assert.deepEqual(state.requests[1], { path: '/auth/signup', body: { email: user.email, password: 'signup-password', name: 'Creator' } })
-    checks.push('native validation, visible linked server errors, signup name trimming and original API payload')
+    checks.push('native validation, visible linked server errors, signup consent gate (email and social), name trimming and original API payload')
     await context.close()
   }
 

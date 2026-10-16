@@ -329,6 +329,13 @@ export interface Dict {
   loginGoogleProcessing: string
   loginGoogleNotConfigured: string
   loginSwitchToSignup: string
+  /** 회원가입 동의 문구: 앞글 · 이용약관 링크 · 사이 · 개인정보처리방침 링크 · 뒷글 */
+  loginConsentBefore: string
+  loginConsentTerms: string
+  loginConsentBetween: string
+  loginConsentPrivacy: string
+  loginConsentAfter: string
+  loginConsentRequired: string
   loginSwitchToLogin: string
   loginBackHome: string
   loginNaverProcessing: string
@@ -648,6 +655,12 @@ export const translations: Record<SiteLang, Dict> = {
     loginGoogleProcessing: 'Google 로그인 처리 중…',
     loginGoogleNotConfigured: 'Google 로그인이 아직 설정되지 않았어요.',
     loginSwitchToSignup: '계정이 없으신가요? 회원가입',
+    loginConsentBefore: '계속하면 Glocalizer의 ',
+    loginConsentTerms: '서비스 이용약관',
+    loginConsentBetween: '에 동의하고 ',
+    loginConsentPrivacy: '개인정보처리방침',
+    loginConsentAfter: '을 읽었음을 인정한 것으로 간주합니다.',
+    loginConsentRequired: '회원가입하려면 서비스 이용약관과 개인정보처리방침에 동의해 주세요.',
     loginSwitchToLogin: '이미 계정이 있으신가요? 로그인',
     loginBackHome: '홈으로',
     loginNaverProcessing: '네이버 로그인 처리 중이에요…',
@@ -965,6 +978,12 @@ export const translations: Record<SiteLang, Dict> = {
     loginGoogleProcessing: 'Signing you in with Google…',
     loginGoogleNotConfigured: 'Google login is not configured yet.',
     loginSwitchToSignup: "Don't have an account? Sign up",
+    loginConsentBefore: "By continuing, you agree to Glocalizer's ",
+    loginConsentTerms: 'Terms of Service',
+    loginConsentBetween: ' and acknowledge that you have read the ',
+    loginConsentPrivacy: 'Privacy Policy',
+    loginConsentAfter: '.',
+    loginConsentRequired: 'To sign up, please agree to the Terms of Service and Privacy Policy.',
     loginSwitchToLogin: 'Already have an account? Log in',
     loginBackHome: 'Home',
     loginNaverProcessing: 'Signing you in with Naver…',
@@ -1282,6 +1301,12 @@ export const translations: Record<SiteLang, Dict> = {
     loginGoogleProcessing: 'Googleログインを処理中…',
     loginGoogleNotConfigured: 'Googleログインはまだ設定されていません。',
     loginSwitchToSignup: 'アカウントをお持ちでないですか？ 新規登録',
+    loginConsentBefore: '続行すると、Glocalizerの',
+    loginConsentTerms: '利用規約',
+    loginConsentBetween: 'に同意し、',
+    loginConsentPrivacy: 'プライバシーポリシー',
+    loginConsentAfter: 'を読んだものとみなされます。',
+    loginConsentRequired: '新規登録するには、利用規約とプライバシーポリシーへの同意が必要です。',
     loginSwitchToLogin: 'すでにアカウントをお持ちですか？ ログイン',
     loginBackHome: 'ホームへ',
     loginNaverProcessing: 'NAVERログインを処理しています…',
@@ -1599,6 +1624,12 @@ export const translations: Record<SiteLang, Dict> = {
     loginGoogleProcessing: '正在处理 Google 登录…',
     loginGoogleNotConfigured: '尚未配置 Google 登录。',
     loginSwitchToSignup: '还没有账号？去注册',
+    loginConsentBefore: '继续即表示您同意 Glocalizer 的',
+    loginConsentTerms: '服务条款',
+    loginConsentBetween: '，并确认已阅读',
+    loginConsentPrivacy: '隐私政策',
+    loginConsentAfter: '。',
+    loginConsentRequired: '注册前，请先同意服务条款和隐私政策。',
     loginSwitchToLogin: '已有账号？去登录',
     loginBackHome: '返回首页',
     loginNaverProcessing: '正在处理 NAVER 登录…',

@@ -1,6 +1,6 @@
 import { requestErrorMessage } from '../lib/requestError'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthBackdrop from '../components/AuthBackdrop'
 import Button from '../components/Button'
@@ -38,6 +38,9 @@ export default function Login() {
   const [googlePreparing, setGooglePreparing] = useState(true)
   const [googleSubmitting, setGoogleSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  // 회원가입은 약관·개인정보처리방침 동의가 있어야 진행한다 (이메일·구글·네이버 모두).
+  const [consent, setConsent] = useState(false)
+  const consentRef = useRef<HTMLInputElement>(null)
   const busy = submitting || googleSubmitting
   const legal = legalUi[lang]
   useDocumentMeta(mode === 'login' ? t.loginTitle : t.loginTabSignup, mode === 'login' ? t.loginSubtitle : t.loginSignupSubtitle)
@@ -46,6 +49,15 @@ export default function Login() {
     setMode(nextMode)
     setError(null)
     setShowPassword(false)
+    setConsent(false)
+  }
+
+  /** 가입 탭에서 동의하지 않았다면 안내하고 체크박스로 포커스를 옮긴다. */
+  const requireConsent = () => {
+    if (mode !== 'signup' || consent) return true
+    setError(t.loginConsentRequired)
+    consentRef.current?.focus()
+    return false
   }
 
   useEffect(() => {
@@ -65,6 +77,7 @@ export default function Login() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
+    if (!requireConsent()) return
     setSubmitting(true)
     try {
       if (mode === 'login') {
@@ -82,6 +95,7 @@ export default function Login() {
   }
 
   const handleNaverLogin = () => {
+    if (!requireConsent()) return
     const url = buildNaverAuthUrl()
     if (!url) {
       toast(t.loginNaverNotConfigured)
@@ -92,7 +106,7 @@ export default function Login() {
   }
 
   const handleGoogleLogin = async () => {
-    if (googleSubmitting) return
+    if (googleSubmitting || !requireConsent()) return
     setGoogleSubmitting(true)
     try {
       const accessToken = await startGoogleLogin()
@@ -212,6 +226,32 @@ export default function Login() {
                   >{showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</button>
                 </div>
               </div>
+
+              {mode === 'signup' && (
+                <label className="login-consent" htmlFor="login-consent">
+                  <input
+                    id="login-consent"
+                    ref={consentRef}
+                    name="consent"
+                    type="checkbox"
+                    checked={consent}
+                    onChange={event => {
+                      setConsent(event.target.checked)
+                      if (event.target.checked && error === t.loginConsentRequired) setError(null)
+                    }}
+                    required
+                    disabled={busy}
+                    aria-describedby={error ? 'login-error' : undefined}
+                  />
+                  <span>
+                    {t.loginConsentBefore}
+                    <Link to="/terms" target="_blank" rel="noopener noreferrer">{t.loginConsentTerms}</Link>
+                    {t.loginConsentBetween}
+                    <Link to="/privacy" target="_blank" rel="noopener noreferrer">{t.loginConsentPrivacy}</Link>
+                    {t.loginConsentAfter}
+                  </span>
+                </label>
+              )}
 
               {error && (
                 <div id="login-error"><StateNotice error>{error}</StateNotice></div>
