@@ -81,12 +81,24 @@ function safeFolderName(name: string): string {
   return name.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 40) || 'character'
 }
 /** 일괄 생성으로 완료한 캐릭터 여러 개를 캐릭터별 폴더로 나눠 하나의 ZIP에 담는다. */
+// 프로젝트 생성 시 카테고리/스타일 선택값이 영어 줄로 조립되어 prompt 앞에 붙는다(Generate.tsx create()).
+// 화면에는 사용자가 직접 쓴 설명만 보여주기 위해 그 조립 줄을 걷어낸다. 저장된 prompt는 그대로 둔다.
+const ASSEMBLED_PROMPT_LINE = /^(Category|Style and personality): /
+
+export function displayPrompt(prompt: string): string {
+  return prompt.split('\n').filter(line => !ASSEMBLED_PROMPT_LINE.test(line)).join('\n').trim()
+}
+
+export function projectDisplayName(project: Pick<GenerationProject, 'id' | 'name' | 'prompt'>): string {
+  return project.name?.trim() || displayPrompt(project.prompt) || project.id.slice(0, 8)
+}
+
 export async function downloadGenerationSets(token: string, projects: GenerationProject[]): Promise<void> {
   const zip = new JSZip()
   const usedNames = new Set<string>()
   for (const project of projects) {
     const images = latestCompletedImages(project)
-    const baseName = safeFolderName(project.name?.trim() || project.prompt || project.id.slice(0, 8))
+    const baseName = safeFolderName(projectDisplayName(project))
     let folderName = baseName
     for (let suffix = 2; usedNames.has(folderName); suffix += 1) folderName = `${baseName} (${suffix})`
     usedNames.add(folderName)

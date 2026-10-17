@@ -25,10 +25,13 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 
 - **자동 배경 정리 + 수동 보정**: OCR로 찾은 글자 영역을 안전하게 판단되면 자동으로 지우고, 위험하거나 복잡한 배경은 원본을 보존한 뒤 사각형·브러시 도구로 직접 정리할 수 있음
 - **다국어 현지화(EN/JA/ZH)**: 원문의 존댓말·타이핑 감정 표현(ㅋㅋ/ㅠㅠ 등)까지 반영해 번역하고, 후보 3안 중 베스트를 추천
+- **AI 문구 추천**: 글자가 없어 OCR이 한글 문구를 찾지 못한 이모티콘은 "번역 실패"로 끝내지 않고, AI가 표정·동작·상황을 분석해 한국어 문구 3안을 추천함. 고르거나 직접 입력한 문구는 기존 OCR 영역 추가 흐름을 그대로 타고 번역·배경 정리·에디터로 이어짐
 - **클라우드 작업 저장**: 로그인 후 진행 중인 프로젝트가 자동 저장돼 다른 기기·세션에서 이어서 작업할 수 있고, 완료된 프로젝트는 보관함에서 다시 열람 가능
-- **이메일 · 네이버 · 구글 로그인**
-- **OGQ 마켓 연동**: 랜딩페이지 예시 갤러리, 업로드 페이지 샘플 체험, 완료된 프로젝트의 유사 스티커 검색·출시 체크리스트("OGQ 출시 검토")
-- **(실험적, 내부 전용) AI 캐릭터 생성**: 텍스트 설명과 선택적 참고 이미지로 오리지널 캐릭터의 대표 이미지 1장 + 표정 23종을 자동 생성해 OGQ용 24장 세트를 만드는 별도 기능
+- **이메일 · 네이버 · 구글 로그인**: 가입 시 이용약관·개인정보처리방침 동의를 받고, 신규 가입자에게 서비스 안내 환영 메일을 발송함(SMTP 미설정 시 메일만 건너뛰고 가입은 정상 동작)
+- **OGQ 마켓 연동**: 랜딩페이지 예시 갤러리, 업로드 페이지 샘플 체험, 완료된 프로젝트·직접 업로드 이미지의 OGQ 규격 검사, 유사 스티커 검색, AI 심층 검토, 출시 체크리스트("OGQ 출시 검토")
+- **국가별 인기 이모티콘(`/trends`)**: 출시 전 시장 조사를 위해 한국·일본·중국·미국 탭으로 인기 스티커를 보여줌. 한국은 OGQ 마켓 인기순을 자동 조회하고, 일본·중국·미국은 공개 API가 없어 팀이 직접 큐레이션한 이미지를 사용함
+- **AI 캐릭터 생성**: 텍스트 설명(카테고리·스타일 선택 포함)과 선택적 참고 이미지로 오리지널 캐릭터의 대표 이미지 1장 + 표정 23종을 자동 생성해 OGQ용 24장 세트를 만들고, 여러 캐릭터를 한 번에 이어서 생성할 수도 있음. 비용 보호를 위해 `ENABLE_IMAGE_GENERATION=true`와 `OPENAI_API_KEY`가 있는 환경에서만 켜지며 일일 예산 한도가 적용됨(저장소 기본값은 꺼짐)
+- **사이트 환경**: 한국어·영어·일본어·중국어 화면, 라이트·다크 모드(설정에서 선택), 멤버십 가격 안내 페이지(`/pricing`, 현재는 예시 안내이며 결제 기능 없음), 공개 페이지의 빌드 시 프리렌더(SEO·초기 로딩)
 
 ---
 
@@ -45,8 +48,9 @@ flowchart TB
     subgraph client["Frontend · React SPA @ Vercel"]
         dashboard["Dashboard<br/>프로젝트 진입·진행 상태"]
         create["CREATE<br/>이모티콘 24장 생성"]
-        localize["LOCALIZE<br/>OCR·번역·배경 정리·편집"]
+        localize["LOCALIZE<br/>OCR·번역·AI 문구 추천·배경 정리·편집"]
         review["REVIEW<br/>규격·유사 작품·AI 피드백"]
+        trends["TRENDS<br/>국가별 인기 이모티콘"]
     end
 
     subgraph server["Backend · Express API @ Render"]
@@ -54,6 +58,7 @@ flowchart TB
         localizationWorker["Localization Worker<br/>jobs polling · lease · heartbeat"]
         generationWorker["Generation Worker<br/>generation_images polling"]
         reviewService["Review Service<br/>OGQ proxy · Deep Review"]
+        captionService["Caption Suggestion<br/>감정·동작 분석 · 문구 3안"]
     end
 
     subgraph data["Supabase"]
@@ -74,6 +79,7 @@ flowchart TB
     dashboard --> create
     dashboard --> localize
     dashboard --> review
+    dashboard --> trends
     create -->|"완성한 24장 전달"| localize
     create -->|"완료 프로젝트 선택"| review
     localize -->|"완료 프로젝트 선택"| review
@@ -81,12 +87,15 @@ flowchart TB
     create <--> api
     localize <--> api
     review <--> api
+    trends <--> api
     api <--> auth
     api <--> db
     api <--> storage
     api --> localizationWorker
     api --> generationWorker
     api --> reviewService
+    api --> captionService
+    captionService <--> textVision
     localizationWorker <--> textVision
     localizationWorker <--> localOcr
     localizationWorker --> sharp
@@ -99,7 +108,7 @@ flowchart TB
 
 - **공통 저장 경계**: 원본·정리본·생성 이미지는 private Storage에 보관하고 서명 URL 또는 인증된 API를 통해 접근함. 프로젝트 소유권은 API에서 다시 확인함.
 - **비동기 실행**: 현지화와 이미지 생성 모두 DB 작업 상태를 기준으로 worker가 처리하므로, 긴 AI 작업을 HTTP 요청 하나에 묶지 않음.
-- **기능 간 연결**: CREATE 결과를 LOCALIZE와 REVIEW가 재사용하고, LOCALIZE 결과도 REVIEW가 불러와 같은 출시 준비 흐름을 이어감.
+- **기능 간 연결**: CREATE 결과를 LOCALIZE와 REVIEW가 재사용하고, LOCALIZE 결과도 REVIEW가 불러와 같은 출시 준비 흐름을 이어감. TRENDS는 출시 전 시장 조사를 돕는 읽기 전용 화면으로, 한국 탭만 Backend의 OGQ proxy를 거침.
 - **검토의 책임 범위**: REVIEW는 기술 규격과 참고 피드백을 제공하며, OGQ에 자동 제출하거나 실제 승인·저작권 적합성을 보장하지 않음.
 
 ##### **[1. 이모티콘 현지화 아키텍처]**
@@ -158,6 +167,8 @@ flowchart TB
 6. Cleanup은 OCR 영역의 배경 복잡도와 마스크 안전성을 평가해 방향성 inpaint·단색 채우기·투명 처리 중 하나를 선택함. 안전하지 않거나 검수가 필요한 영역은 원본을 보존하고 에디터의 수동 정리 대상으로 표시함.
 7. 원본·정리본은 private Storage에, OCR 영역·번역 후보·폰트 스타일·에디터 상태는 PostgreSQL에 저장함. 프로젝트 단위 오류 대신 애셋별 부분 실패를 허용해 정상 이미지 결과를 먼저 제공함.
 8. AI 에디터는 `GET /results`로 결과를 받아 정리본 위에 번역문을 CSS로 실시간 합성함. 사용자는 폰트·굵기·색·위치를 고치고 Canvas로 PNG를 다시 만들거나 JSZip으로 여러 장을 내려받음. 실제 다운로드 완료 시 `download_events`에 변환 완주 이벤트를 비동기로 기록함.
+
+9. 현지화를 시작하면 처리 진행 화면(`/caption-suggest`)으로 이동해 OCR이 끝나기를 기다리고, OCR 영역이 0개인 이모티콘은 "문구 없음"으로 구분함. 감지 → AI 분석·추천 → 일괄 검토 → 에디터 순서이며, 모든 이모티콘에 글자가 있으면 추천 단계 없이 바로 에디터로 이동함. 자세한 흐름은 아래 [4. AI 문구 추천·국가별 인기 이모티콘]을 참고.
 
 핵심 설계 포인트: 번역·OCR·Cleanup 실패를 애셋별로 격리하고, 무거운 Python OCR을 별도 프로세스로 분리함. Job 테이블 기반 worker라 Redis/SQS 같은 별도 큐 인프라 없이도 재시작·중복 실행을 제어함.
 
@@ -255,6 +266,20 @@ flowchart TB
 
 핵심 설계 포인트: 비용 없는 객관적 Canvas 검사, 외부 OGQ 유사 사례 탐색, 선택적 AI 정성 피드백을 분리함. 한 단계가 실패해도 가능한 결과는 계속 보여주며, 외부 플랫폼의 실제 심사를 대신한다고 과장하지 않음.
 
+##### **[4. AI 문구 추천·국가별 인기 이모티콘]**
+
+**AI 문구 추천**
+
+1. 현지화 처리가 끝난 뒤 OCR이 한글을 찾지 못해 영역이 0개인 이미지를 "문구 없음"으로 분류하고, 사용자가 원하면 AI 문구 추천을 요청함. 건너뛰기도 가능함.
+2. `POST /projects/:projectId/assets/:assetId/ocr/caption-suggestion`이 프로젝트·애셋 편집 권한을 확인한 뒤, 원본 이미지를 512px 이내로 줄여 Groq Vision(`GROQ_VISION_MODEL`, 기본 Qwen3.8 27B)에 전달함. 글자가 없는 캐릭터의 감정·동작·상황 태그를 읽고, 채팅에서 쓰는 12자 이하 한국어 문구 정확히 3안(그중 `best` 1개)을 JSON으로 받음. `GROQ_API_KEY`가 없거나 호출이 실패하면 추천만 건너뛰고 직접 입력 경로를 유지함.
+3. 사용자는 이모티콘마다 추천을 고르거나 직접 고쳐 쓰며 한 화면에서 일괄 검토함. 확정한 문구는 새 OCR 영역으로 추가되어 기존 번역 후보 생성과 Cleanup, 에디터 흐름을 그대로 이어감. 추천 문구는 참고용이며 의미는 사용자가 직접 확인함.
+
+**국가별 인기 이모티콘**
+
+1. `/trends`는 한국·일본·중국·미국 4개 탭이며 탭마다 최대 24개를 보여줌. 대시보드의 별도 카드에서 진입함.
+2. 한국 탭은 쿼리 없이 Backend `GET /ogq/stickers`를 호출해 OGQ 마켓 인기순을 가져옴. API key는 서버에만 두고 동일 요청은 10분간 캐시함. 조회에 실패하면 안내 문구와 재시도를 보여줌.
+3. 일본·중국·미국 탭은 팀이 각 스토어를 직접 보고 고른 이미지를 [`stickerTrends.ts`](frontend/src/data/stickerTrends.ts)와 `frontend/src/assets/stickers/<국가>/`에 두고 정적으로 보여줌. 처음에는 GIPHY Trending API를 시도했으나 국가 코드를 바꿔도 결과가 거의 같아 의미가 없었고, LINE·WeChat에는 공개 API가 없어 수동 큐레이션으로 전환함. 큐레이션 이미지는 시장 조사용 참고 자료이며 이미지 사용 권리를 제공하지 않음.
+
 ##### **[아키텍처 코드 근거]**
 
 | 흐름 | Frontend | Backend·Worker | DB·저장소 |
@@ -262,6 +287,8 @@ flowchart TB
 | 이모티콘 현지화 | [`Localize.tsx`](frontend/src/pages/Localize.tsx), [`Editor.tsx`](frontend/src/pages/Editor.tsx), [`uploads.tsx`](frontend/src/store/uploads.tsx) | [`processing.service.ts`](backend/src/services/processing.service.ts), [`worker.ts`](backend/src/workers/worker.ts), [`process-project.job.ts`](backend/src/workers/process-project.job.ts), [`ocr-pipeline.service.ts`](backend/src/ocr/ocr-pipeline.service.ts) | `projects`, `assets`, `jobs`, `ocr_regions`, `translations`, `editor_states`, `download_events`, private Storage |
 | 이모티콘 생성 | [`Generate.tsx`](frontend/src/pages/Generate.tsx), [`generationApi.ts`](frontend/src/lib/generationApi.ts) | [`generation.routes.ts`](backend/src/routes/generation.routes.ts), [`generation.service.ts`](backend/src/services/generation.service.ts), [`generation-worker.ts`](backend/src/workers/generation-worker.ts) | `generation_projects`, `generation_images`, PostgreSQL enqueue/confirm/complete RPC, private Storage |
 | 이모티콘 출시 검토 | [`Review.tsx`](frontend/src/pages/Review.tsx), [`OgqSpecChecker.tsx`](frontend/src/components/OgqSpecChecker.tsx), [`ogqSpecCheck.ts`](frontend/src/lib/ogqSpecCheck.ts) | [`ogq.service.ts`](backend/src/services/ogq.service.ts), [`deep-review.service.ts`](backend/src/services/deep-review.service.ts) | 기존 완료 프로젝트를 읽기 전용으로 조합하며 별도 승인 상태를 저장하지 않음 |
+| AI 문구 추천 | [`CaptionSuggest.tsx`](frontend/src/pages/CaptionSuggest.tsx), [`captionSuggest.ts`](frontend/src/i18n/captionSuggest.ts) | [`caption-suggestion.service.ts`](backend/src/ocr/caption-suggestion.service.ts), [`editor.routes.ts`](backend/src/routes/editor.routes.ts) | 확정 문구는 기존 `ocr_regions`·번역 파이프라인에 합류하며 추천 결과 자체는 저장하지 않음 |
+| 국가별 인기 이모티콘 | [`StickerTrends.tsx`](frontend/src/pages/StickerTrends.tsx), [`StickerGrid.tsx`](frontend/src/components/StickerGrid.tsx), [`stickerTrends.ts`](frontend/src/data/stickerTrends.ts) | [`ogq.service.ts`](backend/src/services/ogq.service.ts)(한국 탭만) | 일본·중국·미국은 `frontend/src/assets/stickers/` 정적 에셋 |
 
 ---
 
@@ -309,8 +336,10 @@ flowchart TB
 | Frontend | React 19, Vite, TypeScript, Tailwind CSS |
 | DB · Storage | Supabase (PostgreSQL + Storage) |
 | OCR · 이미지 처리 | PaddleOCR(Python), OpenCV, Sharp |
-| AI 모델 | OpenAI GPT-5.6 · GPT-5.6 Luna · gpt-image-2.5-sunburst, Groq Qwen3.8 27B, Google Gemini 2.5 Flash |
+| AI 모델 | OpenAI GPT-5.6 · GPT-5.6 Luna · gpt-image-2.5-sunburst, Groq Qwen3.8 27B(Vision·문구 추천), Google Gemini 2.5 Flash |
 | 인증 | 이메일(자체 JWT), 네이버 로그인, 구글 로그인(Supabase Auth) |
+| 메일 | Nodemailer(SMTP) — 가입 환영 메일 |
+| SEO·성능 | 공개 페이지 빌드 시 프리렌더(Vite SSR 빌드 + `scripts/prerender.mjs`), 라우트별 코드 분할 |
 | 배포 | Frontend → Vercel, Backend → Render, DB·Storage·Auth → Supabase |
 | Design | Figma, Claude Design |
 
@@ -321,10 +350,12 @@ flowchart TB
 ```bash
 # 0. 사전 준비
 #    - Node.js 22+, Python 3.12(PaddlePaddle이 3.14 미지원)
-#    - Supabase 프로젝트(Postgres + Storage), Groq API 키
+#    - Supabase 프로젝트(Postgres + Storage), Groq API 키(번역 폴백·AI 문구 추천에도 사용)
 #    - OpenAI API 키는 OCR_PROVIDER=luna 또는 TRANSLATION_PROVIDER=openai일 때 필요
 #      (저장소 기본값은 각각 paddle/groq라 OPENAI_API_KEY 없이도 로컬 실행 가능. AI 캐릭터 생성은
-#      ENABLE_IMAGE_GENERATION=true + OPENAI_API_KEY가 있을 때만 켜지는 별도 실험 기능)
+#      ENABLE_IMAGE_GENERATION=true + OPENAI_API_KEY가 있을 때만 켜짐)
+#    - 선택: OGQ_API_KEY(OGQ 갤러리·한국 인기 탭·유사 스티커 검색), SMTP_USER/SMTP_PASS(가입 환영 메일),
+#      NAVER_CLIENT_ID/SECRET(네이버 로그인), 프론트 VITE_GOOGLE_CLIENT_ID(구글 로그인)
 
 git clone https://github.com/Linkshimcat/Glocalizer.git
 cd Glocalizer
@@ -347,7 +378,8 @@ npm run dev                 # http://localhost:5173, VITE_API_BASE_URL로 백엔
 
 # 3. 검증 (저장소 루트에서 실행)
 (cd backend && npm test)    # vitest
-(cd frontend && npm run lint && npm run build)
+(cd frontend && npm run lint && npm run build)   # build에 공개 페이지 프리렌더 포함
+# 화면 검증 스크립트(Playwright, 빌드·서버 실행 필요): cd frontend 후 npm run check:public-pages | check:landing | check:studio | check:projects | check:login
 
 # 배포는 각각 GitHub 연동 자동배포: backend → Render(Docker), frontend → Vercel
 ```
@@ -365,13 +397,13 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | OpenAI · GPT-5.6 Luna | `OCR_PROVIDER=luna` 배포(production 기본값)에서 업로드 이미지의 한국어 문구와 좌표를 찾는 OCR | 크기를 제한한 업로드 이미지 | 호출 실패 또는 한글 미검출 시 로컬 PaddleOCR로 폴백 |
 | PaddlePaddle · PP-OCRv5 Korean | 로컬 OCR 및 Luna 장애 시 폴백 | 서버 내부 이미지 처리, 외부 AI API 전송 없음 | 여러 전처리 결과의 IoU·문자 유사도 합의와 수동 영역 지정 제공 |
 | OpenAI · GPT-5.6 | `TRANSLATION_PROVIDER=openai`(production 기본값)에서 OCR 원문의 영어·일본어·중국어 현지화(주력) | OCR 텍스트, 대상 언어, 같은 이미지의 다른 캡션(문맥) | 실패 시 Groq로 자동 폴백. 73개 문구 + LLM 심사 벤치마크로 품질 검증 |
-| Groq · Qwen3.8 27B | 번역 실패 시 폴백, 선택적 OCR 재판정(Vision)과 글꼴 스타일 분석 | OCR 텍스트, 대상 언어, 필요한 경우 글자 영역 이미지 | 제한된 재시도 후 애셋별 오류 또는 soft-fail 처리 |
+| Groq · Qwen3.8 27B | 번역 실패 시 폴백, 선택적 OCR 재판정(Vision)과 글꼴 스타일 분석, 글자 없는 이모티콘의 AI 문구 추천(Vision) | OCR 텍스트, 대상 언어, 필요한 경우 글자 영역 이미지, 문구 추천 시 512px 이내로 줄인 이모티콘 원본 | 제한된 재시도 후 애셋별 오류 또는 soft-fail 처리. 문구 추천 실패 시 추천만 건너뛰고 직접 입력 제공 |
 | Google · Gemini 2.5 Flash | OCR 합의도가 낮을 때 선택적으로 재판정하는 보조 Vision 모델 | 재판정이 필요한 이미지 | API 키가 없거나 호출에 실패하면 기존 OCR 결과와 수동 편집 경로 유지 |
 | Google · Gemini 3.7 Flash | 2026-08-24 내부 OCR 정확도 벤치마크에만 사용한 비교 모델 | 벤치마크용 이미지 | 제품의 현재 런타임 모델에는 포함하지 않음 |
-| OpenAI · gpt-image-2.5-sunburst | (실험적, 내부 전용 — 특정 계정만 활성화) 텍스트 설명·선택적 참고 이미지로 오리지널 캐릭터 스티커 이미지 생성 | 캐릭터 설명, 선택적 참고 이미지 | 실패한 이미지는 실패 상태로 기록하고 선택 재생성 제공(프로젝트당 최대 6회), 일일 비용 예산 한도 도달 시 요청 자체를 거부 |
+| OpenAI · gpt-image-2.5-sunburst | (`ENABLE_IMAGE_GENERATION=true`일 때만 활성, 저장소 기본값은 꺼짐) 텍스트 설명·선택적 참고 이미지로 오리지널 캐릭터 스티커 이미지 생성 | 캐릭터 설명, 선택적 참고 이미지 | 실패한 이미지는 실패 상태로 기록하고 선택 재생성 제공(프로젝트당 최대 6회), 일일 비용 예산 한도 도달 시 요청 자체를 거부 |
 | OpenAI · GPT-5.6 (chat) | (Generate 기능) 24종 표정·문구 구성 초안과 캡션 문구 제안 | 캐릭터 설명 | 실패 시 규칙 기반 fallback 표정 목록·문구 사용 |
 
-저장소 기본값은 `OCR_PROVIDER=paddle`, `TRANSLATION_PROVIDER=groq`이며, `OCR_PROVIDER`, `TRANSLATION_PROVIDER`, `VISION_PROVIDER`, `ENABLE_FONT_STYLE_ANALYSIS`, `ENABLE_IMAGE_GENERATION` 환경변수로 각 기능의 사용 여부를 제어함. production(Render)은 `OCR_PROVIDER=luna`, `TRANSLATION_PROVIDER=openai`로 배포됨(`render.yaml` 참고). 프로젝트는 업로드 이미지를 자체 모델 학습 데이터로 사용하지 않으며, 외부 AI API를 사용하는 경우 해당 제공자의 데이터 처리 정책이 적용됨.
+저장소 기본값은 `OCR_PROVIDER=paddle`, `TRANSLATION_PROVIDER=groq`이며, `OCR_PROVIDER`, `TRANSLATION_PROVIDER`, `VISION_PROVIDER`, `ENABLE_FONT_STYLE_ANALYSIS`, `ENABLE_IMAGE_GENERATION` 환경변수로 각 기능의 사용 여부를 제어함. production(Render)은 `OCR_PROVIDER=luna`, `TRANSLATION_PROVIDER=openai`로 배포됨(`render.yaml` 참고). `GROQ_VISION_MODEL`·`AI_REVIEW_MODEL`·`IMAGE_CAPTION_MODEL` 등으로 모델을 바꿀 수 있음. 프로젝트는 업로드 이미지를 자체 모델 학습 데이터로 사용하지 않으며, 외부 AI API를 사용하는 경우 해당 제공자의 데이터 처리 정책이 적용됨.
 
 **개발 과정에서 사용한 생성형 AI**
 
@@ -408,6 +440,7 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | pino / pino-http / pino-pretty | ^10.3.1 / ^11.0.0 / ^13.1.3 | MIT | 구조화 로깅과 개발용 출력 |
 | zod | ^4.4.3 | MIT | 요청·환경변수 스키마 검증 |
 | dotenv | ^17.4.2 | BSD-2-Clause | 로컬 환경변수 로드 |
+| nodemailer | 10.0.10 | MIT-0 | 가입 환영 메일 SMTP 발송 |
 | sharp | ^0.35.3 | Apache-2.0 | 이미지 디코딩·마스킹·합성 |
 | supertest / vitest / tsx | ^7.2.2 / ^4.1.10 / ^4.23.1 | MIT | 통합 테스트, 테스트 러너, TypeScript 실행 |
 | typescript | ^7.0.2 | Apache-2.0 | 정적 타입 검사와 빌드 |

@@ -57,6 +57,11 @@ import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { editorDict } from '../i18n/editor'
 
+/** 저장·다운로드가 끝나면 /result로 이동하는데, Result는 지연 로드 페이지라 이동하는 순간 코드를 처음 받는다.
+ *  모바일 브라우저는 다운로드 UI가 열린 뒤 후속 fetch를 중단하므로 그때 받으려 하면 코드 로딩이 실패하고
+ *  오류 화면이 뜬다. 다운로드를 시작하기 전에 미리 받아 두고, 받지 못했으면 이동을 건너뛴다. */
+const preloadResultPage = () => import('./Result').then(() => true, () => false)
+
 /** 자동 크기 맞춤에 쓸 대표(best) 번역 문구 */
 function bestSuggestionText(suggestions?: Array<{ text: string; best?: boolean }>): string {
   return suggestions?.find(s => s.best)?.text ?? suggestions?.[0]?.text ?? ''
@@ -964,6 +969,8 @@ export default function Editor() {
   const completingDownloadRef = useRef(false)
   const langCode = activeLanguage.code
 
+  useEffect(() => { void preloadResultPage() }, [])
+
   const selectLanguage = (languageCode: string) => {
     if (languageCode === activeLanguage.code) return
     saveActiveStyle()
@@ -988,11 +995,12 @@ export default function Editor() {
       // 모바일 브라우저는 시스템 다운로드 UI가 열린 뒤 후속 fetch를 중단할 수 있다.
       // 편집 상태와 완료 표시를 먼저 저장한 뒤 다운로드를 시작해야 완료 페이지 이동이 안정적이다.
       await markResultReady()
+      const resultPageReady = await preloadResultPage()
       downloadBlob(blob, exportFileName(current.name, langCode, 'png'))
       recordDownload('single', langCode)
       toast(w.downloadStarted, 'success')
       markCurrentDone()
-      navigate('/result')
+      if (resultPageReady) navigate('/result')
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastPngFail)
@@ -1016,11 +1024,12 @@ export default function Editor() {
         outputPreset,
       )
       await markResultReady()
+      const resultPageReady = await preloadResultPage()
       downloadBlob(blob, `${exportName.trim() || 'glocalizer_export'}.zip`)
       recordDownload('zip')
       toast(w.downloadStarted, 'success')
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
-      navigate('/result')
+      if (resultPageReady) navigate('/result')
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastZipFail)
@@ -1044,11 +1053,12 @@ export default function Editor() {
       const overlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
       const blob = await renderItemToPng(current, style, overlays, outputPreset)
       await markResultReady()
+      const resultPageReady = await preloadResultPage()
       downloadBlob(blob, exportFileName(current.name, langCode, 'png'))
       recordDownload('single', langCode)
       toast(w.downloadStarted, 'success')
       markCurrentDone()
-      navigate('/result')
+      if (resultPageReady) navigate('/result')
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastDownloadFail)
