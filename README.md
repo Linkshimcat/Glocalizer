@@ -1,5 +1,6 @@
 # **NAVER OGQ PROJECT**
-<img width="1920" height="1080" alt="Glocalizer W8 데모데이 ppt" src="https://github.com/user-attachments/assets/c7389116-7f43-498c-86f6-7393eceba762" />
+<img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/673f60e1-6ba1-4531-9537-40ca9a9ba640" />
+
 
 ### [Glocalizer]
 
@@ -511,3 +512,5 @@ OCR 오인식 및 오역을 막고자 사용자에게 '검수 및 확인 단계'
 # **[프로젝트 라이선스]**
 
 Glocalizer 소스 코드는 [Apache License 2.0](https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file)으로 배포함. 라이선스 전문과 조건은 [Apache License 2.0 공식 문서](https://www.apache.org/licenses/LICENSE-2.0)에서도 확인할 수 있음.
+
+<img width="1920" height="1080" alt="7" src="https://github.com/user-attachments/assets/8a26e859-910c-4ba5-9d6a-0d7575fbfc92" />
