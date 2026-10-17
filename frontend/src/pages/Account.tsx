@@ -195,9 +195,9 @@ export default function Account() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     aria-label={t.accountChangePhoto}
-                    className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-ink text-white transition-opacity hover:opacity-85"
+                    className="absolute -bottom-1.5 -right-1.5 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-card bg-action text-white shadow-md transition-opacity hover:opacity-85"
                   >
-                    <Camera className="h-4 w-4" />
+                    <Camera className="h-[18px] w-[18px]" />
                   </button>
                 )}
               </div>

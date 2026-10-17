@@ -1,5 +1,5 @@
 import type { CloudProject } from './api'
-import type { GenerationProject } from './generationApi'
+import { displayPrompt, projectDisplayName, type GenerationProject } from './generationApi'
 
 export type ProjectKind = 'localization' | 'generation'
 export type LibraryStatus = 'draft' | 'running' | 'editing' | 'completed' | 'attention'
@@ -32,7 +32,7 @@ export function libraryProjects(localized: CloudProject[], generated: Generation
       const completed = new Set(project.images.filter(image => image.status === 'completed').map(image => image.slot)).size
       const archived = (project.status ?? (completed === 24 ? 'completed' : 'active')) === 'completed'
       return {
-        key: `generation:${project.id}`, id: project.id, kind: 'generation', name: project.name || project.prompt || project.id.slice(0, 8), searchText: `${project.name ?? ''} ${project.prompt}`, createdAt: project.created_at, archived,
+        key: `generation:${project.id}`, id: project.id, kind: 'generation', name: projectDisplayName(project), searchText: `${project.name ?? ''} ${displayPrompt(project.prompt)}`, createdAt: project.created_at, archived,
         status: archived ? 'completed' : running ? 'running' : failed ? 'attention' : project.images.length ? 'editing' : 'draft', needsAttention: failed, imageCount: completed, source: project,
       }
     }),

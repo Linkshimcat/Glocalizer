@@ -57,7 +57,7 @@ main[tabindex="-1"]:focus { outline: none; }
 .studio-generate .generation-plan-list > div { border: 0; border-bottom: 1px solid var(--ui-line); border-radius: 0; padding: 16px 0; }
 .studio-review .review-feedback { border-top: 1px solid var(--ui-line); padding-top: 24px; }
 .studio-review .review-feedback > div { box-shadow: none; }
-.studio-review .review-feedback :is(.bg-surface,.shadow-sm) { background: white; box-shadow: none; }
+.studio-review .review-feedback :is(.bg-surface,.shadow-sm) { background: var(--color-card); box-shadow: none; }
 .service-feature-card:hover, .service-feature-card:focus-within, .service-feature-card:active { transform: none; box-shadow: none; }
 .service-feature-card:hover .service-feature-icon, .service-feature-card:focus-within .service-feature-icon { transform: none; background: transparent; }
 .service-feature-icon { background: transparent; }

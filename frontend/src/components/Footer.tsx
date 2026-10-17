@@ -24,7 +24,7 @@ export default function Footer({ variant = 'default' }: { variant?: 'default' | 
               title="GitHub"
               className="flex h-11 w-11 items-center justify-center text-ink transition-opacity hover:opacity-60"
             >
-              <img src={githubMark} alt="" aria-hidden className="h-5 w-5" />
+              <img src={githubMark} alt="" aria-hidden className="h-5 w-5 dark:invert" />
             </a>
             <a
               href="https://www.instagram.com/glocalizer__ogq/"

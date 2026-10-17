@@ -19,7 +19,7 @@ import {
   type OgqSticker,
 } from '../lib/api'
 import StickerThumbnail from '../components/StickerThumbnail'
-import { generationRequest, latestCompletedImages, type GenerationImage, type GenerationProject } from '../lib/generationApi'
+import { displayPrompt, generationRequest, latestCompletedImages, projectDisplayName, type GenerationImage, type GenerationProject } from '../lib/generationApi'
 import { useAuth } from '../store/AuthContext'
 
 // 프로젝트 하나에 캡션이 아무리 많아도, 검색 요청 수를 합리적인 범위로 제한한다.
@@ -119,10 +119,10 @@ export default function Review() {
     Promise.all(selected.map(async selectedProject => {
       if (selectedProject.kind === 'generation') {
         return {
-          keywords: [selectedProject.project.prompt, ...selectedProject.completedImages.map(image => image.caption)].filter(Boolean),
+          keywords: [displayPrompt(selectedProject.project.prompt), ...selectedProject.completedImages.map(image => image.caption)].filter(Boolean),
           images: selectedProject.completedImages.flatMap(image => image.url ? [{
             id: `generation:${image.id}`,
-            name: `${selectedProject.project.prompt}-${image.slot}.png`,
+            name: `${projectDisplayName(selectedProject.project)}-${image.slot}.png`,
             url: image.url,
           }] : []),
         }
@@ -239,7 +239,7 @@ export default function Review() {
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {projects.map(reviewProject => {
                     const selected = selectedKeys.includes(reviewProject.key)
-                    const projectName = reviewProject.kind === 'localization' ? reviewProject.project.name : reviewProject.project.name || reviewProject.project.prompt
+                    const projectName = reviewProject.kind === 'localization' ? reviewProject.project.name : projectDisplayName(reviewProject.project)
                     const imageCount = reviewProject.kind === 'localization' ? reviewProject.project.imageCount : reviewProject.completedImages.length
                     const thumbnailUrl = reviewProject.kind === 'localization' ? reviewProject.project.thumbnailUrl : null
                     const thumbnailSticker: GenerationImage | undefined = reviewProject.kind === 'generation'
@@ -255,7 +255,7 @@ export default function Review() {
                         selected ? 'border-brand bg-brand-soft' : 'border-gray-100 bg-white hover:border-gray-200'
                       }`}
                     >
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-panel bg-surface">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-panel sticker-stage-soft">
                         {thumbnailSticker?.url ? <StickerThumbnail image={thumbnailSticker} /> : thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
                       </div>
                       <div className="min-w-0">
@@ -296,10 +296,10 @@ export default function Review() {
                           const categoryLabel = category ? (lang === 'ko' ? category.krName : category.enName) : null
                           return (
                             <div key={sticker.assetId} className="overflow-hidden rounded-panel border border-gray-100 bg-white">
-                              <div className="relative aspect-square">
+                              <div className="relative aspect-square sticker-stage">
                                 <img src={sticker.thumbnailUrl} alt={sticker.title ?? ''} loading="lazy" className="h-full w-full object-contain p-2" />
                                 {sticker.animated && (
-                                  <span className="absolute right-1.5 top-1.5 rounded-badge bg-ink/70 px-2 py-0.5 text-[10px] font-bold text-white">{t.reviewAnimatedBadge}</span>
+                                  <span className="absolute right-1.5 top-1.5 rounded-badge bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">{t.reviewAnimatedBadge}</span>
                                 )}
                               </div>
                               {(sticker.title || categoryLabel) && (
@@ -336,7 +336,7 @@ export default function Review() {
 
                 {deepFeedback && (
                   <div className="review-feedback mt-7 space-y-6">
-                    <div className="grid gap-4 rounded-panel bg-white p-5 shadow-sm sm:grid-cols-[auto_1fr] sm:items-center">
+                    <div className="grid gap-4 rounded-panel border border-gray-100 bg-white p-5 shadow-sm sm:grid-cols-[auto_1fr] sm:items-center">
                       <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-8 border-brand-soft text-brand-dark">
                         <strong className="text-3xl font-black">{deepFeedback.readinessScore}</strong>
                         <span className="text-[11px] font-bold">/ 100</span>
@@ -357,7 +357,7 @@ export default function Review() {
               </section>
             )}
 
-            {selectedKeys.length > 0 && <section className="mt-8 border-t border-gray-200 pt-6"><h2 className="text-lg font-bold">{copy.reviewAction}</h2><div className="mt-4 flex flex-wrap gap-3">{projects?.filter(project => selectedKeys.includes(project.key)).map(project => <Button key={project.key} variant="outline" disabled={opening} onClick={() => { void editProject(project) }}>{project.project.name || (project.kind === 'generation' ? project.project.prompt : project.project.id.slice(0, 8))} · {copy.editing}</Button>)}</div></section>}
+            {selectedKeys.length > 0 && <section className="mt-8 border-t border-gray-200 pt-6"><h2 className="text-lg font-bold">{copy.reviewAction}</h2><div className="mt-4 flex flex-wrap gap-3">{projects?.filter(project => selectedKeys.includes(project.key)).map(project => <Button key={project.key} variant="outline" disabled={opening} onClick={() => { void editProject(project) }}>{(project.kind === 'generation' ? projectDisplayName(project.project) : project.project.name || project.project.id.slice(0, 8))} · {copy.editing}</Button>)}</div></section>}
 
             <section className="mt-10 border-t border-gray-200 pt-6">
               <h2 className="text-lg font-bold">{t.reviewChecklistTitle}</h2>

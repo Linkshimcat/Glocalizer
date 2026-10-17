@@ -86,7 +86,7 @@ export default function OgqStickerGallery() {
             {(stickers ?? Array.from<OgqSticker | undefined>({ length: 12 })).map((sticker, index) => (
               <div
                 key={sticker?.assetId ?? index}
-                className="ogq-tilt-card aspect-square overflow-hidden rounded-panel border border-black/[0.06] bg-white"
+                className="ogq-tilt-card aspect-square overflow-hidden rounded-panel border border-black/[0.06] bg-white sticker-stage-dark"
                 style={{ animationDelay: `${index * 55}ms` }}
               >
                 {sticker ? (
