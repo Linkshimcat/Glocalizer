@@ -1,4 +1,4 @@
-import { ArrowUpRight, Archive, Check, Globe2, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowUpRight, Archive, Check, Globe2, MessageSquareQuote, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import Footer from '../components/Footer'
@@ -9,7 +9,9 @@ import { serviceDict } from '../i18n/service'
 const FEATURES = [
   { icon: Sparkles, path: '/generate' },
   { icon: Globe2, path: '/localize' },
+  { icon: MessageSquareQuote, path: '/localize' },
   { icon: ShieldCheck, path: '/review' },
+  { icon: TrendingUp, path: '/trends' },
   { icon: Archive, path: '/archive' },
 ] as const
 
@@ -94,7 +96,7 @@ export default function ServiceIntro() {
             {s.features.map((feature, index) => {
               const { icon: Icon, path } = FEATURES[index]
               return (
-                <article key={path} className="service-reveal service-feature-card flex flex-col rounded-panel border border-gray-200 bg-surface/50 p-6 sm:p-8" style={{ '--reveal-delay': `${index * 75}ms` } as CSSProperties}>
+                <article key={feature.title} className="service-reveal service-feature-card flex flex-col rounded-panel border border-gray-200 bg-surface/50 p-6 sm:p-8" style={{ '--reveal-delay': `${index * 75}ms` } as CSSProperties}>
                   <div className="flex items-center justify-between">
                     <span className="service-feature-icon flex h-12 w-12 items-center justify-center text-brand-dark"><Icon size={24} aria-hidden /></span>
                   </div>
