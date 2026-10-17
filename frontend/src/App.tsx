@@ -40,6 +40,7 @@ const Privacy = lazyPage(() => import('./pages/Privacy'))
 const Pricing = lazyPage(() => import('./pages/Pricing'))
 const Result = lazyPage(() => import('./pages/Result'))
 const Review = lazyPage(() => import('./pages/Review'))
+const StickerTrends = lazyPage(() => import('./pages/StickerTrends'))
 const ServiceIntro = lazyPage(() => import('./pages/ServiceIntro'))
 const Terms = lazyPage(() => import('./pages/Terms'))
 const Support = lazyPage(() => import('./pages/Support'))
@@ -173,6 +174,7 @@ export function AppRoutes() {
                       <Route path="/editor" element={<Editor />} />
                       <Route path="/result" element={<Result />} />
                       <Route path="/review" element={<Review />} />
+                      <Route path="/trends" element={<StickerTrends />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>

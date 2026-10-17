@@ -10,6 +10,7 @@ import createIcon from '../assets/studio/create.svg'
 import localizeIcon from '../assets/studio/localize.svg'
 import reviewIcon from '../assets/studio/review.svg'
 import captionIcon from '../assets/studio/caption.svg'
+import trendsIcon from '../assets/studio/trends.svg'
 import arrowRightIcon from '../assets/studio/cta-arrow.svg'
 import { studioCopy } from '../i18n/studio'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -45,6 +46,7 @@ export default function Dashboard() {
     { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask },
     { title: t.hubReview, icon: reviewIcon, run: () => navigate('/review') },
     { title: t.hubCaption, icon: captionIcon, run: requestNewTask },
+    { title: t.hubTrends, icon: trendsIcon, run: () => navigate('/trends') },
   ]
 
   return (
