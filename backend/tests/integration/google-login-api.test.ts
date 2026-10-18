@@ -9,6 +9,11 @@ vi.mock('../../src/repositories/user.repository.js', () => ({
   findUserById: vi.fn(), findUserByEmail: vi.fn(), findUserByNaverId: vi.fn(), findUserBySupabaseAuthId: vi.fn(), insertEmailUser: vi.fn(), insertGoogleUser: vi.fn(), insertNaverUser: vi.fn(), linkGoogleProfile: vi.fn(), linkNaverProfile: vi.fn(), updateUserProfile: vi.fn(),
 }));
 
+vi.mock('../../src/repositories/session.repository.js', () => ({
+  insertSession: async () => ({ id: '00000000-0000-4000-8000-0000000000aa' }),
+  findSessionById: async () => null, touchSessionIfStale: async () => {}, listActiveSessions: async () => [], revokeSession: async () => true, revokeOtherSessions: async () => {}, extendSession: async () => {},
+}));
+
 const { createApp } = await import('../../src/app.js');
 const { supabase } = await import('../../src/config/supabase.js');
 const { env } = await import('../../src/config/env.js');

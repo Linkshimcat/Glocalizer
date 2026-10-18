@@ -7,10 +7,15 @@ import {
   fetchCurrentUser,
   loginWithGoogle as apiLoginWithGoogle,
   loginWithEmail as apiLoginWithEmail,
+  listSessions as apiListSessions,
   loginWithNaver as apiLoginWithNaver,
+  revokeOtherSessions as apiRevokeOtherSessions,
+  revokeSession as apiRevokeSession,
+  serverLogout as apiServerLogout,
   signupWithEmail as apiSignupWithEmail,
   updateProfile as apiUpdateProfile,
   type ProfileUpdate,
+  type AuthSession,
   type AuthUser,
 } from '../lib/authApi'
 
@@ -65,6 +70,11 @@ interface AuthState {
   updateProfile: (update: ProfileUpdate) => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   deleteAccount: () => Promise<void>
+  /** 이 계정으로 로그인된 기기 목록. */
+  listSessions: () => Promise<AuthSession[]>
+  revokeSession: (sessionId: string) => Promise<void>
+  /** 이 기기를 뺀 모든 기기를 로그아웃하고, 이 기기는 새 토큰으로 로그인 상태를 이어간다. */
+  revokeOtherSessions: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -111,7 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     applySession(result.token, result.user)
   }, [applySession])
 
-  const logout = useCallback(() => {
+  // 서버가 이미 토큰을 무효로 본 경우(401, 비밀번호 변경)에는 서버 호출 없이 로컬만 정리한다.
+  const clearSession = useCallback(() => {
     setApiAccountToken(null)
     tokenRef.current = null
     setCheckingSession(false)
@@ -120,6 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     persistSession(null, null)
   }, [])
+
+  const logout = useCallback(() => {
+    const current = tokenRef.current
+    // 서버 세션 폐기는 최선 노력: 네트워크가 안 돼도 이 기기의 로그아웃은 막지 않는다.
+    if (current) void apiServerLogout(current).catch(() => {})
+    clearSession()
+  }, [clearSession])
 
   const refreshUser = useCallback(async () => {
     if (!token) { setCheckingSession(false); return }
@@ -134,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (tokenRef.current !== token) return
         if (error instanceof AuthApiError && error.status === 401) {
-          logout()
+          clearSession()
         } else {
           // A temporary server/network failure must not erase a valid stored session.
           setSessionError(true)
@@ -145,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })()
     refreshInFlight.current = { token, promise: request }
     try { await request } finally { if (refreshInFlight.current?.promise === request) refreshInFlight.current = null }
-  }, [token, logout])
+  }, [token, clearSession])
 
   useEffect(() => {
     if (!token) return
@@ -174,8 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
     await apiChangePassword(token, currentPassword, newPassword)
-    logout()
-  }, [token, logout])
+    clearSession()
+  }, [token, clearSession])
 
   const deleteAccount = useCallback(async () => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
@@ -188,6 +206,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     persistSession(null, null)
   }, [token])
+
+  const listSessions = useCallback(async () => {
+    if (!token) throw new AuthApiError('로그인이 필요해요.')
+    return (await apiListSessions(token)).sessions
+  }, [token])
+
+  const revokeSession = useCallback(async (sessionId: string) => {
+    if (!token) throw new AuthApiError('로그인이 필요해요.')
+    await apiRevokeSession(token, sessionId)
+  }, [token])
+
+  const revokeOtherSessions = useCallback(async () => {
+    if (!token) throw new AuthApiError('로그인이 필요해요.')
+    const result = await apiRevokeOtherSessions(token)
+    applySession(result.token, result.user)
+  }, [token, applySession])
 
   const value = useMemo<AuthState>(() => ({
     user,
@@ -204,7 +238,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateProfile,
     changePassword,
     deleteAccount,
-  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile, changePassword, deleteAccount])
+    listSessions,
+    revokeSession,
+    revokeOtherSessions,
+  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile, changePassword, deleteAccount, listSessions, revokeSession, revokeOtherSessions])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

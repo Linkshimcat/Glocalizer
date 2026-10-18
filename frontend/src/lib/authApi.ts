@@ -126,6 +126,47 @@ export function deleteAccount(token: string): Promise<{ success: true }> {
   })
 }
 
+export interface AuthSession {
+  /** 이전 방식 토큰으로 로그인한 현재 기기는 'legacy'. */
+  id: string
+  deviceLabel: string | null
+  ipMasked: string | null
+  loginMethod: 'email' | 'naver' | 'google'
+  createdAt: string
+  lastSeenAt: string
+  current: boolean
+  legacy?: boolean
+}
+
+export function listSessions(token: string): Promise<{ sessions: AuthSession[] }> {
+  return authRequest<{ sessions: AuthSession[] }>('/auth/sessions', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export function revokeSession(token: string, sessionId: string): Promise<{ success: true }> {
+  return authRequest<{ success: true }>(`/auth/sessions/${encodeURIComponent(sessionId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+/** 이 기기를 뺀 모든 기기를 로그아웃한다. 이 기기가 계속 쓸 새 토큰을 돌려준다. */
+export function revokeOtherSessions(token: string): Promise<AuthResult> {
+  return authRequest<AuthResult>('/auth/sessions/revoke-others', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+/** 서버에서 이 기기의 세션을 폐기한다. 실패해도 로컬 로그아웃은 진행하므로 호출하는 쪽이 오류를 무시한다. */
+export function serverLogout(token: string): Promise<{ success: true }> {
+  return authRequest<{ success: true }>('/auth/logout', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
 export type FeedbackCategory = 'bug' | 'feature' | 'other'
 
 export function submitFeedback(token: string, category: FeedbackCategory, message: string): Promise<{ issueUrl: string }> {

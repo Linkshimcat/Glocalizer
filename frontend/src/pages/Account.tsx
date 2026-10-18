@@ -2,6 +2,7 @@ import { requestErrorMessage } from '../lib/requestError'
 import { Camera, ChevronRight, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import DeviceSessions from '../components/DeviceSessions'
 import GoogleIcon from '../components/GoogleIcon'
 import Modal from '../components/Modal'
 import SessionNotice from '../components/SessionNotice'
@@ -393,6 +394,8 @@ export default function Account() {
             )}
           </section>
         )}
+
+        <DeviceSessions />
 
         <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPolicyTitle}>
           <h2 className="text-lg font-extrabold text-ink">{t.accountPolicyTitle}</h2>

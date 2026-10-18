@@ -5,6 +5,11 @@ import sharp from 'sharp';
 vi.mock('../../src/repositories/user.repository.js', () => ({
   findUserById: vi.fn(), findUserByEmail: vi.fn(), findUserByNaverId: vi.fn(), findUserBySupabaseAuthId: vi.fn(), insertEmailUser: vi.fn(), insertGoogleUser: vi.fn(), insertNaverUser: vi.fn(), linkGoogleProfile: vi.fn(), linkNaverProfile: vi.fn(), updateUserPassword: vi.fn(), updateUserProfile: vi.fn(),
 }));
+vi.mock('../../src/repositories/session.repository.js', () => ({
+  insertSession: async () => ({ id: '00000000-0000-4000-8000-0000000000aa' }),
+  findSessionById: async () => null, touchSessionIfStale: async () => {}, listActiveSessions: async () => [], revokeSession: async () => true, revokeOtherSessions: async () => {}, extendSession: async () => {},
+}));
+
 const { createApp } = await import('../../src/app.js');
 const users = await import('../../src/repositories/user.repository.js');
 const { signAuthToken } = await import('../../src/utils/jwt.js');

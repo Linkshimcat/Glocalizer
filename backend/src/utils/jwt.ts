@@ -1,12 +1,16 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { env } from '../config/env.js';
 
-const AUTH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60; // 30일 — 이메일/네이버 로그인 세션 유지 기간
+export const AUTH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60; // 30일 — 이메일/네이버 로그인 세션 유지 기간
 
 export interface AuthTokenPayload {
   sub: string;
   ver?: number;
+  /** user_sessions 행 id. 기기별 세션 도입 이전에 발급된 토큰에는 없다. */
+  sid?: string;
 }
+
+const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 interface DecodedPayload extends AuthTokenPayload {
   ver: number;
@@ -48,7 +52,8 @@ export function verifyAuthToken(token: string): DecodedPayload | null {
     const now = Math.floor(Date.now() / 1000);
     if (!metadata || metadata.alg !== 'HS256' || metadata.typ !== 'JWT' || !payload) return null;
     if (!Number.isSafeInteger(payload.exp) || payload.exp <= now || !Number.isSafeInteger(payload.iat) || payload.iat > now) return null;
-    if (typeof payload.sub !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(payload.sub)) return null;
+    if (typeof payload.sub !== 'string' || !UUID_PATTERN.test(payload.sub)) return null;
+    if (payload.sid !== undefined && (typeof payload.sid !== 'string' || !UUID_PATTERN.test(payload.sid))) return null;
     const version = payload.ver ?? 0;
     if (!Number.isSafeInteger(version) || version < 0) return null;
     return { ...payload, ver: version };
