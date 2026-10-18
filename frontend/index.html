@@ -10,6 +10,8 @@
         try {
           var stored = localStorage.getItem('glocalizer:theme')
           var dark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          // 랜딩 스토리 목업이 앱 화면을 iframe으로 띄운다. 한국어 캡처·정적 목업이 항상 라이트라 iframe도 라이트로 고정해 톤을 맞춘다.
+          if (window.self !== window.top) dark = false
           if (dark) document.documentElement.classList.add('dark')
         } catch (e) {}
       })()
