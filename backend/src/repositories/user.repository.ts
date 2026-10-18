@@ -39,6 +39,17 @@ export async function updateUserPassword(userId: string, passwordHash: string, v
   if (!user) throw new AppError('UNAUTHORIZED');
 }
 
+/** 모든 기기의 토큰을 무효화한다(session_version +1). 동시에 바뀌었으면 UNAUTHORIZED. */
+export async function bumpSessionVersion(userId: string, version: number): Promise<number> {
+  const result = await supabase
+    .from('users')
+    .update({ session_version: version + 1, updated_at: new Date().toISOString() })
+    .eq('id', userId).eq('session_version', version).select('id').maybeSingle();
+  const user = unwrapNullableRow(result, '로그아웃에 실패했습니다.');
+  if (!user) throw new AppError('UNAUTHORIZED');
+  return version + 1;
+}
+
 interface InsertEmailUserInput {
   email: string;
   passwordHash: string;

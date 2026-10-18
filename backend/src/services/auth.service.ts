@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
 import {
+  bumpSessionVersion,
   findUserByEmail,
   findUserById,
   findUserByNaverId,
@@ -18,8 +19,11 @@ import {
   updateUserProfile,
 } from '../repositories/user.repository.js';
 import type { ChangePasswordInput, GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
+import { extendSession, insertSession, listActiveSessions, revokeOtherSessions, revokeSession } from '../repositories/session.repository.js';
+import type { LoginMethod, PublicSession, SessionContext } from '../types/session.js';
 import type { PublicUser, UserRow } from '../types/user.js';
-import { signAuthToken } from '../utils/jwt.js';
+import { parseDeviceLabel, maskIp } from '../utils/device-info.js';
+import { AUTH_TOKEN_TTL_SECONDS, signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { sendWelcomeEmail } from './email.service.js';
 
@@ -49,12 +53,26 @@ function toPublicUser(user: UserRow): PublicUser {
   };
 }
 
-function issueSession(user: UserRow): AuthResult {
-  if (user.deleting_at) throw new AppError('UNAUTHORIZED');
-  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0 }), user: toPublicUser(user) };
+function sessionExpiry(): Date {
+  return new Date(Date.now() + AUTH_TOKEN_TTL_SECONDS * 1000);
 }
 
-export async function signup(input: SignupInput): Promise<AuthResult> {
+/** 기기 정보는 라벨(브라우저 · OS)과 마스킹한 IP만 저장한다. User-Agent 원문은 길이를 자른다. */
+function sessionDevice(context: SessionContext) {
+  return {
+    userAgent: context.userAgent ? context.userAgent.slice(0, 255) : null,
+    deviceLabel: parseDeviceLabel(context.userAgent),
+    ipMasked: maskIp(context.ip),
+  };
+}
+
+async function issueSession(user: UserRow, loginMethod: LoginMethod, context: SessionContext): Promise<AuthResult> {
+  if (user.deleting_at) throw new AppError('UNAUTHORIZED');
+  const session = await insertSession({ userId: user.id, loginMethod, expiresAt: sessionExpiry(), ...sessionDevice(context) });
+  return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0, sid: session.id }), user: toPublicUser(user) };
+}
+
+export async function signup(input: SignupInput, context: SessionContext = {}): Promise<AuthResult> {
   const existing = await findUserByEmail(input.email);
   if (existing) {
     throw new AppError('EMAIL_ALREADY_REGISTERED', { email: input.email });
@@ -68,16 +86,16 @@ export async function signup(input: SignupInput): Promise<AuthResult> {
   // 메일은 기다리지 않는다: 발송이 느리거나 실패해도 가입 응답에 영향을 주지 않는다.
   void sendWelcomeEmail(user);
 
-  return issueSession(user);
+  return issueSession(user, 'email', context);
 }
 
-export async function login(input: LoginInput): Promise<AuthResult> {
+export async function login(input: LoginInput, context: SessionContext = {}): Promise<AuthResult> {
   const user = await findUserByEmail(input.email);
   if (!user || !user.password_hash || !await verifyPassword(input.password, user.password_hash)) {
     throw new AppError('INVALID_CREDENTIALS');
   }
 
-  return issueSession(user);
+  return issueSession(user, 'email', context);
 }
 
 export async function getCurrentUser(userId: string): Promise<PublicUser> {
@@ -121,6 +139,50 @@ export async function changePassword(userId: string, input: ChangePasswordInput)
   }
 
   await updateUserPassword(userId, await hashPassword(input.newPassword), user.session_version ?? 0);
+  await revokeOtherSessions(userId, null);
+}
+
+/** 로그인 중인 기기 목록. sid가 없는 현재 토큰(이전 방식)은 "이전 세션" 한 줄로 맨 앞에 보여준다. */
+export async function getSessions(userId: string, currentSid: string | undefined): Promise<PublicSession[]> {
+  const rows = await listActiveSessions(userId);
+  const sessions: PublicSession[] = rows.map((row) => ({
+    id: row.id,
+    deviceLabel: row.device_label,
+    ipMasked: row.ip_masked,
+    loginMethod: row.login_method,
+    createdAt: row.created_at,
+    lastSeenAt: row.last_seen_at,
+    current: row.id === currentSid,
+  }));
+  if (!currentSid) {
+    const now = new Date().toISOString();
+    sessions.unshift({ id: 'legacy', deviceLabel: null, ipMasked: null, loginMethod: 'email', createdAt: now, lastSeenAt: now, current: true, legacy: true });
+  }
+  return sessions;
+}
+
+export async function logoutSession(userId: string, currentSid: string | undefined): Promise<void> {
+  if (currentSid) await revokeSession(userId, currentSid);
+}
+
+export async function revokeUserSession(userId: string, sessionId: string): Promise<void> {
+  if (!await revokeSession(userId, sessionId)) throw new AppError('NOT_FOUND');
+}
+
+/** 현재 기기를 뺀 모든 기기를 로그아웃한다. session_version을 올리면 현재 토큰도 무효가 되므로
+ *  같은 세션 행(없으면 새로 만든 행)을 가리키는 새 토큰을 돌려준다. 기기별 세션 도입 이전 토큰도 함께 끊긴다. */
+export async function revokeOtherUserSessions(userId: string, currentSid: string | undefined, context: SessionContext): Promise<AuthResult> {
+  const user = await findUserById(userId);
+  if (!user || user.deleting_at) throw new AppError('UNAUTHORIZED');
+
+  const version = await bumpSessionVersion(userId, user.session_version ?? 0);
+  await revokeOtherSessions(userId, currentSid ?? null);
+
+  let sid = currentSid;
+  if (sid) await extendSession(sid, sessionExpiry());
+  else sid = (await insertSession({ userId, loginMethod: user.signup_method, expiresAt: sessionExpiry(), ...sessionDevice(context) })).id;
+
+  return { token: signAuthToken({ sub: userId, ver: version, sid }), user: toPublicUser({ ...user, session_version: version }) };
 }
 
 /** 현지화 프로젝트·생성 결과의 Storage 파일부터 지운 뒤 계정 행을 지운다 — 순서를 바꾸면
@@ -134,7 +196,7 @@ function identityString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResult> {
+export async function loginWithGoogle(input: GoogleLoginInput, context: SessionContext = {}): Promise<AuthResult> {
   const { data, error } = await supabase.auth.getUser(input.accessToken);
   const authUser = data.user;
   const googleIdentity = authUser?.identities?.find((identity) => identity.provider === 'google');
@@ -162,7 +224,7 @@ export async function loginWithGoogle(input: GoogleLoginInput): Promise<AuthResu
     }
   }
 
-  return issueSession(user);
+  return issueSession(user, 'google', context);
 }
 
 interface NaverTokenResponse {
@@ -179,7 +241,7 @@ interface NaverProfileResponse {
 
 /** authorization code(프론트에서 네이버 로그인 팝업으로 받은 값)를 access token으로 교환하고,
  *  프로필을 조회해 계정을 생성/갱신한다. redirect_uri는 네이버 토큰 API에서 요구하지 않는다. */
-export async function loginWithNaver(code: string, state: string): Promise<AuthResult> {
+export async function loginWithNaver(code: string, state: string, context: SessionContext = {}): Promise<AuthResult> {
   if (!env.NAVER_CLIENT_ID || !env.NAVER_CLIENT_SECRET) {
     throw new AppError('NAVER_NOT_CONFIGURED');
   }
@@ -231,5 +293,5 @@ export async function loginWithNaver(code: string, state: string): Promise<AuthR
     }
   }
 
-  return issueSession(user);
+  return issueSession(user, 'naver', context);
 }

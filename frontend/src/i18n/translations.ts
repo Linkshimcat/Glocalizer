@@ -98,6 +98,23 @@ export interface Dict {
   accountDeleteProcessingDesc: string
   accountSecurityTitle: string
   accountSecurityDesc: string
+  accountSessionsTitle: string
+  accountSessionsDesc: string
+  accountSessionsCurrent: string
+  accountSessionsLegacy: string
+  accountSessionsUnknownDevice: string
+  accountSessionsLastActive: string
+  accountSessionsSignOut: string
+  accountSessionsSignOutOthers: string
+  accountSessionsSignOutOthersAsk: string
+  accountSessionsConfirm: string
+  accountSessionsLegacyNote: string
+  accountSessionsRevoked: string
+  accountSessionsOthersRevoked: string
+  accountSessionsFailed: string
+  accountSessionsLoadFailed: string
+  accountSessionsRetry: string
+  accountSessionsLoading: string
   accountPasswordChangeCta: string
   accountPasswordCurrentLabel: string
   accountPasswordNewLabel: string
@@ -432,6 +449,23 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteProcessingDesc: '저장된 프로젝트와 이미지를 정리하고 있어요. 잠시만 기다려주세요.',
     accountSecurityTitle: '보안',
     accountSecurityDesc: '이메일로 가입한 계정의 비밀번호를 변경할 수 있어요.',
+    accountSessionsTitle: '로그인된 기기',
+    accountSessionsDesc: '이 계정으로 로그인된 기기예요. 모르는 기기가 보이면 바로 로그아웃하세요.',
+    accountSessionsCurrent: '이 기기',
+    accountSessionsLegacy: '이전 방식으로 로그인한 기기',
+    accountSessionsUnknownDevice: '알 수 없는 기기',
+    accountSessionsLastActive: '마지막 활동 {time}',
+    accountSessionsSignOut: '로그아웃',
+    accountSessionsSignOutOthers: '다른 기기 모두 로그아웃',
+    accountSessionsSignOutOthersAsk: '이 기기를 뺀 모든 기기에서 로그아웃돼요.',
+    accountSessionsConfirm: '로그아웃하기',
+    accountSessionsLegacyNote: '이전 방식으로 로그인한 다른 기기는 목록에 보이지 않을 수 있어요. \'다른 기기 모두 로그아웃\'을 누르면 함께 로그아웃돼요.',
+    accountSessionsRevoked: '기기를 로그아웃했어요.',
+    accountSessionsOthersRevoked: '다른 기기를 모두 로그아웃했어요.',
+    accountSessionsFailed: '로그아웃하지 못했어요. 잠시 후 다시 시도해주세요.',
+    accountSessionsLoadFailed: '기기 목록을 불러오지 못했어요.',
+    accountSessionsRetry: '다시 시도',
+    accountSessionsLoading: '불러오는 중…',
     accountPasswordChangeCta: '비밀번호 변경',
     accountPasswordCurrentLabel: '현재 비밀번호',
     accountPasswordNewLabel: '새 비밀번호',
@@ -757,6 +791,23 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteProcessingDesc: 'Removing your saved projects and images. This will just take a moment.',
     accountSecurityTitle: 'Security',
     accountSecurityDesc: 'Change the password for accounts signed up with email.',
+    accountSessionsTitle: 'Signed-in devices',
+    accountSessionsDesc: 'These devices are signed in to this account. Sign out any device you don\'t recognize.',
+    accountSessionsCurrent: 'This device',
+    accountSessionsLegacy: 'Signed in with the previous method',
+    accountSessionsUnknownDevice: 'Unknown device',
+    accountSessionsLastActive: 'Last active {time}',
+    accountSessionsSignOut: 'Sign out',
+    accountSessionsSignOutOthers: 'Sign out all other devices',
+    accountSessionsSignOutOthersAsk: 'This signs you out everywhere except this device.',
+    accountSessionsConfirm: 'Sign out',
+    accountSessionsLegacyNote: 'Other devices signed in with the previous method may not appear here. "Sign out all other devices" signs them out too.',
+    accountSessionsRevoked: 'Signed the device out.',
+    accountSessionsOthersRevoked: 'Signed out all other devices.',
+    accountSessionsFailed: 'Couldn\'t sign out. Please try again in a moment.',
+    accountSessionsLoadFailed: 'Couldn\'t load your devices.',
+    accountSessionsRetry: 'Retry',
+    accountSessionsLoading: 'Loading…',
     accountPasswordChangeCta: 'Change password',
     accountPasswordCurrentLabel: 'Current password',
     accountPasswordNewLabel: 'New password',
@@ -1082,6 +1133,23 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteProcessingDesc: '保存されたプロジェクトと画像を整理しています。少々お待ちください。',
     accountSecurityTitle: 'セキュリティ',
     accountSecurityDesc: 'メールで登録したアカウントのパスワードを変更できます。',
+    accountSessionsTitle: 'ログイン中の端末',
+    accountSessionsDesc: 'このアカウントでログインしている端末です。心当たりのない端末はすぐにログアウトしてください。',
+    accountSessionsCurrent: 'この端末',
+    accountSessionsLegacy: '以前の方式でログインした端末',
+    accountSessionsUnknownDevice: '不明な端末',
+    accountSessionsLastActive: '最終アクティビティ {time}',
+    accountSessionsSignOut: 'ログアウト',
+    accountSessionsSignOutOthers: '他の端末をすべてログアウト',
+    accountSessionsSignOutOthersAsk: 'この端末以外のすべての端末からログアウトします。',
+    accountSessionsConfirm: 'ログアウトする',
+    accountSessionsLegacyNote: '以前の方式でログインした他の端末は一覧に表示されない場合があります。「他の端末をすべてログアウト」で一緒にログアウトされます。',
+    accountSessionsRevoked: '端末をログアウトしました。',
+    accountSessionsOthersRevoked: '他の端末をすべてログアウトしました。',
+    accountSessionsFailed: 'ログアウトできませんでした。しばらくしてからもう一度お試しください。',
+    accountSessionsLoadFailed: '端末一覧を読み込めませんでした。',
+    accountSessionsRetry: '再試行',
+    accountSessionsLoading: '読み込み中…',
     accountPasswordChangeCta: 'パスワード変更',
     accountPasswordCurrentLabel: '現在のパスワード',
     accountPasswordNewLabel: '新しいパスワード',
@@ -1407,6 +1475,23 @@ export const translations: Record<SiteLang, Dict> = {
     accountDeleteProcessingDesc: '正在清理已保存的项目和图片,请稍候。',
     accountSecurityTitle: '安全',
     accountSecurityDesc: '可以修改通过邮箱注册的账户密码。',
+    accountSessionsTitle: '已登录的设备',
+    accountSessionsDesc: '以下是已登录此账户的设备。如发现不认识的设备，请立即退出登录。',
+    accountSessionsCurrent: '本设备',
+    accountSessionsLegacy: '以旧方式登录的设备',
+    accountSessionsUnknownDevice: '未知设备',
+    accountSessionsLastActive: '最近活动 {time}',
+    accountSessionsSignOut: '退出登录',
+    accountSessionsSignOutOthers: '退出其他所有设备',
+    accountSessionsSignOutOthersAsk: '将退出除本设备以外的所有设备。',
+    accountSessionsConfirm: '确认退出',
+    accountSessionsLegacyNote: '以旧方式登录的其他设备可能不会显示在列表中。点击“退出其他所有设备”会一并退出。',
+    accountSessionsRevoked: '已退出该设备。',
+    accountSessionsOthersRevoked: '已退出其他所有设备。',
+    accountSessionsFailed: '退出失败，请稍后重试。',
+    accountSessionsLoadFailed: '无法加载设备列表。',
+    accountSessionsRetry: '重试',
+    accountSessionsLoading: '加载中…',
     accountPasswordChangeCta: '修改密码',
     accountPasswordCurrentLabel: '当前密码',
     accountPasswordNewLabel: '新密码',

@@ -44,3 +44,5 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type NaverCallbackInput = z.infer<typeof naverCallbackSchema>;
 export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const sessionIdParamsSchema = z.object({ id: z.string().uuid() });

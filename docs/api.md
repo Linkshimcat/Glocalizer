@@ -81,6 +81,18 @@ New account workspaces use the existing custom login JWT (`Authorization: Bearer
 
 Owned projects have `expires_at = null` and are excluded from expiry cleanup. Browser storage retains only the selected project ID and account ID as navigation pointers; images and styles are restored from the server. Pending upload/edit writes display errors and can be retried. Editing uses the existing editor-state API and flushes writes before marking a result ready or starting a new task. Concurrent editing in different devices is last-write-wins; no shared live editing is implemented.
 
+### Device sessions
+
+Every sign-in (email, Naver, Google, signup) inserts a `user_sessions` row and signs the token with its id as the `sid` claim; `authMiddleware` rejects a token whose session is missing, revoked or expired. Tokens issued before this change have no `sid` and stay valid until `exp` (shown as a single "previous method" entry). `users.session_version` is still the revoke-everything switch (password change, sign out other devices). Only a device label (`Chrome · macOS`), a masked IP (`203.0.113.x`, IPv6 `/48`) and timestamps are returned; the raw IP is never stored.
+
+All endpoints require the account token:
+- `GET /auth/sessions` → `{ sessions: [{ id, deviceLabel, ipMasked, loginMethod, createdAt, lastSeenAt, current, legacy? }] }`. A legacy token gets a leading `{ id: 'legacy', legacy: true, current: true }` entry.
+- `DELETE /auth/sessions/:id` revokes one of the caller's own sessions (`404` if it is not theirs or already revoked).
+- `POST /auth/logout` revokes the current session (no-op for legacy tokens).
+- `POST /auth/sessions/revoke-others` bumps `session_version`, revokes every other session and returns `{ token, user }`: a fresh token for the calling device, which must replace the stored one.
+
+Apply `supabase/migrations/20261018150000_user_sessions.sql` before deploying the backend: it creates the table and adds it to `backend_schema_ready()`, so a backend started against an unmigrated database refuses to boot.
+
 ### Rollout
 
 Apply `supabase/migrations/20260918174815_account_projects.sql` using the repository migration runner before deploying the backend, then deploy the frontend. The runner accepts existing 3-digit names and Supabase CLI timestamp names. The Docker image currently does not run migrations automatically: run them separately against the configured deployment database. Owned workspaces use backend-only tables with RLS enabled; no public read policies or service-role keys are added to the frontend.
