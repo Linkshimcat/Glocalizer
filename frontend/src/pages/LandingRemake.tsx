@@ -30,6 +30,7 @@ import workflowReviewPoster from '../assets/LandingAssets/Check-poster.jpg'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import LandingEnding from '../components/LandingEnding'
+import { CaptionSuggestMock, TrendsMock } from '../components/LandingSceneMocks'
 import OgqStickerGallery from '../components/OgqStickerGallery'
 import RollingText from '../components/RollingText'
 import '../landing.css'
@@ -51,7 +52,7 @@ type RemakeCopy = {
   languageLabels: [string, string, string]
   workflowTitle: string
   workflowDescription: string
-  scenes: [SceneCopy, SceneCopy, SceneCopy]
+  scenes: SceneCopy[]
   caseTitle: string
   caseDescription: string
   caseOriginal: string
@@ -67,6 +68,17 @@ const WORKFLOW_VISUALS = [
   { webm: workflowLocalizeWebm, mp4: workflowLocalizeMp4, poster: workflowLocalizePoster },
   { webm: workflowReviewWebm, mp4: workflowReviewMp4, poster: workflowReviewPoster },
 ]
+
+// COPY.scenes와 같은 순서. workflow는 아래 워크플로 카드(영상)가 있는 장면만 WORKFLOW_VISUALS 인덱스를 가진다.
+// mock이 있는 장면은 iframe/캡처 대신 LandingSceneMocks의 정적 목업을 쓴다.
+const SCENES: { route: string; workflow?: number; mock?: 'caption' | 'trends' }[] = [
+  { route: '/generate', workflow: 0 },
+  { route: '/localize', workflow: 1 },
+  { route: '/caption-suggest', mock: 'caption' },
+  { route: '/review', workflow: 2 },
+  { route: '/trends', mock: 'trends' },
+]
+const WORKFLOW_SCENES = SCENES.flatMap((scene, index) => scene.workflow === undefined ? [] : [{ index, workflow: scene.workflow }])
 
 const COPY: Record<SiteLang, RemakeCopy> = {
   "ko": {
@@ -93,9 +105,19 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "linkLabel": "현지화 시작하기"
       },
       {
+        "title": "AI 문구 추천",
+        "description": "문구 없는 이모티콘도 AI가 표정과 동작을 분석해 한국어 문구를 추천합니다.",
+        "linkLabel": "문구 추천받기"
+      },
+      {
         "title": "출시 전 검토",
         "description": "OGQ 규격과 이미지·문구를 확인합니다.",
         "linkLabel": "검토 시작하기"
+      },
+      {
+        "title": "국가별 인기 이모티콘",
+        "description": "한국·일본·중국·미국의 인기 이모티콘을 모아 시장 조사에 참고하세요.",
+        "linkLabel": "인기 이모티콘 보기"
       }
     ],
     "caseTitle": "작업 결과",
@@ -131,9 +153,19 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "linkLabel": "Start localizing"
       },
       {
+        "title": "AI caption suggestions",
+        "description": "AI reads the expression and pose, then suggests a Korean caption for stickers with no text.",
+        "linkLabel": "Get suggestions"
+      },
+      {
         "title": "Pre-release review",
         "description": "Check OGQ specifications, images and captions.",
         "linkLabel": "Start reviewing"
+      },
+      {
+        "title": "Popular stickers by country",
+        "description": "Browse trending stickers from Korea, Japan, China and the US for market research.",
+        "linkLabel": "Browse popular stickers"
       }
     ],
     "caseTitle": "Project results",
@@ -169,9 +201,19 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "linkLabel": "ローカライズを始める"
       },
       {
+        "title": "AI文言の提案",
+        "description": "文言のないスタンプも、AIが表情と動作を分析して韓国語の文言を提案します。",
+        "linkLabel": "文言を提案してもらう"
+      },
+      {
         "title": "公開前チェック",
         "description": "OGQの規格と画像・文言を確認します。",
         "linkLabel": "チェックを始める"
+      },
+      {
+        "title": "国・地域別の人気スタンプ",
+        "description": "韓国・日本・中国・アメリカの人気スタンプを、市場調査の参考にご覧ください。",
+        "linkLabel": "人気スタンプを見る"
       }
     ],
     "caseTitle": "制作結果",
@@ -207,9 +249,19 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "linkLabel": "开始本地化"
       },
       {
+        "title": "AI文案推荐",
+        "description": "没有文字的表情也没关系，AI会分析表情和动作，推荐合适的韩语文案。",
+        "linkLabel": "获取文案推荐"
+      },
+      {
         "title": "发布前检查",
         "description": "检查OGQ规格、图片和文案。",
         "linkLabel": "开始检查"
+      },
+      {
+        "title": "各国热门表情",
+        "description": "汇总韩国、日本、中国、美国的热门表情，供市场调研参考。",
+        "linkLabel": "查看热门表情"
       }
     ],
     "caseTitle": "项目成果",
@@ -340,7 +392,7 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
   const width = isMobile ? 390 : isTablet ? 834 : 1000
   const height = isMobile ? 844 : isTablet ? 560 : 650
   const capture = isMobile ? phoneCapture : desktopCapture
-  const screenRoute = ['/generate', '/localize', '/review'][scene]
+  const { route: screenRoute, mock } = SCENES[scene]
 
   useEffect(() => {
     const mobileMedia = window.matchMedia('(max-width: 767px)')
@@ -369,8 +421,11 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
   }, [width, height])
 
   return (
-    <div ref={frameRef} className="remake-product-window" data-lang={lang} data-captured={Boolean(capture)}>
-      {!capture && <iframe
+    <div ref={frameRef} className="remake-product-window" data-lang={lang} data-captured={Boolean(capture || mock)}>
+      {mock && <div className="remake-product-screen" style={{ width, height, transform: `scale(${scale})` }}>
+        {mock === 'caption' ? <CaptionSuggestMock lang={lang} compact={isMobile} /> : <TrendsMock lang={lang} compact={isMobile} />}
+      </div>}
+      {!capture && !mock && <iframe
         key={`${lang}-${width}-${screenRoute}`}
         src={screenRoute}
         title={title}
@@ -425,7 +480,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
   const [compactStory, setCompactStory] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-height: 650px) and (max-width: 900px)').matches)
   const staticStory = reduceMotion || compactStory
   const [scene, setScene] = useState(0)
-  const [workflowVisible, setWorkflowVisible] = useState<boolean[]>([false, false, false])
+  const [workflowVisible, setWorkflowVisible] = useState<boolean[]>(() => WORKFLOW_VISUALS.map(() => false))
   const [activeWorkflowIndex, setActiveWorkflowIndex] = useState(0)
   const [showcases, setShowcases] = useState<LandingShowcase[]>([])
 
@@ -479,7 +534,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
       const headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 72
       const travel = Math.max(story.offsetHeight - window.innerHeight + headerHeight, 1)
       const progress = Math.min(Math.max((headerHeight - rect.top) / travel, 0), 1)
-      const nextScene = Math.min(Math.floor(progress * 3), 2)
+      const nextScene = Math.min(Math.floor(progress * SCENES.length), SCENES.length - 1)
       setScene((current) => current === nextScene ? current : nextScene)
     }
     const onScroll = () => {
@@ -498,7 +553,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
   useEffect(() => {
     const grid = workflowGridRef.current
     if (reduceMotion || !grid || !('IntersectionObserver' in window)) {
-      setWorkflowVisible([true, true, true])
+      setWorkflowVisible(WORKFLOW_VISUALS.map(() => true))
       return
     }
 
@@ -542,8 +597,8 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
             lang={lang}
             title={copy.scenes[index].title.replace('\n', ' ')}
             scene={index}
-            phoneCapture={lang === 'ko' ? [generatePhoneCapture, localizePhoneCapture, reviewPhoneCapture][index] : undefined}
-            desktopCapture={lang === 'ko' ? [generateDesktopCapture, localizeDesktopCapture, reviewDesktopCapture][index] : undefined}
+            phoneCapture={lang === 'ko' ? [generatePhoneCapture, localizePhoneCapture, undefined, reviewPhoneCapture, undefined][index] : undefined}
+            desktopCapture={lang === 'ko' ? [generateDesktopCapture, localizeDesktopCapture, undefined, reviewDesktopCapture, undefined][index] : undefined}
           />
           <img src={macbookFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-desktop" />
           <img src={ipadFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-tablet" />
@@ -585,7 +640,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
 
         <VideoIntro reduceMotion={reduceMotion} t={t} />
 
-        <section ref={storyRef} className="remake-story" data-lang={lang} data-static={staticStory} aria-label={copy.workflowTitle}>
+        <section ref={storyRef} className="remake-story" data-lang={lang} data-static={staticStory} aria-label={copy.workflowTitle} style={{ '--scene-count': copy.scenes.length } as CSSProperties}>
           {staticStory ? copy.scenes.map((_, index) => renderStoryScene(index)) : (
             <div className="remake-story-sticky">{renderStoryScene(scene)}</div>
           )}
@@ -594,20 +649,23 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
         <section className="remake-workflow">
           <div className="remake-workflow-heading"><h2>{copy.workflowTitle}</h2><p>{copy.workflowDescription}</p></div>
           <div ref={workflowGridRef} className="remake-workflow-grid" data-motion-ready={typeof window !== 'undefined'}>
-            {copy.scenes.map((item, index) => (
-              <article
-                key={item.title}
-                data-visible={workflowVisible[index]}
-                data-active={activeWorkflowIndex === index}
-                style={{ '--workflow-delay': `${index * 120}ms` } as CSSProperties}
-                onPointerDown={() => setActiveWorkflowIndex(index)}
-              >
-                <WorkflowVisual visual={WORKFLOW_VISUALS[index]} reduceMotion={reduceMotion} />
-                <h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3>
-                <div>{item.description}</div>
-                <Link to={['/generate', '/localize', '/review'][index]} className="remake-workflow-link" onFocus={() => setActiveWorkflowIndex(index)}>{item.linkLabel}<img src={workflowArrow} alt="" aria-hidden="true" /></Link>
-              </article>
-            ))}
+            {WORKFLOW_SCENES.map(({ index: sceneIndex, workflow: index }) => {
+              const item = copy.scenes[sceneIndex]
+              return (
+                <article
+                  key={item.title}
+                  data-visible={workflowVisible[index]}
+                  data-active={activeWorkflowIndex === index}
+                  style={{ '--workflow-delay': `${index * 120}ms` } as CSSProperties}
+                  onPointerDown={() => setActiveWorkflowIndex(index)}
+                >
+                  <WorkflowVisual visual={WORKFLOW_VISUALS[index]} reduceMotion={reduceMotion} />
+                  <h3>{item.title.split('\n').map((line) => <span key={line}>{line}</span>)}</h3>
+                  <div>{item.description}</div>
+                  <Link to={SCENES[sceneIndex].route} className="remake-workflow-link" onFocus={() => setActiveWorkflowIndex(index)}>{item.linkLabel}<img src={workflowArrow} alt="" aria-hidden="true" /></Link>
+                </article>
+              )
+            })}
           </div>
         </section>
 

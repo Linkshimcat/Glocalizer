@@ -29,15 +29,15 @@
 .main-restyle .remake-video-replay:hover { background: var(--color-brand-soft); }
 .main-restyle .remake-video-replay-icon { display: grid; width: 20px; height: 20px; flex: 0 0 20px; place-items: center; }
 .main-restyle .remake-video-replay-icon img { display: block; width: 13.333px; height: 13.333px; }
-.main-restyle .remake-story { height: 210svh; background: linear-gradient(180deg,#22c55e 0%,#498f6c 100%); color: #fff; scroll-margin-top: var(--main-header-height); }
+.main-restyle .remake-story { height: calc(100svh + var(--scene-count, 3) * 37svh - 1svh); background: linear-gradient(180deg,#22c55e 0%,#498f6c 100%); color: #fff; scroll-margin-top: var(--main-header-height); }
 .main-restyle .remake-story-sticky { position: sticky; top: var(--main-header-height); display: flex; height: calc(100svh - var(--main-header-height)); min-height: calc(100svh - var(--main-header-height)); padding: 40px 3vw; max-width: 1600px; margin: 0 auto; }
 .main-restyle .remake-story-scene { display: grid; width: 100%; grid-template-columns: minmax(300px,.8fr) minmax(0,1.9fr); align-items: center; gap: 32px; }
 .main-restyle .remake-scene-copy { position: relative; z-index: 3; min-width: 0; animation: remake-copy-in .5s cubic-bezier(.22,1,.36,1) both; }
 .main-restyle .remake-scene-copy h2 { margin-top: 20px; font-size: clamp(38px,3.5vw,54px); letter-spacing: -.045em; line-height: 1.16; font-weight: 800; word-break: keep-all; overflow-wrap: normal; }
 .main-restyle .remake-scene-copy > div:not(.remake-scene-progress) { max-width: 380px; margin-top: 22px; color: #d6e5dc; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
-.main-restyle .remake-scene-progress { display: flex; width: min(100%,132px); gap: 6px; margin-top: 28px; }
-.main-restyle .remake-scene-progress span { height: 3px; flex: 1; border-radius: 4px; background: #476554; transition: background-color .25s; }
-.main-restyle .remake-scene-progress span[data-active="true"] { background: #22c55e; }
+.main-restyle .remake-scene-progress { display: flex; width: min(100%,160px); gap: 6px; margin-top: 28px; }
+.main-restyle .remake-scene-progress span { height: 4px; flex: 1; border-radius: 4px; background: rgba(255,255,255,.35); transition: background-color .25s; }
+.main-restyle .remake-scene-progress span[data-active="true"] { background: #fff; }
 .main-restyle .remake-device-wrap { width: min(100%,960px); min-width: 0; justify-self: center; }
 .main-restyle .remake-device { position: relative; isolation: isolate; width: 100%; aspect-ratio: 4096 / 2499; filter: drop-shadow(0 28px 34px rgba(25,31,40,.13)); }
 .main-restyle .remake-device-frame { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -46,6 +46,8 @@
 .main-restyle .remake-product-screen { position: absolute; top: 0; left: 0; display: block; transform-origin: top left; border: 0; background: var(--color-card); pointer-events: none; }
 /* 한국어는 라이트로 찍은 정적 캡처를 쓴다 — 다크 랜딩에서도 폰 노치 뒤 여백이 어두워 보이지 않게 흰 배경을 유지한다. 라이브 iframe은 앱 테마(--color-card)를 따른다. */
 .main-restyle .remake-product-window[data-captured="true"], .main-restyle .remake-product-window[data-captured="true"] .remake-product-screen { background: #fff; }
+/* 정적 목업(LandingSceneMocks)은 다크 모드에서도 라이트 캡처와 같은 톤을 유지하도록 토큰을 라이트 값으로 되돌린다. */
+.main-restyle .remake-mock { --color-ink: #191f28; --color-sub: #56616e; --color-surface: #f2f4f6; --color-brand-soft: #eafbf1; --color-card: #fff; --color-line: #e1e5e3; color: var(--color-ink); letter-spacing: -.02em; line-height: 1.5; text-align: left; }
 .main-restyle .remake-product-capture { display: none; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .main-restyle .remake-product-capture-desktop { transform: none; }
 .main-restyle .remake-product-window[data-lang="ko"][data-captured="true"] .remake-product-capture { display: block; }

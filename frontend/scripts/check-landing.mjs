@@ -28,7 +28,7 @@ async function overflow(page,label){
  const bad=await page.locator('main h1,main h2,main h3,header').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.left<-.5||r.right>innerWidth+.5||n.scrollWidth>n.clientWidth+1}).map(n=>({text:n.textContent,rect:n.getBoundingClientRect().toJSON(),scroll:n.scrollWidth,client:n.clientWidth})))
  assert.deepEqual(bad,[],'text bounds '+label)
 }
-async function scene(page,i){await page.evaluate(i=>{const s=document.querySelector('.remake-story'),h=document.querySelector('header').offsetHeight;scrollTo(0,s.offsetTop-h+(s.offsetHeight-innerHeight+h)*(i/3+.1))},i);await page.waitForFunction(index=>document.querySelectorAll('.remake-scene-progress > span[data-active="true"]').length===index+1,i);await page.waitForTimeout(550)}
+async function scene(page,i){await page.evaluate(i=>{const s=document.querySelector('.remake-story'),h=document.querySelector('header').offsetHeight;scrollTo(0,s.offsetTop-h+(s.offsetHeight-innerHeight+h)*(i/5+.1))},i);await page.waitForFunction(index=>document.querySelectorAll('.remake-scene-progress > span[data-active="true"]').length===index+1,i);await page.waitForTimeout(550)}
 let cases=0
 try {
 for(const width of (process.env.LANDING_SKIP_MATRIX === '1' ? [] : [360,390,768,1280,1440]))for(const lang of ['ko','en','ja','zh']){
@@ -45,9 +45,9 @@ for(const width of (process.env.LANDING_SKIP_MATRIX === '1' ? [] : [360,390,768,
  await page.locator('video.remake-intro-video').scrollIntoViewIfNeeded();await page.waitForFunction(()=>document.querySelector('video.remake-intro-video').readyState>=2)
  const video=await page.locator('video.remake-intro-video').evaluate(v=>{const r=v.getBoundingClientRect(),s=getComputedStyle(v);return{width:r.width,height:r.height,w:v.videoWidth,h:v.videoHeight,duration:v.duration,filter:s.filter,fit:s.objectFit,transform:s.transform}})
  assert.ok(Math.abs(video.width/video.height-16/9)<.01);assert.ok(video.width<=1120.1);assert.equal(video.w,1920);assert.equal(video.h,1080);assert.ok(video.duration>18&&video.duration<19);assert.equal(video.filter,'none');assert.equal(video.transform,'none');assert.equal(video.fit,'contain')
- for(let i=0;i<3;i++){
+ for(let i=0;i<5;i++){
   await scene(page,i)
-  const sceneTitles={ko:['이모티콘 생성','다국어 현지화','출시 전 검토'],en:['Sticker creation','Caption localization','Pre-release review'],ja:['スタンプ生成','多言語ローカライズ','公開前チェック'],zh:['表情生成','多语言本地化','发布前检查']}
+  const sceneTitles={ko:['이모티콘 생성','다국어 현지화','AI 문구 추천','출시 전 검토','국가별 인기 이모티콘'],en:['Sticker creation','Caption localization','AI caption suggestions','Pre-release review','Popular stickers by country'],ja:['スタンプ生成','多言語ローカライズ','AI文言の提案','公開前チェック','国・地域別の人気スタンプ'],zh:['表情生成','多语言本地化','AI文案推荐','发布前检查','各国热门表情']}
   assert.equal(await page.locator('.remake-scene-copy h2').innerText(),sceneTitles[lang][i])
   await overflow(page,`${label} scene ${i}`)
   const b=await page.evaluate(()=>{const c=document.querySelector('.remake-scene-copy').getBoundingClientRect(),d=document.querySelector('.remake-device').getBoundingClientRect(),h=document.querySelector('header').getBoundingClientRect();return{copy:c.toJSON(),device:d.toJSON(),header:h.bottom,height:innerHeight}})
@@ -59,8 +59,9 @@ for(const width of (process.env.LANDING_SKIP_MATRIX === '1' ? [] : [360,390,768,
   }
 
   assert.equal(await page.locator(width<=900?'.remake-device-frame-mobile':'.remake-device-frame-desktop').isVisible(),true)
-  if(lang==='ko')assert.equal(await page.locator('.remake-product-capture').evaluate(n=>n.naturalWidth),width<=900?390:1280)
-  else assert.equal(await page.locator('.remake-product-live').getAttribute('src'),['/generate','/localize','/review'][i])
+  if(i===2||i===4){assert.equal(await page.locator('.remake-product-window[data-captured="true"] .remake-mock').count(),1,`${label}: scene ${i} mock`);assert.equal(await page.locator('.remake-product-live, .remake-product-capture').count(),0)}
+  else if(lang==='ko')assert.equal(await page.locator('.remake-product-capture').evaluate(n=>n.naturalWidth),width<=900?390:1280)
+  else assert.equal(await page.locator('.remake-product-live').getAttribute('src'),{0:'/generate',1:'/localize',3:'/review'}[i])
  }
  await page.locator('.remake-workflow-grid').scrollIntoViewIfNeeded();await page.waitForTimeout(850)
  const cards=page.locator('.remake-workflow-grid article')
@@ -126,7 +127,7 @@ for(const width of (process.env.LANDING_SKIP_MATRIX === '1' ? [] : [360,390,768,
 }
 for(const width of [390,1440])for(const lang of ['ko','en','ja','zh']){
  const {page,context}=await setup({width,lang,motion:'reduce'})
- assert.equal(await page.locator('.remake-story-scene').count(),3)
+ assert.equal(await page.locator('.remake-story-scene').count(),5)
  assert.equal(await page.locator('.remake-hero .animate-roll-word').first().evaluate(n=>getComputedStyle(n).animationName),'none')
  assert.equal(await page.locator('.remake-hero .roll-layer').nth(1).evaluate(n=>getComputedStyle(n).opacity),'0')
  assert.equal(await page.locator('.remake-workflow-grid article[data-visible="true"]').count(),3)
@@ -164,7 +165,7 @@ for(const state of ['success','empty','failure']){
 }
 {
  const {page,context}=await setup({width:768,height:600})
- assert.equal(await page.locator('.remake-story-scene').count(),3);await overflow(page,'short viewport');await context.close()
+ assert.equal(await page.locator('.remake-story-scene').count(),5);await overflow(page,'short viewport');await context.close()
 }
 // Header navigation, hero CTA, workflow links, and language switching stay usable.
 {
