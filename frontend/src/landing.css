@@ -42,8 +42,8 @@
 .main-restyle .remake-device { position: relative; isolation: isolate; width: 100%; aspect-ratio: 4096 / 2499; filter: drop-shadow(0 28px 34px rgba(25,31,40,.13)); }
 .main-restyle .remake-device-frame { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .main-restyle .remake-device-frame-tablet, .main-restyle .remake-device-frame-mobile { display: none; }
-.main-restyle .remake-product-window { position: absolute; z-index: 1; top: 2.2%; left: 9%; width: 82%; height: 87.3%; overflow: hidden; border-radius: 2.7% 2.7% 0 0; background: var(--color-card); pointer-events: none; animation: remake-screen-enter .5s cubic-bezier(.22,1,.36,1) both; }
-.main-restyle .remake-product-screen { position: absolute; top: 0; left: 0; display: block; transform-origin: top left; border: 0; background: var(--color-card); pointer-events: none; }
+.main-restyle .remake-product-window { position: absolute; z-index: 1; top: 2.2%; left: 9%; width: 82%; height: 87.3%; overflow: hidden; border-radius: 2.7% 2.7% 0 0; background: #fff; pointer-events: none; animation: remake-screen-enter .5s cubic-bezier(.22,1,.36,1) both; }
+.main-restyle .remake-product-screen { position: absolute; top: 0; left: 0; display: block; transform-origin: top left; border: 0; background: #fff; pointer-events: none; }
 /* 한국어는 라이트로 찍은 정적 캡처를 쓴다 — 다크 랜딩에서도 폰 노치 뒤 여백이 어두워 보이지 않게 흰 배경을 유지한다. 라이브 iframe은 앱 테마(--color-card)를 따른다. */
 .main-restyle .remake-product-window[data-captured="true"], .main-restyle .remake-product-window[data-captured="true"] .remake-product-screen { background: #fff; }
 /* 정적 목업(LandingSceneMocks)은 다크 모드에서도 라이트 캡처와 같은 톤을 유지하도록 토큰을 라이트 값으로 되돌린다. */

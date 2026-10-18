@@ -389,10 +389,15 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
   const [isMobile, setIsMobile] = useState(false)
   const [isTablet, setIsTablet] = useState(false)
   const [scale, setScale] = useState(1)
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 })
   const width = isMobile ? 390 : isTablet ? 834 : 1000
   const height = isMobile ? 844 : isTablet ? 560 : 650
+  // 폰 목업은 카메라 컷아웃을 피하려고 화면을 윗부분 5% 아래에서 시작한다(landing.css의 .remake-product-screen top). 그만큼 높이를 덜 써야 아래가 안 잘린다.
+  const usableHeight = isMobile ? 0.95 : 1
   const capture = isMobile ? phoneCapture : desktopCapture
   const { route: screenRoute, mock } = SCENES[scene]
+  // 폰에서는 목업이 창 폭에 딱 맞게 확대되고, 높이는 창에 맞춰 늘어난다. 고정 844px 비율이면 짧은 폰 창(모바일 브라우저 주소창이 화면을 줄일 때)에서 목업이 작아지고 한쪽으로 쏠린다.
+  const mockFit = mock && isMobile && frameSize.width > 0 ? { scale: frameSize.width / width, height: (frameSize.height * usableHeight * width) / frameSize.width } : null
 
   useEffect(() => {
     const mobileMedia = window.matchMedia('(max-width: 767px)')
@@ -414,15 +419,16 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
     const frame = frameRef.current
     if (!frame) return
     const observer = new ResizeObserver(([entry]) => {
-      setScale(Math.min(entry.contentRect.width / width, entry.contentRect.height / height))
+      setFrameSize({ width: entry.contentRect.width, height: entry.contentRect.height })
+      setScale(Math.min(entry.contentRect.width / width, entry.contentRect.height * usableHeight / height))
     })
     observer.observe(frame)
     return () => observer.disconnect()
-  }, [width, height])
+  }, [width, height, usableHeight])
 
   return (
     <div ref={frameRef} className="remake-product-window" data-lang={lang} data-captured={Boolean(capture || mock)}>
-      {mock && <div className="remake-product-screen" style={{ width, height, transform: `scale(${scale})` }}>
+      {mock && <div className="remake-product-screen" style={mockFit ? { width, height: mockFit.height, transform: `scale(${mockFit.scale})` } : { width, height, transform: `scale(${scale})` }}>
         {mock === 'caption' ? <CaptionSuggestMock lang={lang} compact={isMobile} /> : <TrendsMock lang={lang} compact={isMobile} />}
       </div>}
       {!capture && !mock && <iframe
