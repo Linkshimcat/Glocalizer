@@ -1,18 +1,15 @@
 import { Check } from 'lucide-react'
 import type { ReactNode } from 'react'
 import heroCharacter from '../assets/studio/hero-character.webp'
-import { STICKER_TRENDS } from '../data/stickerTrends'
 import { captionSuggestCopy } from '../i18n/captionSuggest'
-import { stickerTrendsCopy } from '../i18n/stickerTrends'
 import type { SiteLang } from '../i18n/translations'
 import { useSiteLang } from '../i18n/LanguageContext'
 import Logo from './Logo'
-import StickerGrid from './StickerGrid'
 
 /**
- * 랜딩 스토리 장면용 정적 목업. 실제 /caption-suggest는 업로드·프로젝트가 없으면 리다이렉트되고
- * /trends는 한국 탭이 라이브 OGQ API를 호출하므로, iframe 대신 같은 마크업을 데이터 고정으로 그린다.
- * 부모(LiveProductScreen)가 가상 뷰포트 크기를 주고 scale로 축소한다.
+ * 랜딩 스토리 장면용 정적 목업. 실제 /caption-suggest는 업로드·프로젝트가 없으면 리다이렉트되므로
+ * iframe 대신 같은 마크업을 데이터 고정으로 그린다. 부모(LiveProductScreen)가 가상 뷰포트 크기를
+ * 주고 scale로 축소한다.
  */
 
 const LANG_LABEL: Record<SiteLang, string> = { ko: '한국어', en: 'English', ja: '日本語', zh: '中文' }
@@ -115,30 +112,6 @@ export function CaptionSuggestMock({ lang, compact }: { lang: SiteLang; compact:
       <div className={`flex gap-3 ${compact ? 'mt-auto pt-3' : 'mt-3'}`}>
         {!compact && <span className="flex-1 rounded-lg bg-surface py-2.5 text-center text-sm font-bold">{t.backToDetect}</span>}
         <span className="flex-1 rounded-lg bg-action py-2.5 text-center text-sm font-bold text-white">{t.reviewAllAtOnce}</span>
-      </div>
-    </MockFrame>
-  )
-}
-
-const TREND_TABS = ['KR', 'JP', 'CN', 'US'] as const
-
-export function TrendsMock({ lang, compact }: { lang: SiteLang; compact: boolean }) {
-  const t = stickerTrendsCopy(lang)
-  const labels = { KR: t.tabKorea, JP: t.tabJapan, CN: t.tabChina, US: t.tabUs }
-  const items = STICKER_TRENDS.JP.slice(0, compact ? 12 : 18).map(sticker => ({ ...sticker, title: t.stickerAlt }))
-
-  return (
-    <MockFrame lang={lang} compact={compact}>
-      <h1 className={`${compact ? 'text-xl' : 'text-[30px]'} font-extrabold tracking-tight`}>{t.title}</h1>
-      <p className="mt-2 text-sm text-sub">{t.subtitle}</p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {TREND_TABS.map(tab => (
-          <span key={tab} className={`rounded-full px-4 py-2 text-sm font-bold ${tab === 'JP' ? 'bg-action text-white' : 'border border-line bg-card text-ink'}`}>{labels[tab]}</span>
-        ))}
-      </div>
-      <p className="mt-3 text-xs font-semibold text-sub">{t.sourceLine}</p>
-      <div className="mt-3">
-        <StickerGrid items={items} emptyLabel={t.curationPending} />
       </div>
     </MockFrame>
   )

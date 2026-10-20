@@ -30,7 +30,7 @@ import workflowReviewPoster from '../assets/LandingAssets/Check-poster.jpg'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import LandingEnding from '../components/LandingEnding'
-import { CaptionSuggestMock, TrendsMock } from '../components/LandingSceneMocks'
+import { CaptionSuggestMock } from '../components/LandingSceneMocks'
 import OgqStickerGallery from '../components/OgqStickerGallery'
 import RollingText from '../components/RollingText'
 import '../landing.css'
@@ -71,12 +71,11 @@ const WORKFLOW_VISUALS = [
 
 // COPY.scenes와 같은 순서. workflow는 아래 워크플로 카드(영상)가 있는 장면만 WORKFLOW_VISUALS 인덱스를 가진다.
 // mock이 있는 장면은 iframe/캡처 대신 LandingSceneMocks의 정적 목업을 쓴다.
-const SCENES: { route: string; workflow?: number; mock?: 'caption' | 'trends' }[] = [
+const SCENES: { route: string; workflow?: number; mock?: 'caption' }[] = [
   { route: '/generate', workflow: 0 },
   { route: '/localize', workflow: 1 },
   { route: '/caption-suggest', mock: 'caption' },
   { route: '/review', workflow: 2 },
-  { route: '/trends', mock: 'trends' },
 ]
 const WORKFLOW_SCENES = SCENES.flatMap((scene, index) => scene.workflow === undefined ? [] : [{ index, workflow: scene.workflow }])
 
@@ -113,11 +112,6 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "title": "출시 전 검토",
         "description": "OGQ 규격과 이미지·문구를 확인합니다.",
         "linkLabel": "검토 시작하기"
-      },
-      {
-        "title": "국가별 인기 이모티콘",
-        "description": "한국·일본·중국·미국의 인기 이모티콘을 모아 시장 조사에 참고하세요.",
-        "linkLabel": "인기 이모티콘 보기"
       }
     ],
     "caseTitle": "작업 결과",
@@ -161,11 +155,6 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "title": "Pre-release review",
         "description": "Check OGQ specifications, images and captions.",
         "linkLabel": "Start reviewing"
-      },
-      {
-        "title": "Popular stickers by country",
-        "description": "Browse trending stickers from Korea, Japan, China and the US for market research.",
-        "linkLabel": "Browse popular stickers"
       }
     ],
     "caseTitle": "Project results",
@@ -209,11 +198,6 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "title": "公開前チェック",
         "description": "OGQの規格と画像・文言を確認します。",
         "linkLabel": "チェックを始める"
-      },
-      {
-        "title": "国・地域別の人気スタンプ",
-        "description": "韓国・日本・中国・アメリカの人気スタンプを、市場調査の参考にご覧ください。",
-        "linkLabel": "人気スタンプを見る"
       }
     ],
     "caseTitle": "制作結果",
@@ -257,11 +241,6 @@ const COPY: Record<SiteLang, RemakeCopy> = {
         "title": "发布前检查",
         "description": "检查OGQ规格、图片和文案。",
         "linkLabel": "开始检查"
-      },
-      {
-        "title": "各国热门表情",
-        "description": "汇总韩国、日本、中国、美国的热门表情，供市场调研参考。",
-        "linkLabel": "查看热门表情"
       }
     ],
     "caseTitle": "项目成果",
@@ -429,7 +408,7 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
   return (
     <div ref={frameRef} className="remake-product-window" data-lang={lang} data-captured={Boolean(capture || mock)}>
       {mock && <div className="remake-product-screen" style={mockFit ? { width, height: mockFit.height, transform: `scale(${mockFit.scale})` } : { width, height, transform: `scale(${scale})` }}>
-        {mock === 'caption' ? <CaptionSuggestMock lang={lang} compact={isMobile} /> : <TrendsMock lang={lang} compact={isMobile} />}
+        <CaptionSuggestMock lang={lang} compact={isMobile} />
       </div>}
       {!capture && !mock && <iframe
         key={`${lang}-${width}-${screenRoute}`}

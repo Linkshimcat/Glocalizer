@@ -53,9 +53,6 @@ export interface Dict {
   hubGenerateDesc: string
   hubCaption: string
   hubCaptionDesc: string
-  hubTrends: string
-  hubTrendsDesc: string
-  hubNewBadge: string
   hubSoon: string
   hubStart: string
   hubContinue: string
@@ -403,9 +400,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubReviewDesc: "OGQ 규격과 이미지·문구를 확인합니다.",
     hubCaption: 'AI 문구 추천',
     hubCaptionDesc: "문구 없는 이모티콘에 AI가 어울리는 한국어 문구를 추천합니다.",
-    hubTrends: '국가별 인기 이모티콘',
-    hubTrendsDesc: '한국/일본/중국/미국에서 지금 인기 있는 스티커를 모아봅니다.',
-    hubNewBadge: 'NEW',
     hubGenerate: '이모티콘 생성',
     hubGenerateDesc: "캐릭터와 표정 설명으로 이모티콘을 생성합니다.",
     hubSoon: '준비 중',
@@ -746,9 +740,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubReviewDesc: "Check OGQ specifications, images and captions.",
     hubCaption: 'AI caption suggestions',
     hubCaptionDesc: "AI suggests a matching Korean caption for stickers with no text.",
-    hubTrends: 'Popular stickers by country',
-    hubTrendsDesc: 'See what stickers are trending right now in Korea, Japan, China, and the US.',
-    hubNewBadge: 'NEW',
     hubGenerate: 'Emoticon generation',
     hubGenerateDesc: "Generate stickers from character and expression descriptions.",
     hubSoon: 'Coming soon',
@@ -1089,9 +1080,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubReviewDesc: "OGQの規格と画像・文言を確認します。",
     hubCaption: 'AI文言の提案',
     hubCaptionDesc: "文言のないスタンプに、AIが合う韓国語の文言を提案します。",
-    hubTrends: '国・地域別の人気スタンプ',
-    hubTrendsDesc: '韓国・日本・中国・アメリカで今人気のスタンプをまとめて見られます。',
-    hubNewBadge: 'NEW',
     hubGenerate: 'スタンプ生成',
     hubGenerateDesc: "キャラクターと表情の説明からスタンプを生成します。",
     hubSoon: '準備中',
@@ -1432,9 +1420,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubReviewDesc: "检查OGQ规格、图片和文案。",
     hubCaption: 'AI文案推荐',
     hubCaptionDesc: "AI会为没有文字的表情推荐合适的韩语文案。",
-    hubTrends: '各国热门表情',
-    hubTrendsDesc: '汇总展示韩国、日本、中国、美国当下热门的表情。',
-    hubNewBadge: 'NEW',
     hubGenerate: '表情生成',
     hubGenerateDesc: "根据角色和表情描述生成图片。",
     hubSoon: '即将推出',

@@ -1,4 +1,4 @@
-import { ArrowUpRight, Archive, Check, Globe2, MessageSquareQuote, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react'
+import { ArrowUpRight, Archive, Check, Globe2, MessageSquareQuote, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import Footer from '../components/Footer'
@@ -11,7 +11,6 @@ const FEATURES = [
   { icon: Globe2, path: '/localize' },
   { icon: MessageSquareQuote, path: '/localize' },
   { icon: ShieldCheck, path: '/review' },
-  { icon: TrendingUp, path: '/trends' },
   { icon: Archive, path: '/archive' },
 ] as const
 
