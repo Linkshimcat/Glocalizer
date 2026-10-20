@@ -10,15 +10,11 @@ import createIcon from '../assets/studio/create.svg'
 import localizeIcon from '../assets/studio/localize.svg'
 import reviewIcon from '../assets/studio/review.svg'
 import captionIcon from '../assets/studio/caption.svg'
-import trendsIcon from '../assets/studio/trends.svg'
 import arrowRightIcon from '../assets/studio/cta-arrow.svg'
 import { studioCopy } from '../i18n/studio'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useUploads } from '../store/uploads'
 import Modal from '../components/Modal'
-
-const TRENDS_LAUNCHED_AT = new Date('2026-10-17T00:00:00Z')
-const NEW_BADGE_DURATION_MS = 14 * 24 * 60 * 60 * 1000
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -44,13 +40,11 @@ export default function Dashboard() {
     }
   }
   const requestNewTask = () => { if (hasWork) setNewTaskOpen(true); else void startNew() }
-  const isTrendsNew = Date.now() - TRENDS_LAUNCHED_AT.getTime() < NEW_BADGE_DURATION_MS
   const cards = [
-    { title: t.hubGenerate, icon: createIcon, run: () => navigate('/generate'), isNew: false },
-    { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask, isNew: false },
-    { title: t.hubReview, icon: reviewIcon, run: () => navigate('/review'), isNew: false },
-    { title: t.hubCaption, icon: captionIcon, run: requestNewTask, isNew: false },
-    { title: t.hubTrends, icon: trendsIcon, run: () => navigate('/trends'), isNew: isTrendsNew },
+    { title: t.hubGenerate, icon: createIcon, run: () => navigate('/generate') },
+    { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask },
+    { title: t.hubReview, icon: reviewIcon, run: () => navigate('/review') },
+    { title: t.hubCaption, icon: captionIcon, run: requestNewTask },
   ]
 
   return (
@@ -78,8 +72,7 @@ export default function Dashboard() {
           <section className="studio-new-work" aria-labelledby="new-work-title">
             <h2 id="new-work-title">{copy.newWork}</h2>
             <div className="studio-work-menu">
-              {cards.map(({ title, icon, run, isNew }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
-                {isNew && <span className="studio-new-badge">{t.hubNewBadge}</span>}
+              {cards.map(({ title, icon, run }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
                 <img src={icon} alt="" aria-hidden="true" /><strong>{title}</strong>
               </button>)}
             </div>
