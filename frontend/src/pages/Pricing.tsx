@@ -1,5 +1,6 @@
 import { ArrowRight, Check, ChevronDown, Info, MessageCircle, Sparkles } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import PaymentPreview from './PaymentPreview'
 import Footer from '../components/Footer'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { pricingCopy } from '../i18n/pricing'
@@ -7,9 +8,12 @@ import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import '../pricing.css'
 
 export default function Pricing() {
+  const [searchParams] = useSearchParams()
   const { lang } = useSiteLang()
   const copy = pricingCopy[lang]
   useDocumentMeta({ ko: '멤버십 가격', en: 'Membership pricing', ja: 'メンバーシップ料金', zh: '会员价格' }[lang], copy.intro)
+
+  if (searchParams.get('checkout') === 'creator') return <PaymentPreview />
 
   return (
     <div className="pricing-page flex min-h-svh flex-col bg-white">
@@ -29,7 +33,7 @@ export default function Pricing() {
               <p className="pricing-description">{plan.description}</p>
               <div className={`pricing-amount ${i === 2 ? 'pricing-amount-custom' : ''}`}><strong>{plan.price}</strong><span>{plan.unit}</span></div>
               <ul>{plan.features.map(feature => <li key={feature}><span className="pricing-check"><Check size={15} strokeWidth={2.5} aria-hidden="true" /></span><span>{feature}</span></li>)}</ul>
-              <Link to={plan.to} className={`pricing-cta ${i === 1 ? 'pricing-cta-primary' : ''}`}>{plan.cta}<ArrowRight size={17} aria-hidden="true" /></Link>
+              <Link to={i === 1 ? '/pricing?checkout=creator' : plan.to} className={`pricing-cta ${i === 1 ? 'pricing-cta-primary' : ''}`}>{i === 1 ? { ko: '결제 화면 미리보기', en: 'Preview checkout', ja: '決済画面プレビュー', zh: '预览付款页面' }[lang] : plan.cta}<ArrowRight size={17} aria-hidden="true" /></Link>
             </article>
           ))}
         </section>
