@@ -28,7 +28,7 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .studio-main-badge { position: absolute; top: 14px; right: 14px; padding: 2px 8px; border-radius: 999px; background: #15803d; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
 @media (min-width: 1101px) {
   .studio-work-menu { grid-template-columns: repeat(3,minmax(0,1fr)); }
-  .studio-work-menu > button.studio-work-card-featured { grid-column: 1 / -1; min-height: 120px; flex-direction: row; justify-content: flex-start; align-items: center; gap: 20px; }
+  .studio-work-menu > button.studio-work-card-featured { grid-column: 1 / -1; min-height: 120px; flex-direction: row; justify-content: flex-start; align-items: center; gap: 20px; padding-left: 32px; }
   .studio-work-card-featured svg, .studio-work-card-featured img { width: 32px; height: 32px; margin-bottom: 0; }
   .studio-work-card-featured strong { font-size: 20px; }
 }
