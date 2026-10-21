@@ -43,8 +43,8 @@ export default function Dashboard() {
   }
   const requestNewTask = () => { if (hasWork) setNewTaskOpen(true); else void startNew() }
   const cards = [
-    { title: t.hubGenerate, icon: createIcon, run: () => navigate('/generate') },
     { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask, featured: true },
+    { title: t.hubGenerate, icon: createIcon, run: () => navigate('/generate') },
     { title: t.hubReview, icon: reviewIcon, run: () => navigate('/review') },
     { title: t.hubCaption, icon: captionIcon, run: requestNewTask },
   ]

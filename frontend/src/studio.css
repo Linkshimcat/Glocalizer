@@ -26,9 +26,9 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .studio-work-menu img { display: block; margin-bottom: 16px; }
 .studio-work-menu strong { font-size: 16px; font-weight: 800; word-break: keep-all; overflow-wrap: anywhere; }
 @media (min-width: 1101px) {
-  .studio-work-menu { grid-template-columns: 1.4fr 1fr; grid-template-rows: repeat(3,minmax(0,1fr)); }
-  .studio-work-card-featured { grid-row: 1 / -1; }
-  .studio-work-card-featured svg, .studio-work-card-featured img { width: 32px; height: 32px; }
+  .studio-work-menu { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .studio-work-menu > button.studio-work-card-featured { grid-column: 1 / -1; min-height: 120px; flex-direction: row; align-items: center; gap: 20px; }
+  .studio-work-card-featured svg, .studio-work-card-featured img { width: 32px; height: 32px; margin-bottom: 0; }
   .studio-work-card-featured strong { font-size: 20px; }
 }
 .studio-project-section { margin-top: 48px; }.studio-project-section > h2 { font-size: 23px; font-weight: 800; }
