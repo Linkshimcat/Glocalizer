@@ -50,6 +50,8 @@ function toPublicUser(user: UserRow): PublicUser {
     hasPassword: user.password_hash !== null,
     hasNaver: user.naver_id !== null,
     hasGoogle: user.supabase_auth_id !== null,
+    membershipPlan: user.membership_plan,
+    membershipExpiresAt: user.membership_expires_at,
   };
 }
 

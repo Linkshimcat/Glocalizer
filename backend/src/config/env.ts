@@ -63,6 +63,19 @@ export const envSchema = z.object({
   OGQ_API_KEY: z.string().min(1).optional(),
   OGQ_API_BASE_URL: z.string().url().default('https://4th-ai-ogq.competition.ogq.me'),
 
+  // TossPayments 결제 연동. 미설정 시 결제 기능만 503으로 비활성화되고 나머지는 정상 동작한다.
+  // .env.example의 test_ck_/test_sk_는 Toss가 공식 문서에 공개한 샌드박스 전용 테스트 키라
+  // 예시값으로 커밋해도 안전하다 — 실제 가맹점 계약 후에는 라이브 키로 교체해야 한다.
+  TOSS_CLIENT_KEY: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  TOSS_SECRET_KEY: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  TOSS_API_BASE_URL: z.string().url().default('https://api.tosspayments.com'),
+
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60_000),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
   PASSWORD_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(5),

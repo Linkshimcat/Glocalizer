@@ -11,6 +11,8 @@ export interface UserRow {
   avatar_url: string | null;
   name_customized: boolean;
   avatar_customized: boolean;
+  membership_plan: string | null;
+  membership_expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,4 +26,6 @@ export interface PublicUser {
   hasPassword: boolean;
   hasNaver: boolean;
   hasGoogle: boolean;
+  membershipPlan: string | null;
+  membershipExpiresAt: string | null;
 }

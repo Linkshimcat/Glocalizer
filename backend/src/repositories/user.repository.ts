@@ -158,3 +158,11 @@ export async function updateUserProfile(userId: string, input: UpdateUserProfile
   const result = await supabase.from('users').update(patch).eq('id', userId).select().single();
   return unwrapRow<UserRow>(result, '프로필 저장에 실패했습니다.');
 }
+
+export async function activateMembership(userId: string, planId: string, expiresAt: Date): Promise<void> {
+  const result = await supabase
+    .from('users')
+    .update({ membership_plan: planId, membership_expires_at: expiresAt.toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  unwrapVoid(result, '멤버십 활성화에 실패했습니다.');
+}
