@@ -292,3 +292,15 @@ export function finishCloudProject(id: string): Promise<void> {
 export function saveCloudDraft(id: string | null, files: Array<{ clientId: string; name: string; mimeType: string; size: number }>, targetLanguages: string[], selectedClientIds: string[]): Promise<{ projectId: string; projectToken: string; assets: Array<{ assetId: string; clientId: string; uploadUrl: string | null }> }> {
   return request(id ? `/projects/${id}/draft` : '/projects/drafts', { method: id ? 'PUT' : 'POST', body: JSON.stringify({ files, targetLanguages, selectedClientIds }) })
 }
+
+export interface PaymentOrder {
+  orderId: string
+  amount: number
+  orderName: string
+}
+export function createPaymentOrder(planId: string): Promise<PaymentOrder> {
+  return request('/payments/orders', { method: 'POST', body: JSON.stringify({ planId }) })
+}
+export function confirmPayment(input: { paymentKey: string; orderId: string; amount: number }): Promise<void> {
+  return request('/payments/confirm', { method: 'POST', body: JSON.stringify(input) })
+}
