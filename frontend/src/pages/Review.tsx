@@ -9,6 +9,8 @@ import { useUploads } from '../store/uploads'
 import { useToast } from '../components/Toast'
 import OgqSpecChecker, { type OgqProjectImage } from '../components/OgqSpecChecker'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { reviewCopy } from '../i18n/review'
+import { cloudCopy } from '../i18n/cloud'
 import {
   fetchOgqStickers,
   listCloudProjects,
@@ -55,6 +57,8 @@ export default function Review() {
   const navigate = useNavigate()
   const { isAuthenticated, token } = useAuth()
   const { t, lang } = useSiteLang()
+  const tReview = reviewCopy(lang)
+  const tCloud = cloudCopy(lang)
   const copy = experienceCopy[lang]
   const { flushCloudWork, openCloudProject } = useUploads()
   const toast = useToast()
@@ -214,7 +218,7 @@ export default function Review() {
 
         {!isAuthenticated && (
           <div className="mt-6 rounded-panel border border-gray-200 bg-white p-5">
-            <p className="text-sm text-sub">{t.cloudLogin}</p>
+            <p className="text-sm text-sub">{tCloud.cloudLogin}</p>
             <Button className="mt-3" onClick={() => navigate('/login?next=/review')}>{t.navLogin}</Button>
           </div>
         )}
@@ -222,17 +226,17 @@ export default function Review() {
         {isAuthenticated && (
           <>
             <section className="mt-8">
-              <h2 className="text-lg font-bold">{t.reviewPickProjectTitle}</h2>
-              <p className="mt-1 text-sm font-medium text-sub">{t.reviewPickProjectDesc}</p>
+              <h2 className="text-lg font-bold">{tReview.reviewPickProjectTitle}</h2>
+              <p className="mt-1 text-sm font-medium text-sub">{tReview.reviewPickProjectDesc}</p>
 
               {projects === null && !projectsFailed && (
-                <ReviewProjectSkeleton label={t.reviewProjectsLoading} />
+                <ReviewProjectSkeleton label={tReview.reviewProjectsLoading} />
               )}
-              {(projectsFailed || partialFailure) && <StateNotice error className="mt-5" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{projectsFailed ? t.reviewProjectsFailed : copy.partialFailure}</StateNotice>}
+              {(projectsFailed || partialFailure) && <StateNotice error className="mt-5" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{projectsFailed ? tReview.reviewProjectsFailed : copy.partialFailure}</StateNotice>}
               {projects !== null && !projectsFailed && projects.length === 0 && (
                 <div className="mt-5 rounded-panel border border-dashed border-gray-200 p-6 text-center">
-                  <p className="text-sm text-sub">{t.reviewProjectsEmpty}</p>
-                  <Button className="mt-3" onClick={() => navigate('/localize')}>{t.reviewProjectsEmptyCta}</Button>
+                  <p className="text-sm text-sub">{tReview.reviewProjectsEmpty}</p>
+                  <Button className="mt-3" onClick={() => navigate('/localize')}>{tReview.reviewProjectsEmptyCta}</Button>
                 </div>
               )}
               {projects !== null && projects.length > 0 && (
@@ -273,22 +277,22 @@ export default function Review() {
             <OgqSpecChecker projectImages={projectImages} />
             {selectedKeys.length > 0 && (
               <section id="review-similar" className="mt-10">
-                <h2 className="text-lg font-bold">{t.reviewSimilarTitle}</h2>
-                <p className="mt-1 text-sm font-medium text-sub">{t.reviewSimilarDesc}</p>
+                <h2 className="text-lg font-bold">{tReview.reviewSimilarTitle}</h2>
+                <p className="mt-1 text-sm font-medium text-sub">{tReview.reviewSimilarDesc}</p>
 
                 {loadingWorkspace && (
-                  <StickerSearchSkeleton label={t.reviewLoadingWorkspace} />
+                  <StickerSearchSkeleton label={tReview.reviewLoadingWorkspace} />
                 )}
-                {workspaceFailed && <StateNotice error className="mt-5" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{t.reviewWorkspaceFailed}</StateNotice>}
+                {workspaceFailed && <StateNotice error className="mt-5" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{tReview.reviewWorkspaceFailed}</StateNotice>}
                 {keywordResults !== null && keywordResults.length === 0 && (
-                  <p className="mt-5 text-sm text-sub">{t.reviewNoKeywords}</p>
+                  <p className="mt-5 text-sm text-sub">{tReview.reviewNoKeywords}</p>
                 )}
 
                 {keywordResults?.map(result => (
                   <div key={result.keyword} className="mt-6">
                     <h3 className="text-sm font-bold text-brand-dark">&ldquo;{result.keyword}&rdquo;</h3>
-                    {result.failed && <p className="mt-2 text-sm text-sub">{t.reviewKeywordFailed}</p>}
-                    {!result.failed && result.stickers.length === 0 && <p className="mt-2 text-sm text-sub">{t.reviewKeywordEmpty}</p>}
+                    {result.failed && <p className="mt-2 text-sm text-sub">{tReview.reviewKeywordFailed}</p>}
+                    {!result.failed && result.stickers.length === 0 && <p className="mt-2 text-sm text-sub">{tReview.reviewKeywordEmpty}</p>}
                     {!result.failed && result.stickers.length > 0 && (
                       <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
                         {result.stickers.map(sticker => {
@@ -299,7 +303,7 @@ export default function Review() {
                               <div className="relative aspect-square sticker-stage">
                                 <img src={sticker.thumbnailUrl} alt={sticker.title ?? ''} loading="lazy" className="h-full w-full object-contain p-2" />
                                 {sticker.animated && (
-                                  <span className="absolute right-1.5 top-1.5 rounded-badge bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">{t.reviewAnimatedBadge}</span>
+                                  <span className="absolute right-1.5 top-1.5 rounded-badge bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">{tReview.reviewAnimatedBadge}</span>
                                 )}
                               </div>
                               {(sticker.title || categoryLabel) && (
@@ -322,17 +326,17 @@ export default function Review() {
               <section id="review-ai" className="mt-10 border-t border-gray-200 pt-6">
                 <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                   <div>
-                    <div className="flex items-center gap-2 text-brand-dark"><BrainCircuit className="h-5 w-5" /><h2 className="text-lg font-bold">{t.reviewAiTitle}</h2></div>
-                    <p className="mt-2 max-w-2xl text-sm font-medium text-sub">{t.reviewAiDesc}</p>
+                    <div className="flex items-center gap-2 text-brand-dark"><BrainCircuit className="h-5 w-5" /><h2 className="text-lg font-bold">{tReview.reviewAiTitle}</h2></div>
+                    <p className="mt-2 max-w-2xl text-sm font-medium text-sub">{tReview.reviewAiDesc}</p>
                   </div>
                   <Button onClick={() => { void runDeepReview() }} disabled={loadingDeepFeedback || loadingWorkspace || selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS} className="shrink-0">
-                    {loadingDeepFeedback ? <><Loader2 className="h-4 w-4 animate-spin" />{t.reviewAiLoading}</> : t.reviewAiCta}
+                    {loadingDeepFeedback ? <><Loader2 className="h-4 w-4 animate-spin" />{tReview.reviewAiLoading}</> : tReview.reviewAiCta}
                   </Button>
                 </div>
 
-                {selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS && <p role="alert" className="mt-4 text-sm font-semibold text-amber-700">{t.reviewAiLimit}</p>}
+                {selectedKeys.length > MAX_DEEP_REVIEW_PROJECTS && <p role="alert" className="mt-4 text-sm font-semibold text-amber-700">{tReview.reviewAiLimit}</p>}
 
-                {deepFeedbackFailed && <StateNotice error className="mt-5">{t.reviewAiFailed}</StateNotice>}
+                {deepFeedbackFailed && <StateNotice error className="mt-5">{tReview.reviewAiFailed}</StateNotice>}
 
                 {deepFeedback && (
                   <div className="review-feedback mt-7 space-y-6">
@@ -341,16 +345,16 @@ export default function Review() {
                         <strong className="text-3xl font-black">{deepFeedback.readinessScore}</strong>
                         <span className="text-[11px] font-bold">/ 100</span>
                       </div>
-                      <div><h3 className="font-bold">{t.reviewAiScore}</h3><p className="mt-2 text-sm leading-6 text-sub">{deepFeedback.summary}</p></div>
+                      <div><h3 className="font-bold">{tReview.reviewAiScore}</h3><p className="mt-2 text-sm leading-6 text-sub">{deepFeedback.summary}</p></div>
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiStrengths}</h3><ul className="mt-3 space-y-2">{deepFeedback.strengths.map(item => <li key={item} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-brand" /><span>{item}</span></li>)}</ul></div>
-                      <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
+                      <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{tReview.reviewAiStrengths}</h3><ul className="mt-3 space-y-2">{deepFeedback.strengths.map(item => <li key={item} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-brand" /><span>{item}</span></li>)}</ul></div>
+                      <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{tReview.reviewAiFixes}</h3><div className="mt-3 space-y-4">{deepFeedback.priorityFixes.map(item => <div key={item.title}><p className="text-sm font-bold">{item.title}</p><p className="mt-1 text-sm leading-6 text-sub">{item.reason}</p><p className="mt-1 text-sm font-semibold text-brand-dark">→ {item.action}</p></div>)}</div></div>
                     </div>
 
-                    {deepFeedback.imageFeedback.length > 0 && <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="min-w-0 overflow-hidden border-t border-gray-200 py-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
-                    {deepFeedback.localizationFeedback.length > 0 && <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{t.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-t border-gray-200 pt-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.imageFeedback.length > 0 && <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{tReview.reviewAiImages}</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{deepFeedback.imageFeedback.map(item => <div key={item.imageName} className="min-w-0 overflow-hidden border-t border-gray-200 py-4"><p className="truncate text-sm font-bold">{item.imageName}</p><p className="mt-2 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
+                    {deepFeedback.localizationFeedback.length > 0 && <div className="border-t border-gray-200 py-5"><h3 className="font-bold">{tReview.reviewAiLocalization}</h3><div className="mt-3 space-y-3">{deepFeedback.localizationFeedback.map(item => <div key={item.language} className="border-t border-gray-200 pt-4"><p className="text-sm font-bold">{item.language}</p><p className="mt-1 text-sm leading-6 text-sub">{item.feedback}</p></div>)}</div></div>}
                     <p className="text-xs leading-5 text-sub">{deepFeedback.disclaimer}</p>
                   </div>
                 )}
@@ -360,16 +364,16 @@ export default function Review() {
             {selectedKeys.length > 0 && <section className="mt-8 border-t border-gray-200 pt-6"><h2 className="text-lg font-bold">{copy.reviewAction}</h2><div className="mt-4 flex flex-wrap gap-3">{projects?.filter(project => selectedKeys.includes(project.key)).map(project => <Button key={project.key} variant="outline" disabled={opening} onClick={() => { void editProject(project) }}>{(project.kind === 'generation' ? projectDisplayName(project.project) : project.project.name || project.project.id.slice(0, 8))} · {copy.editing}</Button>)}</div></section>}
 
             <section className="mt-10 border-t border-gray-200 pt-6">
-              <h2 className="text-lg font-bold">{t.reviewChecklistTitle}</h2>
+              <h2 className="text-lg font-bold">{tReview.reviewChecklistTitle}</h2>
               <ul className="mt-4 space-y-3">
-                {t.reviewChecklistItems.map(item => (
+                {tReview.reviewChecklistItems.map(item => (
                   <li key={item} className="flex items-start gap-3 text-sm">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-dark" />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
-              <p className="mt-4 text-xs text-sub">{t.reviewChecklistDisclaimer}</p>
+              <p className="mt-4 text-xs text-sub">{tReview.reviewChecklistDisclaimer}</p>
             </section>
           </>
         )}

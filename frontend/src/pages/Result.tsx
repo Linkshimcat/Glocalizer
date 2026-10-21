@@ -14,12 +14,14 @@ import { toDemoItems } from '../data/demo'
 import { downloadBlob, exportFileName, imageStyleForItem, renderItemToPng, textOverlaysForItem, zipLocalizedItems } from '../lib/exportImage'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { cloudCopy } from '../i18n/cloud'
 import { workflowCopy } from '../i18n/workflow'
 
 export default function Result() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t, lang } = useSiteLang()
+  const tCloud = cloudCopy(lang)
   const w = workflowCopy[lang]
   const copy = experienceCopy[lang]
   const { files, targetLangs, styles, resetWorkflow, projectStatus, resultReady, cloudSaving, flushCloudWork, selectedFileIds, outputPreset, recordDownload, lastDownload } = useUploads()
@@ -68,7 +70,7 @@ export default function Result() {
     } catch (error) { toast(error instanceof Error ? error.message : t.toastDownloadFail) }
     finally { exporting.current = false; setBusy(false) }
   }
-  if (cloudSaving && files.length === 0) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{t.cloudLoading}</main>
+  if (cloudSaving && files.length === 0) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{tCloud.cloudLoading}</main>
   if (!files.length || !projectStatus) return <Navigate to="/localize" replace />
   if (!['completed', 'failed'].includes(projectStatus.status) || !resultReady) return <Navigate to="/editor" replace />
 
@@ -102,7 +104,7 @@ export default function Result() {
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <Button variant="secondary" className="min-h-12 flex-1" onClick={() => navigate('/editor')}><ArrowLeft className="h-4 w-4" />{t.resultBackEditor}</Button>
         <Button variant="secondary" className="min-h-12 flex-1" onClick={() => navigate('/dashboard')}><Home className="h-4 w-4" />{t.hubDashboard}</Button>
-        <Button className="min-h-12 flex-1" onClick={async () => { try { await flushCloudWork(); resetWorkflow(); navigate('/localize') } catch (error) { toast(error instanceof Error ? error.message : t.cloudSaveFailed) } }}>{t.resultRestart}</Button>
+        <Button className="min-h-12 flex-1" onClick={async () => { try { await flushCloudWork(); resetWorkflow(); navigate('/localize') } catch (error) { toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed) } }}>{t.resultRestart}</Button>
       </div>
     </main>
     {active && enlarged !== null && <Modal onClose={() => setEnlarged(null)} closeLabel={w.close} labelledBy="result-preview-title" className="max-w-4xl">

@@ -9,38 +9,7 @@ export const SITE_LANGS: { code: SiteLang; label: string; flag: string; short: s
 ]
 
 export interface Dict {
-  cloudLogin: string
-  cloudSaving: string
-  cloudSaved: string
-  cloudSaveFailed: string
-  cloudRetry: string
-  cloudInProgress: string
-  cloudArchive: string
-  cloudLocalizationCompleted: string
-  cloudEmptyProgress: string
-  cloudEmptyArchive: string
-  cloudLoading: string
-  cloudListFailed: string
-  cloudOpen: string
-  cloudRecent: string
-  cloudNewConfirm: string
-  cloudNewTitle: string
-  cloudNewProceed: string
-  cloudDelete: string
-  cloudDeleteTitle: string
-  cloudDeleteDescription: string
-  cloudDeleteConfirm: string
-  cloudDeleteCancel: string
-  cloudDeleteSuccess: string
-  cloudDeleteFailed: string
   commonClose: string
-  cloudRename: string
-  cloudRenameTitle: string
-  cloudRenameLabel: string
-  cloudRenameHint: string
-  cloudRenameSave: string
-  cloudRenameSuccess: string
-  cloudRenameFailed: string
 
   hubDashboard: string
   hubTitle: string
@@ -66,79 +35,6 @@ export interface Dict {
   hubEditing: string
   hubResult: string
   hubFailed: string
-  accountTitle: string
-  accountDesc: string
-  accountName: string
-  accountEmail: string
-  accountSignupMethod: string
-  accountEmailLogin: string
-  accountNaverLogin: string
-  accountGoogleLogin: string
-  accountChecking: string
-  accountMissing: string
-  accountMenu: string
-  accountEdit: string
-  accountSave: string
-  accountCancel: string
-  accountChangePhoto: string
-  accountRemovePhoto: string
-  accountNameRequired: string
-  accountSaved: string
-  accountSaveFailed: string
-  accountPhotoInvalid: string
-  accountDangerZoneTitle: string
-  accountDangerZoneDesc: string
-  accountDeleteButton: string
-  accountDeleteConfirm: string
-  accountDeleteFailed: string
-  accountDeleteSuccess: string
-  accountDeleteProcessingTitle: string
-  accountDeleteProcessingDesc: string
-  accountSecurityTitle: string
-  accountSecurityDesc: string
-  accountSessionsTitle: string
-  accountSessionsDesc: string
-  accountSessionsCurrent: string
-  accountSessionsLegacy: string
-  accountSessionsUnknownDevice: string
-  accountSessionsLastActive: string
-  accountSessionsSignOut: string
-  accountSessionsSignOutOthers: string
-  accountSessionsSignOutOthersAsk: string
-  accountSessionsConfirm: string
-  accountSessionsLegacyNote: string
-  accountSessionsRevoked: string
-  accountSessionsOthersRevoked: string
-  accountSessionsFailed: string
-  accountSessionsLoadFailed: string
-  accountSessionsRetry: string
-  accountSessionsLoading: string
-  accountPasswordChangeCta: string
-  accountPasswordCurrentLabel: string
-  accountPasswordNewLabel: string
-  accountPasswordConfirmLabel: string
-  accountPasswordSubmit: string
-  accountPasswordCurrentRequired: string
-  accountPasswordTooShort: string
-  accountPasswordMismatch: string
-  accountPasswordSuccess: string
-  accountPasswordFailed: string
-  accountDeleteModalTitle: string
-  accountDeleteAckData: string
-  accountDeleteAckResignup: string
-  accountDeleteConfirmCta: string
-  accountPolicyTitle: string
-  accountPolicyDesc: string
-  accountThemeTitle: string
-  accountThemeDesc: string
-  accountThemeLight: string
-  accountThemeDark: string
-  accountPlanTitle: string
-  accountPlanDesc: string
-  accountPlanStatus: string
-  accountPlanPricing: string
-  accountPlanManage: string
-  accountPlanComingSoon: string
   privacyPolicy: string
   termsOfService: string
 
@@ -195,68 +91,6 @@ export interface Dict {
   samplePickerLoading: string
   samplePickerError: string
   samplePickerEmpty: string
-  // OGQ 마켓 연동 — 출시 검토(Review) 페이지
-  reviewPickProjectTitle: string
-  reviewPickProjectDesc: string
-  reviewProjectsLoading: string
-  reviewProjectsEmpty: string
-  reviewProjectsEmptyCta: string
-  reviewProjectsFailed: string
-  reviewLoadingWorkspace: string
-  reviewWorkspaceFailed: string
-  reviewSimilarTitle: string
-  reviewSimilarDesc: string
-  reviewNoKeywords: string
-  reviewKeywordEmpty: string
-  reviewKeywordFailed: string
-  reviewAnimatedBadge: string
-  reviewAiTitle: string
-  reviewAiDesc: string
-  reviewAiCta: string
-  reviewAiLoading: string
-  reviewAiFailed: string
-  reviewAiLimit: string
-  reviewAiScore: string
-  reviewAiStrengths: string
-  reviewAiFixes: string
-  reviewAiImages: string
-  reviewAiLocalization: string
-  reviewChecklistTitle: string
-  reviewChecklistItems: string[]
-  reviewChecklistDisclaimer: string
-  // OGQ 마켓 연동 — 출시 검토(Review) 페이지의 이미지 직접 업로드 스펙 검사
-  reviewUploadTitle: string
-  reviewUploadDesc: string
-  reviewUploadDrop: string
-  reviewUploadHint: string
-  reviewUploadSelectFile: string
-  reviewUploadRemove: string
-  reviewUploadDisclaimer: string
-  reviewProjectCheckTitle: string
-  reviewProjectCheckDesc: string
-  reviewProjectCheckLoading: string
-  reviewProjectCheckFailed: string
-  reviewCheckFormatLabel: string
-  reviewCheckSizeLabel: string
-  reviewCheckDimensionsLabel: string
-  reviewCheckTransparencyLabel: string
-  reviewCheckMarginLabel: string
-  reviewCheckFormatPass: string
-  reviewCheckFormatFail: string // {type}
-  reviewCheckSizePass: string // {size}
-  reviewCheckSizeFail: string // {size}
-  reviewCheckDimensionsPass: string // {w}, {h}, {category}
-  reviewCheckDimensionsFail: string // {w}, {h}
-  reviewCheckTransparencyPass: string
-  reviewCheckTransparencyFail: string
-  reviewCheckMarginPass: string
-  reviewCheckMarginWarn: string
-  reviewCheckMarginUnknown: string
-  reviewCategoryMain: string
-  reviewCategorySticker: string
-  reviewCategoryTab: string
-  reviewCheckAllPass: string
-  reviewCheckIssues: string // {n}
   langCountSuffix: string // "{n}개 언어" 뒤에 붙는 문구
   langCountUnit: string // 숫자 뒤 단위 ("개 언어" 등)
   // 진행 단계 (헤더 공통)
@@ -320,76 +154,11 @@ export interface Dict {
   // 로그인 / 회원가입
   navLogin: string
   navLogout: string
-  loginTitle: string
-  loginSubtitle: string
-  loginSignupSubtitle: string
-  loginShowPassword: string
-  loginHidePassword: string
-  loginSubmitting: string
-  signupSubmitting: string
-  loginNaverNotConfigured: string
-  loginTabLogin: string
-  loginTabSignup: string
-  loginEmailLabel: string
-  loginEmailPlaceholder: string
-  loginPasswordLabel: string
-  loginPasswordPlaceholder: string
-  loginNameLabel: string
-  loginNamePlaceholder: string
-  loginNameOptional: string
-  loginSubmitLogin: string
-  loginSubmitSignup: string
-  loginDivider: string
-  loginNaverCta: string
-  loginGoogleCta: string
-  loginGooglePreparing: string
-  loginGoogleProcessing: string
-  loginGoogleNotConfigured: string
-  loginSwitchToSignup: string
-  /** 회원가입 동의 문구: 앞글 · 이용약관 링크 · 사이 · 개인정보처리방침 링크 · 뒷글 */
-  loginConsentBefore: string
-  loginConsentTerms: string
-  loginConsentBetween: string
-  loginConsentPrivacy: string
-  loginConsentAfter: string
-  loginConsentRequired: string
-  loginSwitchToLogin: string
-  loginBackHome: string
-  loginNaverProcessing: string
-  loginNaverFailed: string
-  loginNaverBack: string
-  loginGoogleFailed: string
-  loginSuccessToast: string
 }
 
 export const translations: Record<SiteLang, Dict> = {
   ko: {
-    cloudLogin: '작업을 클라우드에 저장하려면 로그인해주세요.',
-    cloudSaving: '클라우드에 저장 중…',
-    cloudSaved: '계정에 저장됨',
-    cloudSaveFailed: '클라우드 저장에 실패했어요. 다시 시도해주세요.',
-    cloudRetry: '다시 시도',
-    cloudInProgress: '진행 중인 작업',
-    cloudArchive: '워크스페이스 아카이브',
-    cloudLocalizationCompleted: '현지화 완료',
-    cloudEmptyProgress: '진행 중인 작업이 없어요. 현지화나 이모티콘 생성을 시작해보세요.',
-    cloudEmptyArchive: '완료한 작업이 아직 없어요.',
-    cloudLoading: '작업을 불러오는 중…',
-    cloudListFailed: '작업 목록을 불러오지 못했어요.',
-    cloudOpen: '작업 열기',
-    cloudRecent: '최근 저장',
-    cloudNewConfirm: '현재 작업을 닫고 새 작업을 시작할까요? 클라우드에 저장된 작업은 유지돼요.',
-    cloudNewTitle: '새 작업을 시작할까요?',
-    cloudNewProceed: '새 작업 시작',
-    cloudDelete: '삭제',
-    cloudDeleteTitle: '작업을 삭제할까요?',
-    cloudDeleteDescription: '“{name}” 작업과 저장된 이미지·편집 내용이 모두 사라져요. 삭제하면 되돌릴 수 없어요.',
-    cloudDeleteConfirm: '영구 삭제',
-    cloudDeleteCancel: '취소',
-    cloudDeleteSuccess: '작업을 삭제했어요.',
-    cloudDeleteFailed: '작업을 삭제하지 못했어요. 다시 시도해주세요.',
     commonClose: '닫기',
-    cloudRename: '이름 변경', cloudRenameTitle: '작업 이름 바꾸기', cloudRenameLabel: '작업 이름', cloudRenameHint: '비워두면 기본 이름으로 돌아가요. 최대 60자.', cloudRenameSave: '저장', cloudRenameSuccess: '이름을 바꿨어요.', cloudRenameFailed: '이름을 바꾸지 못했어요. 다시 시도해주세요.',
 
     hubDashboard: "작업실",
     hubTitle: "워크스페이스 대시보드",
@@ -415,79 +184,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: '편집 중',
     hubResult: '결과 준비 완료',
     hubFailed: '확인 필요',
-    accountTitle: '설정',
-    accountDesc: 'Glocalizer 계정 정보를 확인하고 관리하세요.',
-    accountName: '닉네임',
-    accountEmail: '이메일',
-    accountSignupMethod: '연결된 로그인 수단',
-    accountEmailLogin: '이메일 로그인',
-    accountNaverLogin: '네이버 로그인',
-    accountGoogleLogin: 'Google 로그인',
-    accountChecking: '확인 중',
-    accountMissing: '등록된 정보 없음',
-    accountMenu: '프로필 메뉴',
-    accountEdit: '프로필 수정',
-    accountSave: '저장',
-    accountCancel: '취소',
-    accountChangePhoto: '사진 변경',
-    accountRemovePhoto: '기본 이미지로',
-    accountNameRequired: '닉네임을 입력해주세요.',
-    accountSaved: '프로필을 저장했어요.',
-    accountSaveFailed: '프로필 저장에 실패했어요.',
-    accountPhotoInvalid: '이미지 파일만 올릴 수 있어요. (최대 10MB)',
-    accountDangerZoneTitle: '위험 구역',
-    accountDangerZoneDesc: '계정을 탈퇴하면 저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되고 되돌릴 수 없어요.',
-    accountDeleteButton: '계정 탈퇴',
-    accountDeleteConfirm: '정말로 계정을 탈퇴하시겠어요? 저장된 모든 프로젝트와 이미지가 함께 삭제되며, 이 작업은 되돌릴 수 없어요.',
-    accountDeleteFailed: '계정 탈퇴에 실패했어요. 잠시 후 다시 시도해주세요.',
-    accountDeleteSuccess: '탈퇴 완료했어요',
-    accountDeleteProcessingTitle: '계정을 탈퇴하고 있어요',
-    accountDeleteProcessingDesc: '저장된 프로젝트와 이미지를 정리하고 있어요. 잠시만 기다려주세요.',
-    accountSecurityTitle: '보안',
-    accountSecurityDesc: '이메일로 가입한 계정의 비밀번호를 변경할 수 있어요.',
-    accountSessionsTitle: '로그인된 기기',
-    accountSessionsDesc: '이 계정으로 로그인된 기기예요. 모르는 기기가 보이면 바로 로그아웃하세요.',
-    accountSessionsCurrent: '이 기기',
-    accountSessionsLegacy: '이전 방식으로 로그인한 기기',
-    accountSessionsUnknownDevice: '알 수 없는 기기',
-    accountSessionsLastActive: '마지막 활동 {time}',
-    accountSessionsSignOut: '로그아웃',
-    accountSessionsSignOutOthers: '다른 기기 모두 로그아웃',
-    accountSessionsSignOutOthersAsk: '이 기기를 뺀 모든 기기에서 로그아웃돼요.',
-    accountSessionsConfirm: '로그아웃하기',
-    accountSessionsLegacyNote: '이전 방식으로 로그인한 다른 기기는 목록에 보이지 않을 수 있어요. \'다른 기기 모두 로그아웃\'을 누르면 함께 로그아웃돼요.',
-    accountSessionsRevoked: '기기를 로그아웃했어요.',
-    accountSessionsOthersRevoked: '다른 기기를 모두 로그아웃했어요.',
-    accountSessionsFailed: '로그아웃하지 못했어요. 잠시 후 다시 시도해주세요.',
-    accountSessionsLoadFailed: '기기 목록을 불러오지 못했어요.',
-    accountSessionsRetry: '다시 시도',
-    accountSessionsLoading: '불러오는 중…',
-    accountPasswordChangeCta: '비밀번호 변경',
-    accountPasswordCurrentLabel: '현재 비밀번호',
-    accountPasswordNewLabel: '새 비밀번호',
-    accountPasswordConfirmLabel: '새 비밀번호 확인',
-    accountPasswordSubmit: '변경하기',
-    accountPasswordCurrentRequired: '현재 비밀번호를 입력해주세요.',
-    accountPasswordTooShort: '새 비밀번호는 8자 이상이어야 해요.',
-    accountPasswordMismatch: '새 비밀번호가 일치하지 않아요.',
-    accountPasswordSuccess: '비밀번호를 변경했어요.',
-    accountPasswordFailed: '비밀번호 변경에 실패했어요. 잠시 후 다시 시도해주세요.',
-    accountDeleteModalTitle: '계정 탈퇴',
-    accountDeleteAckData: '저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되며 복구할 수 없음을 확인했습니다.',
-    accountDeleteAckResignup: '탈퇴 후 같은 이메일/계정으로 다시 가입할 수는 있지만, 이전 데이터는 복구되지 않음을 확인했습니다.',
-    accountDeleteConfirmCta: '탈퇴하기',
-    accountPolicyTitle: '정책 및 약관',
-    accountPolicyDesc: '개인정보 처리와 서비스 이용 조건을 확인하세요.',
-    accountThemeTitle: '화면 테마',
-    accountThemeDesc: '라이트 모드와 다크 모드 중 원하는 화면을 골라주세요.',
-    accountThemeLight: '라이트',
-    accountThemeDark: '다크',
-    accountPlanTitle: '현재 이용 플랜',
-    accountPlanDesc: '현재 이용 중인 서비스 상태를 확인하세요.',
-    accountPlanStatus: '무료/베타 이용 중',
-    accountPlanPricing: '가격 안내 보기',
-    accountPlanManage: '플랜 관리',
-    accountPlanComingSoon: '준비 중',
     privacyPolicy: '개인정보처리방침',
     termsOfService: '서비스 이용약관',
 
@@ -540,72 +236,6 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: '샘플을 불러오는 중...',
     samplePickerError: '샘플을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
     samplePickerEmpty: '지금은 사용할 수 있는 샘플이 없어요.',
-    reviewPickProjectTitle: '검토할 프로젝트를 복수 선택하세요',
-    reviewPickProjectDesc: '완료된 현지화 프로젝트와 생성 프로젝트를 함께 선택해 OGQ 기준으로 검수해요.',
-    reviewProjectsLoading: '검토 가능한 프로젝트를 불러오는 중...',
-    reviewProjectsEmpty: '아직 검토할 수 있는 완료된 프로젝트가 없어요.',
-    reviewProjectsEmptyCta: '이모티콘 현지화하러 가기',
-    reviewProjectsFailed: '프로젝트 목록을 불러오지 못했어요.',
-    reviewLoadingWorkspace: '프로젝트 문구를 분석하는 중...',
-    reviewWorkspaceFailed: '프로젝트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-    reviewSimilarTitle: '비슷한 문구의 기존 스티커',
-    reviewSimilarDesc: '완성 이미지에서 인식한 문구로 OGQ 마켓을 검색해요. 출시 전 표현의 차별점을 참고해보세요.',
-    reviewNoKeywords: '프로젝트에서 검색에 쓸 문구를 찾지 못했어요.',
-    reviewKeywordEmpty: '같거나 비슷한 문구의 스티커를 찾지 못했어요.',
-    reviewKeywordFailed: '검색에 실패했어요.',
-    reviewAnimatedBadge: '움직임',
-    reviewAiTitle: 'AI 심층 피드백',
-    reviewAiDesc: '선택한 완성 이미지와 OCR·번역 결과를 함께 분석해 출시 전에 개선할 부분을 우선순위로 정리해요.',
-    reviewAiCta: '심층 피드백 받기',
-    reviewAiLoading: '분석 중...',
-    reviewAiFailed: '심층 피드백을 만들지 못했어요. 잠시 후 다시 시도해주세요.',
-    reviewAiLimit: 'AI 심층 피드백은 한 번에 프로젝트 3개까지 분석할 수 있어요.',
-    reviewAiScore: 'AI 출시 준비도',
-    reviewAiStrengths: '잘된 점',
-    reviewAiFixes: '우선 수정할 점',
-    reviewAiImages: '이미지별 피드백',
-    reviewAiLocalization: '현지화 피드백',
-    reviewChecklistTitle: 'OGQ 마켓 출시 체크리스트',
-    reviewChecklistItems: [
-      '이미지는 투명 배경 PNG로 준비하세요 (기준 캔버스 740×640px, 파일당 1MB 이하)',
-      '세트 안 이미지들이 동일한 캐릭터·화풍·색감을 유지하는지 확인하세요',
-      '검색 노출을 위해 제목과 태그에 실제 감정·상황을 나타내는 키워드를 포함하세요',
-      '저작권이 있는 캐릭터·폰트·이미지를 무단으로 사용하지 않았는지 확인하세요',
-      '선정적이거나 폭력적인 표현이 없는지 확인하세요',
-    ],
-    reviewChecklistDisclaimer: '정확한 최신 출시 규정은 OGQ 크리에이터 스튜디오의 공식 안내를 확인해주세요. 이 체크리스트는 참고용입니다.',
-    reviewUploadTitle: '또는, 이미지 바로 업로드하기',
-    reviewUploadDesc: '프로젝트 없이도 완성된 스티커 이미지만으로 OGQ 스펙을 바로 확인해요.',
-    reviewUploadDrop: '이미지를 선택하거나 끌어다 놓으세요',
-    reviewUploadHint: 'OGQ 공식 기준 · 메인 240×240 · 스티커 740×640 · 탭 96×74 · 각 1MB 이하 · PNG · 투명 배경',
-    reviewUploadSelectFile: '이미지 선택',
-    reviewUploadRemove: '삭제',
-    reviewUploadDisclaimer: '이 검사는 자동으로 규격만 확인하는 참고용이에요. 실제 OGQ 심사 결과와 다를 수 있어요.',
-    reviewProjectCheckTitle: '선택한 프로젝트 OGQ 규격 검사',
-    reviewProjectCheckDesc: '선택한 프로젝트의 이미지 {n}개를 자동으로 검사해요.',
-    reviewProjectCheckLoading: '프로젝트 이미지를 검사하는 중...',
-    reviewProjectCheckFailed: '프로젝트 이미지를 불러오지 못했어요. 선택을 해제한 뒤 다시 시도해주세요.',
-    reviewCheckFormatLabel: '파일 형식',
-    reviewCheckSizeLabel: '용량',
-    reviewCheckDimensionsLabel: '크기 규격',
-    reviewCheckTransparencyLabel: '투명 배경',
-    reviewCheckMarginLabel: '여백',
-    reviewCheckFormatPass: 'PNG 형식이에요.',
-    reviewCheckFormatFail: '{type} 형식이에요. 투명 배경을 지원하는 PNG로 저장해주세요.',
-    reviewCheckSizePass: '{size} — 1MB 이하예요.',
-    reviewCheckSizeFail: '{size} — 1MB를 넘었어요. 용량을 줄여주세요.',
-    reviewCheckDimensionsPass: '{w}×{h}px — {category} 규격에 맞아요.',
-    reviewCheckDimensionsFail: '{w}×{h}px — 메인 240×240, 스티커 740×640, 탭 96×74 중 어디에도 맞지 않아요.',
-    reviewCheckTransparencyPass: '투명 배경이 확인됐어요.',
-    reviewCheckTransparencyFail: '배경이 투명하지 않아요. 알파 채널이 있는 PNG로 내보내주세요.',
-    reviewCheckMarginPass: '캐릭터 주변 여백이 충분해요.',
-    reviewCheckMarginWarn: '캐릭터가 가장자리에 너무 붙어있어요. 여백을 좀 더 주세요.',
-    reviewCheckMarginUnknown: '투명 배경이 없어서 여백을 측정할 수 없어요.',
-    reviewCategoryMain: '메인 이미지',
-    reviewCategorySticker: '스티커 이미지',
-    reviewCategoryTab: '탭 이미지',
-    reviewCheckAllPass: '모든 항목을 통과했어요!',
-    reviewCheckIssues: '{n}개 항목을 확인해주세요.',
     langCountUnit: '개 언어',
     langCountSuffix: '로 바로 바꿔보세요',
     stepUpload: '업로드',
@@ -663,73 +293,9 @@ export const translations: Record<SiteLang, Dict> = {
     nfHome: '홈으로 돌아가기',
     navLogin: '로그인',
     navLogout: '로그아웃',
-    loginTitle: "로그인",
-    loginSubtitle: "로그인 후 저장한 프로젝트를 이어서 작업할 수 있습니다.",
-    loginSignupSubtitle: '계정을 만들고 프로젝트를 저장해 보세요.',
-    loginShowPassword: '비밀번호 표시',
-    loginHidePassword: '비밀번호 숨기기',
-    loginSubmitting: '로그인 중…',
-    signupSubmitting: '계정 만드는 중…',
-    loginNaverNotConfigured: '네이버 로그인이 아직 설정되지 않았어요.',
-    loginTabLogin: '로그인',
-    loginTabSignup: '회원가입',
-    loginEmailLabel: '이메일',
-    loginEmailPlaceholder: 'you@example.com',
-    loginPasswordLabel: '비밀번호',
-    loginPasswordPlaceholder: '8자 이상 입력해주세요',
-    loginNameLabel: '이름',
-    loginNamePlaceholder: '닉네임',
-    loginNameOptional: '(선택)',
-    loginSubmitLogin: '로그인',
-    loginSubmitSignup: '회원가입',
-    loginDivider: '또는',
-    loginNaverCta: '네이버 아이디로 로그인',
-    loginGoogleCta: 'Google로 계속하기',
-    loginGooglePreparing: 'Google 로그인 준비 중…',
-    loginGoogleProcessing: 'Google 로그인 처리 중…',
-    loginGoogleNotConfigured: 'Google 로그인이 아직 설정되지 않았어요.',
-    loginSwitchToSignup: '계정이 없으신가요? 회원가입',
-    loginConsentBefore: '계속하면 Glocalizer의 ',
-    loginConsentTerms: '서비스 이용약관',
-    loginConsentBetween: '에 동의하고 ',
-    loginConsentPrivacy: '개인정보처리방침',
-    loginConsentAfter: '을 읽었음을 인정한 것으로 간주합니다.',
-    loginConsentRequired: '회원가입하려면 서비스 이용약관과 개인정보처리방침에 동의해 주세요.',
-    loginSwitchToLogin: '이미 계정이 있으신가요? 로그인',
-    loginBackHome: '홈으로',
-    loginNaverProcessing: '네이버 로그인 처리 중이에요…',
-    loginNaverFailed: '네이버 로그인에 실패했어요.',
-    loginNaverBack: '로그인 화면으로 돌아가기',
-    loginGoogleFailed: 'Google 로그인에 실패했어요.',
-    loginSuccessToast: '로그인 완료!',
   },
   en: {
-    cloudLogin: 'Please log in to save your work to the cloud.',
-    cloudSaving: 'Saving to cloud…',
-    cloudSaved: 'Saved to your account',
-    cloudSaveFailed: 'Cloud saving failed. Please try again.',
-    cloudRetry: 'Try again',
-    cloudInProgress: 'Work in progress',
-    cloudArchive: 'Work archive',
-    cloudLocalizationCompleted: 'Localization complete',
-    cloudEmptyProgress: 'No work in progress. Start localizing or generating emoticons.',
-    cloudEmptyArchive: 'No finished work yet.',
-    cloudLoading: 'Loading your work…',
-    cloudListFailed: 'Could not load your work.',
-    cloudOpen: 'Open work',
-    cloudRecent: 'Last saved',
-    cloudNewConfirm: 'Close this work and start a new task? Work saved to the cloud will remain.',
-    cloudNewTitle: 'Start a new task?',
-    cloudNewProceed: 'Start new task',
-    cloudDelete: 'Delete',
-    cloudDeleteTitle: 'Delete this work?',
-    cloudDeleteDescription: '“{name}” and all saved images and edits will be permanently deleted. This cannot be undone.',
-    cloudDeleteConfirm: 'Delete permanently',
-    cloudDeleteCancel: 'Cancel',
-    cloudDeleteSuccess: 'Work deleted.',
-    cloudDeleteFailed: 'Could not delete this work. Please try again.',
     commonClose: 'Close',
-    cloudRename: 'Rename', cloudRenameTitle: 'Rename this work', cloudRenameLabel: 'Work name', cloudRenameHint: 'Leave empty to restore the default name. Up to 60 characters.', cloudRenameSave: 'Save', cloudRenameSuccess: 'Name updated.', cloudRenameFailed: 'Could not rename this work. Please try again.',
 
     hubDashboard: "Studio",
     hubTitle: "Workspace dashboard",
@@ -755,79 +321,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: 'Editing',
     hubResult: 'Results ready',
     hubFailed: 'Needs attention',
-    accountTitle: 'Settings',
-    accountDesc: 'View and manage your Glocalizer account.',
-    accountName: 'Nickname',
-    accountEmail: 'Email',
-    accountSignupMethod: 'Linked login methods',
-    accountEmailLogin: 'Email login',
-    accountNaverLogin: 'Naver login',
-    accountGoogleLogin: 'Google login',
-    accountChecking: 'Checking',
-    accountMissing: 'No information provided',
-    accountMenu: 'Profile menu',
-    accountEdit: 'Edit profile',
-    accountSave: 'Save',
-    accountCancel: 'Cancel',
-    accountChangePhoto: 'Change photo',
-    accountRemovePhoto: 'Use default',
-    accountNameRequired: 'Please enter a nickname.',
-    accountSaved: 'Profile saved.',
-    accountSaveFailed: 'Could not save your profile.',
-    accountPhotoInvalid: 'Only image files up to 10MB are supported.',
-    accountDangerZoneTitle: 'Danger zone',
-    accountDangerZoneDesc: 'Deleting your account permanently removes all saved projects, images, and profile information. This cannot be undone.',
-    accountDeleteButton: 'Delete account',
-    accountDeleteConfirm: 'Are you sure you want to delete your account? All saved projects and images will be deleted too, and this cannot be undone.',
-    accountDeleteFailed: "Couldn't delete your account. Please try again in a moment.",
-    accountDeleteSuccess: 'Account deleted',
-    accountDeleteProcessingTitle: 'Deleting your account',
-    accountDeleteProcessingDesc: 'Removing your saved projects and images. This will just take a moment.',
-    accountSecurityTitle: 'Security',
-    accountSecurityDesc: 'Change the password for accounts signed up with email.',
-    accountSessionsTitle: 'Signed-in devices',
-    accountSessionsDesc: 'These devices are signed in to this account. Sign out any device you don\'t recognize.',
-    accountSessionsCurrent: 'This device',
-    accountSessionsLegacy: 'Signed in with the previous method',
-    accountSessionsUnknownDevice: 'Unknown device',
-    accountSessionsLastActive: 'Last active {time}',
-    accountSessionsSignOut: 'Sign out',
-    accountSessionsSignOutOthers: 'Sign out all other devices',
-    accountSessionsSignOutOthersAsk: 'This signs you out everywhere except this device.',
-    accountSessionsConfirm: 'Sign out',
-    accountSessionsLegacyNote: 'Other devices signed in with the previous method may not appear here. "Sign out all other devices" signs them out too.',
-    accountSessionsRevoked: 'Signed the device out.',
-    accountSessionsOthersRevoked: 'Signed out all other devices.',
-    accountSessionsFailed: 'Couldn\'t sign out. Please try again in a moment.',
-    accountSessionsLoadFailed: 'Couldn\'t load your devices.',
-    accountSessionsRetry: 'Retry',
-    accountSessionsLoading: 'Loading…',
-    accountPasswordChangeCta: 'Change password',
-    accountPasswordCurrentLabel: 'Current password',
-    accountPasswordNewLabel: 'New password',
-    accountPasswordConfirmLabel: 'Confirm new password',
-    accountPasswordSubmit: 'Update password',
-    accountPasswordCurrentRequired: 'Please enter your current password.',
-    accountPasswordTooShort: 'New password must be at least 8 characters.',
-    accountPasswordMismatch: "New passwords don't match.",
-    accountPasswordSuccess: 'Password updated.',
-    accountPasswordFailed: "Couldn't update your password. Please try again in a moment.",
-    accountDeleteModalTitle: 'Delete account',
-    accountDeleteAckData: 'I understand all saved projects, images, and profile information will be permanently deleted and cannot be recovered.',
-    accountDeleteAckResignup: 'I understand I can sign up again with the same email/account, but my previous data will not be restored.',
-    accountDeleteConfirmCta: 'Delete my account',
-    accountPolicyTitle: 'Policies and terms',
-    accountPolicyDesc: 'Review how your information is handled and the service terms.',
-    accountThemeTitle: 'Display theme',
-    accountThemeDesc: 'Choose between light mode and dark mode.',
-    accountThemeLight: 'Light',
-    accountThemeDark: 'Dark',
-    accountPlanTitle: 'Current plan',
-    accountPlanDesc: 'Check the service status for your account.',
-    accountPlanStatus: 'Free / beta access',
-    accountPlanPricing: 'View pricing',
-    accountPlanManage: 'Manage plan',
-    accountPlanComingSoon: 'Coming soon',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
 
@@ -880,72 +373,6 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: 'Loading samples...',
     samplePickerError: "Couldn't load samples. Please try again.",
     samplePickerEmpty: 'No samples are available right now.',
-    reviewPickProjectTitle: 'Choose multiple projects to review',
-    reviewPickProjectDesc: 'Select finished localization and generation projects together for an OGQ spec review.',
-    reviewProjectsLoading: 'Loading projects available for review...',
-    reviewProjectsEmpty: "You don't have any finished projects to review yet.",
-    reviewProjectsEmptyCta: 'Go localize an emoticon',
-    reviewProjectsFailed: "Couldn't load your projects.",
-    reviewLoadingWorkspace: 'Analyzing project captions...',
-    reviewWorkspaceFailed: "Couldn't load the project. Please try again.",
-    reviewSimilarTitle: 'Existing stickers with similar captions',
-    reviewSimilarDesc: 'We search OGQ Market using captions recognized in your finished images, so you can compare wording before launch.',
-    reviewNoKeywords: "We couldn't find any captions to search with in this project.",
-    reviewKeywordEmpty: 'No stickers with the same or similar captions were found.',
-    reviewKeywordFailed: 'Search failed.',
-    reviewAnimatedBadge: 'Animated',
-    reviewAiTitle: 'AI deep feedback',
-    reviewAiDesc: 'Analyze the selected finished images together with OCR and translations to prioritize improvements before release.',
-    reviewAiCta: 'Get deep feedback',
-    reviewAiLoading: 'Analyzing...',
-    reviewAiFailed: "Couldn't generate deep feedback. Please try again.",
-    reviewAiLimit: 'AI deep feedback can analyze up to 3 projects at a time.',
-    reviewAiScore: 'AI release readiness',
-    reviewAiStrengths: 'What works well',
-    reviewAiFixes: 'Priority improvements',
-    reviewAiImages: 'Feedback by image',
-    reviewAiLocalization: 'Localization feedback',
-    reviewChecklistTitle: 'OGQ Market launch checklist',
-    reviewChecklistItems: [
-      'Prepare transparent-background PNGs (reference canvas 740×640px, under 1MB per file)',
-      'Keep the same character, art style, and color palette consistent across the set',
-      'Include keywords that reflect the actual emotion or situation in your title and tags for discoverability',
-      "Make sure you're not using copyrighted characters, fonts, or images without permission",
-      'Check that there is no sexual or violent content',
-    ],
-    reviewChecklistDisclaimer: 'For the current official submission requirements, please check OGQ Creator Studio directly — this checklist is for reference only.',
-    reviewUploadTitle: 'Or upload images directly',
-    reviewUploadDesc: 'Check OGQ specs right away with a finished sticker image — no project required.',
-    reviewUploadDrop: 'Choose an image or drop it here',
-    reviewUploadHint: 'OGQ official specs · Main 240×240 · Sticker 740×640 · Tab 96×74 · 1MB or less each · PNG · transparent background',
-    reviewUploadSelectFile: 'Choose image',
-    reviewUploadRemove: 'Remove',
-    reviewUploadDisclaimer: 'This check only verifies specs automatically, for reference — actual OGQ review results may differ.',
-    reviewProjectCheckTitle: 'Selected project OGQ spec check',
-    reviewProjectCheckDesc: 'Automatically checking {n} images from the selected projects.',
-    reviewProjectCheckLoading: 'Checking project images...',
-    reviewProjectCheckFailed: "Couldn't load the project images. Deselect the project and try again.",
-    reviewCheckFormatLabel: 'File format',
-    reviewCheckSizeLabel: 'File size',
-    reviewCheckDimensionsLabel: 'Dimensions',
-    reviewCheckTransparencyLabel: 'Transparent background',
-    reviewCheckMarginLabel: 'Margin',
-    reviewCheckFormatPass: "It's a PNG file.",
-    reviewCheckFormatFail: "It's a {type} file. Save it as a PNG to support a transparent background.",
-    reviewCheckSizePass: '{size} — under 1MB.',
-    reviewCheckSizeFail: '{size} — over 1MB. Please reduce the file size.',
-    reviewCheckDimensionsPass: '{w}×{h}px — matches the {category} spec.',
-    reviewCheckDimensionsFail: "{w}×{h}px — doesn't match Main (240×240), Sticker (740×640), or Tab (96×74).",
-    reviewCheckTransparencyPass: 'Transparent background confirmed.',
-    reviewCheckTransparencyFail: 'The background is not transparent. Export a PNG with an alpha channel.',
-    reviewCheckMarginPass: 'There is enough margin around the character.',
-    reviewCheckMarginWarn: 'The character is too close to the edge. Add more margin.',
-    reviewCheckMarginUnknown: "Margin can't be measured without a transparent background.",
-    reviewCategoryMain: 'Main image',
-    reviewCategorySticker: 'Sticker image',
-    reviewCategoryTab: 'Tab image',
-    reviewCheckAllPass: 'Every check passed!',
-    reviewCheckIssues: '{n} item(s) need a look.',
     langCountUnit: ' languages',
     langCountSuffix: ' at your fingertips',
     stepUpload: 'Upload',
@@ -1003,73 +430,9 @@ export const translations: Record<SiteLang, Dict> = {
     nfHome: 'Back to home',
     navLogin: 'Log in',
     navLogout: 'Log out',
-    loginTitle: "Log in",
-    loginSubtitle: "Log in to continue your saved projects.",
-    loginSignupSubtitle: 'Create an account to save your projects.',
-    loginShowPassword: 'Show password',
-    loginHidePassword: 'Hide password',
-    loginSubmitting: 'Signing in…',
-    signupSubmitting: 'Creating account…',
-    loginNaverNotConfigured: 'NAVER login is not configured yet.',
-    loginTabLogin: 'Log in',
-    loginTabSignup: 'Sign up',
-    loginEmailLabel: 'Email',
-    loginEmailPlaceholder: 'you@example.com',
-    loginPasswordLabel: 'Password',
-    loginPasswordPlaceholder: 'At least 8 characters',
-    loginNameLabel: 'Name',
-    loginNamePlaceholder: 'Nickname',
-    loginNameOptional: '(optional)',
-    loginSubmitLogin: 'Log in',
-    loginSubmitSignup: 'Sign up',
-    loginDivider: 'or',
-    loginNaverCta: 'Continue with Naver',
-    loginGoogleCta: 'Continue with Google',
-    loginGooglePreparing: 'Preparing Google login…',
-    loginGoogleProcessing: 'Signing you in with Google…',
-    loginGoogleNotConfigured: 'Google login is not configured yet.',
-    loginSwitchToSignup: "Don't have an account? Sign up",
-    loginConsentBefore: "By continuing, you agree to Glocalizer's ",
-    loginConsentTerms: 'Terms of Service',
-    loginConsentBetween: ' and acknowledge that you have read the ',
-    loginConsentPrivacy: 'Privacy Policy',
-    loginConsentAfter: '.',
-    loginConsentRequired: 'To sign up, please agree to the Terms of Service and Privacy Policy.',
-    loginSwitchToLogin: 'Already have an account? Log in',
-    loginBackHome: 'Home',
-    loginNaverProcessing: 'Signing you in with Naver…',
-    loginNaverFailed: 'Naver login failed.',
-    loginNaverBack: 'Back to login',
-    loginGoogleFailed: 'Google login failed.',
-    loginSuccessToast: 'Logged in!',
   },
   ja: {
-    cloudLogin: 'クラウドに保存するにはログインしてください。',
-    cloudSaving: 'クラウドに保存中…',
-    cloudSaved: 'アカウントに保存済み',
-    cloudSaveFailed: 'クラウドへの保存に失敗しました。再試行してください。',
-    cloudRetry: '再試行',
-    cloudInProgress: '進行中の作業',
-    cloudArchive: '作業アーカイブ',
-    cloudLocalizationCompleted: 'ローカライズ完了',
-    cloudEmptyProgress: '進行中の作業はありません。現地化かスタンプ生成を始めましょう。',
-    cloudEmptyArchive: '完了した作業はまだありません。',
-    cloudLoading: '作業を読み込み中…',
-    cloudListFailed: '作業を読み込めませんでした。',
-    cloudOpen: '作業を開く',
-    cloudRecent: '最終保存',
-    cloudNewConfirm: 'この作業を閉じて新しく始めますか？クラウドに保存した作業は残ります。',
-    cloudNewTitle: '新しい作業を始めますか？',
-    cloudNewProceed: '新しい作業を開始',
-    cloudDelete: '削除',
-    cloudDeleteTitle: 'この作業を削除しますか？',
-    cloudDeleteDescription: '「{name}」と保存された画像・編集内容がすべて削除されます。元に戻すことはできません。',
-    cloudDeleteConfirm: '完全に削除',
-    cloudDeleteCancel: 'キャンセル',
-    cloudDeleteSuccess: '作業を削除しました。',
-    cloudDeleteFailed: '作業を削除できませんでした。再試行してください。',
     commonClose: '閉じる',
-    cloudRename: '名前を変更', cloudRenameTitle: '作業名を変更', cloudRenameLabel: '作業名', cloudRenameHint: '空にすると既定の名前に戻ります。最大60文字。', cloudRenameSave: '保存', cloudRenameSuccess: '名前を変更しました。', cloudRenameFailed: '名前を変更できませんでした。もう一度お試しください。',
 
     hubDashboard: "スタジオ",
     hubTitle: "ワークスペースダッシュボード",
@@ -1095,79 +458,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: '編集中',
     hubResult: '結果の準備完了',
     hubFailed: '確認が必要',
-    accountTitle: '設定',
-    accountDesc: 'Glocalizerアカウント情報を確認・管理できます。',
-    accountName: 'ニックネーム',
-    accountEmail: 'メール',
-    accountSignupMethod: '連携中のログイン方法',
-    accountEmailLogin: 'メールログイン',
-    accountNaverLogin: 'NAVERログイン',
-    accountGoogleLogin: 'Googleログイン',
-    accountChecking: '確認中',
-    accountMissing: '登録情報なし',
-    accountMenu: 'プロフィールメニュー',
-    accountEdit: 'プロフィールを編集',
-    accountSave: '保存',
-    accountCancel: 'キャンセル',
-    accountChangePhoto: '写真を変更',
-    accountRemovePhoto: 'デフォルトに戻す',
-    accountNameRequired: 'ニックネームを入力してください。',
-    accountSaved: 'プロフィールを保存しました。',
-    accountSaveFailed: 'プロフィールを保存できませんでした。',
-    accountPhotoInvalid: '10MBまでの画像ファイルのみアップロードできます。',
-    accountDangerZoneTitle: '危険ゾーン',
-    accountDangerZoneDesc: 'アカウントを削除すると、保存済みのプロジェクト・画像・プロフィール情報がすべて完全に削除され、元に戻せません。',
-    accountDeleteButton: 'アカウント削除',
-    accountDeleteConfirm: '本当にアカウントを削除しますか？保存済みのプロジェクトと画像もすべて削除され、元に戻せません。',
-    accountDeleteFailed: 'アカウントを削除できませんでした。しばらくしてから再試行してください。',
-    accountDeleteSuccess: '退会が完了しました',
-    accountDeleteProcessingTitle: 'アカウントを削除しています',
-    accountDeleteProcessingDesc: '保存されたプロジェクトと画像を整理しています。少々お待ちください。',
-    accountSecurityTitle: 'セキュリティ',
-    accountSecurityDesc: 'メールで登録したアカウントのパスワードを変更できます。',
-    accountSessionsTitle: 'ログイン中の端末',
-    accountSessionsDesc: 'このアカウントでログインしている端末です。心当たりのない端末はすぐにログアウトしてください。',
-    accountSessionsCurrent: 'この端末',
-    accountSessionsLegacy: '以前の方式でログインした端末',
-    accountSessionsUnknownDevice: '不明な端末',
-    accountSessionsLastActive: '最終アクティビティ {time}',
-    accountSessionsSignOut: 'ログアウト',
-    accountSessionsSignOutOthers: '他の端末をすべてログアウト',
-    accountSessionsSignOutOthersAsk: 'この端末以外のすべての端末からログアウトします。',
-    accountSessionsConfirm: 'ログアウトする',
-    accountSessionsLegacyNote: '以前の方式でログインした他の端末は一覧に表示されない場合があります。「他の端末をすべてログアウト」で一緒にログアウトされます。',
-    accountSessionsRevoked: '端末をログアウトしました。',
-    accountSessionsOthersRevoked: '他の端末をすべてログアウトしました。',
-    accountSessionsFailed: 'ログアウトできませんでした。しばらくしてからもう一度お試しください。',
-    accountSessionsLoadFailed: '端末一覧を読み込めませんでした。',
-    accountSessionsRetry: '再試行',
-    accountSessionsLoading: '読み込み中…',
-    accountPasswordChangeCta: 'パスワード変更',
-    accountPasswordCurrentLabel: '現在のパスワード',
-    accountPasswordNewLabel: '新しいパスワード',
-    accountPasswordConfirmLabel: '新しいパスワード（確認）',
-    accountPasswordSubmit: '変更する',
-    accountPasswordCurrentRequired: '現在のパスワードを入力してください。',
-    accountPasswordTooShort: '新しいパスワードは8文字以上にしてください。',
-    accountPasswordMismatch: '新しいパスワードが一致しません。',
-    accountPasswordSuccess: 'パスワードを変更しました。',
-    accountPasswordFailed: 'パスワードを変更できませんでした。しばらくしてから再試行してください。',
-    accountDeleteModalTitle: 'アカウント削除',
-    accountDeleteAckData: '保存済みのすべてのプロジェクト・画像・プロフィール情報が完全に削除され、復元できないことを理解しました。',
-    accountDeleteAckResignup: '削除後は同じメール/アカウントで再登録できますが、以前のデータは復元されないことを理解しました。',
-    accountDeleteConfirmCta: '削除する',
-    accountPolicyTitle: 'ポリシーと利用規約',
-    accountPolicyDesc: '個人情報の取り扱いとサービス利用条件を確認できます。',
-    accountThemeTitle: '画面テーマ',
-    accountThemeDesc: 'ライトモードとダークモードから選べます。',
-    accountThemeLight: 'ライト',
-    accountThemeDark: 'ダーク',
-    accountPlanTitle: '現在のプラン',
-    accountPlanDesc: 'アカウントのサービス利用状況を確認できます。',
-    accountPlanStatus: '無料・ベータ利用中',
-    accountPlanPricing: '料金を見る',
-    accountPlanManage: 'プラン管理',
-    accountPlanComingSoon: '準備中',
     privacyPolicy: 'プライバシーポリシー',
     termsOfService: '利用規約',
 
@@ -1220,72 +510,6 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: 'サンプルを読み込み中...',
     samplePickerError: 'サンプルを読み込めませんでした。しばらくしてから再試行してください。',
     samplePickerEmpty: '現在利用できるサンプルがありません。',
-    reviewPickProjectTitle: 'レビューするプロジェクトを複数選択',
-    reviewPickProjectDesc: '完了したローカライズと生成プロジェクトをまとめてOGQ基準で確認します。',
-    reviewProjectsLoading: 'レビュー可能なプロジェクトを読み込み中...',
-    reviewProjectsEmpty: 'まだレビューできる完了プロジェクトがありません。',
-    reviewProjectsEmptyCta: '絵文字をローカライズしに行く',
-    reviewProjectsFailed: 'プロジェクト一覧を読み込めませんでした。',
-    reviewLoadingWorkspace: 'プロジェクトの文言を分析中...',
-    reviewWorkspaceFailed: 'プロジェクトを読み込めませんでした。しばらくしてから再試行してください。',
-    reviewSimilarTitle: '似た文言の既存スティッカー',
-    reviewSimilarDesc: '完成画像から認識した文言でOGQマーケットを検索し、リリース前に表現の違いを比較できます。',
-    reviewNoKeywords: 'プロジェクトから検索に使える文言が見つかりませんでした。',
-    reviewKeywordEmpty: '同じ、または似た文言のスティッカーが見つかりませんでした。',
-    reviewKeywordFailed: '検索に失敗しました。',
-    reviewAnimatedBadge: 'アニメーション',
-    reviewAiTitle: 'AI詳細フィードバック',
-    reviewAiDesc: '選択した完成画像とOCR・翻訳結果をまとめて分析し、リリース前の改善点を優先順に整理します。',
-    reviewAiCta: '詳細フィードバックを受ける',
-    reviewAiLoading: '分析中...',
-    reviewAiFailed: '詳細フィードバックを作成できませんでした。しばらくしてから再試行してください。',
-    reviewAiLimit: 'AI詳細フィードバックは一度に3件まで分析できます。',
-    reviewAiScore: 'AIリリース準備度',
-    reviewAiStrengths: '良い点',
-    reviewAiFixes: '優先して修正する点',
-    reviewAiImages: '画像別フィードバック',
-    reviewAiLocalization: 'ローカライズフィードバック',
-    reviewChecklistTitle: 'OGQマーケットリリースチェックリスト',
-    reviewChecklistItems: [
-      '透明背景のPNGで準備してください(基準キャンバス740×640px、ファイルごと1MB以下)',
-      'セット内の画像が同じキャラクター・画風・色味を保っているか確認してください',
-      '検索露出のためタイトルとタグに実際の感情・状況を表すキーワードを含めてください',
-      '著作権のあるキャラクター・フォント・画像を無断使用していないか確認してください',
-      '性的または暴力的な表現がないか確認してください',
-    ],
-    reviewChecklistDisclaimer: '正確な最新のリリース規定はOGQクリエイタースタジオの公式案内をご確認ください。このチェックリストは参考用です。',
-    reviewUploadTitle: 'または画像を直接アップロード',
-    reviewUploadDesc: 'プロジェクトなしでも、完成したスタンプ画像だけでOGQの規格をすぐ確認できます。',
-    reviewUploadDrop: '画像を選ぶかドラッグ&ドロップしてください',
-    reviewUploadHint: 'OGQ公式基準・メイン240×240・スタンプ740×640・タブ96×74・各1MB以下・PNG・透明背景',
-    reviewUploadSelectFile: '画像を選ぶ',
-    reviewUploadRemove: '削除',
-    reviewUploadDisclaimer: 'この検査は規格を自動で確認するだけの参考情報です。実際のOGQ審査結果とは異なる場合があります。',
-    reviewProjectCheckTitle: '選択したプロジェクトのOGQ規格検査',
-    reviewProjectCheckDesc: '選択したプロジェクトの画像{n}件を自動検査します。',
-    reviewProjectCheckLoading: 'プロジェクト画像を検査中...',
-    reviewProjectCheckFailed: 'プロジェクト画像を読み込めませんでした。選択を解除して再試行してください。',
-    reviewCheckFormatLabel: 'ファイル形式',
-    reviewCheckSizeLabel: '容量',
-    reviewCheckDimensionsLabel: 'サイズ規格',
-    reviewCheckTransparencyLabel: '透明背景',
-    reviewCheckMarginLabel: '余白',
-    reviewCheckFormatPass: 'PNG形式です。',
-    reviewCheckFormatFail: '{type}形式です。透明背景に対応したPNGで保存してください。',
-    reviewCheckSizePass: '{size} — 1MB以下です。',
-    reviewCheckSizeFail: '{size} — 1MBを超えています。容量を減らしてください。',
-    reviewCheckDimensionsPass: '{w}×{h}px — {category}規格に合っています。',
-    reviewCheckDimensionsFail: '{w}×{h}px — メイン240×240、スタンプ740×640、タブ96×74のどれにも合いません。',
-    reviewCheckTransparencyPass: '透明背景を確認しました。',
-    reviewCheckTransparencyFail: '背景が透明ではありません。アルファチャンネル付きのPNGで書き出してください。',
-    reviewCheckMarginPass: 'キャラクター周りの余白が十分です。',
-    reviewCheckMarginWarn: 'キャラクターが端に寄りすぎています。余白をもう少し取ってください。',
-    reviewCheckMarginUnknown: '透明背景がないため余白を測定できません。',
-    reviewCategoryMain: 'メイン画像',
-    reviewCategorySticker: 'スタンプ画像',
-    reviewCategoryTab: 'タブ画像',
-    reviewCheckAllPass: 'すべての項目に合格しました!',
-    reviewCheckIssues: '{n}件の項目を確認してください。',
     langCountUnit: '言語',
     langCountSuffix: 'にすぐ変換できます',
     stepUpload: 'アップロード',
@@ -1343,73 +567,9 @@ export const translations: Record<SiteLang, Dict> = {
     nfHome: 'ホームに戻る',
     navLogin: 'ログイン',
     navLogout: 'ログアウト',
-    loginTitle: "ログイン",
-    loginSubtitle: "ログインして保存したプロジェクトを再開できます。",
-    loginSignupSubtitle: 'アカウントを作成して、プロジェクトを保存しましょう。',
-    loginShowPassword: 'パスワードを表示',
-    loginHidePassword: 'パスワードを非表示',
-    loginSubmitting: 'ログイン中…',
-    signupSubmitting: 'アカウントを作成中…',
-    loginNaverNotConfigured: 'NAVERログインはまだ設定されていません。',
-    loginTabLogin: 'ログイン',
-    loginTabSignup: '新規登録',
-    loginEmailLabel: 'メールアドレス',
-    loginEmailPlaceholder: 'you@example.com',
-    loginPasswordLabel: 'パスワード',
-    loginPasswordPlaceholder: '8文字以上で入力してください',
-    loginNameLabel: '名前',
-    loginNamePlaceholder: 'ニックネーム',
-    loginNameOptional: '(任意)',
-    loginSubmitLogin: 'ログイン',
-    loginSubmitSignup: '新規登録',
-    loginDivider: 'または',
-    loginNaverCta: 'NAVERアカウントでログイン',
-    loginGoogleCta: 'Googleで続行',
-    loginGooglePreparing: 'Googleログインを準備中…',
-    loginGoogleProcessing: 'Googleログインを処理中…',
-    loginGoogleNotConfigured: 'Googleログインはまだ設定されていません。',
-    loginSwitchToSignup: 'アカウントをお持ちでないですか？ 新規登録',
-    loginConsentBefore: '続行すると、Glocalizerの',
-    loginConsentTerms: '利用規約',
-    loginConsentBetween: 'に同意し、',
-    loginConsentPrivacy: 'プライバシーポリシー',
-    loginConsentAfter: 'を読んだものとみなされます。',
-    loginConsentRequired: '新規登録するには、利用規約とプライバシーポリシーへの同意が必要です。',
-    loginSwitchToLogin: 'すでにアカウントをお持ちですか？ ログイン',
-    loginBackHome: 'ホームへ',
-    loginNaverProcessing: 'NAVERログインを処理しています…',
-    loginNaverFailed: 'NAVERログインに失敗しました。',
-    loginNaverBack: 'ログイン画面に戻る',
-    loginGoogleFailed: 'Googleログインに失敗しました。',
-    loginSuccessToast: 'ログイン完了！',
   },
   zh: {
-    cloudLogin: '请登录以将任务保存到云端。',
-    cloudSaving: '正在保存到云端…',
-    cloudSaved: '已保存到账户',
-    cloudSaveFailed: '云端保存失败，请重试。',
-    cloudRetry: '重试',
-    cloudInProgress: '进行中的任务',
-    cloudArchive: '任务归档',
-    cloudLocalizationCompleted: '本地化完成',
-    cloudEmptyProgress: '没有进行中的任务，开始本地化或生成表情贴纸吧。',
-    cloudEmptyArchive: '暂无已完成的任务。',
-    cloudLoading: '正在加载任务…',
-    cloudListFailed: '无法加载任务列表。',
-    cloudOpen: '打开任务',
-    cloudRecent: '最近保存',
-    cloudNewConfirm: '关闭当前任务并新建任务吗？云端已保存的任务会保留。',
-    cloudNewTitle: '开始新任务？',
-    cloudNewProceed: '开始新任务',
-    cloudDelete: '删除',
-    cloudDeleteTitle: '删除此任务？',
-    cloudDeleteDescription: '“{name}”以及已保存的图片和编辑内容将全部删除，且无法恢复。',
-    cloudDeleteConfirm: '永久删除',
-    cloudDeleteCancel: '取消',
-    cloudDeleteSuccess: '任务已删除。',
-    cloudDeleteFailed: '无法删除任务，请重试。',
     commonClose: '关闭',
-    cloudRename: '重命名', cloudRenameTitle: '重命名任务', cloudRenameLabel: '任务名称', cloudRenameHint: '留空将恢复默认名称，最多60个字符。', cloudRenameSave: '保存', cloudRenameSuccess: '名称已更新。', cloudRenameFailed: '无法重命名，请重试。',
 
     hubDashboard: "工作室",
     hubTitle: "工作空间仪表盘",
@@ -1435,79 +595,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubEditing: '编辑中',
     hubResult: '结果已就绪',
     hubFailed: '需要检查',
-    accountTitle: '设置',
-    accountDesc: '查看并管理你的Glocalizer账户信息。',
-    accountName: '昵称',
-    accountEmail: '邮箱',
-    accountSignupMethod: '已关联的登录方式',
-    accountEmailLogin: '邮箱登录',
-    accountNaverLogin: 'Naver 登录',
-    accountGoogleLogin: 'Google 登录',
-    accountChecking: '正在确认',
-    accountMissing: '暂无信息',
-    accountMenu: '个人资料菜单',
-    accountEdit: '编辑个人资料',
-    accountSave: '保存',
-    accountCancel: '取消',
-    accountChangePhoto: '更换照片',
-    accountRemovePhoto: '恢复默认',
-    accountNameRequired: '请输入昵称。',
-    accountSaved: '个人资料已保存。',
-    accountSaveFailed: '个人资料保存失败。',
-    accountPhotoInvalid: '仅支持10MB以内的图片文件。',
-    accountDangerZoneTitle: '危险区域',
-    accountDangerZoneDesc: '删除账户后，已保存的所有项目、图片和个人资料信息都会被永久删除，且无法恢复。',
-    accountDeleteButton: '删除账户',
-    accountDeleteConfirm: '确定要删除账户吗？已保存的所有项目和图片也会一并删除，且无法恢复。',
-    accountDeleteFailed: '账户删除失败,请稍后重试。',
-    accountDeleteSuccess: '账户已删除',
-    accountDeleteProcessingTitle: '正在删除账户',
-    accountDeleteProcessingDesc: '正在清理已保存的项目和图片,请稍候。',
-    accountSecurityTitle: '安全',
-    accountSecurityDesc: '可以修改通过邮箱注册的账户密码。',
-    accountSessionsTitle: '已登录的设备',
-    accountSessionsDesc: '以下是已登录此账户的设备。如发现不认识的设备，请立即退出登录。',
-    accountSessionsCurrent: '本设备',
-    accountSessionsLegacy: '以旧方式登录的设备',
-    accountSessionsUnknownDevice: '未知设备',
-    accountSessionsLastActive: '最近活动 {time}',
-    accountSessionsSignOut: '退出登录',
-    accountSessionsSignOutOthers: '退出其他所有设备',
-    accountSessionsSignOutOthersAsk: '将退出除本设备以外的所有设备。',
-    accountSessionsConfirm: '确认退出',
-    accountSessionsLegacyNote: '以旧方式登录的其他设备可能不会显示在列表中。点击“退出其他所有设备”会一并退出。',
-    accountSessionsRevoked: '已退出该设备。',
-    accountSessionsOthersRevoked: '已退出其他所有设备。',
-    accountSessionsFailed: '退出失败，请稍后重试。',
-    accountSessionsLoadFailed: '无法加载设备列表。',
-    accountSessionsRetry: '重试',
-    accountSessionsLoading: '加载中…',
-    accountPasswordChangeCta: '修改密码',
-    accountPasswordCurrentLabel: '当前密码',
-    accountPasswordNewLabel: '新密码',
-    accountPasswordConfirmLabel: '确认新密码',
-    accountPasswordSubmit: '确认修改',
-    accountPasswordCurrentRequired: '请输入当前密码。',
-    accountPasswordTooShort: '新密码至少需要8个字符。',
-    accountPasswordMismatch: '两次输入的新密码不一致。',
-    accountPasswordSuccess: '密码已更新。',
-    accountPasswordFailed: '密码更新失败，请稍后重试。',
-    accountDeleteModalTitle: '删除账户',
-    accountDeleteAckData: '我已了解已保存的所有项目、图片和个人资料信息将被永久删除且无法恢复。',
-    accountDeleteAckResignup: '我已了解删除后可以用同一邮箱/账号重新注册，但之前的数据不会恢复。',
-    accountDeleteConfirmCta: '确认删除',
-    accountPolicyTitle: '政策与条款',
-    accountPolicyDesc: '查看个人信息处理方式和服务使用条件。',
-    accountThemeTitle: '显示主题',
-    accountThemeDesc: '在浅色模式和深色模式中选择。',
-    accountThemeLight: '浅色',
-    accountThemeDark: '深色',
-    accountPlanTitle: '当前方案',
-    accountPlanDesc: '查看账号当前的服务使用状态。',
-    accountPlanStatus: '免费/测试版使用中',
-    accountPlanPricing: '查看价格',
-    accountPlanManage: '管理方案',
-    accountPlanComingSoon: '即将推出',
     privacyPolicy: '隐私政策',
     termsOfService: '服务条款',
 
@@ -1560,72 +647,6 @@ export const translations: Record<SiteLang, Dict> = {
     samplePickerLoading: '正在加载样例...',
     samplePickerError: '样例加载失败，请稍后重试。',
     samplePickerEmpty: '目前没有可用的样例。',
-    reviewPickProjectTitle: '选择多个要检查的项目',
-    reviewPickProjectDesc: '同时选择已完成的本地化和生成项目，按 OGQ 标准检查。',
-    reviewProjectsLoading: '正在加载可检查的项目...',
-    reviewProjectsEmpty: '还没有可以检查的已完成项目。',
-    reviewProjectsEmptyCta: '去本地化表情包',
-    reviewProjectsFailed: '项目列表加载失败。',
-    reviewLoadingWorkspace: '正在分析项目文案...',
-    reviewWorkspaceFailed: '项目加载失败，请稍后重试。',
-    reviewSimilarTitle: '文案相似的现有贴纸',
-    reviewSimilarDesc: '使用完成图片中识别出的文案搜索 OGQ 市场，方便你在上架前比较表达差异。',
-    reviewNoKeywords: '没能在这个项目里找到可用于搜索的文案。',
-    reviewKeywordEmpty: '没有找到文案相同或相似的贴纸。',
-    reviewKeywordFailed: '搜索失败。',
-    reviewAnimatedBadge: '动图',
-    reviewAiTitle: 'AI 深度反馈',
-    reviewAiDesc: '综合分析所选成品图片、OCR 和翻译结果，按优先级整理上架前需要改进的内容。',
-    reviewAiCta: '获取深度反馈',
-    reviewAiLoading: '正在分析...',
-    reviewAiFailed: '无法生成深度反馈，请稍后重试。',
-    reviewAiLimit: 'AI 深度反馈每次最多可分析 3 个项目。',
-    reviewAiScore: 'AI 上架准备度',
-    reviewAiStrengths: '做得好的地方',
-    reviewAiFixes: '优先修改项',
-    reviewAiImages: '逐图反馈',
-    reviewAiLocalization: '本地化反馈',
-    reviewChecklistTitle: 'OGQ 市场上架检查清单',
-    reviewChecklistItems: [
-      '准备透明背景的 PNG 图片(参考画布 740×640px,单张文件 1MB 以内)',
-      '确认整套图片保持相同的角色、画风和配色',
-      '为提高搜索曝光,在标题和标签中加入能体现真实情绪或场景的关键词',
-      '确认没有未经授权使用有版权的角色、字体或图片',
-      '确认没有色情或暴力内容',
-    ],
-    reviewChecklistDisclaimer: '准确的最新上架规定请以 OGQ 创作者工作室的官方说明为准,此清单仅供参考。',
-    reviewUploadTitle: '或直接上传图片',
-    reviewUploadDesc: '不需要项目,用完成的表情图片就能马上检查 OGQ 规格。',
-    reviewUploadDrop: '选择图片或拖放到此处',
-    reviewUploadHint: 'OGQ 官方标准 · 主图 240×240 · 表情 740×640 · 标签 96×74 · 每个 1MB 以内 · PNG · 透明背景',
-    reviewUploadSelectFile: '选择图片',
-    reviewUploadRemove: '删除',
-    reviewUploadDisclaimer: '此检查仅自动核对规格,仅供参考,实际 OGQ 审核结果可能不同。',
-    reviewProjectCheckTitle: '已选项目 OGQ 规格检查',
-    reviewProjectCheckDesc: '自动检查已选项目中的 {n} 张图片。',
-    reviewProjectCheckLoading: '正在检查项目图片...',
-    reviewProjectCheckFailed: '无法加载项目图片。请取消选择后重试。',
-    reviewCheckFormatLabel: '文件格式',
-    reviewCheckSizeLabel: '容量',
-    reviewCheckDimensionsLabel: '尺寸规格',
-    reviewCheckTransparencyLabel: '透明背景',
-    reviewCheckMarginLabel: '边距',
-    reviewCheckFormatPass: '是 PNG 格式。',
-    reviewCheckFormatFail: '是 {type} 格式。请保存为支持透明背景的 PNG。',
-    reviewCheckSizePass: '{size} — 未超过 1MB。',
-    reviewCheckSizeFail: '{size} — 超过了 1MB,请压缩文件大小。',
-    reviewCheckDimensionsPass: '{w}×{h}px — 符合{category}规格。',
-    reviewCheckDimensionsFail: '{w}×{h}px — 不符合主图 240×240、表情 740×640、标签 96×74 中的任何一种。',
-    reviewCheckTransparencyPass: '已确认透明背景。',
-    reviewCheckTransparencyFail: '背景不是透明的,请导出带 alpha 通道的 PNG。',
-    reviewCheckMarginPass: '角色周围留白充足。',
-    reviewCheckMarginWarn: '角色太靠近边缘了,请留出更多边距。',
-    reviewCheckMarginUnknown: '没有透明背景,无法测量边距。',
-    reviewCategoryMain: '主图',
-    reviewCategorySticker: '表情图片',
-    reviewCategoryTab: '标签图片',
-    reviewCheckAllPass: '所有检查项都通过了!',
-    reviewCheckIssues: '有 {n} 项需要确认。',
     langCountUnit: '种语言',
     langCountSuffix: '一键转换',
     stepUpload: '上传',
@@ -1683,44 +704,5 @@ export const translations: Record<SiteLang, Dict> = {
     nfHome: '返回首页',
     navLogin: '登录',
     navLogout: '退出登录',
-    loginTitle: "登录",
-    loginSubtitle: "登录后继续已保存的项目。",
-    loginSignupSubtitle: '创建账号，保存您的项目。',
-    loginShowPassword: '显示密码',
-    loginHidePassword: '隐藏密码',
-    loginSubmitting: '正在登录…',
-    signupSubmitting: '正在创建账号…',
-    loginNaverNotConfigured: 'NAVER 登录尚未配置。',
-    loginTabLogin: '登录',
-    loginTabSignup: '注册',
-    loginEmailLabel: '邮箱',
-    loginEmailPlaceholder: 'you@example.com',
-    loginPasswordLabel: '密码',
-    loginPasswordPlaceholder: '至少8位字符',
-    loginNameLabel: '姓名',
-    loginNamePlaceholder: '昵称',
-    loginNameOptional: '(可选)',
-    loginSubmitLogin: '登录',
-    loginSubmitSignup: '注册',
-    loginDivider: '或',
-    loginNaverCta: '使用 NAVER 账号登录',
-    loginGoogleCta: '使用 Google 继续',
-    loginGooglePreparing: '正在准备 Google 登录…',
-    loginGoogleProcessing: '正在处理 Google 登录…',
-    loginGoogleNotConfigured: '尚未配置 Google 登录。',
-    loginSwitchToSignup: '还没有账号？去注册',
-    loginConsentBefore: '继续即表示您同意 Glocalizer 的',
-    loginConsentTerms: '服务条款',
-    loginConsentBetween: '，并确认已阅读',
-    loginConsentPrivacy: '隐私政策',
-    loginConsentAfter: '。',
-    loginConsentRequired: '注册前，请先同意服务条款和隐私政策。',
-    loginSwitchToLogin: '已有账号？去登录',
-    loginBackHome: '返回首页',
-    loginNaverProcessing: '正在处理 NAVER 登录…',
-    loginNaverFailed: 'NAVER 登录失败。',
-    loginNaverBack: '返回登录页',
-    loginGoogleFailed: 'Google 登录失败。',
-    loginSuccessToast: '登录成功！',
   },
 }

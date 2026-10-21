@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { loginCopy } from '../i18n/login'
 import { consumeLoginReturn } from '../lib/loginReturn'
 import { consumeNaverState } from '../lib/naverAuth'
 import { useAuth } from '../store/AuthContext'
@@ -11,7 +12,8 @@ import { useAuth } from '../store/AuthContext'
 export default function NaverCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { t } = useSiteLang()
+  const { lang } = useSiteLang()
+  const t = loginCopy(lang)
   const { completeNaverLogin } = useAuth()
   const toast = useToast()
   const [error, setError] = useState<string | null>(null)

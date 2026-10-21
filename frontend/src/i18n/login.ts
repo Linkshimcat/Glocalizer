@@ -1,0 +1,48 @@
+import type { SiteLang } from './translations'
+
+const copy = {
+  loginTitle: ['로그인', 'Log in', 'ログイン', '登录'],
+  loginSubtitle: ['로그인 후 저장한 프로젝트를 이어서 작업할 수 있습니다.', 'Log in to continue your saved projects.', 'ログインして保存したプロジェクトを再開できます。', '登录后继续已保存的项目。'],
+  loginSignupSubtitle: ['계정을 만들고 프로젝트를 저장해 보세요.', 'Create an account to save your projects.', 'アカウントを作成して、プロジェクトを保存しましょう。', '创建账号，保存您的项目。'],
+  loginShowPassword: ['비밀번호 표시', 'Show password', 'パスワードを表示', '显示密码'],
+  loginHidePassword: ['비밀번호 숨기기', 'Hide password', 'パスワードを非表示', '隐藏密码'],
+  loginSubmitting: ['로그인 중…', 'Signing in…', 'ログイン中…', '正在登录…'],
+  signupSubmitting: ['계정 만드는 중…', 'Creating account…', 'アカウントを作成中…', '正在创建账号…'],
+  loginNaverNotConfigured: ['네이버 로그인이 아직 설정되지 않았어요.', 'NAVER login is not configured yet.', 'NAVERログインはまだ設定されていません。', 'NAVER 登录尚未配置。'],
+  loginTabLogin: ['로그인', 'Log in', 'ログイン', '登录'],
+  loginTabSignup: ['회원가입', 'Sign up', '新規登録', '注册'],
+  loginEmailLabel: ['이메일', 'Email', 'メールアドレス', '邮箱'],
+  loginEmailPlaceholder: ['you@example.com', 'you@example.com', 'you@example.com', 'you@example.com'],
+  loginPasswordLabel: ['비밀번호', 'Password', 'パスワード', '密码'],
+  loginPasswordPlaceholder: ['8자 이상 입력해주세요', 'At least 8 characters', '8文字以上で入力してください', '至少8位字符'],
+  loginNameLabel: ['이름', 'Name', '名前', '姓名'],
+  loginNamePlaceholder: ['닉네임', 'Nickname', 'ニックネーム', '昵称'],
+  loginNameOptional: ['(선택)', '(optional)', '(任意)', '(可选)'],
+  loginSubmitLogin: ['로그인', 'Log in', 'ログイン', '登录'],
+  loginSubmitSignup: ['회원가입', 'Sign up', '新規登録', '注册'],
+  loginDivider: ['또는', 'or', 'または', '或'],
+  loginNaverCta: ['네이버 아이디로 로그인', 'Continue with Naver', 'NAVERアカウントでログイン', '使用 NAVER 账号登录'],
+  loginGoogleCta: ['Google로 계속하기', 'Continue with Google', 'Googleで続行', '使用 Google 继续'],
+  loginGooglePreparing: ['Google 로그인 준비 중…', 'Preparing Google login…', 'Googleログインを準備中…', '正在准备 Google 登录…'],
+  loginGoogleProcessing: ['Google 로그인 처리 중…', 'Signing you in with Google…', 'Googleログインを処理中…', '正在处理 Google 登录…'],
+  loginGoogleNotConfigured: ['Google 로그인이 아직 설정되지 않았어요.', 'Google login is not configured yet.', 'Googleログインはまだ設定されていません。', '尚未配置 Google 登录。'],
+  loginSwitchToSignup: ['계정이 없으신가요? 회원가입', "Don't have an account? Sign up", 'アカウントをお持ちでないですか？ 新規登録', '还没有账号？去注册'],
+  loginConsentBefore: ['계속하면 Glocalizer의 ', "By continuing, you agree to Glocalizer's ", '続行すると、Glocalizerの', '继续即表示您同意 Glocalizer 的'],
+  loginConsentTerms: ['서비스 이용약관', 'Terms of Service', '利用規約', '服务条款'],
+  loginConsentBetween: ['에 동의하고 ', ' and acknowledge that you have read the ', 'に同意し、', '，并确认已阅读'],
+  loginConsentPrivacy: ['개인정보처리방침', 'Privacy Policy', 'プライバシーポリシー', '隐私政策'],
+  loginConsentAfter: ['을 읽었음을 인정한 것으로 간주합니다.', '.', 'を読んだものとみなされます。', '。'],
+  loginConsentRequired: ['회원가입하려면 서비스 이용약관과 개인정보처리방침에 동의해 주세요.', 'To sign up, please agree to the Terms of Service and Privacy Policy.', '新規登録するには、利用規約とプライバシーポリシーへの同意が必要です。', '注册前，请先同意服务条款和隐私政策。'],
+  loginSwitchToLogin: ['이미 계정이 있으신가요? 로그인', 'Already have an account? Log in', 'すでにアカウントをお持ちですか？ ログイン', '已有账号？去登录'],
+  loginBackHome: ['홈으로', 'Home', 'ホームへ', '返回首页'],
+  loginNaverProcessing: ['네이버 로그인 처리 중이에요…', 'Signing you in with Naver…', 'NAVERログインを処理しています…', '正在处理 NAVER 登录…'],
+  loginNaverFailed: ['네이버 로그인에 실패했어요.', 'Naver login failed.', 'NAVERログインに失敗しました。', 'NAVER 登录失败。'],
+  loginNaverBack: ['로그인 화면으로 돌아가기', 'Back to login', 'ログイン画面に戻る', '返回登录页'],
+  loginGoogleFailed: ['Google 로그인에 실패했어요.', 'Google login failed.', 'Googleログインに失敗しました。', 'Google 登录失败。'],
+  loginSuccessToast: ['로그인 완료!', 'Logged in!', 'ログイン完了！', '登录成功！'],
+} satisfies Record<string, [string, string, string, string]>
+
+export function loginCopy(lang: SiteLang) {
+  const index = ({ ko: 0, en: 1, ja: 2, zh: 3 })[lang]
+  return Object.fromEntries(Object.entries(copy).map(([key, values]) => [key, values[index]])) as Record<keyof typeof copy, string>
+}

@@ -12,6 +12,7 @@ import { useToast } from '../components/Toast'
 import type { OgqSticker } from '../lib/api'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { cloudCopy } from '../i18n/cloud'
 import usFlag from '../assets/GCFrontendUI/USA (us).svg'
 import jpFlag from '../assets/GCFrontendUI/Japan (JP).svg'
 import cnFlag from '../assets/GCFrontendUI/China (CN).svg'
@@ -65,7 +66,8 @@ export default function Localize() {
   const desktopStartResetTimerRef = useRef<number | null>(null)
   const [desktopStartButtonWidth, setDesktopStartButtonWidth] = useState<string>()
   const toast = useToast()
-  const { t } = useSiteLang()
+  const { t, lang } = useSiteLang()
+  const tCloud = cloudCopy(lang)
 
   const handleFiles = (incoming: File[]) => {
     if (!isAuthenticated) { navigate('/login?next=/localize'); return }
@@ -182,8 +184,8 @@ export default function Localize() {
           <UploadSpecBadge />
         </div>
 
-        {!isAuthenticated && <div className="mt-6 rounded-panel border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{t.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login?next=/localize')}>{t.navLogin}</Button></div>}
-        {isAuthenticated && (hasFiles || cloudError) && <StateNotice error={Boolean(cloudError)} className="mt-5">{cloudError ? <span>{cloudError}</span> : <span className="inline-flex items-center gap-1.5"><Cloud size={16} aria-hidden="true" />{cloudSaving || !projectStatus ? t.cloudSaving : t.cloudSaved}</span>}{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}</StateNotice>}
+        {!isAuthenticated && <div className="mt-6 rounded-panel border border-gray-200 bg-white p-5"><p className="text-sm text-sub">{tCloud.cloudLogin}</p><Button className="mt-3" onClick={() => navigate('/login?next=/localize')}>{t.navLogin}</Button></div>}
+        {isAuthenticated && (hasFiles || cloudError) && <StateNotice error={Boolean(cloudError)} className="mt-5">{cloudError ? <span>{cloudError}</span> : <span className="inline-flex items-center gap-1.5"><Cloud size={16} aria-hidden="true" />{cloudSaving || !projectStatus ? tCloud.cloudSaving : tCloud.cloudSaved}</span>}{cloudError && <Button variant="outline" size="sm" onClick={() => { void saveDraft().catch(error => toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed)) }}>{tCloud.cloudRetry}</Button>}</StateNotice>}
         {/* 드롭존 */}
         <div
           data-dragging={dragging}

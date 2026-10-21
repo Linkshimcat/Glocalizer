@@ -9,6 +9,7 @@ import NaverIcon from '../components/NaverIcon'
 import GoogleIcon from '../components/GoogleIcon'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { loginCopy } from '../i18n/login'
 import { useAuth } from '../store/AuthContext'
 import { buildNaverAuthUrl } from '../lib/naverAuth'
 import { safeLoginReturn, rememberLoginReturn } from '../lib/loginReturn'
@@ -24,7 +25,8 @@ export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const returnTo = safeLoginReturn(searchParams.get('next'))
-  const { t, lang } = useSiteLang()
+  const { lang } = useSiteLang()
+  const t = loginCopy(lang)
   const w = workflowCopy[lang]
   const { loginWithEmail, signupWithEmail, completeGoogleLogin, isAuthenticated, checkingSession, sessionError, refreshUser } = useAuth()
   const toast = useToast()

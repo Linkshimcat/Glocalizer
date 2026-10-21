@@ -13,6 +13,7 @@ import captionIcon from '../assets/studio/caption.svg'
 import arrowRightIcon from '../assets/studio/cta-arrow.svg'
 import { studioCopy } from '../i18n/studio'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { cloudCopy } from '../i18n/cloud'
 import { useUploads } from '../store/uploads'
 import Modal from '../components/Modal'
 
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t, lang } = useSiteLang()
+  const tCloud = cloudCopy(lang)
   const copy = studioCopy[lang]
   const [newTaskOpen, setNewTaskOpen] = useState(false)
   const [startingNew, setStartingNew] = useState(false)
@@ -34,7 +36,7 @@ export default function Dashboard() {
       setNewTaskOpen(false)
       navigate('/localize')
     } catch (error) {
-      toast(error instanceof Error ? error.message : t.cloudSaveFailed)
+      toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed)
     } finally {
       setStartingNew(false)
     }
@@ -42,7 +44,7 @@ export default function Dashboard() {
   const requestNewTask = () => { if (hasWork) setNewTaskOpen(true); else void startNew() }
   const cards = [
     { title: t.hubGenerate, icon: createIcon, run: () => navigate('/generate') },
-    { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask },
+    { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask, featured: true },
     { title: t.hubReview, icon: reviewIcon, run: () => navigate('/review') },
     { title: t.hubCaption, icon: captionIcon, run: requestNewTask },
   ]
@@ -72,7 +74,7 @@ export default function Dashboard() {
           <section className="studio-new-work" aria-labelledby="new-work-title">
             <h2 id="new-work-title">{copy.newWork}</h2>
             <div className="studio-work-menu">
-              {cards.map(({ title, icon, run }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
+              {cards.map(({ title, icon, run, featured }) => <button key={title} type="button" className={featured ? 'studio-work-card-featured' : ''} disabled={cloudSaving || startingNew} onClick={run}>
                 <img src={icon} alt="" aria-hidden="true" /><strong>{title}</strong>
               </button>)}
             </div>
@@ -85,12 +87,12 @@ export default function Dashboard() {
       </main>
       {newTaskOpen ? <Modal onClose={() => { if (!startingNew) setNewTaskOpen(false) }} labelledBy="new-task-title" closeLabel={t.commonClose}>
         <div className="text-sub"><Globe2 className="h-6 w-6" /></div>
-        <h2 id="new-task-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{t.cloudNewTitle}</h2>
-        <p className="mt-3 break-keep text-sm leading-6 text-sub">{t.cloudNewConfirm}</p>
+        <h2 id="new-task-title" className="mt-5 pr-8 text-xl font-extrabold text-ink">{tCloud.cloudNewTitle}</h2>
+        <p className="mt-3 break-keep text-sm leading-6 text-sub">{tCloud.cloudNewConfirm}</p>
         <div className="mt-7 flex gap-3">
-          <Button variant="secondary" disabled={startingNew} onClick={() => setNewTaskOpen(false)} className="flex-1">{t.cloudDeleteCancel}</Button>
+          <Button variant="secondary" disabled={startingNew} onClick={() => setNewTaskOpen(false)} className="flex-1">{tCloud.cloudDeleteCancel}</Button>
           <Button disabled={startingNew} onClick={() => { void startNew() }} className="flex-1">
-            {startingNew ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{t.cloudNewProceed}
+            {startingNew ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{tCloud.cloudNewProceed}
           </Button>
         </div>
       </Modal> : null}

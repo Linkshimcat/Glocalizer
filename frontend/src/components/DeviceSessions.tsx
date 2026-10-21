@@ -1,6 +1,7 @@
 import { Laptop, Loader2, Smartphone, Tablet } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { accountCopy } from '../i18n/account'
 import type { AuthSession } from '../lib/authApi'
 import { requestErrorMessage } from '../lib/requestError'
 import { useAuth } from '../store/AuthContext'
@@ -26,7 +27,8 @@ function formatLastActive(iso: string, locale: string): string {
 /** 이 계정으로 로그인된 기기 목록과 기기별 로그아웃. 로그인 방식과 관계없이 모든 계정에 보인다. */
 export default function DeviceSessions() {
   const { listSessions, revokeSession, revokeOtherSessions } = useAuth()
-  const { t, lang } = useSiteLang()
+  const { lang } = useSiteLang()
+  const t = accountCopy(lang)
   const toast = useToast()
   const [sessions, setSessions] = useState<AuthSession[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)

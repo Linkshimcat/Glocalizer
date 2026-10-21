@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, Loader2, X, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState, type DragEvent } from 'react'
-import type { Dict } from '../i18n/translations'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { reviewCopy, type ReviewCopy } from '../i18n/review'
 import { checkOgqSpec, type OgqSpecCheckItem, type OgqSpecCheckResult } from '../lib/ogqSpecCheck'
 import Button from './Button'
 import StateNotice from './StateNotice'
@@ -13,7 +13,7 @@ function formatBytes(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)}KB` : `${(bytes / (1024 * 1024)).toFixed(2)}MB`
 }
 
-function categoryLabel(t: Dict, category: OgqSpecCheckResult['category']): string {
+function categoryLabel(t: ReviewCopy, category: OgqSpecCheckResult['category']): string {
   if (category === 'main') return t.reviewCategoryMain
   if (category === 'sticker') return t.reviewCategorySticker
   if (category === 'tab') return t.reviewCategoryTab
@@ -21,7 +21,7 @@ function categoryLabel(t: Dict, category: OgqSpecCheckResult['category']): strin
 }
 
 // 검사 항목 하나를 사람이 읽는 라벨·메시지·통과 여부로 바꾼다.
-function describeItem(t: Dict, result: OgqSpecCheckResult, item: OgqSpecCheckItem): { label: string; message: string } {
+function describeItem(t: ReviewCopy, result: OgqSpecCheckResult, item: OgqSpecCheckItem): { label: string; message: string } {
   switch (item.key) {
     case 'format':
       return {
@@ -73,7 +73,8 @@ const STATUS_BG: Record<OgqSpecCheckItem['status'], string> = {
 }
 
 function ResultCard({ result }: { result: OgqSpecCheckResult }) {
-  const { t } = useSiteLang()
+  const { lang } = useSiteLang()
+  const t = reviewCopy(lang)
   const issueCount = result.items.filter(item => item.status !== 'pass').length
 
   return (
@@ -112,6 +113,7 @@ export interface OgqProjectImage {
 
 export default function OgqSpecChecker({ projectImages = [] }: { projectImages?: OgqProjectImage[] }) {
   const { t, lang } = useSiteLang()
+  const tReview = reviewCopy(lang)
   const copy = experienceCopy[lang]
   const toast = useToast()
   const [results, setResults] = useState<OgqSpecCheckResult[]>([])
@@ -185,10 +187,10 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
       <h2 id="review-specs-title" className="mb-4 text-xl font-bold">{copy.reviewTypes[0]}</h2>
       {projectImages.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold">{t.reviewProjectCheckTitle}</h2>
-          <p className="mt-1 text-sm font-medium text-sub">{t.reviewProjectCheckDesc.replace('{n}', String(projectImages.length))}</p>
-          {checkingProjects && <p role="status" className="mt-4 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.reviewProjectCheckLoading}</p>}
-          {projectCheckFailed && <StateNotice error className="mt-4" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{t.reviewProjectCheckFailed}</StateNotice>}
+          <h2 className="text-lg font-bold">{tReview.reviewProjectCheckTitle}</h2>
+          <p className="mt-1 text-sm font-medium text-sub">{tReview.reviewProjectCheckDesc.replace('{n}', String(projectImages.length))}</p>
+          {checkingProjects && <p role="status" className="mt-4 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{tReview.reviewProjectCheckLoading}</p>}
+          {projectCheckFailed && <StateNotice error className="mt-4" action={<Button variant="outline" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button>}>{tReview.reviewProjectCheckFailed}</StateNotice>}
           {projectResults.length > 0 && (
             <div className="mt-5 flex flex-col gap-4">
               {projectResults.map((result, index) => <ResultCard key={`${result.fileName}-${index}`} result={result} />)}
@@ -197,9 +199,9 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         </div>
       )}
 
-      {uploadFailed && <StateNotice error className="mb-4">{t.reviewProjectCheckFailed}</StateNotice>}
-      <h3 className="text-lg font-bold">{t.reviewUploadTitle}</h3>
-      <p className="mt-1 text-sm font-medium text-sub">{t.reviewUploadDesc}</p>
+      {uploadFailed && <StateNotice error className="mb-4">{tReview.reviewProjectCheckFailed}</StateNotice>}
+      <h3 className="text-lg font-bold">{tReview.reviewUploadTitle}</h3>
+      <p className="mt-1 text-sm font-medium text-sub">{tReview.reviewUploadDesc}</p>
 
       <div
         data-dragging={dragging}
@@ -213,17 +215,17 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         <span className="flex h-12 w-12 items-center justify-center rounded-panel bg-brand-soft">
           {checking ? <Loader2 className="h-6 w-6 animate-spin text-brand-dark" /> : <img src={dragNDropImage} alt="" aria-hidden="true" className="h-10 w-10" />}
         </span>
-        <p className="text-sm font-bold">{t.reviewUploadDrop}</p>
-        <p className="text-xs font-medium text-sub">{t.reviewUploadHint}</p>
+        <p className="text-sm font-bold">{tReview.reviewUploadDrop}</p>
+        <p className="text-xs font-medium text-sub">{tReview.reviewUploadHint}</p>
         <Button size="sm" disabled={checking} onClick={() => inputRef.current?.click()}>
-          {t.reviewUploadSelectFile}
+          {tReview.reviewUploadSelectFile}
         </Button>
         <input
           ref={inputRef}
           type="file"
           accept="image/png,image/jpeg"
           multiple
-          aria-label={t.reviewUploadSelectFile}
+          aria-label={tReview.reviewUploadSelectFile}
           className="hidden"
           onChange={e => {
             void handleFiles(Array.from(e.target.files ?? []))
@@ -239,8 +241,8 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
               <button
                 type="button"
                 onClick={() => removeResult(index)}
-                aria-label={t.reviewUploadRemove}
-                title={t.reviewUploadRemove}
+                aria-label={tReview.reviewUploadRemove}
+                title={tReview.reviewUploadRemove}
                 className="absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-sub shadow-sm hover:text-ink"
               >
                 <X className="h-4 w-4" />
@@ -251,7 +253,7 @@ export default function OgqSpecChecker({ projectImages = [] }: { projectImages?:
         </div>
       )}
 
-      <p className="mt-4 text-xs text-sub">{t.reviewUploadDisclaimer}</p>
+      <p className="mt-4 text-xs text-sub">{tReview.reviewUploadDisclaimer}</p>
     </section>
   )
 }

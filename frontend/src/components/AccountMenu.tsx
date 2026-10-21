@@ -4,6 +4,8 @@ import { LayoutDashboard, Loader2, LogOut, MessageSquare, Settings } from 'lucid
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { accountCopy } from '../i18n/account'
+import { cloudCopy } from '../i18n/cloud'
 import type { Dict } from '../i18n/translations'
 import { submitFeedback, type FeedbackCategory } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
@@ -27,7 +29,9 @@ export default function AccountMenu() {
   const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
-  const { t } = useSiteLang()
+  const { t, lang } = useSiteLang()
+  const tAccount = accountCopy(lang)
+  const tCloud = cloudCopy(lang)
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -86,7 +90,7 @@ export default function AccountMenu() {
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
-        aria-label={t.accountMenu}
+        aria-label={tAccount.accountMenu}
         aria-expanded={open}
         aria-haspopup="true"
         className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-action text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -119,8 +123,8 @@ export default function AccountMenu() {
           <div className="border-t border-line p-1.5">
             {[
               { label: t.navWorkspace, path: '/dashboard', Icon: LayoutDashboard },
-              { label: t.cloudArchive, path: '/archive', Icon: LayoutDashboard },
-              { label: t.accountTitle, path: '/account', Icon: Settings },
+              { label: tCloud.cloudArchive, path: '/archive', Icon: LayoutDashboard },
+              { label: tAccount.accountTitle, path: '/account', Icon: Settings },
             ].map(({ label, path, Icon }) => (
               <button key={path} type="button" role="menuitem" onClick={() => { setOpen(false); navigate(path) }} className="flex w-full items-center gap-2 rounded-control px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface">
                 <Icon className="h-4 w-4 text-sub" />{label}
@@ -141,7 +145,7 @@ export default function AccountMenu() {
                   setOpen(false)
                   if (['/account', '/archive'].includes(location.pathname)) navigate('/', { replace: true })
                   logout()
-                } catch (error) { toast(error instanceof Error ? error.message : t.cloudSaveFailed) }
+                } catch (error) { toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed) }
               }}
               className="flex w-full items-center gap-2 rounded-control px-3 py-2.5 text-left text-sm font-bold text-ink transition-colors hover:bg-surface"
             >
@@ -182,7 +186,7 @@ export default function AccountMenu() {
           />
           <div className="mt-5 flex justify-end gap-2">
             <button type="button" onClick={() => setFeedbackOpen(false)} disabled={feedbackSending} className="rounded-control border border-line px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
-              {t.accountCancel}
+              {tAccount.accountCancel}
             </button>
             <button type="button" onClick={onSubmitFeedback} disabled={feedbackSending} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
               {feedbackSending && <Loader2 className="h-4 w-4 animate-spin" />}
