@@ -16,7 +16,6 @@ export interface Dict {
   hubSubtitle: string
   hubLocalize: string
   hubLocalizeDesc: string
-  hubMainBadge: string
   hubReview: string
   hubReviewDesc: string
   hubGenerate: string
@@ -166,7 +165,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubSubtitle: "이모티콘 생성·현지화·출시 전 검토를 지원합니다.",
     hubLocalize: '이모티콘 현지화',
     hubLocalizeDesc: "한국어 문구를 영어·일본어·중국어로 변환합니다.",
-    hubMainBadge: '메인',
     hubReview: 'OGQ 출시 검토',
     hubReviewDesc: "OGQ 규격과 이미지·문구를 확인합니다.",
     hubCaption: 'AI 문구 추천',
@@ -304,7 +302,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubSubtitle: "Create stickers. Localize captions. Review before release.",
     hubLocalize: 'Emoticon localization',
     hubLocalizeDesc: "Adapt Korean captions into English, Japanese and Chinese.",
-    hubMainBadge: 'MAIN',
     hubReview: 'OGQ release review',
     hubReviewDesc: "Check OGQ specifications, images and captions.",
     hubCaption: 'AI caption suggestions',
@@ -442,7 +439,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubSubtitle: "スタンプ生成・ローカライズ・公開前チェックを支援します。",
     hubLocalize: 'スタンプの現地化',
     hubLocalizeDesc: "韓国語の文言を英語・日本語・中国語に変換します。",
-    hubMainBadge: 'メイン',
     hubReview: 'OGQリリース確認',
     hubReviewDesc: "OGQの規格と画像・文言を確認します。",
     hubCaption: 'AI文言の提案',
@@ -580,7 +576,6 @@ export const translations: Record<SiteLang, Dict> = {
     hubSubtitle: "支持表情生成、多语言本地化和发布前检查。",
     hubLocalize: '表情本地化',
     hubLocalizeDesc: "将韩语文案转换为英语、日语和中文。",
-    hubMainBadge: '主',
     hubReview: 'OGQ发布检查',
     hubReviewDesc: "检查OGQ规格、图片和文案。",
     hubCaption: 'AI文案推荐',

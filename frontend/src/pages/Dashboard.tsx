@@ -75,7 +75,7 @@ export default function Dashboard() {
             <h2 id="new-work-title">{copy.newWork}</h2>
             <div className="studio-work-menu">
               {cards.map(({ title, icon, run, featured }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
-                {featured && <span className="studio-main-badge">{t.hubMainBadge}</span>}
+                {featured && <span className="studio-main-badge">MAIN</span>}
                 <img src={icon} alt="" aria-hidden="true" /><strong>{title}</strong>
               </button>)}
             </div>
