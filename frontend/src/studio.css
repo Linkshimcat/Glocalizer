@@ -25,7 +25,7 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .studio-work-menu svg { width: 24px; height: 24px; color: #15803d; margin-bottom: 16px; }
 .studio-work-menu img { display: block; margin-bottom: 16px; }
 .studio-work-menu strong { font-size: 16px; font-weight: 800; word-break: keep-all; overflow-wrap: anywhere; }
-.studio-main-badge { position: absolute; top: 28px; right: 28px; padding: 2px 8px; border-radius: 999px; background: #15803d; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.studio-main-badge { position: absolute; top: 25px; right: 25px; padding: 2px 8px; border-radius: 999px; background: #15803d; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
 @media (min-width: 1101px) {
   .studio-work-menu { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .studio-work-menu > button.studio-work-card-featured { grid-column: 1 / -1; min-height: 120px; flex-direction: row; justify-content: flex-start; align-items: center; gap: 20px; padding-left: 48px; }
