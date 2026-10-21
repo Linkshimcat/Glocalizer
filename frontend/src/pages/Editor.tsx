@@ -55,6 +55,7 @@ import '../editor-fonts.css'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { cloudCopy } from '../i18n/cloud'
 import { editorDict } from '../i18n/editor'
 
 /** 저장·다운로드가 끝나면 /result로 이동하는데, Result는 지연 로드 페이지라 이동하는 순간 코드를 처음 받는다.
@@ -355,6 +356,7 @@ export default function Editor() {
 
   const toast = useToast()
   const { t, lang } = useSiteLang()
+  const tCloud = cloudCopy(lang)
   const e = editorDict[lang]
   const copy = experienceCopy[lang]
   const w = workflowCopy[lang]
@@ -1184,7 +1186,7 @@ export default function Editor() {
   // 인식·번역이 끝나기 전에는 에디터 화면(상단 바·언어 탭·파일 목록·설정 패널 등)을 전혀
   // 그리지 않고 로딩 화면만 보여준다 — 전에는 로딩 오버레이가 캔버스 영역에만 떠서 나머지
   // UI가 먼저 다 보이는 문제가 있었다.
-  if (cloudSaving && files.length === 0) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{t.cloudLoading}</main>
+  if (cloudSaving && files.length === 0) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{tCloud.cloudLoading}</main>
 
   if (files.length === 0 || !projectStatus) {
     return <Navigate to="/localize" replace />
@@ -1194,13 +1196,13 @@ export default function Editor() {
     <LoaderCircle className="mx-auto h-7 w-7 animate-spin text-brand-dark" aria-hidden="true" />
     <h1 className="mt-5 text-xl font-bold" role="status">{[t.loadingStep1, t.loadingStep2][loadingStep]}</h1>
     <p className="mt-2 text-sm text-sub">{t.loadingSub}</p>
-    <progress className="mt-6 w-full max-w-xs accent-brand" aria-label={t.cloudLoading} max={100} value={projectStatus?.progress ?? 0} />
+    <progress className="mt-6 w-full max-w-xs accent-brand" aria-label={tCloud.cloudLoading} max={100} value={projectStatus?.progress ?? 0} />
     <Button variant="outline" className="mx-auto mt-6" onClick={() => navigate('/dashboard')}>{t.hubDashboard}</Button>
   </main>
 
   return (
     <main id="main-content" tabIndex={-1} aria-labelledby="editor-title" className="studio-editor flex min-h-screen flex-col bg-white xl:min-h-0 xl:h-[calc(100svh-var(--site-header-height))]">
-      {cloudError && <StateNotice error action={<Button variant="outline" size="sm" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{t.cloudRetry}</Button>}>{cloudError}</StateNotice>}
+      {cloudError && <StateNotice error action={<Button variant="outline" size="sm" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed)) }}>{tCloud.cloudRetry}</Button>}>{cloudError}</StateNotice>}
       <h1 id="editor-title" className="sr-only">{e.aiEditor}</h1>
       <SessionNotice />
       {/* 상단 바 */}
@@ -1387,7 +1389,7 @@ export default function Editor() {
             </div>}
             <button type="button" onClick={() => setDownloadPreviewOpen(true)} className="mb-3 min-h-11 w-full rounded-control border border-gray-200 bg-white px-3 text-sm font-bold">{w.preview}</button>
             {busy && <p role="status" aria-live="polite" className="mb-3 text-center text-sm text-sub">{w.preparing}</p>}
-            {cloudError && <div role="alert" className="mb-3 text-sm text-red-700"><p>{cloudError}</p><button type="button" className="min-h-11 font-bold underline" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : t.cloudSaveFailed)) }}>{w.retry}</button></div>}
+            {cloudError && <div role="alert" className="mb-3 text-sm text-red-700"><p>{cloudError}</p><button type="button" className="min-h-11 font-bold underline" onClick={() => { void flushCloudWork().catch(error => toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed)) }}>{w.retry}</button></div>}
           </div>
           <div className="flex w-full max-w-[800px] flex-wrap items-center justify-between gap-3 px-5">
             <span className="text-xs font-bold text-sub">

@@ -10,6 +10,7 @@ import { experienceCopy } from '../i18n/experience'
 import profileDeleteIcon from '../assets/iconsax-profile-delete.svg'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { accountCopy } from '../i18n/account'
 import type { ProfileUpdate } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
 import { useTheme } from '../store/ThemeContext'
@@ -37,6 +38,7 @@ export default function Account() {
   const { user, isAuthenticated, checkingSession, refreshUser, updateProfile, changePassword, deleteAccount } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { t, lang } = useSiteLang()
+  const tAccount = accountCopy(lang)
   const toast = useToast()
   const navigate = useNavigate()
   const enteredAuthenticated = useRef(isAuthenticated)
@@ -83,13 +85,13 @@ export default function Account() {
     event.target.value = ''
     if (!file) return
     if (!file.type.startsWith('image/') || file.size > PHOTO_MAX_BYTES) {
-      toast(t.accountPhotoInvalid)
+      toast(tAccount.accountPhotoInvalid)
       return
     }
     try {
       setAvatar(await toAvatarDataUrl(file))
     } catch {
-      toast(t.accountPhotoInvalid)
+      toast(tAccount.accountPhotoInvalid)
     }
   }
 
@@ -97,7 +99,7 @@ export default function Account() {
     event.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) {
-      toast(t.accountNameRequired)
+      toast(tAccount.accountNameRequired)
       return
     }
     const update: ProfileUpdate = {}
@@ -112,9 +114,9 @@ export default function Account() {
       await updateProfile(update)
       setAvatar(undefined)
       setEditing(false)
-      toast(t.accountSaved, 'success')
+      toast(tAccount.accountSaved, 'success')
     } catch (error) {
-      toast(requestErrorMessage(error, lang, t.accountSaveFailed))
+      toast(requestErrorMessage(error, lang, tAccount.accountSaveFailed))
     } finally {
       setSaving(false)
     }
@@ -132,15 +134,15 @@ export default function Account() {
   const onChangePassword = async (event: FormEvent) => {
     event.preventDefault()
     if (!currentPassword) {
-      toast(t.accountPasswordCurrentRequired)
+      toast(tAccount.accountPasswordCurrentRequired)
       return
     }
     if (newPassword.length < 8) {
-      toast(t.accountPasswordTooShort)
+      toast(tAccount.accountPasswordTooShort)
       return
     }
     if (newPassword !== confirmPassword) {
-      toast(t.accountPasswordMismatch)
+      toast(tAccount.accountPasswordMismatch)
       return
     }
     setPasswordSaving(true)
@@ -150,9 +152,9 @@ export default function Account() {
       setNewPassword('')
       setConfirmPassword('')
       setChangingPassword(false)
-      toast(t.accountPasswordSuccess, 'success')
+      toast(tAccount.accountPasswordSuccess, 'success')
     } catch (error) {
-      toast(requestErrorMessage(error, lang, t.accountPasswordFailed))
+      toast(requestErrorMessage(error, lang, tAccount.accountPasswordFailed))
     } finally {
       setPasswordSaving(false)
     }
@@ -169,10 +171,10 @@ export default function Account() {
     try {
       await deleteAccount()
       setDeleteModalOpen(false)
-      toast(t.accountDeleteSuccess, 'success')
+      toast(tAccount.accountDeleteSuccess, 'success')
       navigate('/')
     } catch (error) {
-      toast(requestErrorMessage(error, lang, t.accountDeleteFailed))
+      toast(requestErrorMessage(error, lang, tAccount.accountDeleteFailed))
     } finally {
       setDeletingAccount(false)
     }
@@ -182,9 +184,9 @@ export default function Account() {
     <div className="studio-account min-h-screen bg-[#FAFBFC]">
       <main id="main-content" tabIndex={-1} className="layout-app py-10 sm:py-16">
         <SessionNotice />
-        <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{t.accountTitle}</h1>
-        <p className="mt-3 text-base text-sub">{t.accountDesc}</p>
-        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountTitle}>
+        <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{tAccount.accountTitle}</h1>
+        <p className="mt-3 text-base text-sub">{tAccount.accountDesc}</p>
+        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountTitle}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 shrink-0">
@@ -195,7 +197,7 @@ export default function Account() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    aria-label={t.accountChangePhoto}
+                    aria-label={tAccount.accountChangePhoto}
                     className="absolute -bottom-1.5 -right-1.5 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-card bg-action text-white shadow-md transition-opacity hover:opacity-85"
                   >
                     <Camera className="h-[18px] w-[18px]" />
@@ -205,11 +207,11 @@ export default function Account() {
               {editing && (
                 <div className="flex flex-col items-start gap-1.5">
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm font-bold text-ink hover:underline">
-                    {t.accountChangePhoto}
+                    {tAccount.accountChangePhoto}
                   </button>
                   {shownAvatar && (
                     <button type="button" onClick={() => setAvatar(null)} className="text-sm font-semibold text-sub hover:underline">
-                      {t.accountRemovePhoto}
+                      {tAccount.accountRemovePhoto}
                     </button>
                   )}
                 </div>
@@ -218,7 +220,7 @@ export default function Account() {
             </div>
             {!editing && (
               <button type="button" onClick={startEditing} className="shrink-0 rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface">
-                {t.accountEdit}
+                {tAccount.accountEdit}
               </button>
             )}
           </div>
@@ -226,7 +228,7 @@ export default function Account() {
           <dl className="mt-7 divide-y divide-gray-100">
             <div className="pb-5">
               <dt className="text-sm font-semibold text-sub">
-                <label htmlFor="account-name">{t.accountName}</label>
+                <label htmlFor="account-name">{tAccount.accountName}</label>
               </dt>
               <dd className="mt-2">
                 {editing ? (
@@ -244,37 +246,37 @@ export default function Account() {
                     </span>
                   </div>
                 ) : (
-                  <span className="break-words text-base font-bold text-ink">{user.name?.trim() || t.accountMissing}</span>
+                  <span className="break-words text-base font-bold text-ink">{user.name?.trim() || tAccount.accountMissing}</span>
                 )}
               </dd>
             </div>
             <div className="py-5">
-              <dt className="text-sm font-semibold text-sub">{t.accountEmail}</dt>
-              <dd className="mt-2 break-words text-base font-bold text-ink">{user.email?.trim() || t.accountMissing}</dd>
+              <dt className="text-sm font-semibold text-sub">{tAccount.accountEmail}</dt>
+              <dd className="mt-2 break-words text-base font-bold text-ink">{user.email?.trim() || tAccount.accountMissing}</dd>
             </div>
             <div className="pt-5">
-              <dt className="text-sm font-semibold text-sub">{t.accountSignupMethod}</dt>
+              <dt className="text-sm font-semibold text-sub">{tAccount.accountSignupMethod}</dt>
               <dd className="mt-2 flex flex-col gap-2">
                 {user.hasPassword === undefined && user.hasNaver === undefined && user.hasGoogle === undefined ? (
-                  <span className="text-base font-bold text-sub">{t.accountChecking}</span>
+                  <span className="text-base font-bold text-sub">{tAccount.accountChecking}</span>
                 ) : (
                   <>
                     {user.hasPassword && (
                       <span className="flex items-center gap-2 text-base font-bold text-ink">
                         <Mail aria-hidden="true" className="h-5 w-5 text-sub" />
-                        {t.accountEmailLogin}
+                        {tAccount.accountEmailLogin}
                       </span>
                     )}
                     {user.hasNaver && (
                       <span className="flex items-center gap-2 text-base font-bold text-ink">
                         <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-[#03C75A] text-xs font-black text-white">N</span>
-                        {t.accountNaverLogin}
+                        {tAccount.accountNaverLogin}
                       </span>
                     )}
                     {user.hasGoogle && (
                       <span className="flex items-center gap-2 text-base font-bold text-ink">
                         <GoogleIcon className="h-5 w-5" />
-                        {t.accountGoogleLogin}
+                        {tAccount.accountGoogleLogin}
                       </span>
                     )}
                   </>
@@ -286,42 +288,42 @@ export default function Account() {
           {editing && (
             <div className="mt-8 flex justify-end gap-2">
               <button type="button" onClick={cancelEditing} disabled={saving} className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
-                {t.accountCancel}
+                {tAccount.accountCancel}
               </button>
               <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {t.accountSave}
+                {tAccount.accountSave}
               </button>
             </div>
           )}
         </form>
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPlanTitle}>
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-extrabold text-ink">{t.accountPlanTitle}</h2>
-              <p className="mt-1 text-sm text-sub">{t.accountPlanDesc}</p>
+              <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPlanTitle}</h2>
+              <p className="mt-1 text-sm text-sub">{tAccount.accountPlanDesc}</p>
             </div>
             <span className="inline-flex w-fit rounded-full bg-brand-soft px-3 py-1 text-sm font-bold text-brand-dark">
-              {t.accountPlanStatus}
+              {tAccount.accountPlanStatus}
             </span>
           </div>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => navigate('/pricing')} className="rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
-              {t.accountPlanPricing}
+              {tAccount.accountPlanPricing}
             </button>
             <button type="button" disabled className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-sub disabled:cursor-not-allowed disabled:opacity-70">
-              {t.accountPlanManage} · {t.accountPlanComingSoon}
+              {tAccount.accountPlanManage} · {tAccount.accountPlanComingSoon}
             </button>
           </div>
         </section>
 
         {user.hasPassword && (
-          <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountSecurityTitle}>
+          <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountSecurityTitle}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-extrabold text-ink">{t.accountSecurityTitle}</h2>
-                <p className="mt-1 text-sm text-sub">{t.accountSecurityDesc}</p>
+                <h2 className="text-lg font-extrabold text-ink">{tAccount.accountSecurityTitle}</h2>
+                <p className="mt-1 text-sm text-sub">{tAccount.accountSecurityDesc}</p>
               </div>
               {!changingPassword && (
                 <button
@@ -329,7 +331,7 @@ export default function Account() {
                   onClick={startChangingPassword}
                   className="shrink-0 rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface"
                 >
-                  {t.accountPasswordChangeCta}
+                  {tAccount.accountPasswordChangeCta}
                 </button>
               )}
             </div>
@@ -338,7 +340,7 @@ export default function Account() {
               <form onSubmit={onChangePassword} className="mt-5 space-y-4">
                 <div>
                   <label htmlFor="current-password" className="text-sm font-semibold text-sub">
-                    {t.accountPasswordCurrentLabel}
+                    {tAccount.accountPasswordCurrentLabel}
                   </label>
                   <input
                     id="current-password"
@@ -353,7 +355,7 @@ export default function Account() {
                 </div>
                 <div>
                   <label htmlFor="new-password" className="text-sm font-semibold text-sub">
-                    {t.accountPasswordNewLabel}
+                    {tAccount.accountPasswordNewLabel}
                   </label>
                   <input
                     id="new-password"
@@ -368,7 +370,7 @@ export default function Account() {
                 </div>
                 <div>
                   <label htmlFor="confirm-password" className="text-sm font-semibold text-sub">
-                    {t.accountPasswordConfirmLabel}
+                    {tAccount.accountPasswordConfirmLabel}
                   </label>
                   <input
                     id="confirm-password"
@@ -383,11 +385,11 @@ export default function Account() {
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
                   <button type="button" onClick={cancelChangingPassword} disabled={passwordSaving} className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">
-                    {t.accountCancel}
+                    {tAccount.accountCancel}
                   </button>
                   <button type="submit" disabled={passwordSaving} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
                     {passwordSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {t.accountPasswordSubmit}
+                    {tAccount.accountPasswordSubmit}
                   </button>
                 </div>
               </form>
@@ -397,9 +399,9 @@ export default function Account() {
 
         <DeviceSessions />
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountPolicyTitle}>
-          <h2 className="text-lg font-extrabold text-ink">{t.accountPolicyTitle}</h2>
-          <p className="mt-1 text-sm text-sub">{t.accountPolicyDesc}</p>
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPolicyTitle}>
+          <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPolicyTitle}</h2>
+          <p className="mt-1 text-sm text-sub">{tAccount.accountPolicyDesc}</p>
           <div className="mt-5 divide-y divide-gray-100">
             <button type="button" onClick={() => navigate('/privacy')} className="flex w-full items-center gap-3 py-4 text-left font-bold text-ink transition-colors hover:text-brand-dark">
               <ShieldCheck aria-hidden="true" className="h-5 w-5 text-brand-dark" />
@@ -414,17 +416,17 @@ export default function Account() {
           </div>
         </section>
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={t.accountThemeTitle}>
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountThemeTitle}>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-extrabold text-ink">{t.accountThemeTitle}</h2>
-              <p className="mt-1 text-sm text-sub">{t.accountThemeDesc}</p>
+              <h2 className="text-lg font-extrabold text-ink">{tAccount.accountThemeTitle}</h2>
+              <p className="mt-1 text-sm text-sub">{tAccount.accountThemeDesc}</p>
             </div>
             <button
               type="button"
               role="switch"
               aria-checked={theme === 'dark'}
-              aria-label={theme === 'dark' ? t.accountThemeLight : t.accountThemeDark}
+              aria-label={theme === 'dark' ? tAccount.accountThemeLight : tAccount.accountThemeDark}
               onClick={toggleTheme}
               className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors ${theme === 'dark' ? 'bg-action' : 'bg-gray-200'}`}
             >
@@ -433,9 +435,9 @@ export default function Account() {
           </div>
         </section>
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-red-200 bg-red-50/40 p-6 dark:border-red-900/50 dark:bg-red-950/20 sm:p-8" aria-label={t.accountDangerZoneTitle}>
-          <h2 className="text-lg font-extrabold text-red-600 dark:text-red-400">{t.accountDangerZoneTitle}</h2>
-          <p className="mt-2 text-sm text-red-900/70 dark:text-red-300/70">{t.accountDangerZoneDesc}</p>
+        <section className="mt-6 max-w-2xl rounded-panel border border-red-200 bg-red-50/40 p-6 dark:border-red-900/50 dark:bg-red-950/20 sm:p-8" aria-label={tAccount.accountDangerZoneTitle}>
+          <h2 className="text-lg font-extrabold text-red-600 dark:text-red-400">{tAccount.accountDangerZoneTitle}</h2>
+          <p className="mt-2 text-sm text-red-900/70 dark:text-red-300/70">{tAccount.accountDangerZoneDesc}</p>
           <button
             type="button"
             onClick={openDeleteModal}
@@ -444,7 +446,7 @@ export default function Account() {
             <span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center">
               <img src={profileDeleteIcon} alt="" />
             </span>
-            {t.accountDeleteButton}
+            {tAccount.accountDeleteButton}
           </button>
         </section>
       </main>
@@ -458,13 +460,13 @@ export default function Account() {
           {deletingAccount ? (
             <div className="flex flex-col items-center py-6 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-red-600 dark:text-red-400" />
-              <h2 id="delete-account-title" className="mt-4 text-lg font-extrabold text-ink">{t.accountDeleteProcessingTitle}</h2>
-              <p className="mt-2 text-sm text-sub">{t.accountDeleteProcessingDesc}</p>
+              <h2 id="delete-account-title" className="mt-4 text-lg font-extrabold text-ink">{tAccount.accountDeleteProcessingTitle}</h2>
+              <p className="mt-2 text-sm text-sub">{tAccount.accountDeleteProcessingDesc}</p>
             </div>
           ) : (
             <>
-              <h2 id="delete-account-title" className="text-lg font-extrabold text-ink">{t.accountDeleteModalTitle}</h2>
-              <p className="mt-2 text-sm text-sub">{t.accountDeleteConfirm}</p>
+              <h2 id="delete-account-title" className="text-lg font-extrabold text-ink">{tAccount.accountDeleteModalTitle}</h2>
+              <p className="mt-2 text-sm text-sub">{tAccount.accountDeleteConfirm}</p>
 
               <div className="mt-5 space-y-3">
                 <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
@@ -474,7 +476,7 @@ export default function Account() {
                     onChange={event => setAckDataLoss(event.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
                   />
-                  {t.accountDeleteAckData}
+                  {tAccount.accountDeleteAckData}
                 </label>
                 <label className="flex cursor-pointer items-start gap-2.5 text-sm font-semibold text-ink">
                   <input
@@ -483,7 +485,7 @@ export default function Account() {
                     onChange={event => setAckResignup(event.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-red-600 focus:ring-red-500"
                   />
-                  {t.accountDeleteAckResignup}
+                  {tAccount.accountDeleteAckResignup}
                 </label>
               </div>
 
@@ -493,7 +495,7 @@ export default function Account() {
                   onClick={() => setDeleteModalOpen(false)}
                   className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface"
                 >
-                  {t.accountCancel}
+                  {tAccount.accountCancel}
                 </button>
                 <button
                   type="button"
@@ -501,7 +503,7 @@ export default function Account() {
                   onClick={() => { void onConfirmDelete() }}
                   className="rounded-control bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-red-700"
                 >
-                  {t.accountDeleteConfirmCta}
+                  {tAccount.accountDeleteConfirmCta}
                 </button>
               </div>
             </>

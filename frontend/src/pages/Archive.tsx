@@ -3,13 +3,15 @@ import { Navigate } from 'react-router-dom'
 import ProjectLibrary from '../components/ProjectLibrary'
 import SessionNotice from '../components/SessionNotice'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { cloudCopy } from '../i18n/cloud'
 import { experienceCopy } from '../i18n/experience'
 import { useAuth } from '../store/AuthContext'
 
 export default function Archive() {
   const { isAuthenticated, checkingSession } = useAuth()
   const enteredAuthenticated = useRef(isAuthenticated)
-  const { t, lang } = useSiteLang()
+  const { lang } = useSiteLang()
+  const t = cloudCopy(lang)
   if (!isAuthenticated && !checkingSession) return <Navigate to={enteredAuthenticated.current ? '/' : '/login?next=/archive'} replace />
   return <div className="studio-archive min-h-screen bg-[#FAFBFC]">
     <main id="main-content" tabIndex={-1} className="layout-app py-10 sm:py-16">

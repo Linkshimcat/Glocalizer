@@ -1,5 +1,6 @@
 import { useAuth } from './AuthContext'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { cloudCopy } from '../i18n/cloud'
 import { restoreCloudProject, saveCloudDraft, finishCloudProject, type CloudWorkspace } from '../lib/api'
 import {
   createContext,
@@ -184,7 +185,8 @@ const UploadContext = createContext<UploadState | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
   const { user, token } = useAuth()
-  const { t } = useSiteLang()
+  const { t, lang } = useSiteLang()
+  const tCloud = cloudCopy(lang)
   const [cloudSaving, setCloudSaving] = useState(() => Boolean(user && loadSession('cloudOwnerId', null) === user.id && loadSession('cloudProjectId', null)))
   const [pendingStyleSaves, setPendingStyleSaves] = useState(0)
   const [cloudError, setCloudError] = useState<string | null>(null)
@@ -258,11 +260,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const markResultReady = useCallback(async () => {
-    if (!projectId || !token) throw new ApiError(t.cloudLogin)
+    if (!projectId || !token) throw new ApiError(tCloud.cloudLogin)
     await flushEdits()
     await finishCloudProject(projectId)
     setResultReady(true)
-  }, [projectId, token, t.cloudLogin, flushEdits])
+  }, [projectId, token, tCloud.cloudLogin, flushEdits])
 
   const saveStyle = useCallback((id: string, languageCode: string, style: Style, regionId?: string | null) => {
     const file = files.find(candidate => candidate.id === id)
@@ -282,9 +284,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       if (pendingStyles.current.get(key) === write) pendingStyles.current.delete(key)
       if (saveEpoch === epoch.current && !pendingStyles.current.size) setCloudError(null)
     }).catch(() => {
-      if (saveEpoch === epoch.current) setCloudError(t.cloudSaveFailed)
+      if (saveEpoch === epoch.current) setCloudError(tCloud.cloudSaveFailed)
     }).finally(() => { setPendingStyleSaves(value => Math.max(0, value - 1)) })
-  }, [files, projectId, projectToken, t.cloudSaveFailed])
+  }, [files, projectId, projectToken, tCloud.cloudSaveFailed])
 
   const recordDownload = useCallback((kind: 'single' | 'zip', languageCode?: string) => {
     setLastDownload(kind)
@@ -438,7 +440,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setCloudError(null)
     try {
       const workspace = await restoreCloudProject(id)
-      if (openingEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+      if (openingEpoch !== epoch.current) throw new ApiError(tCloud.cloudSaveFailed)
       cloudDraft.current = { id: workspace.status.status === 'created' ? id : null, fingerprint: '' }
       pendingStyles.current.clear()
       setProjectId(id)
@@ -454,19 +456,19 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       if (['completed', 'failed'].includes(workspace.status.status)) await refreshProject(workspace)
       return workspace.status.status === 'created' ? '/localize' : workspace.resultReady ? '/result' : '/editor'
     } catch (error) {
-      setCloudError(error instanceof Error ? error.message : t.cloudSaveFailed)
+      setCloudError(error instanceof Error ? error.message : tCloud.cloudSaveFailed)
       throw error
     } finally { setCloudSaving(false) }
-  }, [refreshProject, t.cloudSaveFailed])
+  }, [refreshProject, tCloud.cloudSaveFailed])
 
   const saveDraft = useCallback(async (): Promise<string> => {
-    if (!user || !token) throw new ApiError(t.cloudLogin)
+    if (!user || !token) throw new ApiError(tCloud.cloudLogin)
     if (files.length === 0 && !cloudDraft.current.id) throw new ApiError(t.dashHintNoFile)
-    if (projectStatus && projectStatus.status !== 'created') throw new ApiError(t.cloudSaveFailed)
+    if (projectStatus && projectStatus.status !== 'created') throw new ApiError(tCloud.cloudSaveFailed)
     const saveEpoch = epoch.current
     const fingerprint = JSON.stringify([files.map(file => file.id), selectedFileIds, targetLangs.map(language => language.code)])
     const operation = draftQueue.current.catch(() => undefined).then(async () => {
-      if (saveEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+      if (saveEpoch !== epoch.current) throw new ApiError(tCloud.cloudSaveFailed)
       if (cloudDraft.current.id && cloudDraft.current.fingerprint === fingerprint) return cloudDraft.current.id
       setCloudSaving(true)
       setCloudError(null)
@@ -477,7 +479,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         }))
         const draft = await saveCloudDraft(cloudDraft.current.id, metadata, targetLangs.map(language => language.code), selectedFileIds)
         // Preserve the draft ID on failed uploads so retry never creates duplicate projects.
-        if (saveEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+        if (saveEpoch !== epoch.current) throw new ApiError(tCloud.cloudSaveFailed)
         cloudDraft.current.id = draft.projectId
         const uploads = draft.assets.filter(asset => asset.uploadUrl)
         await Promise.all(uploads.map(async asset => {
@@ -485,7 +487,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           await uploadToSignedUrl(asset.uploadUrl!, await fileToUploadFile(file))
         }))
         if (draft.assets.length) await completeUploads(draft.projectId, 'account', draft.assets.map(asset => asset.assetId))
-        if (saveEpoch !== epoch.current) throw new ApiError(t.cloudSaveFailed)
+        if (saveEpoch !== epoch.current) throw new ApiError(tCloud.cloudSaveFailed)
         cloudDraft.current.fingerprint = fingerprint
         setProjectId(draft.projectId)
         setProjectToken('account')
@@ -493,13 +495,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         setFiles(previous => previous.map(file => ({ ...file, assetId: draft.assets.find(asset => asset.clientId === file.id)?.assetId ?? file.assetId, size: metadata.find(item => item.clientId === file.id)?.size ?? file.size })))
         return draft.projectId
       } catch (error) {
-        if (saveEpoch === epoch.current) setCloudError(error instanceof Error ? error.message : t.cloudSaveFailed)
+        if (saveEpoch === epoch.current) setCloudError(error instanceof Error ? error.message : tCloud.cloudSaveFailed)
         throw error
       } finally { if (saveEpoch === epoch.current) setCloudSaving(false) }
     })
     draftQueue.current = operation
     return operation
-  }, [files, selectedFileIds, targetLangs, user, token, projectStatus, t.cloudLogin, t.cloudSaveFailed, t.dashHintNoFile])
+  }, [files, selectedFileIds, targetLangs, user, token, projectStatus, tCloud.cloudLogin, tCloud.cloudSaveFailed, t.dashHintNoFile])
 
   useEffect(() => {
     if (!user || !token || (!files.length && !cloudDraft.current.id) || (projectStatus && projectStatus.status !== 'created')) return
@@ -540,7 +542,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   }, [user, files, selectedFileIds, targetLangs, projectStatus, cloudSaving, pendingStyleSaves, cloudError])
 
   const startLocalization = useCallback(async () => {
-    if (!user || !token) throw new ApiError(t.cloudLogin)
+    if (!user || !token) throw new ApiError(tCloud.cloudLogin)
     if (selectedFileIds.length === 0 || targetLangs.length === 0) throw new ApiError(t.dashHintNoLang)
     setProcessingError(null)
     setResultReady(false)
@@ -548,7 +550,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     await startProject(id, 'account')
     setProjectStatus({ projectId: id, status: 'processing', stage: 'validating', progress: 0, message: '', assets: [] })
     setProjectResults(null)
-  }, [user, token, selectedFileIds, targetLangs, saveDraft, t.cloudLogin, t.dashHintNoLang])
+  }, [user, token, selectedFileIds, targetLangs, saveDraft, tCloud.cloudLogin, t.dashHintNoLang])
 
   const getLatestProjectResults = useCallback(async () => {
     if (!projectId || !projectToken) throw new ApiError('편집 세션을 찾을 수 없어요.')

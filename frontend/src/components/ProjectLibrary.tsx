@@ -7,6 +7,7 @@ import { deleteGenerationProject, generationRequest, renameGenerationProject, th
 import { filterProjects, libraryProjects, type LibraryProject } from '../lib/projectLibrary'
 import { experienceCopy } from '../i18n/experience'
 import { useSiteLang } from '../i18n/LanguageContext'
+import { cloudCopy } from '../i18n/cloud'
 import { useAuth } from '../store/AuthContext'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import Button from './Button'
@@ -22,6 +23,7 @@ const sorts = ['newest', 'oldest', 'name'] as const
 export default function ProjectLibrary({ archive = false, loginMessage }: { archive?: boolean; loginMessage?: string }) {
   const { user, token, checkingSession } = useAuth()
   const { t, lang } = useSiteLang()
+  const tCloud = cloudCopy(lang)
   const copy = experienceCopy[lang]
   const { openCloudProject, flushCloudWork, resetWorkflow, projectStatus, resultReady } = useUploads()
   const navigate = useNavigate()
@@ -106,7 +108,7 @@ export default function ProjectLibrary({ archive = false, loginMessage }: { arch
       await flushCloudWork()
       if (authRef.current !== token) return
       navigate(project.kind === 'localization' ? await openCloudProject(project.id) : `/generate?project=${encodeURIComponent(project.id)}`)
-    } catch (error) { toast(requestErrorMessage(error, lang, t.cloudListFailed)) }
+    } catch (error) { toast(requestErrorMessage(error, lang, tCloud.cloudListFailed)) }
     finally { mutationLock.current = false; setOpening(null) }
   }
 
@@ -143,12 +145,12 @@ export default function ProjectLibrary({ archive = false, loginMessage }: { arch
       }
       setTarget(null)
       setRefresh(value => value + 1)
-      toast(action === 'delete' ? t.cloudDeleteSuccess : t.cloudRenameSuccess, 'success')
-    } catch (error) { toast(requestErrorMessage(error, lang, action === 'delete' ? t.cloudDeleteFailed : t.cloudRenameFailed)) }
+      toast(action === 'delete' ? tCloud.cloudDeleteSuccess : tCloud.cloudRenameSuccess, 'success')
+    } catch (error) { toast(requestErrorMessage(error, lang, action === 'delete' ? tCloud.cloudDeleteFailed : tCloud.cloudRenameFailed)) }
     finally { mutationLock.current = false; setSaving(false) }
   }
 
-  if (!token || !user) return <StateNotice className="mt-5" action={!checkingSession && <Link className="ui-link" to={`/login?next=${archive ? '/archive' : '/dashboard'}`}>{t.navLogin}</Link>}>{checkingSession ? t.cloudLoading : loginMessage ?? t.cloudLogin}</StateNotice>
+  if (!token || !user) return <StateNotice className="mt-5" action={!checkingSession && <Link className="ui-link" to={`/login?next=${archive ? '/archive' : '/dashboard'}`}>{t.navLogin}</Link>}>{checkingSession ? tCloud.cloudLoading : loginMessage ?? tCloud.cloudLogin}</StateNotice>
 
   return <div className="project-library">
     <div className="project-library-controls">
@@ -158,26 +160,26 @@ export default function ProjectLibrary({ archive = false, loginMessage }: { arch
       <label><span>{copy.sort}</span><select aria-label={copy.sort} className="ui-input" value={sort} onChange={event => setFilter('sort', event.target.value)}>{sorts.map(value => <option key={value} value={value}>{copy[value]}</option>)}</select></label>
       <Button variant="outline" disabled={loading || busy} onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16} className={loading ? 'animate-spin' : ''} aria-hidden="true" />{copy.refresh}</Button>
     </div>
-    {failed.length > 0 && <StateNotice error className="mt-4" action={<Button variant="outline" disabled={loading} onClick={() => setRefresh(value => value + 1)}>{copy.retry}</Button>}><p>{failed.length === 2 ? t.cloudListFailed : copy.partialFailure}</p><p className="mt-1 text-sm text-sub">{failed.map(value => copy[value as 'localization' | 'generation']).join(' · ')}</p></StateNotice>}
-    <div className="project-library-summary" role="status" aria-live="polite"><span>{loading ? t.cloudLoading : copy.results.replace('{n}', String(visible.length))}</span>{!archive && running > 0 && <span>{copy.inProgress.replace('{n}', String(running))}</span>}{hasFilters && <button type="button" className="ui-link" onClick={clearFilters}>{copy.reset}</button>}</div>
-    {loading && projects.length === 0 ? <div role="status" aria-label={t.cloudLoading} aria-busy="true" className="project-library-grid">{[0, 1, 2].map(index => <div key={index} aria-hidden="true" className="project-library-skeleton motion-reduce:animate-none" />)}</div> : <>
-      {!visible.length && failed.length !== 2 && <div className="project-library-empty"><p>{hasFilters ? copy.noMatches : archive ? t.cloudEmptyArchive : t.cloudEmptyProgress}</p><Button variant="outline" className="mt-4" onClick={hasFilters ? clearFilters : () => navigate('/localize')}>{hasFilters ? copy.reset : t.hubStart}</Button></div>}
+    {failed.length > 0 && <StateNotice error className="mt-4" action={<Button variant="outline" disabled={loading} onClick={() => setRefresh(value => value + 1)}>{copy.retry}</Button>}><p>{failed.length === 2 ? tCloud.cloudListFailed : copy.partialFailure}</p><p className="mt-1 text-sm text-sub">{failed.map(value => copy[value as 'localization' | 'generation']).join(' · ')}</p></StateNotice>}
+    <div className="project-library-summary" role="status" aria-live="polite"><span>{loading ? tCloud.cloudLoading : copy.results.replace('{n}', String(visible.length))}</span>{!archive && running > 0 && <span>{copy.inProgress.replace('{n}', String(running))}</span>}{hasFilters && <button type="button" className="ui-link" onClick={clearFilters}>{copy.reset}</button>}</div>
+    {loading && projects.length === 0 ? <div role="status" aria-label={tCloud.cloudLoading} aria-busy="true" className="project-library-grid">{[0, 1, 2].map(index => <div key={index} aria-hidden="true" className="project-library-skeleton motion-reduce:animate-none" />)}</div> : <>
+      {!visible.length && failed.length !== 2 && <div className="project-library-empty"><p>{hasFilters ? copy.noMatches : archive ? tCloud.cloudEmptyArchive : tCloud.cloudEmptyProgress}</p><Button variant="outline" className="mt-4" onClick={hasFilters ? clearFilters : () => navigate('/localize')}>{hasFilters ? copy.reset : t.hubStart}</Button></div>}
       <div className="project-library-grid">{visible.map(project => {
         const cloud = project.kind === 'localization' ? project.source as CloudProject : null
         const generatedProject = project.kind === 'generation' ? project.source as GenerationProject : null
         const thumbnail = generatedProject ? thumbnailImage(generatedProject) : null
         const Icon = cloud ? Globe2 : Sparkles
         return <article key={project.key} data-project-key={project.key} className="project-library-card">
-          <button type="button" className="project-library-preview" aria-label={`${project.name} ${t.cloudOpen}`} disabled={busy} onClick={() => { void open(project) }}>{cloud?.thumbnailUrl ? <img src={cloud.thumbnailUrl} alt="" loading="lazy" decoding="async" /> : thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Icon size={28} aria-hidden="true" />}</button>
+          <button type="button" className="project-library-preview" aria-label={`${project.name} ${tCloud.cloudOpen}`} disabled={busy} onClick={() => { void open(project) }}>{cloud?.thumbnailUrl ? <img src={cloud.thumbnailUrl} alt="" loading="lazy" decoding="async" /> : thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Icon size={28} aria-hidden="true" />}</button>
           <div className="project-library-info"><p className="text-xs text-sub">{copy[project.kind]}</p><h3 title={project.name}>{project.name}</h3><p className="project-library-status" data-state={project.needsAttention ? 'attention' : project.status}>{copy[project.status]}{project.needsAttention && project.status !== 'attention' ? ` · ${copy.attention}` : ''}</p><p className="text-sm text-sub">{cloud ? t.hubFiles.replace('{n}', String(project.imageCount)) : `${project.imageCount}/24`}{cloud && cloud.targetLanguages.length ? ` · ${LANGUAGES.filter(item => cloud.targetLanguages.includes(item.code)).map(item => item.label).join(' · ')}` : ''}</p><p className="text-xs text-sub">{copy.latest} · {new Date(project.createdAt).toLocaleDateString(lang)}</p></div>
-          <div className="project-library-actions"><Button disabled={busy} onClick={() => { void open(project) }}>{opening === project.key ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} aria-hidden="true" />}{archive ? t.cloudOpen : t.hubContinue}</Button><details><summary aria-label={`${project.name} ${copy.details}`}>{copy.details}</summary><div><Button variant="ghost" disabled={busy} onClick={() => { setTarget({ project, action: 'rename' }); setName(project.kind === 'generation' ? (project.source as GenerationProject).name ?? '' : project.name) }}><Pencil size={16} aria-hidden="true" />{t.cloudRename}</Button><Button variant="ghost" disabled={busy} onClick={() => setTarget({ project, action: 'delete' })}><Trash2 size={16} aria-hidden="true" />{t.cloudDelete}</Button></div></details></div>
+          <div className="project-library-actions"><Button disabled={busy} onClick={() => { void open(project) }}>{opening === project.key ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} aria-hidden="true" />}{archive ? tCloud.cloudOpen : t.hubContinue}</Button><details><summary aria-label={`${project.name} ${copy.details}`}>{copy.details}</summary><div><Button variant="ghost" disabled={busy} onClick={() => { setTarget({ project, action: 'rename' }); setName(project.kind === 'generation' ? (project.source as GenerationProject).name ?? '' : project.name) }}><Pencil size={16} aria-hidden="true" />{tCloud.cloudRename}</Button><Button variant="ghost" disabled={busy} onClick={() => setTarget({ project, action: 'delete' })}><Trash2 size={16} aria-hidden="true" />{tCloud.cloudDelete}</Button></div></details></div>
         </article>
       })}</div>
     </>}
     {target && <Modal onClose={() => { if (!saving) setTarget(null) }} labelledBy="library-dialog-title" closeLabel={t.commonClose}>
-      <h2 id="library-dialog-title" className="pr-8 text-xl font-bold">{target.action === 'delete' ? t.cloudDeleteTitle : t.cloudRenameTitle}</h2>
-      {target.action === 'delete' ? <p className="mt-4 text-sm leading-6 text-sub">{t.cloudDeleteDescription.replace('{name}', target.project.name)}</p> : <><label htmlFor="library-name" className="mt-5 block text-sm font-bold">{t.cloudRenameLabel}</label><input id="library-name" autoFocus maxLength={60} disabled={saving} value={name} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void mutate() } }} className="ui-input mt-2" /><p className="mt-2 text-sm text-sub">{t.cloudRenameHint}</p></>}
-      <div className="mt-6 flex gap-3"><Button variant="secondary" className="flex-1" disabled={saving} onClick={() => setTarget(null)}>{t.cloudDeleteCancel}</Button><Button variant={target.action === 'delete' ? 'danger' : 'primary'} className="flex-1" disabled={saving} onClick={() => { void mutate() }}>{saving && <Loader2 size={16} className="animate-spin" />}{target.action === 'delete' ? t.cloudDeleteConfirm : t.cloudRenameSave}</Button></div>
+      <h2 id="library-dialog-title" className="pr-8 text-xl font-bold">{target.action === 'delete' ? tCloud.cloudDeleteTitle : tCloud.cloudRenameTitle}</h2>
+      {target.action === 'delete' ? <p className="mt-4 text-sm leading-6 text-sub">{tCloud.cloudDeleteDescription.replace('{name}', target.project.name)}</p> : <><label htmlFor="library-name" className="mt-5 block text-sm font-bold">{tCloud.cloudRenameLabel}</label><input id="library-name" autoFocus maxLength={60} disabled={saving} value={name} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void mutate() } }} className="ui-input mt-2" /><p className="mt-2 text-sm text-sub">{tCloud.cloudRenameHint}</p></>}
+      <div className="mt-6 flex gap-3"><Button variant="secondary" className="flex-1" disabled={saving} onClick={() => setTarget(null)}>{tCloud.cloudDeleteCancel}</Button><Button variant={target.action === 'delete' ? 'danger' : 'primary'} className="flex-1" disabled={saving} onClick={() => { void mutate() }}>{saving && <Loader2 size={16} className="animate-spin" />}{target.action === 'delete' ? tCloud.cloudDeleteConfirm : tCloud.cloudRenameSave}</Button></div>
     </Modal>}
   </div>
 }
