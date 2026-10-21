@@ -26,6 +26,13 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .studio-work-menu img { display: block; margin-bottom: 16px; }
 .studio-work-menu strong { font-size: 16px; font-weight: 800; word-break: keep-all; overflow-wrap: anywhere; }
 .studio-main-badge { position: absolute; top: 14px; right: 14px; padding: 2px 8px; border-radius: 999px; background: #15803d; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+@media (min-width: 1101px) {
+  .studio-work-menu { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .studio-work-menu > button.studio-work-card-featured { grid-column: 1 / -1; min-height: 120px; flex-direction: row; align-items: center; gap: 20px; }
+  .studio-work-card-featured svg, .studio-work-card-featured img { width: 32px; height: 32px; margin-bottom: 0; }
+  .studio-work-card-featured strong { font-size: 20px; }
+  .studio-work-card-featured .studio-main-badge { position: static; margin-left: auto; font-size: 11px; padding: 4px 10px; }
+}
 .studio-project-section { margin-top: 48px; }.studio-project-section > h2 { font-size: 23px; font-weight: 800; }
 .studio-project-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
 .studio-project-tile { display: flex; flex-direction: column; gap: 16px; min-width: 0; border: 1px solid var(--studio-line); border-radius: var(--radius-panel); background: var(--color-card); padding: 16px; }
