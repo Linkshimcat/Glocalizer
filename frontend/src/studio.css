@@ -31,6 +31,7 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .studio-work-menu > button.studio-work-card-featured { grid-column: 1 / -1; min-height: 120px; flex-direction: row; justify-content: flex-start; align-items: center; gap: 20px; padding-left: 48px; }
   .studio-work-card-featured svg, .studio-work-card-featured img { width: 32px; height: 32px; margin-bottom: 0; }
   .studio-work-card-featured strong { font-size: 20px; }
+  .studio-work-card-featured .studio-main-badge { top: 50%; transform: translateY(-50%); }
 }
 .studio-project-section { margin-top: 48px; }.studio-project-section > h2 { font-size: 23px; font-weight: 800; }
 .studio-project-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
