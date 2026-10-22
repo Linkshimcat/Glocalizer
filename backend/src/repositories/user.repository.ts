@@ -13,6 +13,11 @@ export async function findUserByNaverId(naverId: string): Promise<UserRow | null
   return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
 }
 
+export async function findUserByKakaoId(kakaoId: string): Promise<UserRow | null> {
+  const result = await supabase.from('users').select().eq('kakao_id', kakaoId).maybeSingle();
+  return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
+}
+
 export async function findUserBySupabaseAuthId(supabaseAuthId: string): Promise<UserRow | null> {
   const result = await supabase.from('users').select().eq('supabase_auth_id', supabaseAuthId).maybeSingle();
   return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
@@ -104,6 +109,46 @@ export async function linkNaverProfile(userId: string, input: LinkNaverProfileIn
     .single();
 
   return unwrapRow<UserRow>(result, '네이버 로그인 처리에 실패했습니다.');
+}
+
+interface InsertKakaoUserInput {
+  kakaoId: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+export async function insertKakaoUser(input: InsertKakaoUserInput): Promise<UserRow> {
+  const result = await supabase
+    .from('users')
+    .insert({ kakao_id: input.kakaoId, email: input.email, name: input.name, avatar_url: input.avatarUrl, signup_method: 'kakao' })
+    .select()
+    .single();
+
+  return unwrapRow<UserRow>(result, '카카오 로그인 처리에 실패했습니다.');
+}
+
+interface LinkKakaoProfileInput {
+  kakaoId: string;
+  /** undefined면 기존 값을 유지한다(사용자가 직접 바꾼 프로필 보호). */
+  name?: string | null;
+  avatarUrl?: string | null;
+}
+
+/** kakao_id로 기존 행을 찾았을 때의 재로그인(프로필 갱신)과, 이메일로 가입했던 계정에
+ *  카카오 계정을 처음 연결하는 경우 둘 다 같은 update라 하나로 합쳤다(linkNaverProfile과 동일 패턴). */
+export async function linkKakaoProfile(userId: string, input: LinkKakaoProfileInput): Promise<UserRow> {
+  const patch: Record<string, unknown> = { kakao_id: input.kakaoId, updated_at: new Date().toISOString() };
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.avatarUrl !== undefined) patch.avatar_url = input.avatarUrl;
+  const result = await supabase
+    .from('users')
+    .update(patch)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  return unwrapRow<UserRow>(result, '카카오 로그인 처리에 실패했습니다.');
 }
 
 interface GoogleProfileInput {

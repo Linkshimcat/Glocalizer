@@ -7,6 +7,7 @@ import {
   fetchCurrentUser,
   loginWithGoogle as apiLoginWithGoogle,
   loginWithEmail as apiLoginWithEmail,
+  loginWithKakao as apiLoginWithKakao,
   listSessions as apiListSessions,
   loginWithNaver as apiLoginWithNaver,
   revokeOtherSessions as apiRevokeOtherSessions,
@@ -63,6 +64,7 @@ interface AuthState {
   loginWithEmail: (email: string, password: string) => Promise<void>
   signupWithEmail: (email: string, password: string, name?: string) => Promise<void>
   completeNaverLogin: (code: string, state: string) => Promise<void>
+  completeKakaoLogin: (code: string, redirectUri: string) => Promise<void>
   completeGoogleLogin: (accessToken: string) => Promise<void>
   logout: () => void
   /** 저장된 토큰이 아직 유효한지 서버에 확인해 user 정보를 최신화한다. */
@@ -113,6 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const completeNaverLogin = useCallback(async (code: string, state: string) => {
     const result = await apiLoginWithNaver(code, state)
+    applySession(result.token, result.user)
+  }, [applySession])
+
+  const completeKakaoLogin = useCallback(async (code: string, redirectUri: string) => {
+    const result = await apiLoginWithKakao(code, redirectUri)
     applySession(result.token, result.user)
   }, [applySession])
 
@@ -232,6 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithEmail,
     signupWithEmail,
     completeNaverLogin,
+    completeKakaoLogin,
     completeGoogleLogin,
     logout,
     refreshUser,
@@ -241,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     listSessions,
     revokeSession,
     revokeOtherSessions,
-  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeGoogleLogin, logout, refreshUser, updateProfile, changePassword, deleteAccount, listSessions, revokeSession, revokeOtherSessions])
+  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeKakaoLogin, completeGoogleLogin, logout, refreshUser, updateProfile, changePassword, deleteAccount, listSessions, revokeSession, revokeOtherSessions])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

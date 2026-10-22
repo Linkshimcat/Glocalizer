@@ -35,6 +35,7 @@ const Login = lazyPage(() => import('./pages/Login'))
 const Landing = lazyPage(() => import('./pages/Landing'))
 const LandingDesignSample = lazyPage(() => import('./pages/LandingDesignSample'))
 const NaverCallback = lazyPage(() => import('./pages/NaverCallback'))
+const KakaoCallback = lazyPage(() => import('./pages/KakaoCallback'))
 const NotFound = lazyPage(() => import('./pages/NotFound'))
 const Privacy = lazyPage(() => import('./pages/Privacy'))
 const Pricing = lazyPage(() => import('./pages/Pricing'))
@@ -168,6 +169,7 @@ export function AppRoutes() {
                       <Route path="/terms" element={<Terms />} />
                       <Route path="/support" element={<Support />} />
                       <Route path="/auth/naver/callback" element={<NaverCallback />} />
+                      <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/generate" element={<Generate />} />
                       <Route path="/localize" element={<Localize />} />

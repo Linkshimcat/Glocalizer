@@ -6,12 +6,14 @@ import AuthBackdrop from '../components/AuthBackdrop'
 import Button from '../components/Button'
 import StateNotice from '../components/StateNotice'
 import NaverIcon from '../components/NaverIcon'
+import KakaoIcon from '../components/KakaoIcon'
 import GoogleIcon from '../components/GoogleIcon'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { loginCopy } from '../i18n/login'
 import { useAuth } from '../store/AuthContext'
 import { buildNaverAuthUrl } from '../lib/naverAuth'
+import { buildKakaoAuthUrl } from '../lib/kakaoAuth'
 import { safeLoginReturn, rememberLoginReturn } from '../lib/loginReturn'
 import { workflowCopy } from '../i18n/workflow'
 import { preloadGoogleLogin, startGoogleLogin } from '../lib/googleAuth'
@@ -101,6 +103,17 @@ export default function Login() {
     const url = buildNaverAuthUrl()
     if (!url) {
       toast(t.loginNaverNotConfigured)
+      return
+    }
+    rememberLoginReturn(returnTo)
+    window.location.href = url
+  }
+
+  const handleKakaoLogin = () => {
+    if (!requireConsent()) return
+    const url = buildKakaoAuthUrl()
+    if (!url) {
+      toast(t.loginKakaoNotConfigured)
       return
     }
     rememberLoginReturn(returnTo)
@@ -285,6 +298,10 @@ export default function Login() {
               <Button type="button" variant="outline" size="lg" onClick={handleNaverLogin} disabled={busy} className="login-provider login-provider--naver">
                 <NaverIcon className="h-[18px] w-[18px]" />
                 {t.loginNaverCta}
+              </Button>
+              <Button type="button" variant="outline" size="lg" onClick={handleKakaoLogin} disabled={busy} className="login-provider login-provider--kakao">
+                <KakaoIcon className="h-[18px] w-[18px]" />
+                {t.loginKakaoCta}
               </Button>
             </div>
 

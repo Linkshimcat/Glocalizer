@@ -8,6 +8,7 @@ const copy = {
   accountSignupMethod: ['연결된 로그인 수단', 'Linked login methods', '連携中のログイン方法', '已关联的登录方式'],
   accountEmailLogin: ['이메일 로그인', 'Email login', 'メールログイン', '邮箱登录'],
   accountNaverLogin: ['네이버 로그인', 'Naver login', 'NAVERログイン', 'Naver 登录'],
+  accountKakaoLogin: ['카카오 로그인', 'Kakao login', 'カカオログイン', 'Kakao 登录'],
   accountGoogleLogin: ['Google 로그인', 'Google login', 'Googleログイン', 'Google 登录'],
   accountChecking: ['확인 중', 'Checking', '確認中', '正在确认'],
   accountMissing: ['등록된 정보 없음', 'No information provided', '登録情報なし', '暂无信息'],

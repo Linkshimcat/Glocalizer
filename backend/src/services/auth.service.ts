@@ -8,12 +8,15 @@ import {
   bumpSessionVersion,
   findUserByEmail,
   findUserById,
+  findUserByKakaoId,
   findUserByNaverId,
   findUserBySupabaseAuthId,
   insertEmailUser,
   insertGoogleUser,
+  insertKakaoUser,
   insertNaverUser,
   linkGoogleProfile,
+  linkKakaoProfile,
   linkNaverProfile,
   updateUserPassword,
   updateUserProfile,
@@ -27,13 +30,15 @@ import { AUTH_TOKEN_TTL_SECONDS, signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { sendWelcomeEmail } from './email.service.js';
 
-async function fetchAuthProvider(url: string, init: RequestInit): Promise<Response> {
+async function fetchAuthProvider(url: string, init: RequestInit, failureCode: 'NAVER_LOGIN_FAILED' | 'KAKAO_LOGIN_FAILED' = 'NAVER_LOGIN_FAILED'): Promise<Response> {
   try { return await taskFetch(url, init); }
-  catch { throw new AppError('NAVER_LOGIN_FAILED', undefined, '인증 서버 연결이 실패하거나 시간이 초과됐습니다.'); }
+  catch { throw new AppError(failureCode, undefined, '인증 서버 연결이 실패하거나 시간이 초과됐습니다.'); }
 }
 
 const NAVER_TOKEN_URL = 'https://nid.naver.com/oauth2.0/token';
 const NAVER_PROFILE_URL = 'https://openapi.naver.com/v1/nid/me';
+const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token';
+const KAKAO_PROFILE_URL = 'https://kapi.kakao.com/v2/user/me';
 
 interface AuthResult {
   token: string;
@@ -50,6 +55,7 @@ function toPublicUser(user: UserRow): PublicUser {
     hasPassword: user.password_hash !== null,
     hasNaver: user.naver_id !== null,
     hasGoogle: user.supabase_auth_id !== null,
+    hasKakao: user.kakao_id !== null,
     membershipPlan: user.membership_plan,
     membershipExpiresAt: user.membership_expires_at,
   };
@@ -296,4 +302,78 @@ export async function loginWithNaver(code: string, state: string, context: Sessi
   }
 
   return issueSession(user, 'naver', context);
+}
+
+interface KakaoTokenResponse {
+  access_token?: string;
+  error?: string;
+  error_description?: string;
+}
+
+interface KakaoProfileResponse {
+  id?: number;
+  kakao_account?: { email?: string; profile?: { nickname?: string; profile_image_url?: string } };
+}
+
+/** authorization code(프론트에서 카카오 로그인 리다이렉트로 받은 값)를 access token으로 교환하고,
+ *  프로필을 조회해 계정을 생성/갱신한다. 네이버와 달리 카카오 토큰 API는 redirect_uri가
+ *  인가 요청 때와 정확히 같아야 한다(생략하면 invalid_grant로 거절됨). */
+export async function loginWithKakao(code: string, redirectUri: string, context: SessionContext = {}): Promise<AuthResult> {
+  if (!env.KAKAO_CLIENT_ID) {
+    throw new AppError('KAKAO_NOT_CONFIGURED');
+  }
+
+  const tokenParams = new URLSearchParams({
+    grant_type: 'authorization_code',
+    client_id: env.KAKAO_CLIENT_ID,
+    redirect_uri: redirectUri,
+    code,
+    ...(env.KAKAO_CLIENT_SECRET ? { client_secret: env.KAKAO_CLIENT_SECRET } : {}),
+  });
+
+  const tokenResponse = await fetchAuthProvider(KAKAO_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+    body: tokenParams.toString(),
+    signal: AbortSignal.timeout(env.AUTH_PROVIDER_TIMEOUT_MS),
+  }, 'KAKAO_LOGIN_FAILED');
+  const tokenJson = (await tokenResponse.json().catch(() => ({}))) as KakaoTokenResponse;
+  if (!tokenResponse.ok || !tokenJson.access_token) {
+    throw new AppError('KAKAO_LOGIN_FAILED', { cause: tokenJson.error_description ?? tokenJson.error });
+  }
+
+  const profileResponse = await fetchAuthProvider(KAKAO_PROFILE_URL, {
+    headers: { Authorization: `Bearer ${tokenJson.access_token}` },
+    signal: AbortSignal.timeout(env.AUTH_PROVIDER_TIMEOUT_MS),
+  }, 'KAKAO_LOGIN_FAILED');
+  const profileJson = (await profileResponse.json().catch(() => ({}))) as KakaoProfileResponse;
+  if (!profileResponse.ok || profileJson.id === undefined) {
+    throw new AppError('KAKAO_LOGIN_FAILED');
+  }
+
+  const kakaoId = String(profileJson.id);
+  const email = profileJson.kakao_account?.email?.trim().toLowerCase() ?? null;
+  const name = profileJson.kakao_account?.profile?.nickname ?? null;
+  const avatarUrl = profileJson.kakao_account?.profile?.profile_image_url ?? null;
+
+  // A matching email alone is not proof of ownership of an existing local account.
+  // Only the already linked provider identity may authenticate that account.
+  let user = await findUserByKakaoId(kakaoId);
+  if (user) {
+    user = await linkKakaoProfile(user.id, {
+      kakaoId,
+      name: user.name_customized ? undefined : name,
+      avatarUrl: user.avatar_customized ? undefined : avatarUrl,
+    });
+  } else {
+    const existingByEmail = email ? await findUserByEmail(email) : null;
+    if (existingByEmail) {
+      throw new AppError('ACCOUNT_LINK_REQUIRED');
+    } else {
+      user = await insertKakaoUser({ kakaoId, email, name, avatarUrl });
+      void sendWelcomeEmail(user);
+    }
+  }
+
+  return issueSession(user, 'kakao', context);
 }

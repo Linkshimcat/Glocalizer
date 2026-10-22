@@ -16,6 +16,8 @@ export const ERROR_CODES = {
   UNAUTHORIZED: { status: 401, message: '로그인이 필요합니다.' },
   NAVER_NOT_CONFIGURED: { status: 503, message: '네이버 로그인이 설정되어 있지 않습니다.' },
   NAVER_LOGIN_FAILED: { status: 502, message: '네이버 로그인에 실패했습니다.' },
+  KAKAO_NOT_CONFIGURED: { status: 503, message: '카카오 로그인이 설정되어 있지 않습니다.' },
+  KAKAO_LOGIN_FAILED: { status: 502, message: '카카오 로그인에 실패했습니다.' },
   GOOGLE_LOGIN_FAILED: { status: 401, message: 'Google 로그인 인증에 실패했습니다.' },
   ACCOUNT_LINK_REQUIRED: { status: 409, message: '이미 가입된 이메일입니다. 기존 로그인 방식으로 접속해주세요. 소셜 계정은 자동으로 연결되지 않습니다.' },
   GOOGLE_ACCOUNT_CONFLICT: { status: 409, message: '이미 다른 Google 계정과 연결된 이메일입니다.' },

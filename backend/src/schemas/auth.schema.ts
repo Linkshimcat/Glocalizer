@@ -21,6 +21,12 @@ export const naverCallbackSchema = z.object({
   state: z.string().min(1),
 });
 
+export const kakaoCallbackSchema = z.object({
+  code: z.string().min(1),
+  // 카카오 토큰 API는 인가 요청 때와 정확히 같은 redirect_uri를 요구한다(네이버는 불필요).
+  redirectUri: z.string().url(),
+});
+
 export const googleLoginSchema = z.object({
   accessToken: z.string().min(1),
 });
@@ -42,6 +48,7 @@ export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type NaverCallbackInput = z.infer<typeof naverCallbackSchema>;
+export type KakaoCallbackInput = z.infer<typeof kakaoCallbackSchema>;
 export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
