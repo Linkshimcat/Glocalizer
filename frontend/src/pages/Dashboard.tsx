@@ -74,7 +74,8 @@ export default function Dashboard() {
           <section className="studio-new-work" aria-labelledby="new-work-title">
             <h2 id="new-work-title">{copy.newWork}</h2>
             <div className="studio-work-menu">
-              {cards.map(({ title, icon, run, featured }) => <button key={title} type="button" className={featured ? 'studio-work-card-featured' : ''} disabled={cloudSaving || startingNew} onClick={run}>
+              {cards.map(({ title, icon, run, featured }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
+                {featured && <span className="studio-main-badge">main</span>}
                 <img src={icon} alt="" aria-hidden="true" /><strong>{title}</strong>
               </button>)}
             </div>
