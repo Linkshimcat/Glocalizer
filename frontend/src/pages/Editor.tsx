@@ -68,16 +68,26 @@ function bestSuggestionText(suggestions?: Array<{ text: string; best?: boolean }
   return suggestions?.find(s => s.best)?.text ?? suggestions?.[0]?.text ?? ''
 }
 
-/** 감지 box로 초기 스타일을 만들되, AI 추천 폰트를 자동 적용(굵기는 폰트가 지원하는 값으로 보정). */
+/** 감지 box로 초기 스타일을 만들되, AI 추천 폰트·정렬·외곽선·그림자를 자동 적용
+ *  (굵기는 폰트가 지원하는 값으로 보정). 전부 처음 스타일에만 적용되고, 저장된 스타일이
+ *  있으면 이 함수는 호출되지 않아 사용자가 이미 고친 값을 덮어쓰지 않는다. */
 function initialStyleFor(
   box: NormalizedRect,
   textColor: { r: number; g: number; b: number } | null | undefined,
   suggestions?: Array<{ text: string; best?: boolean }>,
   recommendedFont?: string,
+  recommendedAlignment?: 'left' | 'center' | 'right',
+  strokeRecommended?: boolean,
+  shadowRecommended?: boolean,
 ): Style {
   const base = styleFromNormalizedBox(box, textColor, bestSuggestionText(suggestions))
-  if (!recommendedFont) return base
-  return { ...base, font: recommendedFont, weight: clampWeight(recommendedFont, base.weight) }
+  const fontApplied = recommendedFont ? { ...base, font: recommendedFont, weight: clampWeight(recommendedFont, base.weight) } : base
+  return {
+    ...fontApplied,
+    ...(recommendedAlignment ? { alignH: recommendedAlignment, x: ALIGN_X[recommendedAlignment] } : {}),
+    ...(strokeRecommended ? { strokeOn: true } : {}),
+    ...(shadowRecommended ? { shadowOn: true } : {}),
+  }
 }
 
 // 단일 굵기 폰트에도 사용자가 굵기를 커스텀할 수 있게 하는 표준 굵기(미지원 굵기는 브라우저 합성 볼드).
@@ -344,6 +354,9 @@ export default function Editor() {
         normalizedBox: current.analysis?.normalizedBox ?? null,
         suggestions: current.suggestions,
         recommendedFont: current.recommendedFont,
+        recommendedAlignment: current.recommendedAlignment,
+        strokeRecommended: current.strokeRecommended,
+        shadowRecommended: current.shadowRecommended,
         textColor: current.analysis?.textColor ?? null,
         needsManualCleanup: current.analysis?.needsManualCleanup ?? false,
         needsManualOcrReview: current.analysis?.needsManualOcrReview ?? false,
@@ -434,7 +447,7 @@ export default function Editor() {
   const [retryingRegionId, setRetryingRegionId] = useState<string | null>(null)
 
   const defaultStyleForRegion = (region = activeRegion) => region.normalizedBox
-    ? initialStyleFor(region.normalizedBox, region.textColor, region.suggestions, region.recommendedFont)
+    ? initialStyleFor(region.normalizedBox, region.textColor, region.suggestions, region.recommendedFont, region.recommendedAlignment, region.strokeRecommended, region.shadowRecommended)
     : DEFAULT_STYLE
 
   const saveActiveStyle = (languageCode = activeLanguage.code) => {
@@ -503,8 +516,8 @@ export default function Editor() {
     const nextKey = styleKeyForRegion(next.id, nextRegionId, next.analysis?.regionId)
     setSelectedRegionId(nextRegionId)
     setStyle(savedStyles[nextKey]?.[activeLanguage.code] ?? (nextRegion?.normalizedBox
-      ? initialStyleFor(nextRegion.normalizedBox, nextRegion.textColor, nextRegion.suggestions, nextRegion.recommendedFont)
-      : next.analysis?.normalizedBox ? initialStyleFor(next.analysis.normalizedBox, next.analysis.textColor, next.suggestions, next.recommendedFont) : DEFAULT_STYLE))
+      ? initialStyleFor(nextRegion.normalizedBox, nextRegion.textColor, nextRegion.suggestions, nextRegion.recommendedFont, nextRegion.recommendedAlignment, nextRegion.strokeRecommended, nextRegion.shadowRecommended)
+      : next.analysis?.normalizedBox ? initialStyleFor(next.analysis.normalizedBox, next.analysis.textColor, next.suggestions, next.recommendedFont, next.recommendedAlignment, next.strokeRecommended, next.shadowRecommended) : DEFAULT_STYLE))
     setPast([])
     setFuture([])
     setSelected(true)
@@ -545,7 +558,7 @@ export default function Editor() {
     initializedBoxStyleIds.current.add(initializationKey)
     const saved = savedStyles[activeStyleKey]?.[activeLanguage.code]
     setStyle(saved ?? (activeRegion.normalizedBox
-      ? initialStyleFor(activeRegion.normalizedBox, activeRegion.textColor, activeRegion.suggestions, activeRegion.recommendedFont)
+      ? initialStyleFor(activeRegion.normalizedBox, activeRegion.textColor, activeRegion.suggestions, activeRegion.recommendedFont, activeRegion.recommendedAlignment, activeRegion.strokeRecommended, activeRegion.shadowRecommended)
       : DEFAULT_STYLE))
   }, [activeLanguage.code, activeRegion, activeStyleKey, savedStyles, current.analysis, projectStatus?.status])
 
@@ -979,7 +992,7 @@ export default function Editor() {
     setActiveLanguageCode(languageCode)
     const localizedRegion = toDemoItems([current], languageCode)[0]?.textRegions?.find(region => region.id === activeRegion.id)
     setStyle(savedStyles[activeStyleKey]?.[languageCode] ?? (localizedRegion?.normalizedBox
-      ? initialStyleFor(localizedRegion.normalizedBox, localizedRegion.textColor, localizedRegion.suggestions, localizedRegion.recommendedFont)
+      ? initialStyleFor(localizedRegion.normalizedBox, localizedRegion.textColor, localizedRegion.suggestions, localizedRegion.recommendedFont, localizedRegion.recommendedAlignment, localizedRegion.strokeRecommended, localizedRegion.shadowRecommended)
       : DEFAULT_STYLE))
     setPast([])
     setFuture([])

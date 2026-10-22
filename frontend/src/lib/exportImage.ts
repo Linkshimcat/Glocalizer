@@ -45,11 +45,22 @@ export function textOverlaysForItem(
         normalizedBox: item.analysis?.normalizedBox ?? null,
         textColor: item.analysis?.textColor ?? null,
         recommendedFont: item.recommendedFont,
+        recommendedAlignment: item.recommendedAlignment,
+        strokeRecommended: item.strokeRecommended,
+        shadowRecommended: item.shadowRecommended,
       }]
   return regions.map(region => {
     const key = styleKeyForRegion(item.id, region.id, primaryRegionId)
+    // alignH는 에디터 UI의 정렬 버튼 하이라이트 전용 필드라 x 좌표를 같이 안 바꾸면 의미가
+    // 어긋나므로(Editor.tsx의 ALIGN_X 참고), 여기서는 렌더링에 실제로 쓰이는 strokeOn/shadowOn만
+    // 반영한다. 이 폴백은 에디터를 한 번도 안 연 채 바로 내보낼 때만 타는 드문 경로다.
     const fallback = region.normalizedBox
-      ? { ...styleFromNormalizedBox(region.normalizedBox, region.textColor, region.suggestions.find(value => value.best)?.text ?? region.suggestions[0]?.text), font: region.recommendedFont }
+      ? {
+          ...styleFromNormalizedBox(region.normalizedBox, region.textColor, region.suggestions.find(value => value.best)?.text ?? region.suggestions[0]?.text),
+          font: region.recommendedFont,
+          ...(region.strokeRecommended ? { strokeOn: true } : {}),
+          ...(region.shadowRecommended ? { shadowOn: true } : {}),
+        }
       : DEFAULT_STYLE
     const style = selectedOverride?.regionId === region.id
       ? selectedOverride.style

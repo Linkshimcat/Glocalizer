@@ -28,7 +28,12 @@ export interface LandingShowcase {
 export interface ApiLocalization {
   status: 'translated' | 'failed'
   candidates: ApiCandidate[]
-  recommendedStyle: { fontCategory?: string } | null
+  recommendedStyle: {
+    fontCategory?: string
+    alignment?: 'left' | 'center' | 'right'
+    strokeRecommended?: boolean
+    shadowRecommended?: boolean
+  } | null
 }
 
 export interface ApiRegion {
