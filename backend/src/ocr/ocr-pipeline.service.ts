@@ -83,6 +83,55 @@ export async function crossCheckWithPaddleOcr(regions: ConsensusRegion[], image:
   });
 }
 
+const TIEBREAKER_MIN_CONFIDENCE = 0.8;
+
+/**
+ * Luna-Paddle \uB300\uC870\uC5D0\uC11C \uBD88\uC77C\uCE58\uAC00 \uB098\uBA74 \uC9C0\uAE08\uAE4C\uC9C0\uB294 \uBC14\uB85C \uC0AC\uC6A9\uC790 \uAC80\uC218\uB85C \uB118\uACBC\uB2E4(\uC704 \uC8FC\uC11D \uCC38\uACE0
+ * \u2014 "\uC5B4\uB290 \uCABD\uC774 \uB354 \uC815\uD655\uD55C\uC9C0 \uC54C\uACE0\uB9AC\uC998\uC73C\uB85C \uD310\uB2E8\uD560 \uADFC\uAC70\uAC00 \uC5C6\uB2E4"). \uADF8\uB7F0\uB370 README \uBCA4\uCE58\uB9C8\uD06C\uC5D0\uC11C
+ * \uC774\uBBF8 \uC138 \uBC88\uC9F8 \uC5D4\uC9C4(Gemini/Groq vision, requestVisionOcr)\uC774 IoU \uAE30\uC900 \uAC00\uC7A5 \uC815\uD655\uD55C \uAC78\uB85C
+ * \uD655\uC778\uB3FC \uC788\uB294\uB370\uB3C4, Luna\uAC00 \uC8FC\uB825\uC77C \uB54C\uB294 \uC774 vision \uACBD\uB85C\uAC00 \uC804\uD600 \uD638\uCD9C\uB418\uC9C0 \uC54A\uC558\uB2E4(isSingleShotVision
+ * \uAC00\uB4DC\uAC00 PaddleOCR \uC804\uC6A9 \uBCF4\uC644 \uB85C\uC9C1\uC73C\uB85C\uB9CC \uD55C\uC815\uD574\uC11C \uAC74\uB108\uB6F0\uAC8C \uB3FC \uC788\uC5C8\uC74C). \uBD88\uC77C\uCE58\uAC00 \uB09C \uC601\uC5ED\uC5D0\uB9CC
+ * \uD55C\uD574 vision\uC744 \uC138 \uBC88\uC9F8 \uC2EC\uD310\uC73C\uB85C \uD55C \uBC88 \uB354 \uBD88\uB7EC\uC11C, \uB458 \uC911 \uD558\uB098\uC640 \uC758\uACAC\uC774 \uAC19\uC73C\uBA74 \uC790\uB3D9\uC73C\uB85C
+ * \uD480\uC5B4\uC8FC\uACE0, \uC14B\uC774 \uB2E4 \uB2E4\uB974\uBA74 \uAE30\uC874\uB300\uB85C \uAC80\uC218\uC5D0 \uB0A8\uAE34\uB2E4. \uD3B8\uD5A5\uC744 \uD53C\uD558\uB824\uACE0 vision\uC5D0\uB294 Luna/Paddle
+ * \uC911 \uB204\uAD6C\uC758 \uAE00\uC790\uC778\uC9C0 \uD78C\uD2B8\uB97C \uC8FC\uC9C0 \uC54A\uACE0 \uB3C5\uB9BD\uC801\uC73C\uB85C \uB2E4\uC2DC \uC77D\uAC8C \uD55C\uB2E4. polygon\uC740 \uC4F0\uC9C0 \uC54A\uB294\uB2E4 \u2014
+ * vision\uC758 \uC704\uCE58 \uCD94\uC815\uC774 \uC9E7\uC740 \uBB38\uAD6C\uC5D0\uC11C \uC2E0\uB8B0 \uBD88\uAC00\uB77C\uB294 \uAC8C \uC774\uBBF8 \uC544\uB798(shouldUseVisionFallback
+ * \uBD84\uAE30)\uC5D0\uC11C \uC2E4\uCE21\uC73C\uB85C \uD655\uC778\uB3FC \uC788\uB2E4.
+ */
+export async function resolveDisagreementWithVisionTiebreaker(
+  regions: ConsensusRegion[],
+  image: Buffer,
+  paddleProvider: OcrProvider,
+): Promise<ConsensusRegion[]> {
+  const disagreeing = regions.filter((region) => region.needsManualReview);
+  if (disagreeing.length === 0) return regions;
+
+  let paddleRegions: RecognizedRegion[];
+  try {
+    paddleRegions = mergeAdjacentKoreanRegions(await recognizeWithCache(paddleProvider, image));
+  } catch {
+    return regions;
+  }
+
+  return Promise.all(regions.map(async (region) => {
+    if (!region.needsManualReview) return region;
+    const vision = await requestVisionOcr(image);
+    if (!vision || vision.confidence < TIEBREAKER_MIN_CONFIDENCE || !containsKorean(vision.text)) return region;
+
+    const visionText = stripTrailingPunctuation(vision.text);
+    if (editSimilarity(stripTrailingPunctuation(region.text), visionText) >= CROSS_CHECK_MIN_SIMILARITY) {
+      return { ...region, needsManualReview: false };
+    }
+    const paddleMatch = paddleRegions
+      .map((candidate) => ({ candidate, overlap: overlapRatio(region, candidate) }))
+      .sort((left, right) => right.overlap - left.overlap)[0];
+    if (paddleMatch && paddleMatch.overlap >= CROSS_CHECK_MIN_OVERLAP
+      && editSimilarity(stripTrailingPunctuation(paddleMatch.candidate.text), visionText) >= CROSS_CHECK_MIN_SIMILARITY) {
+      return { ...region, text: paddleMatch.candidate.text, needsManualReview: false };
+    }
+    return region;
+  }));
+}
+
 function containsKorean(text: string): boolean {
   return /[\uAC00-\uD7A3]/.test(text);
 }
@@ -181,6 +230,7 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
     let consensusRegions = selectConsensusRegions(results, { allowSingleVariantAutoApprove: isSingleShotVision });
     if (activeProvider.name === 'luna' && fallbackProvider && shouldCrossCheckWithPaddle(consensusRegions)) {
       consensusRegions = await crossCheckWithPaddleOcr(consensusRegions, primaryVariant.content, fallbackProvider);
+      consensusRegions = await resolveDisagreementWithVisionTiebreaker(consensusRegions, primaryVariant.content, fallbackProvider);
     }
     const consensus = consensusRegions[0] ?? null;
     let selected = consensus;
