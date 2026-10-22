@@ -1,7 +1,8 @@
 import JSZip from 'jszip'
 import type { DemoItem } from '../data/demo'
 import { OGQ_CATEGORY_DIMENSIONS } from './ogqSpecCheck'
-import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type Style } from './style'
+import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from './style'
+import { wrapTextToWidth } from './textWrap'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 기본 512px 정사각 캔버스로 합성 */
 const CANVAS_SIZE = 512
@@ -28,6 +29,8 @@ export interface TextOverlay {
   regionId: string | null
   suggestions: Array<{ text: string }>
   style: Style
+  /** 번역 텍스트가 이 폭을 넘기 전에 줄바꿈하기 위한 원본 박스 — 없으면(레거시 항목) 줄바꿈하지 않는다. */
+  normalizedBox: NormalizedRect | null
 }
 
 export function textOverlaysForItem(
@@ -54,7 +57,7 @@ export function textOverlaysForItem(
     const style = selectedOverride?.regionId === region.id
       ? selectedOverride.style
       : styles[key]?.[languageCode] ?? fallback
-    return { regionId: region.id, suggestions: region.suggestions, style }
+    return { regionId: region.id, suggestions: region.suggestions, style, normalizedBox: region.normalizedBox }
   })
 }
 
@@ -190,7 +193,7 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
     const h = img.height * contain
     const frame = { x: (size - w) / 2, y: (size - h) / 2, width: w, height: h }
     ctx.drawImage(img, frame.x, frame.y, frame.width, frame.height)
-    for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style }]) {
+    for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style, normalizedBox: item.analysis?.normalizedBox ?? null }]) {
       await applyManualCleanup(ctx, overlay.style, frame)
     }
     try {
@@ -205,7 +208,7 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
     ctx.fillText(item.emoji, size / 2, size / 2)
   }
 
-  for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style }]) {
+  for (const overlay of overlays ?? [{ regionId: item.analysis?.regionId ?? null, suggestions: item.suggestions, style, normalizedBox: item.analysis?.normalizedBox ?? null }]) {
     const overlayStyle = overlay.style
     const text = resolveText(overlayStyle, overlay.suggestions)
     if (!text) continue
@@ -223,7 +226,11 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
     ctx.font = fontSpec
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    drawTextBackground(ctx, text, overlayStyle, fontPx, scale)
+    // 번역문이 원문보다 길어져도 캐릭터 쪽으로 가로로 삐져나가지 않도록, 사용자가 잡아둔
+    // 원본 박스 너비를 넘기 전에 줄바꿈한다. 박스 정보가 없는 레거시 항목은 줄바꿈하지 않는다.
+    const maxLineWidth = overlay.normalizedBox ? overlay.normalizedBox.width * EDITOR_SIZE * scale : Infinity
+    const wrappedText = wrapTextToWidth(text, line => ctx.measureText(line).width, maxLineWidth)
+    drawTextBackground(ctx, wrappedText, overlayStyle, fontPx, scale)
     if (overlayStyle.shadowOn) {
       ctx.shadowColor = hexToRgba(overlayStyle.shadowColor, overlayStyle.shadowOpacity / 100)
       ctx.shadowBlur = overlayStyle.shadowBlur * scale
@@ -236,7 +243,7 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
       ctx.lineJoin = 'round'
     }
     ctx.fillStyle = overlayStyle.color
-    drawMultilineText(ctx, text, overlayStyle, fontPx)
+    drawMultilineText(ctx, wrappedText, overlayStyle, fontPx)
     ctx.restore()
   }
 
