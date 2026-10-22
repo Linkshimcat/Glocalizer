@@ -43,8 +43,8 @@ export default function Dashboard() {
   }
   const requestNewTask = () => { if (hasWork) setNewTaskOpen(true); else void startNew() }
   const cards = [
-    { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask, featured: true },
     { title: t.hubGenerate, icon: createIcon, run: () => navigate('/generate') },
+    { title: t.hubLocalize, icon: localizeIcon, run: requestNewTask, featured: true },
     { title: t.hubReview, icon: reviewIcon, run: () => navigate('/review') },
     { title: t.hubCaption, icon: captionIcon, run: requestNewTask },
   ]
@@ -74,9 +74,9 @@ export default function Dashboard() {
           <section className="studio-new-work" aria-labelledby="new-work-title">
             <h2 id="new-work-title">{copy.newWork}</h2>
             <div className="studio-work-menu">
-              {cards.map(({ title, icon, run, featured }) => <button key={title} type="button" className={featured ? 'studio-work-card-featured' : ''} disabled={cloudSaving || startingNew} onClick={run}>
-                <span className="studio-work-label"><img src={icon} alt="" aria-hidden="true" /><strong>{title}</strong></span>
+              {cards.map(({ title, icon, run, featured }) => <button key={title} type="button" disabled={cloudSaving || startingNew} onClick={run}>
                 {featured && <span className="studio-main-badge">main</span>}
+                <img src={icon} alt="" aria-hidden="true" /><strong>{title}</strong>
               </button>)}
             </div>
           </section>
