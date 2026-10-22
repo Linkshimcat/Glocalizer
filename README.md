@@ -30,7 +30,6 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 - **클라우드 작업 저장**: 로그인 후 진행 중인 프로젝트가 자동 저장돼 다른 기기·세션에서 이어서 작업할 수 있고, 완료된 프로젝트는 보관함에서 다시 열람 가능
 - **이메일 · 네이버 · 구글 로그인**: 가입 시 이용약관·개인정보처리방침 동의를 받고, 신규 가입자에게 서비스 안내 환영 메일을 발송함(SMTP 미설정 시 메일만 건너뛰고 가입은 정상 동작)
 - **OGQ 마켓 연동**: 랜딩페이지 예시 갤러리, 업로드 페이지 샘플 체험, 완료된 프로젝트·직접 업로드 이미지의 OGQ 규격 검사, 유사 스티커 검색, AI 심층 검토, 출시 체크리스트("OGQ 출시 검토")
-- **국가별 인기 이모티콘(`/trends`)**: 출시 전 시장 조사를 위해 한국·일본·중국·미국 탭으로 인기 스티커를 보여줌. 한국은 OGQ 마켓 인기순을 자동 조회하고, 일본·중국·미국은 공개 API가 없어 팀이 직접 큐레이션한 이미지를 사용함
 - **AI 캐릭터 생성**: 텍스트 설명(카테고리·스타일 선택 포함)과 선택적 참고 이미지로 오리지널 캐릭터의 대표 이미지 1장 + 표정 23종을 자동 생성해 OGQ용 24장 세트를 만들고, 여러 캐릭터를 한 번에 이어서 생성할 수도 있음. 비용 보호를 위해 `ENABLE_IMAGE_GENERATION=true`와 `OPENAI_API_KEY`가 있는 환경에서만 켜지며 일일 예산 한도가 적용됨(저장소 기본값은 꺼짐)
 - **사이트 환경**: 한국어·영어·일본어·중국어 화면, 라이트·다크 모드(설정에서 선택), 멤버십 가격 안내 페이지(`/pricing`, 현재는 예시 안내이며 결제 기능 없음), 공개 페이지의 빌드 시 프리렌더(SEO·초기 로딩)
 
@@ -51,7 +50,6 @@ flowchart TB
         create["CREATE<br/>이모티콘 24장 생성"]
         localize["LOCALIZE<br/>OCR·번역·AI 문구 추천·배경 정리·편집"]
         review["REVIEW<br/>규격·유사 작품·AI 피드백"]
-        trends["TRENDS<br/>국가별 인기 이모티콘"]
     end
 
     subgraph server["Backend · Express API @ Render"]
@@ -80,7 +78,6 @@ flowchart TB
     dashboard --> create
     dashboard --> localize
     dashboard --> review
-    dashboard --> trends
     create -->|"완성한 24장 전달"| localize
     create -->|"완료 프로젝트 선택"| review
     localize -->|"완료 프로젝트 선택"| review
@@ -88,7 +85,6 @@ flowchart TB
     create <--> api
     localize <--> api
     review <--> api
-    trends <--> api
     api <--> auth
     api <--> db
     api <--> storage
@@ -109,7 +105,7 @@ flowchart TB
 
 - **공통 저장 경계**: 원본·정리본·생성 이미지는 private Storage에 보관하고 서명 URL 또는 인증된 API를 통해 접근함. 프로젝트 소유권은 API에서 다시 확인함.
 - **비동기 실행**: 현지화와 이미지 생성 모두 DB 작업 상태를 기준으로 worker가 처리하므로, 긴 AI 작업을 HTTP 요청 하나에 묶지 않음.
-- **기능 간 연결**: CREATE 결과를 LOCALIZE와 REVIEW가 재사용하고, LOCALIZE 결과도 REVIEW가 불러와 같은 출시 준비 흐름을 이어감. TRENDS는 출시 전 시장 조사를 돕는 읽기 전용 화면으로, 한국 탭만 Backend의 OGQ proxy를 거침.
+- **기능 간 연결**: CREATE 결과를 LOCALIZE와 REVIEW가 재사용하고, LOCALIZE 결과도 REVIEW가 불러와 같은 출시 준비 흐름을 이어감.
 - **검토의 책임 범위**: REVIEW는 기술 규격과 참고 피드백을 제공하며, OGQ에 자동 제출하거나 실제 승인·저작권 적합성을 보장하지 않음.
 
 ##### **[1. 이모티콘 현지화 아키텍처]**
@@ -169,7 +165,7 @@ flowchart TB
 7. 원본·정리본은 private Storage에, OCR 영역·번역 후보·폰트 스타일·에디터 상태는 PostgreSQL에 저장함. 프로젝트 단위 오류 대신 애셋별 부분 실패를 허용해 정상 이미지 결과를 먼저 제공함.
 8. AI 에디터는 `GET /results`로 결과를 받아 정리본 위에 번역문을 CSS로 실시간 합성함. 사용자는 폰트·굵기·색·위치를 고치고 Canvas로 PNG를 다시 만들거나 JSZip으로 여러 장을 내려받음. 실제 다운로드 완료 시 `download_events`에 변환 완주 이벤트를 비동기로 기록함.
 
-9. 현지화를 시작하면 처리 진행 화면(`/caption-suggest`)으로 이동해 OCR이 끝나기를 기다리고, OCR 영역이 0개인 이모티콘은 "문구 없음"으로 구분함. 감지 → AI 분석·추천 → 일괄 검토 → 에디터 순서이며, 모든 이모티콘에 글자가 있으면 추천 단계 없이 바로 에디터로 이동함. 자세한 흐름은 아래 [4. AI 문구 추천·국가별 인기 이모티콘]을 참고.
+9. 현지화를 시작하면 처리 진행 화면(`/caption-suggest`)으로 이동해 OCR이 끝나기를 기다리고, OCR 영역이 0개인 이모티콘은 "문구 없음"으로 구분함. 감지 → AI 분석·추천 → 일괄 검토 → 에디터 순서이며, 모든 이모티콘에 글자가 있으면 추천 단계 없이 바로 에디터로 이동함. 자세한 흐름은 아래 [4. AI 문구 추천]을 참고.
 
 핵심 설계 포인트: 번역·OCR·Cleanup 실패를 애셋별로 격리하고, 무거운 Python OCR을 별도 프로세스로 분리함. Job 테이블 기반 worker라 Redis/SQS 같은 별도 큐 인프라 없이도 재시작·중복 실행을 제어함.
 
@@ -267,19 +263,11 @@ flowchart TB
 
 핵심 설계 포인트: 비용 없는 객관적 Canvas 검사, 외부 OGQ 유사 사례 탐색, 선택적 AI 정성 피드백을 분리함. 한 단계가 실패해도 가능한 결과는 계속 보여주며, 외부 플랫폼의 실제 심사를 대신한다고 과장하지 않음.
 
-##### **[4. AI 문구 추천·국가별 인기 이모티콘]**
-
-**AI 문구 추천**
+##### **[4. AI 문구 추천]**
 
 1. 현지화 처리가 끝난 뒤 OCR이 한글을 찾지 못해 영역이 0개인 이미지를 "문구 없음"으로 분류하고, 사용자가 원하면 AI 문구 추천을 요청함. 건너뛰기도 가능함.
 2. `POST /projects/:projectId/assets/:assetId/ocr/caption-suggestion`이 프로젝트·애셋 편집 권한을 확인한 뒤, 원본 이미지를 512px 이내로 줄여 Groq Vision(`GROQ_VISION_MODEL`, 기본 Qwen3.8 27B)에 전달함. 글자가 없는 캐릭터의 감정·동작·상황 태그를 읽고, 채팅에서 쓰는 12자 이하 한국어 문구 정확히 3안(그중 `best` 1개)을 JSON으로 받음. `GROQ_API_KEY`가 없거나 호출이 실패하면 추천만 건너뛰고 직접 입력 경로를 유지함.
 3. 사용자는 이모티콘마다 추천을 고르거나 직접 고쳐 쓰며 한 화면에서 일괄 검토함. 확정한 문구는 새 OCR 영역으로 추가되어 기존 번역 후보 생성과 Cleanup, 에디터 흐름을 그대로 이어감. 추천 문구는 참고용이며 의미는 사용자가 직접 확인함.
-
-**국가별 인기 이모티콘**
-
-1. `/trends`는 한국·일본·중국·미국 4개 탭이며 탭마다 최대 24개를 보여줌. 대시보드의 별도 카드에서 진입함.
-2. 한국 탭은 쿼리 없이 Backend `GET /ogq/stickers`를 호출해 OGQ 마켓 인기순을 가져옴. API key는 서버에만 두고 동일 요청은 10분간 캐시함. 조회에 실패하면 안내 문구와 재시도를 보여줌.
-3. 일본·중국·미국 탭은 팀이 각 스토어를 직접 보고 고른 이미지를 [`stickerTrends.ts`](frontend/src/data/stickerTrends.ts)와 `frontend/src/assets/stickers/<국가>/`에 두고 정적으로 보여줌. 처음에는 GIPHY Trending API를 시도했으나 국가 코드를 바꿔도 결과가 거의 같아 의미가 없었고, LINE·WeChat에는 공개 API가 없어 수동 큐레이션으로 전환함. 큐레이션 이미지는 시장 조사용 참고 자료이며 이미지 사용 권리를 제공하지 않음.
 
 ##### **[아키텍처 코드 근거]**
 
@@ -289,7 +277,6 @@ flowchart TB
 | 이모티콘 생성 | [`Generate.tsx`](frontend/src/pages/Generate.tsx), [`generationApi.ts`](frontend/src/lib/generationApi.ts) | [`generation.routes.ts`](backend/src/routes/generation.routes.ts), [`generation.service.ts`](backend/src/services/generation.service.ts), [`generation-worker.ts`](backend/src/workers/generation-worker.ts) | `generation_projects`, `generation_images`, PostgreSQL enqueue/confirm/complete RPC, private Storage |
 | 이모티콘 출시 검토 | [`Review.tsx`](frontend/src/pages/Review.tsx), [`OgqSpecChecker.tsx`](frontend/src/components/OgqSpecChecker.tsx), [`ogqSpecCheck.ts`](frontend/src/lib/ogqSpecCheck.ts) | [`ogq.service.ts`](backend/src/services/ogq.service.ts), [`deep-review.service.ts`](backend/src/services/deep-review.service.ts) | 기존 완료 프로젝트를 읽기 전용으로 조합하며 별도 승인 상태를 저장하지 않음 |
 | AI 문구 추천 | [`CaptionSuggest.tsx`](frontend/src/pages/CaptionSuggest.tsx), [`captionSuggest.ts`](frontend/src/i18n/captionSuggest.ts) | [`caption-suggestion.service.ts`](backend/src/ocr/caption-suggestion.service.ts), [`editor.routes.ts`](backend/src/routes/editor.routes.ts) | 확정 문구는 기존 `ocr_regions`·번역 파이프라인에 합류하며 추천 결과 자체는 저장하지 않음 |
-| 국가별 인기 이모티콘 | [`StickerTrends.tsx`](frontend/src/pages/StickerTrends.tsx), [`StickerGrid.tsx`](frontend/src/components/StickerGrid.tsx), [`stickerTrends.ts`](frontend/src/data/stickerTrends.ts) | [`ogq.service.ts`](backend/src/services/ogq.service.ts)(한국 탭만) | 일본·중국·미국은 `frontend/src/assets/stickers/` 정적 에셋 |
 
 ---
 
@@ -312,9 +299,32 @@ flowchart TB
 **2. 북극성 지표 — 변환 완주(다운로드) 횟수 카운팅**
 
 > **지표명**: Glocalizer를 통해 배경 복원 및 초월 번역을 완료하여 최종 이모티콘 세트를 다운로드한 횟수
-> **현재 값**: 0회 · **8주 뒤 목표치**: 50회 (실제 창작자 대상 유효 변환 완주 기준)
+> **현재 값**: 14회(2026-10-20 기준, DB `download_events` 직접 집계 — 2026-09-19~10-08 사이 기록) · **8주 뒤 목표치**: 50회 (실제 창작자 대상 유효 변환 완주 기준)
 
 사용자가 에디터에서 "PNG 저장" 또는 "전체 ZIP 다운로드" 버튼을 눌러 결과물을 실제로 받아가는 순간을 "완주"로 정의하고, 그 순간마다 백엔드에 이벤트 하나를 기록함.
+
+<details>
+<summary>원자료 — download_events 전체 14건 (2026-10-20 기준)</summary>
+
+| kind | language_code | created_at (UTC) |
+| --- | --- | --- |
+| single | en | 2026-09-19T09:48:05Z |
+| single | en | 2026-09-19T09:49:41Z |
+| zip | — | 2026-09-19T13:30:40Z |
+| zip | — | 2026-09-19T13:32:22Z |
+| single | en | 2026-09-19T14:26:39Z |
+| single | en | 2026-09-19T15:00:07Z |
+| single | en | 2026-09-21T14:17:00Z |
+| single | en | 2026-09-22T00:35:33Z |
+| zip | — | 2026-09-22T00:36:11Z |
+| single | zh | 2026-09-26T12:19:21Z |
+| single | en | 2026-09-29T00:28:57Z |
+| single | en | 2026-10-06T07:15:05Z |
+| single | en | 2026-10-06T07:17:14Z |
+| single | en | 2026-10-08T05:37:27Z |
+
+09-19 몰린 6건은 팀 자체 기능 테스트로 보이며, 09-21 이후 흩어진 8건이 실제 외부 사용 가능성이 더 높음. 이 표만으로는 "실제 창작자가 썼다"를 증명하지 못하며, 북극성 지표 섹션에서 밝힌 대로 실제 사용자 인터뷰·리텐션 과제가 별도로 필요함.
+</details>
 
 | 구성 요소 | 구현 위치 |
 | --- | --- |
@@ -326,6 +336,41 @@ flowchart TB
 | 관련 PR | [#25](https://github.com/Linkshimcat/Glocalizer/pull/25) (PoC), [#26](https://github.com/Linkshimcat/Glocalizer/pull/26) (접근 제어) |
 
 실사용 여부는 [production 서버](https://glocalizer-api.onrender.com/api/v1/health/ready)가 살아있는 상태에서 `GET /downloads/count`를 관리자 키와 함께 호출해 실시간으로 확인 가능함(키는 보안상 코드/리포에 노출하지 않으며 팀에 별도 요청 시 전달).
+
+**3. 사용자 인터뷰 기록 (진행 전 — 포맷만 미리 잡아 둠)**
+
+> 위 다운로드 숫자는 "써봤다"는 것만 보여주고 "왜 다시 쓰는지/안 쓰는지"는 설명하지 못함. 실제 창작자 인터뷰를 진행하면 아래 두 표에 결과를 채운다. 아직 인터뷰를 진행하지 않았으므로 현재는 빈 템플릿이며, 아래 예시 행은 어떤 내용이 들어가야 하는지 보여주기 위한 가짜 값임(실제 응답 아님).
+
+인터뷰이는 **익명이 아닌 로그인 계정**으로 사용하게 한다 — `download_events.project_id → projects.owner_id`로 연결돼야 재방문·완주율을 DB에서 직접 집계할 수 있고, 익명 프로젝트는 추적이 안 된다.
+
+정량 지표는 두 종류로 나눠서 채운다. (1) DB에서 직접 집계되는 행동 데이터(자기보고 아님, 신뢰도 가장 높음), (2) 매 인터뷰마다 같은 5문항을 물어서 숫자로 환산하는 설문 데이터.
+
+<details>
+<summary>정량 지표 표 (DB 집계 + 표준 설문 5문항)</summary>
+
+| 인터뷰이 | 완주율(만든 프로젝트 중 다운로드까지 간 비율) | 첫 다운로드까지 걸린 시간 | 기존 방식 대비 시간 단축률 | 캡션 수정 없이 채택률 | 재사용 의향(1~5) | 전체 만족도(1~5) | 인터뷰 후 7일 내 재방문 여부 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| _예: 작가 A_ | _예: 2/2 (100%)_ | _예: 6분_ | _예: 기존 25분 → 76% 단축_ | _예: 3/3 (100%)_ | _예: 5_ | _예: 4_ | _예: Y (3일 후 재방문)_ |
+
+완주율·첫 다운로드까지 걸린 시간·재방문 여부는 `owner_id` 기준으로 `projects`/`download_events` 테이블을 직접 집계해서 채운다(자기보고 금지). 나머지(시간 단축률·채택률·재사용 의향·만족도)는 인터뷰 중 다음 5문항을 **매번 동일하게** 물어서 채운다 — 질문을 바꾸면 평균을 낼 수 없음:
+1. 이걸 다시 쓸 것 같나요? (1~5점)
+2. 원래 방식(포토샵+구글번역 등)으로 직접 하면 몇 분 걸리나요? → 실측 소요시간과 비교해 단축률 계산
+3. 번역된 캡션 N개 중 수정 없이 그대로 쓴 게 몇 개인가요?
+4. 전체적으로 몇 점 주시겠어요? (1~5점, NPS 대용)
+5. 쓰다가 막히거나 버그가 난 적 있나요? (있다면 몇 건, 아래 정성 표의 "발견된 문제"에 기록)
+
+샘플 수가 2~3명이라 통계적으로는 파일럿 규모밖에 안 됨 — 발표에서 n수를 숨기지 말고 같이 밝힌다("N=3, 파일럿").
+
+</details>
+
+| 일자 | 인터뷰 대상(역할/경력) | 모집 경로 | 시도한 작업 | 핵심 반응(직접 인용) | 발견된 문제 |
+| --- | --- | --- | --- | --- | --- |
+| _예: 2026-11-03_ | _예: 이모티콘 작가, OGQ마켓 활동 3년차_ | _예: 작가 커뮤니티 디스코드_ | _예: 한글 캡션 3개짜리 이미지 업로드 → 번역 → ZIP 다운로드_ | _예: "번역이 자연스러워서 그대로 썼다" (인용)_ | _예: 세로로 긴 캡션에서 줄바꿈 깨짐_ |
+
+인터뷰를 하나 마칠 때마다:
+1. 위 두 표(정량 + 정성)에 실제 행을 추가한다(날짜·인용은 각색하지 않고 그대로, 가능하면 스크린샷이나 녹취 캡처 링크도 같이 남긴다).
+2. 그 인터뷰 전후로 `download_events` 집계가 바뀌었는지 299번째 줄 원자료 표도 같이 갱신한다.
+3. 3명 이상 쌓이면 평균 완주율·평균 시간 단축률·평균 재사용 의향을 이 섹션 맨 위에 요약 소제목으로 추가한다.
 
 ---
 
