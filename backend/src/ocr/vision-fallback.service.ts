@@ -35,7 +35,7 @@ function buildPrompt(candidate?: RecognizedRegion, options: VisionOcrOptions = {
     return `사용자가 이미지의 한국어 문구를 "${options.confirmedText}"로 확정했습니다. 이 문구가 이미지에서 차지하는 정확한 위치만 찾으세요. 문구는 절대 바꾸지 말고 JSON만 반환: {"text":"${options.confirmedText}","confidence":0~1,"polygon":[{"x":number,"y":number}]} . polygon은 이미지 실제 픽셀 좌표 4개입니다.`;
   }
   const candidateHint = candidate ? `PaddleOCR 후보 문구: ${candidate.text}.` : 'PaddleOCR가 유효한 문구를 찾지 못했습니다.';
-  return `이미지의 대표 한국어 이모티콘 문구를 정확히 OCR로 판독하세요. ${candidateHint} 손글씨·말풍선·줄바꿈을 고려해 누락된 글자를 복원하되, 추측하지 마세요. JSON만 반환: {"text":"...","confidence":0~1,"polygon":[{"x":number,"y":number}]} . polygon은 이미지 실제 픽셀 좌표 4개입니다.`;
+  return `이미지의 대표 한국어 이모티콘 문구를 정확히 OCR로 판독하세요. ${candidateHint} 손글씨·말풍선·줄바꿈을 고려해 누락된 글자를 복원하되, 추측하지 마세요. 손글씨체·강조체에서는 자음 ㄷ/ㅁ, ㅌ/ㅊ, ㅇ/ㅎ처럼 생김새가 비슷한 자모가 실제로 혼동된 사례가 있었습니다("덩실 덩"을 "멍실멍"으로 오독) — 짧은 문구일수록 더 흔한 단어로 넘겨짚지 말고 실제 획을 확인하세요. JSON만 반환: {"text":"...","confidence":0~1,"polygon":[{"x":number,"y":number}]} . polygon은 이미지 실제 픽셀 좌표 4개입니다.`;
 }
 
 async function requestGroqVisionOcr(image: Buffer, candidate?: RecognizedRegion, options?: VisionOcrOptions): Promise<VisionFallbackResult | null> {
