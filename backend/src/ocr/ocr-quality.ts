@@ -23,6 +23,18 @@ export function shouldRunFallbackVariants(regions: RecognizedRegion[]): boolean 
   return candidates.length > 1 && candidates.some((region) => region.confidence < FRAGMENT_CONFIDENCE);
 }
 
+/**
+ * Paddle 대조(crossCheckWithPaddleOcr)는 Luna가 성공해도 매 이미지마다 한 번 더 OCR을
+ * 돌려 지연을 더한다. 오독이 주로 짧은 캡션·저신뢰 조각에서 난다는 게 실측으로 확인돼
+ * 있으니(ocr-pipeline.service.ts 상단 주석), 긴 고신뢰 캡션만 있는 이미지는 대조 없이도
+ * 위험이 낮아 Paddle 호출 자체를 건너뛴다.
+ */
+export function shouldCrossCheckWithPaddle(regions: RecognizedRegion[]): boolean {
+  const candidates = koreanRegions(regions);
+  if (candidates.length === 0) return false;
+  return candidates.some((region) => koreanLength(region.text) <= SHORT_PHRASE_LENGTH || region.confidence < FRAGMENT_CONFIDENCE);
+}
+
 /** Vision은 비용과 지연을 줄이기 위해 불완전 가능성이 높은 결과에만 사용한다. */
 export function shouldUseVisionFallback(
   selected: RecognizedRegion | null,
