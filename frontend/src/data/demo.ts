@@ -14,6 +14,9 @@ export interface DemoItem extends UploadFile {
   suggestions: Suggestion[]
   /** 원본 이미지 글씨체와 어울리는 AI 추천 폰트 (API 연동 전 데모값) */
   recommendedFont: string
+  recommendedAlignment?: 'left' | 'center' | 'right'
+  strokeRecommended?: boolean
+  shadowRecommended?: boolean
   textRegions?: DemoTextRegion[]
 }
 
@@ -23,6 +26,10 @@ export interface DemoTextRegion {
   normalizedBox: { x: number; y: number; width: number; height: number } | null
   suggestions: Suggestion[]
   recommendedFont: string
+  /** 번역 AI가 문구 뉘앙스로 함께 추천한 정렬·외곽선·그림자 (translation-prompt.ts의 recommendedStyle) */
+  recommendedAlignment?: 'left' | 'center' | 'right'
+  strokeRecommended?: boolean
+  shadowRecommended?: boolean
   textColor: { r: number; g: number; b: number } | null
   needsManualCleanup: boolean
   needsManualOcrReview: boolean
@@ -268,6 +275,9 @@ export function toDemoItems(files: UploadFile[], languageCode = 'en'): DemoItem[
           suggestions: regionLocalization?.suggestions ?? [],
           translationStatus: regionLocalization?.status ?? 'failed',
           recommendedFont: regionLocalization?.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : 'Pretendard'),
+          recommendedAlignment: regionLocalization?.recommendedAlignment,
+          strokeRecommended: regionLocalization?.strokeRecommended,
+          shadowRecommended: regionLocalization?.shadowRecommended,
           textColor: region.textColor,
           needsManualCleanup: region.needsManualCleanup,
           needsManualOcrReview: region.needsManualOcrReview,
@@ -281,6 +291,9 @@ export function toDemoItems(files: UploadFile[], languageCode = 'en'): DemoItem[
         korean: f.analysis.korean,
         suggestions: localized?.suggestions ?? f.analysis.suggestions ?? [],
         recommendedFont: localized?.recommendedFont ?? f.analysis.recommendedFont ?? (languageCode === 'ja' ? 'Noto Sans JP' : languageCode === 'zh' ? 'Noto Sans SC' : 'Pretendard'),
+        recommendedAlignment: localized?.recommendedAlignment,
+        strokeRecommended: localized?.strokeRecommended,
+        shadowRecommended: localized?.shadowRecommended,
         textRegions,
       }
     }

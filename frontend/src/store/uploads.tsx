@@ -82,6 +82,10 @@ export interface LocalizedAnalysis {
   status: 'translated' | 'failed'
   suggestions: Array<{ text: string; tone: string; best?: boolean }>
   recommendedFont: string
+  /** 번역 AI가 문구 뉘앙스로 함께 추천한 정렬·외곽선·그림자 (지금까지는 fontCategory만 쓰고 나머진 버려졌음) */
+  recommendedAlignment?: 'left' | 'center' | 'right'
+  strokeRecommended?: boolean
+  shadowRecommended?: boolean
 }
 
 export type StylesByLanguage = Record<string, Record<string, Style>>
@@ -395,6 +399,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                 status: localization?.status ?? 'failed',
                 suggestions: localization?.candidates ?? [],
                 recommendedFont: fontForLanguage(language.code, suggestedFont),
+                recommendedAlignment: localization?.recommendedStyle?.alignment,
+                strokeRecommended: localization?.recommendedStyle?.strokeRecommended,
+                shadowRecommended: localization?.recommendedStyle?.shadowRecommended,
               }]
             })),
             originalUrl: asset.originalUrl,
@@ -421,6 +428,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                   status: localization?.status ?? 'failed',
                   suggestions: localization?.candidates ?? [],
                   recommendedFont: fontForLanguage(language.code, suggestedFont),
+                  recommendedAlignment: localization?.recommendedStyle?.alignment,
+                  strokeRecommended: localization?.recommendedStyle?.strokeRecommended,
+                  shadowRecommended: localization?.recommendedStyle?.shadowRecommended,
                 }]
               })),
               needsManualCleanup: region.needsManualCleanup,
