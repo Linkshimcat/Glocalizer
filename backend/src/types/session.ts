@@ -1,4 +1,4 @@
-export type LoginMethod = 'email' | 'naver' | 'google';
+export type LoginMethod = 'email' | 'naver' | 'google' | 'kakao';
 
 export interface SessionRow {
   id: string;

@@ -38,6 +38,15 @@ export const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value ? value : undefined)),
+  // 카카오 개발자센터에서 발급. 네이버와 동일한 미설정-시-503 규칙을 따른다.
+  KAKAO_CLIENT_ID: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  KAKAO_CLIENT_SECRET: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
   // GitHub 저장소에 이슈를 생성할 권한만 가진 fine-grained PAT. 미설정 시 피드백 API만 503으로
   // 비활성화되고 나머지는 정상 동작한다. (Settings > Developer settings > Fine-grained tokens,
   // 이 repo만 선택하고 Issues: Read and write 권한만 부여)

@@ -257,7 +257,7 @@ export default function Account() {
             <div className="pt-5">
               <dt className="text-sm font-semibold text-sub">{tAccount.accountSignupMethod}</dt>
               <dd className="mt-2 flex flex-col gap-2">
-                {user.hasPassword === undefined && user.hasNaver === undefined && user.hasGoogle === undefined ? (
+                {user.hasPassword === undefined && user.hasNaver === undefined && user.hasGoogle === undefined && user.hasKakao === undefined ? (
                   <span className="text-base font-bold text-sub">{tAccount.accountChecking}</span>
                 ) : (
                   <>
@@ -277,6 +277,12 @@ export default function Account() {
                       <span className="flex items-center gap-2 text-base font-bold text-ink">
                         <GoogleIcon className="h-5 w-5" />
                         {tAccount.accountGoogleLogin}
+                      </span>
+                    )}
+                    {user.hasKakao && (
+                      <span className="flex items-center gap-2 text-base font-bold text-ink">
+                        <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FEE500] text-xs font-black text-[#3C1E1E]">K</span>
+                        {tAccount.accountKakaoLogin}
                       </span>
                     )}
                   </>

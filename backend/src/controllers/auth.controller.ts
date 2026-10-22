@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.middleware.js';
-import { changePassword, deleteAccount, getCurrentUser, getSessions, login, loginWithGoogle, loginWithNaver, logoutSession, revokeOtherUserSessions, revokeUserSession, signup, updateProfile } from '../services/auth.service.js';
+import { changePassword, deleteAccount, getCurrentUser, getSessions, login, loginWithGoogle, loginWithKakao, loginWithNaver, logoutSession, revokeOtherUserSessions, revokeUserSession, signup, updateProfile } from '../services/auth.service.js';
 import type { SessionContext } from '../types/session.js';
 
 function sessionContext(req: Request): SessionContext {
@@ -20,6 +20,12 @@ export async function loginHandler(req: Request, res: Response) {
 export async function naverCallbackHandler(req: Request, res: Response) {
   const { code, state } = req.body;
   const result = await loginWithNaver(code, state, sessionContext(req));
+  res.status(200).json(result);
+}
+
+export async function kakaoCallbackHandler(req: Request, res: Response) {
+  const { code, redirectUri } = req.body;
+  const result = await loginWithKakao(code, redirectUri, sessionContext(req));
   res.status(200).json(result);
 }
 

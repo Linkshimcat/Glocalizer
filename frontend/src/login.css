@@ -40,6 +40,8 @@
 .login-panel .login-provider { border-color: var(--studio-line); font-size: 14px; }
 .login-panel .login-provider:hover:not(:disabled) { border-color: var(--color-sub); background: var(--color-surface); }
 .login-provider--naver > svg { color: #03a94d; }
+.login-provider--kakao > svg { color: #3c1e1e; }
+.login-provider--kakao { background: #fee500; border-color: #fee500; }
 .login-switch { margin-top: 12px; text-align: center; }
 .login-switch button { min-height: 44px; border: 0; border-radius: var(--radius-control); padding: 6px 4px; background: transparent; color: var(--color-brand-dark); font-size: 13px; font-weight: 600; line-height: 1.6; cursor: pointer; }
 .login-switch button:hover { text-decoration: underline; text-underline-offset: 3px; }

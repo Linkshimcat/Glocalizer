@@ -7,10 +7,11 @@ export interface AuthUser {
   name: string | null
   avatarUrl: string | null
   /** 이전 버전 localStorage에는 없을 수 있으며, 서버 동기화 후 채워진다. */
-  signupMethod?: 'email' | 'naver' | 'google'
+  signupMethod?: 'email' | 'naver' | 'google' | 'kakao'
   hasPassword?: boolean
   hasNaver?: boolean
   hasGoogle?: boolean
+  hasKakao?: boolean
 }
 
 interface AuthResult {
@@ -58,6 +59,13 @@ export function loginWithNaver(code: string, state: string): Promise<AuthResult>
   return authRequest<AuthResult>('/auth/naver/callback', {
     method: 'POST',
     body: JSON.stringify({ code, state }),
+  })
+}
+
+export function loginWithKakao(code: string, redirectUri: string): Promise<AuthResult> {
+  return authRequest<AuthResult>('/auth/kakao/callback', {
+    method: 'POST',
+    body: JSON.stringify({ code, redirectUri }),
   })
 }
 
