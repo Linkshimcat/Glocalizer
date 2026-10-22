@@ -68,9 +68,13 @@ export function styleKeyForRegion(fileId: string, regionId?: string | null, prim
   return !regionId || regionId === primaryRegionId ? fileId : `${fileId}::${regionId}`
 }
 
+/** 에디터 미리보기가 기준으로 쓰는 정사각 좌표계 크기(px). normalizedBox(0~1)를 이 값에
+ * 곱하면 에디터 캔버스 기준 px가 된다 — styleFromNormalizedBox와 겹침 경고 계산이 공유한다. */
+export const EDITOR_PREVIEW_SIZE = 340
+
 /** OCR bbox를 기존 340px 에디터 좌표로 옮긴 기본 텍스트 스타일 */
 export function styleFromNormalizedBox(box: NormalizedRect, textColor?: { r: number; g: number; b: number } | null, text?: string): Style {
-  const editorSize = 340
+  const editorSize = EDITOR_PREVIEW_SIZE
   const lines = text?.trim().split(/\r?\n/) ?? []
   const lineCount = Math.max(1, lines.length)
   const heightSize = (box.height * editorSize * 0.82) / lineCount
@@ -122,6 +126,38 @@ export const DEFAULT_STYLE: Style = {
   alignH: null,
   alignV: 'bottom',
   imageScale: 100,
+}
+
+const OVERFLOW_TOLERANCE = 0.3
+
+/**
+ * 진짜 캐릭터 윤곽 데이터가 없어서(백엔드 클린업 파이프라인은 OCR 박스 주변 작은 영역에서만
+ * 임시로 캐릭터 덩어리를 판별하고 바로 버림 — 전체 이미지 기준으로 저장되지 않음), 번역 전
+ * 원본 캡션이 있던 자리(normalizedBox)를 "캐릭터와 겹치지 않는 안전 영역"의 근사치로 쓴다.
+ * 번역 텍스트 블록이 그 자리에서 원래 박스 크기의 30% 이상 벗어나면 경고 대상으로 본다 —
+ * 드래그로 멀리 옮기거나, 크게 리사이즈하거나, 번역문이 길어서 줄바꿈된 경우 모두 해당된다.
+ */
+export function isTextOverflowingOriginalArea(
+  stylePosition: { x: number; y: number },
+  renderedSize: { width: number; height: number },
+  box: NormalizedRect,
+): boolean {
+  const boxWidthPx = box.width * EDITOR_PREVIEW_SIZE
+  const boxHeightPx = box.height * EDITOR_PREVIEW_SIZE
+  const boxCenterX = (box.x + box.width / 2 - 0.5) * EDITOR_PREVIEW_SIZE
+  const boxCenterY = (box.y + box.height / 2 - 0.5) * EDITOR_PREVIEW_SIZE
+  const marginX = boxWidthPx * OVERFLOW_TOLERANCE
+  const marginY = boxHeightPx * OVERFLOW_TOLERANCE
+  const textLeft = stylePosition.x - renderedSize.width / 2
+  const textRight = stylePosition.x + renderedSize.width / 2
+  const textTop = stylePosition.y - renderedSize.height / 2
+  const textBottom = stylePosition.y + renderedSize.height / 2
+  return (
+    textLeft < boxCenterX - boxWidthPx / 2 - marginX
+    || textRight > boxCenterX + boxWidthPx / 2 + marginX
+    || textTop < boxCenterY - boxHeightPx / 2 - marginY
+    || textBottom > boxCenterY + boxHeightPx / 2 + marginY
+  )
 }
 
 export function rgbToHex(r: number, g: number, b: number): string {
