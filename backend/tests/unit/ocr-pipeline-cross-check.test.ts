@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { crossCheckWithPaddleOcr } from '../../src/ocr/ocr-pipeline.service.js';
 import type { ConsensusRegion } from '../../src/ocr/ocr-consensus.service.js';
 import type { OcrProvider, RecognizedRegion } from '../../src/ocr/ocr-provider.types.js';
+import { clearOcrRecognitionCacheForTests } from '../../src/ocr/ocr-recognition-cache.js';
 
 function box(left: number, top: number, right: number, bottom: number) {
   return [{ x: left, y: top }, { x: right, y: top }, { x: right, y: bottom }, { x: left, y: bottom }];
@@ -16,6 +17,12 @@ function paddleProviderReturning(regions: RecognizedRegion[]): OcrProvider {
 }
 
 describe('crossCheckWithPaddleOcr', () => {
+  // 모든 테스트가 같은 Buffer.from('image') 바이트를 쓰므로, 이미지 바이트 기준 캐시가
+  // 이전 테스트의 mock 결과를 다음 테스트로 새어나가게 하지 않도록 매번 비운다.
+  beforeEach(() => {
+    clearOcrRecognitionCacheForTests();
+  });
+
   it('실사용 재현 사례 — PaddleOCR가 크게 다른 텍스트를 읽으면 검수로 넘긴다', async () => {
     // 실제 프로덕션 재현(2026-09-17): Luna "멍실멍" vs PaddleOCR "덩실영" — 위치는 겹치지만
     // 텍스트가 크게 다르다. 어느 쪽이 맞는지 판단할 근거가 없으므로 자동 승인하지 않는다.

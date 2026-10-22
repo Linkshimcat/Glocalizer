@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldRunFallbackVariants, shouldUseVisionFallback } from '../../src/ocr/ocr-quality.js';
+import { shouldCrossCheckWithPaddle, shouldRunFallbackVariants, shouldUseVisionFallback } from '../../src/ocr/ocr-quality.js';
 
 function region(text: string, confidence = 0.95) {
   return { text, confidence, polygon: [{ x: 1, y: 1 }, { x: 30, y: 1 }, { x: 30, y: 20 }, { x: 1, y: 20 }] };
@@ -27,5 +27,23 @@ describe('OCR quality guard', () => {
 
   it('escalates a long phrase when a low-confidence split fragment remains', () => {
     expect(shouldUseVisionFallback(region('녕히주무세요'), [region('녕히주무세요'), region('떻', 0.31)], false)).toBe(true);
+  });
+
+  it('skips the Paddle cross-check for a long confident phrase', () => {
+    expect(shouldCrossCheckWithPaddle([region('오늘대충이라도하자')])).toBe(false);
+  });
+
+  it('runs the Paddle cross-check for a short phrase even if confident', () => {
+    // 실사용 재현 사례(멍실멍/덩실 덩)는 confidence 0.86~0.87로 FRAGMENT_CONFIDENCE(0.8)보다
+    // 높았다 — 짧은 글자 수만으로도 대조를 걸어야 그 사례를 놓치지 않는다.
+    expect(shouldCrossCheckWithPaddle([region('멍실멍', 0.87)])).toBe(true);
+  });
+
+  it('runs the Paddle cross-check for a low-confidence long phrase', () => {
+    expect(shouldCrossCheckWithPaddle([region('오늘대충이라도하자', 0.5)])).toBe(true);
+  });
+
+  it('skips the Paddle cross-check when there is no Korean text to protect', () => {
+    expect(shouldCrossCheckWithPaddle([region('hello')])).toBe(false);
   });
 });

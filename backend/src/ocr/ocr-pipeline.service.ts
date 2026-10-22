@@ -11,11 +11,12 @@ import { classifyConfidence, type OcrRegion } from '../types/ocr.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
 import { getOcrFallbackProvider, getOcrProvider, getShadowOcrProvider } from './ocr-provider.js';
 import type { RecognizedRegion } from './ocr-provider.types.js';
+import { recognizeWithCache } from './ocr-recognition-cache.js';
 import { measureShadowOcr } from './ocr-shadow.service.js';
 import { selectOcrVariantCount } from './ocr-variant-selection.js';
 import { deduplicateRecognizedRegions, mergeAdjacentKoreanRegions } from './merge-recognized-regions.js';
 import { editSimilarity, selectConsensusRegions, type ConsensusRegion } from './ocr-consensus.service.js';
-import { shouldRunFallbackVariants, shouldUseVisionFallback } from './ocr-quality.js';
+import { shouldCrossCheckWithPaddle, shouldRunFallbackVariants, shouldUseVisionFallback } from './ocr-quality.js';
 import { requestVisionOcr } from './vision-fallback.service.js';
 import type { OcrProvider } from './ocr-provider.types.js';
 
@@ -65,7 +66,7 @@ export async function crossCheckWithPaddleOcr(regions: ConsensusRegion[], image:
   if (regions.length === 0) return regions;
   let paddleRegions: RecognizedRegion[];
   try {
-    paddleRegions = mergeAdjacentKoreanRegions(await paddleProvider.recognize(image));
+    paddleRegions = mergeAdjacentKoreanRegions(await recognizeWithCache(paddleProvider, image));
   } catch (error) {
     // 대조는 부가 안전장치일 뿐이다. PaddleOCR 브릿지 실패가 이미 확보한 Luna 결과까지
     // 검수로 밀어내면 안 된다.
@@ -142,11 +143,11 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
     let activeProvider = provider;
     let primaryRegions: RecognizedRegion[];
     try {
-      primaryRegions = normalizeProviderRegions(provider.name, await provider.recognize(primaryVariant.content));
+      primaryRegions = normalizeProviderRegions(provider.name, await recognizeWithCache(provider, primaryVariant.content));
       // Luna처럼 단발 정확도가 검증된 유료 Vision provider가 한글을 아예 못 찾았을 때만
       // 로컬 PaddleOCR로 한 번 더 확인한다. 재시도가 아니라 단발성 안전망이라 비용은 거의 늘지 않는다.
       if (fallbackProvider && !primaryRegions.some((region) => containsKorean(region.text))) {
-        const fallbackRegions = normalizeProviderRegions(fallbackProvider.name, await fallbackProvider.recognize(primaryVariant.content));
+        const fallbackRegions = normalizeProviderRegions(fallbackProvider.name, await recognizeWithCache(fallbackProvider, primaryVariant.content));
         if (fallbackRegions.some((region) => containsKorean(region.text))) {
           activeProvider = fallbackProvider;
           primaryRegions = fallbackRegions;
@@ -156,7 +157,7 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
       if (!fallbackProvider) throw error;
       logger.warn({ err: error, assetId: asset.id, provider: provider.name }, 'OCR 주력 provider 처리 중 오류, PaddleOCR로 대체합니다.');
       activeProvider = fallbackProvider;
-      primaryRegions = normalizeProviderRegions(fallbackProvider.name, await fallbackProvider.recognize(primaryVariant.content));
+      primaryRegions = normalizeProviderRegions(fallbackProvider.name, await recognizeWithCache(fallbackProvider, primaryVariant.content));
     }
     const results = [primaryRegions];
     // Luna/OpenVINO는 단일 호출 정확도가 이미 검증돼 있어, PaddleOCR 전용으로 설계된 이미지
@@ -172,13 +173,13 @@ async function recognizeAsset(asset: AssetRow): Promise<void> {
         : selectOcrVariantCount(activeProvider, fallbackVariants.length);
       for (const variant of fallbackVariants.slice(0, fallbackCount)) {
         variants.push(variant);
-        const recognized = normalizeProviderRegions(activeProvider.name, await activeProvider.recognize(variant.content));
+        const recognized = normalizeProviderRegions(activeProvider.name, await recognizeWithCache(activeProvider, variant.content));
         results.push(recognized);
         if (!results[0].some((region) => containsKorean(region.text)) && recognized.some((region) => containsKorean(region.text))) break;
       }
     }
     let consensusRegions = selectConsensusRegions(results, { allowSingleVariantAutoApprove: isSingleShotVision });
-    if (activeProvider.name === 'luna' && fallbackProvider) {
+    if (activeProvider.name === 'luna' && fallbackProvider && shouldCrossCheckWithPaddle(consensusRegions)) {
       consensusRegions = await crossCheckWithPaddleOcr(consensusRegions, primaryVariant.content, fallbackProvider);
     }
     const consensus = consensusRegions[0] ?? null;
