@@ -53,6 +53,7 @@ import {
 } from '../lib/exportImage'
 import '../editor-fonts.css'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
+import { createCanvasMeasurer, wrapTextToWidth } from '../lib/textWrap'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { cloudCopy } from '../i18n/cloud'
@@ -1557,7 +1558,14 @@ export default function Editor() {
                   {canvasOverlays.map(overlay => {
                     const isActive = overlay.regionId === activeRegion.id
                     const overlayStyle = textStyleFor(overlay.style)
-                    const overlayText = resolveText(overlay.style, overlay.suggestions)
+                    const rawText = resolveText(overlay.style, overlay.suggestions)
+                    // 번역문이 원문보다 길어져도 캐릭터 쪽으로 가로로 삐져나가지 않도록, 원본
+                    // 박스 너비(에디터 기준 340px 좌표계 — styleFromNormalizedBox와 동일한 단위)를
+                    // 넘기 전에 줄바꿈한다. 실제 다운로드(exportImage.ts)와 같은 결과를 보여주려고
+                    // 같은 wrapTextToWidth를 쓴다.
+                    const fontSpec = `${overlay.style.weight} ${overlay.style.size}px '${overlay.style.font}', sans-serif`
+                    const maxLineWidth = overlay.normalizedBox ? overlay.normalizedBox.width * 340 : Infinity
+                    const overlayText = wrapTextToWidth(rawText, createCanvasMeasurer(fontSpec), maxLineWidth)
                     const transform = `translate(-50%, -50%) translate(${overlay.style.x}px, ${overlay.style.y}px) rotate(${overlay.style.rotation}deg)`
 
                     // 브러시 모드에서도 지금 선택돼 드래그/크기조절 박스가 떠 있는 텍스트는 계속
