@@ -5,6 +5,7 @@ import { accountCopy } from '../i18n/account'
 import type { AuthSession } from '../lib/authApi'
 import { requestErrorMessage } from '../lib/requestError'
 import { useAuth } from '../store/AuthContext'
+import Modal from './Modal'
 import { useToast } from './Toast'
 
 function DeviceIcon({ label }: { label: string | null }) {
@@ -27,7 +28,7 @@ function formatLastActive(iso: string, locale: string): string {
 /** 이 계정으로 로그인된 기기 목록과 기기별 로그아웃. 로그인 방식과 관계없이 모든 계정에 보인다. */
 export default function DeviceSessions() {
   const { listSessions, revokeSession, revokeOtherSessions } = useAuth()
-  const { lang } = useSiteLang()
+  const { lang, t: common } = useSiteLang()
   const t = accountCopy(lang)
   const toast = useToast()
   const [sessions, setSessions] = useState<AuthSession[] | null>(null)
@@ -130,23 +131,28 @@ export default function DeviceSessions() {
 
           {(hasOthers || hasLegacy) && (
             <div className="mt-5">
-              {confirmingOthers ? (
-                <div className="flex flex-col gap-3 rounded-control bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-ink">{t.accountSessionsSignOutOthersAsk}</p>
-                  <div className="flex shrink-0 gap-2">
-                    <button type="button" onClick={() => setConfirmingOthers(false)} disabled={busyId !== null} className="rounded-control border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">{t.accountCancel}</button>
-                    <button type="button" onClick={() => void signOutOthers()} disabled={busyId !== null} className="flex items-center gap-1.5 rounded-control bg-action px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
-                      {busyId === 'others' && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {t.accountSessionsConfirm}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button type="button" onClick={() => setConfirmingOthers(true)} className="rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface">{t.accountSessionsSignOutOthers}</button>
-              )}
+              <button type="button" onClick={() => setConfirmingOthers(true)} className="rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface">{t.accountSessionsSignOutOthers}</button>
             </div>
           )}
         </>
+      )}
+
+      {confirmingOthers && (
+        <Modal
+          onClose={() => { if (busyId === null) setConfirmingOthers(false) }}
+          labelledBy="sign-out-other-devices-title"
+          closeLabel={common.commonClose}
+        >
+          <h2 id="sign-out-other-devices-title" className="pr-8 text-lg font-extrabold text-ink">{t.accountSessionsSignOutOthers}</h2>
+          <p className="mt-2 text-sm text-sub">{t.accountSessionsSignOutOthersAsk}</p>
+          <div className="mt-6 flex justify-end gap-2">
+            <button type="button" onClick={() => setConfirmingOthers(false)} disabled={busyId !== null} className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">{t.accountCancel}</button>
+            <button type="button" onClick={() => void signOutOthers()} disabled={busyId !== null} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+              {busyId === 'others' && <Loader2 className="h-4 w-4 animate-spin" />}
+              {t.accountSessionsConfirm}
+            </button>
+          </div>
+        </Modal>
       )}
     </section>
   )
