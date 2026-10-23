@@ -60,8 +60,9 @@ try {
     assert.ok(calls.includes('DELETE /auth/sessions/b'))
 
     await section.getByRole('button', { name: '다른 기기 모두 로그아웃' }).click()
-    await section.getByText('이 기기를 뺀 모든 기기에서 로그아웃돼요.').waitFor()
-    await section.getByRole('button', { name: '로그아웃하기' }).click()
+    const dialog = page.getByRole('dialog', { name: '다른 기기 모두 로그아웃' })
+    await dialog.getByText('이 기기를 뺀 모든 기기에서 로그아웃돼요.').waitFor()
+    await dialog.getByRole('button', { name: '로그아웃하기' }).click()
     await page.waitForFunction(() => localStorage.getItem('glocalizer:authToken') === 'new-token')
     await section.getByRole('button', { name: '다른 기기 모두 로그아웃' }).waitFor({ state: 'detached' })
     assert.equal(new URL(page.url()).pathname, '/account', 'still signed in on this device')
