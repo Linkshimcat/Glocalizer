@@ -1,3 +1,8 @@
+import rateLimit from 'express-rate-limit';
+import { explainJapanese } from '../services/japanese-meaning.service.js';
+import { explainJapaneseSchema } from '../schemas/japanese-meaning.schema.js';
+import { requireProject } from '../middleware/project-auth.middleware.js';
+import { requireParam } from '../utils/request-params.js';
 import { Router } from 'express';
 import { createOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, suggestCaptionHandler, updateOcrHandler } from '../controllers/editor.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
@@ -52,4 +57,17 @@ editorRouter.post(
   validate(assetParamsSchema, 'params'),
   projectAuthMiddleware,
   asyncHandler(suggestCaptionHandler),
+);
+
+editorRouter.post(
+  '/projects/:projectId/assets/:assetId/japanese-meaning',
+  validate(assetParamsSchema, 'params'), projectAuthMiddleware,
+  rateLimit({ windowMs: 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false,
+    keyGenerator: req => req.auth?.sub ?? requireProject(req).id,
+    message: { error: { code: 'RATE_LIMITED', message: '잠시 후 뜻 확인을 다시 시도해주세요.' } },
+  }),
+  validate(explainJapaneseSchema, 'body'),
+  asyncHandler(async (req, res) => {
+    res.json(await explainJapanese(requireProject(req).id, requireParam(req, 'assetId'), req.body.regionId, req.body.text));
+  }),
 );

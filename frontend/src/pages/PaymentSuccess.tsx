@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, Loader2, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
@@ -20,6 +20,8 @@ export default function PaymentSuccess() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [status, setStatus] = useState<'confirming' | 'done' | 'error'>('confirming')
+  const resultRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => { if (status !== 'confirming') resultRef.current?.focus() }, [status])
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
@@ -45,15 +47,15 @@ export default function PaymentSuccess() {
   return (
     <div className="flex min-h-svh flex-col">
       <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-10 text-center sm:py-20">
-        {status === 'confirming' && <><Loader2 className="h-10 w-10 animate-spin text-brand" /><p className="font-medium text-sub">{t.confirming}</p></>}
+        {status === 'confirming' && <><Loader2 className="h-10 w-10 animate-spin text-brand" /><p role="status" className="font-medium text-sub">{t.confirming}</p></>}
         {status === 'done' && <>
           <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-soft text-brand"><Check className="h-8 w-8" /></span>
-          <div><h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t.doneTitle}</h1><p className="mt-2 font-medium text-sub">{t.doneDesc}</p></div>
+          <div><h1 ref={resultRef} tabIndex={-1} className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t.doneTitle}</h1><p className="mt-2 font-medium text-sub">{t.doneDesc}</p></div>
           <Button size="lg" glow onClick={() => navigate('/dashboard')}>{t.goDashboard}</Button>
         </>}
         {status === 'error' && <>
           <span className="grid h-16 w-16 place-items-center rounded-full bg-red-100 text-red-600"><X className="h-8 w-8" /></span>
-          <div><h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t.failTitle}</h1>{errorMessage && <p className="mt-2 font-medium text-sub">{errorMessage}</p>}</div>
+          <div><h1 ref={resultRef} tabIndex={-1} className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t.failTitle}</h1>{errorMessage && <p className="mt-2 font-medium text-sub">{errorMessage}</p>}</div>
           <Link to="/pricing" className="font-bold text-brand underline">{t.goPricing}</Link>
         </>}
       </main>

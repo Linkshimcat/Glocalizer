@@ -7,6 +7,7 @@ export default function JapaneseSpeech({ text, itemKey }: { text: string; itemKe
   const { lang } = useSiteLang()
   const w = workflowCopy[lang]
   const [hasVoice, setHasVoice] = useState<boolean | null>(null)
+  const [slow, setSlow] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [failed, setFailed] = useState(false)
   const utterance = useRef<SpeechSynthesisUtterance | null>(null)
@@ -30,7 +31,7 @@ export default function JapaneseSpeech({ text, itemKey }: { text: string; itemKe
       }
     }
   }, [text, itemKey])
-  const supported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
+  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
   const toggle = () => {
     if (!supported) return
     const synth = window.speechSynthesis
@@ -43,7 +44,7 @@ export default function JapaneseSpeech({ text, itemKey }: { text: string; itemKe
     const next = new SpeechSynthesisUtterance(text)
     next.voice = voice
     next.lang = 'ja-JP'
-    next.rate = 0.85
+    next.rate = slow ? 0.65 : 0.9
     next.onend = () => { if (utterance.current === next) { utterance.current = null; setPlaying(false) } }
     next.onerror = () => { if (utterance.current === next) { utterance.current = null; setPlaying(false); setFailed(true) } }
     utterance.current = next
@@ -54,6 +55,7 @@ export default function JapaneseSpeech({ text, itemKey }: { text: string; itemKe
     <button type="button" onClick={toggle} disabled={!supported || !text.trim() || hasVoice === false} aria-pressed={playing} className="flex min-h-11 items-center gap-2 rounded-control border border-gray-200 px-3 text-sm font-bold disabled:opacity-50">
       {playing ? <Square className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}{playing ? w.stop : w.listen}
     </button>
+    <label className="mt-2 flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" checked={slow} disabled={playing} onChange={event => setSlow(event.target.checked)} />{{ ko: '느리게 듣기', en: 'Listen slowly', ja: 'ゆっくり聞く', zh: '慢速播放' }[lang]}</label>
     {(!supported || hasVoice === false || failed) && <p role="status" className="mt-2 text-xs text-sub">{failed ? w.speechFailed : w.noVoice}</p>}
   </div>
 }

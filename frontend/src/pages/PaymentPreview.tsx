@@ -1,11 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import { ArrowLeft, Check, CreditCard, Loader2, ShieldCheck, Sparkles } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { pricingCopy } from '../i18n/pricing'
 import { useAuth } from '../store/AuthContext'
-import { useToast } from '../components/Toast'
 import { createPaymentOrder } from '../lib/api'
 import { requestErrorMessage } from '../lib/requestError'
 import { experienceCopy } from '../i18n/experience'
@@ -27,16 +26,23 @@ export default function PaymentPreview() {
   const t = labels[lang]
   const plan = pricingCopy[lang].plans[1]
   const { user, isAuthenticated, checkingSession } = useAuth()
-  const toast = useToast()
   const [method, setMethod] = useState('toss')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const errorRef = useRef<HTMLParagraphElement>(null)
+  const inFlight = useRef(false)
+  const selectedLabel = { ko: '선택됨', en: 'Selected', ja: '選択済み', zh: '已选择' }[lang]
+  useEffect(() => { if (error) errorRef.current?.focus() }, [error])
   const selected = method === 'card' ? t.card : methods.find(item => item.id === method)!.name
 
   if (checkingSession && !user) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{experienceCopy[lang].loading}</main>
   if (!isAuthenticated || !user) return <Navigate to="/login?next=/pricing?checkout=creator" replace />
 
   async function handleSubmit() {
-    if (!TOSS_CLIENT_KEY) { toast(t.notConfigured); return }
+    if (inFlight.current) return
+    setError('')
+    if (!TOSS_CLIENT_KEY) { setError(t.notConfigured); return }
+    inFlight.current = true
     setSubmitting(true)
     try {
       const order = await createPaymentOrder('creator')
@@ -53,7 +59,8 @@ export default function PaymentPreview() {
         customerName: user!.name ?? undefined,
       })
     } catch (error) {
-      toast(requestErrorMessage(error, lang, t.notConfigured))
+      setError(requestErrorMessage(error, lang, t.notConfigured))
+      inFlight.current = false
       setSubmitting(false)
     }
   }
@@ -64,9 +71,11 @@ export default function PaymentPreview() {
     <ol className="payment-steps">{t.steps.map((step, index) => <li key={step} aria-current={index === 1 ? 'step' : undefined}><span>{index === 0 ? <Check size={14} /> : index + 1}</span>{step}</li>)}</ol>
     <div className="payment-layout"><section className="payment-panel">
       <h2>{t.method}</h2><p className="payment-muted">{t.easy}</p>
-      <fieldset className="payment-methods" disabled={submitting}><legend className="sr-only">{t.method}</legend>{methods.map(item => <label key={item.id} className={`payment-method ${method === item.id ? 'is-selected' : ''}`}><input type="radio" name="payment-method" value={item.id} checked={method === item.id} onChange={() => setMethod(item.id)} /><span className={`payment-brand payment-brand-${item.id}`}>{item.id === 'card' ? <CreditCard size={28} /> : item.mark}</span><span>{item.id === 'card' ? t.card : item.name}</span></label>)}</fieldset>
+      <fieldset className="payment-methods" disabled={submitting}><legend className="sr-only">{t.method}</legend>{methods.map(item => <label key={item.id} className={`payment-method ${method === item.id ? 'is-selected' : ''}`}><input type="radio" name="payment-method" value={item.id} checked={method === item.id} onChange={() => { setMethod(item.id); setError('') }} /><span aria-hidden="true" className={`payment-brand payment-brand-${item.id}`}>{item.id === 'card' ? <CreditCard size={28} /> : item.mark}</span><span>{item.id === 'card' ? t.card : item.name}</span><span className="payment-selected" aria-hidden="true">{method === item.id && <><Check size={14} />{selectedLabel}</>}</span></label>)}</fieldset>
       <div className="payment-method-info"><ShieldCheck size={21} /><div><strong>{selected}</strong><p>{t.hint}</p></div></div>
     </section><aside className="payment-panel payment-summary"><div className="payment-summary-heading"><h2>{t.order}</h2><Link to="/pricing">{t.change}</Link></div><div className="payment-plan"><span><Sparkles size={22} /></span><div><strong>{plan.name}</strong><p>{plan.description}</p></div></div><ul>{plan.features.map(feature => <li key={feature}><Check size={16} />{feature}</li>)}</ul><dl><div><dt>{t.cycle}</dt><dd>{t.monthly}</dd></div><div><dt>{t.detail}</dt><dd>{selected}</dd></div><div><dt>{t.next}</dt><dd>{t.pending}</dd></div></dl><div className="payment-total"><span>{t.total}</span><strong>{plan.price}</strong></div>
+      <p role="status" aria-live="polite" className="payment-footnote">{submitting ? t.submitting : ''}</p>
+      {error && <p ref={errorRef} tabIndex={-1} role="alert" className="payment-error">{error}</p>}
       <button className="payment-submit" disabled={submitting} onClick={() => { void handleSubmit() }}>{submitting && <Loader2 className="h-4 w-4 animate-spin" />}{submitting ? t.submitting : t.confirm}</button><p className="payment-safe"><ShieldCheck size={15} />{t.safe}</p>
     </aside></div>
   </main><Footer /></div>

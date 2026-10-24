@@ -29,7 +29,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { frameTextEdits, type FrameTextEdit } from '../lib/frameText'
 import PngPreview from '../components/PngPreview'
 import Modal from '../components/Modal'
-import JapaneseSpeech from '../components/JapaneseSpeech'
+import JapaneseMeaning from '../components/JapaneseMeaning'
 import { workflowCopy } from '../i18n/workflow'
 import Button from '../components/Button'
 import StateNotice from '../components/StateNotice'
@@ -1776,7 +1776,7 @@ export default function Editor() {
                 )
               })}
             </div>
-            {activeLanguage.code === 'ja' && <JapaneseSpeech text={resolveText(style, activeRegion.suggestions)} itemKey={`${current.id}:${activeRegion.id}:${activeLanguage.code}`} />}
+            {activeLanguage.code === 'ja' && <JapaneseMeaning key={`${current.id}:${activeRegion.id}`} fileId={current.id} regionId={activeRegion.id} text={resolveText(style, activeRegion.suggestions)} />}
             {/* 직접 입력 */}
             <p className="mt-4 text-[11px] font-semibold text-sub">
               {e.customHint}
