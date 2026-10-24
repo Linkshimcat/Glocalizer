@@ -309,3 +309,14 @@ export function createPaymentOrder(planId: string): Promise<PaymentOrder> {
 export function confirmPayment(input: { paymentKey: string; orderId: string; amount: number }): Promise<void> {
   return request('/payments/confirm', { method: 'POST', body: JSON.stringify(input) })
 }
+
+export interface JapaneseMeaning {
+  meaning: string
+  register: string
+  usage: string
+  nuance: string
+  recommendation: string
+}
+export function explainJapaneseText(projectId: string, token: string, assetId: string, regionId: string, text: string): Promise<{ text: string; explanation: JapaneseMeaning }> {
+  return request(`/projects/${projectId}/assets/${assetId}/japanese-meaning`, { method: 'POST', body: JSON.stringify({ regionId, text }) }, token)
+}

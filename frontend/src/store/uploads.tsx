@@ -17,6 +17,8 @@ import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
 import { pickFontByStyle } from '../data/demo'
 import {
+  explainJapaneseText,
+  type JapaneseMeaning,
   ApiError,
   getProjectResults,
   getProjectStatus,
@@ -182,6 +184,7 @@ interface UploadState {
   detectOcrRegion: (fileId: string, normalizedBox: NormalizedRect) => Promise<DetectedOcrSelection>
   addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
   suggestCaption: (fileId: string) => Promise<ApiCaptionSuggestion>
+  explainJapanese: (fileId: string, regionId: string, text: string) => Promise<{ text: string; explanation: JapaneseMeaning }>
   retryTranslation: (fileId: string, regionId: string, languageCode: string) => Promise<void>
 }
 
@@ -595,6 +598,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     return suggestCaption(projectId, projectToken, file.assetId)
   }, [files, projectId, projectToken])
 
+  const explainJapanese = useCallback(async (fileId: string, regionId: string, text: string) => {
+    const file = files.find(item => item.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('뜻풀이 세션을 찾을 수 없어요.')
+    return explainJapaneseText(projectId, projectToken, file.assetId, regionId, text)
+  }, [files, projectId, projectToken])
+
   const retryAssetTranslation = useCallback(async (fileId: string, regionId: string, languageCode: string) => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('번역 세션을 찾을 수 없어요.')
@@ -637,6 +646,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       detectOcrRegion: detectAssetOcrRegion,
       addOcrRegion: addAssetOcrRegion,
       suggestCaption: suggestAssetCaption,
+      explainJapanese,
       retryTranslation: retryAssetTranslation,
     }),
     [
@@ -673,6 +683,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       detectAssetOcrRegion,
       addAssetOcrRegion,
       suggestAssetCaption,
+      explainJapanese,
       retryAssetTranslation,
     ],
   )
