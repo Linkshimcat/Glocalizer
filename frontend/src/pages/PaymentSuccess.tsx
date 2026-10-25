@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, Globe2, Loader2, ReceiptText, ShieldCheck, X } from 'lucide-react'
+import Lottie from 'lottie-react'
+import { ArrowLeft, Check, Loader2, ReceiptText, ShieldCheck, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
+import paymentSuccessAnimation from '../assets/icons/payment-success.json'
 import Footer from '../components/Footer'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { confirmPayment } from '../lib/api'
@@ -52,6 +54,7 @@ export default function PaymentSuccess() {
   const [canRetry, setCanRetry] = useState(false)
   const resultRef = useRef<HTMLHeadingElement>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const paymentKey = searchParams.get('paymentKey')
   const orderId = searchParams.get('orderId') ?? ''
   const amount = Number(searchParams.get('amount'))
@@ -64,6 +67,14 @@ export default function PaymentSuccess() {
   const displayOrderId = orderId.length > 24 ? `${orderId.slice(0, 20)}…` : orderId
 
   useEffect(() => { if (status !== 'confirming') resultRef.current?.focus() }, [status])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updateMotionPreference = () => setPrefersReducedMotion(mediaQuery.matches)
+    updateMotionPreference()
+    mediaQuery.addEventListener?.('change', updateMotionPreference)
+    return () => mediaQuery.removeEventListener?.('change', updateMotionPreference)
+  }, [])
 
   useEffect(() => {
     if (!paymentKey || !orderId || !Number.isSafeInteger(amount) || amount <= 0) {
@@ -97,7 +108,11 @@ export default function PaymentSuccess() {
             <h1 ref={resultRef} tabIndex={-1}>{t.confirming}</h1>
           </section>}
           {status === 'done' && <section className="payment-result-state payment-result-success-state">
-            <div className="payment-success-mark" aria-hidden="true"><Globe2 size={46} /><span><Check size={24} /></span></div>
+            <div className="payment-success-animation-wrap" aria-hidden="true">
+              {prefersReducedMotion
+                ? <span className="payment-success-static-mark"><Check size={48} strokeWidth={2.4} /></span>
+                : <Lottie animationData={paymentSuccessAnimation} autoplay loop={false} className="payment-success-animation" />}
+            </div>
             <h1 ref={resultRef} tabIndex={-1}>{t.doneTitle}</h1>
             <p className="payment-result-desc">{t.doneDesc}</p>
             <div className="payment-receipt" aria-label={t.receipt}>
@@ -110,18 +125,18 @@ export default function PaymentSuccess() {
               </dl>
             </div>
             <p className="payment-result-test-note"><ShieldCheck size={16} aria-hidden="true" />{t.testNote}</p>
-            <Button size="lg" glow className="payment-result-cta" onClick={() => navigate('/dashboard')}>{t.goDashboard}</Button>
+            <Button variant="primary" size="lg" className="payment-result-cta" onClick={() => navigate('/dashboard')}>{t.goDashboard}</Button>
           </section>}
           {status === 'error' && <section className="payment-result-state payment-result-error-state">
             <span className="payment-error-mark" aria-hidden="true"><X size={30} /></span>
             <h1 ref={resultRef} tabIndex={-1}>{t.failTitle}</h1>
             <p className="payment-result-desc">{errorMessage || t.failDesc}</p>
-            {canRetry && <Button size="lg" className="payment-result-cta" onClick={() => { setStatus('confirming'); setCanRetry(false); setAttempt(value => value + 1) }}>{t.retry}</Button>}
+            {canRetry && <Button variant="primary" size="lg" className="payment-result-cta" onClick={() => { setStatus('confirming'); setCanRetry(false); setAttempt(value => value + 1) }}>{t.retry}</Button>}
             <Link to="/pricing" className="payment-result-secondary-cta">{t.goPricing}</Link>
           </section>}
         </main>
       </div>
-      <Footer />
+      <Footer showPaymentAttribution />
     </div>
   )
 }

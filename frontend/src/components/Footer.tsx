@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import InstagramIcon from './InstagramIcon'
 import Logo from './Logo'
 
-export default function Footer({ variant = 'default' }: { variant?: 'default' | 'landing' | 'landing-compact' }) {
+export default function Footer({ variant = 'default', showPaymentAttribution = false }: { variant?: 'default' | 'landing' | 'landing-compact'; showPaymentAttribution?: boolean }) {
   const { lang } = useSiteLang()
   const copy = legalUi[lang]
   const isLanding = variant !== 'default'
@@ -74,6 +74,14 @@ export default function Footer({ variant = 'default' }: { variant?: 'default' | 
               </p>
             </div>
           )}
+          {showPaymentAttribution && <p className="mt-1 text-center md:text-left">
+            Payment animation:{' '}
+            <a href="https://iconscout.com/lottie-animations/payment-success" target="_blank" rel="noreferrer" className="underline underline-offset-2 transition-colors hover:text-ink">Payment Success</a>
+            {' '}by{' '}
+            <a href="https://iconscout.com/contributors/babaleo" target="_blank" rel="noreferrer" className="underline underline-offset-2 transition-colors hover:text-ink">Babaleo</a>
+            {' '}on{' '}
+            <a href="https://iconscout.com/" target="_blank" rel="noreferrer" className="underline underline-offset-2 transition-colors hover:text-ink">IconScout</a>
+          </p>}
         </div>
         {isLanding && !isCompact && <div
           className="landing-footer-watermark"
