@@ -52,6 +52,8 @@ function PaymentSuccessAnimation({ prefersReducedMotion }: { prefersReducedMotio
     : <div className="payment-success-animation">{View}</div>
 }
 
+type PaymentConfirmationRequest = { key: string; promise: Promise<void> }
+
 export default function PaymentSuccess() {
   const { lang } = useSiteLang()
   const t = labels[lang]
@@ -63,6 +65,7 @@ export default function PaymentSuccess() {
   const resultRef = useRef<HTMLHeadingElement>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  const confirmationRequest = useRef<PaymentConfirmationRequest | null>(null)
   const paymentKey = searchParams.get('paymentKey')
   const orderId = searchParams.get('orderId') ?? ''
   const amount = Number(searchParams.get('amount'))
@@ -90,7 +93,15 @@ export default function PaymentSuccess() {
       return
     }
     let active = true
-    confirmPayment({ paymentKey, orderId, amount })
+    const requestKey = `${paymentKey}:${orderId}:${amount}`
+    const existingRequest = confirmationRequest.current
+    const request = existingRequest?.key === requestKey
+      ? existingRequest.promise
+      : confirmPayment({ paymentKey, orderId, amount })
+    if (!existingRequest || existingRequest.key !== requestKey) {
+      confirmationRequest.current = { key: requestKey, promise: request }
+    }
+    request
       .then(() => { if (active) setStatus('done') })
       .catch((error: unknown) => {
         if (!active) return
@@ -137,7 +148,7 @@ export default function PaymentSuccess() {
             <span className="payment-error-mark" aria-hidden="true"><X size={30} /></span>
             <h1 ref={resultRef} tabIndex={-1}>{t.failTitle}</h1>
             <p className="payment-result-desc">{errorMessage || t.failDesc}</p>
-            {canRetry && <Button variant="primary" size="lg" className="payment-result-cta" onClick={() => { setStatus('confirming'); setCanRetry(false); setAttempt(value => value + 1) }}>{t.retry}</Button>}
+            {canRetry && <Button variant="primary" size="lg" className="payment-result-cta" onClick={() => { confirmationRequest.current = null; setStatus('confirming'); setCanRetry(false); setAttempt(value => value + 1) }}>{t.retry}</Button>}
             <Link to="/pricing" className="payment-result-secondary-cta">{t.goPricing}</Link>
           </section>}
         </main>
