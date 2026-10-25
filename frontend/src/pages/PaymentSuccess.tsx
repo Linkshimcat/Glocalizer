@@ -12,7 +12,7 @@ import { requestErrorMessage, RequestError } from '../lib/requestError'
 const labels = {
   ko: {
     testBadge: 'TossPayments 테스트 결제', confirming: '테스트 결제를 확인하고 있어요…',
-    doneTitle: '테스트 결제가 완료됐어요', doneDesc: '실제 청구 없이 멤버십 테스트 이용이 활성화됐어요.',
+    doneTitle: '크리에이터 멤버십 결제가 완료됐어요', doneDesc: '실제 청구 없이 크리에이터 멤버십이 활성화됐어요.',
     receipt: '결제 내역', amount: '결제 금액', period: '이용 기간', periodValue: '승인일로부터 30일',
     order: '주문번호', status: '처리 상태', done: '완료', testNote: '테스트 결제이며 실제 청구가 발생하지 않습니다.',
     goDashboard: '워크스페이스로 이동', goPricing: '요금제로 돌아가기', retry: '승인 확인 다시 시도',
@@ -20,7 +20,7 @@ const labels = {
   },
   en: {
     testBadge: 'TossPayments test payment', confirming: 'Confirming your test payment…',
-    doneTitle: 'Test payment complete', doneDesc: 'Your test membership is active. No real charge was made.',
+    doneTitle: 'Creator membership payment complete', doneDesc: 'Your creator membership is active. No real charge was made.',
     receipt: 'Payment details', amount: 'Amount', period: 'Access period', periodValue: '30 days from approval',
     order: 'Order number', status: 'Status', done: 'Complete', testNote: 'This is a test payment. No real charge will occur.',
     goDashboard: 'Go to workspace', goPricing: 'Back to plans', retry: 'Retry approval check',
@@ -28,7 +28,7 @@ const labels = {
   },
   ja: {
     testBadge: 'TossPaymentsテスト決済', confirming: 'テスト決済を確認しています…',
-    doneTitle: 'テスト決済が完了しました', doneDesc: '実際の請求なしでメンバーシップのテスト利用が有効になりました。',
+    doneTitle: 'クリエイターメンバーシップの決済が完了しました', doneDesc: '実際の請求なしでクリエイターメンバーシップが有効になりました。',
     receipt: '決済内容', amount: '決済金額', period: '利用期間', periodValue: '承認日から30日間',
     order: '注文番号', status: '処理状態', done: '完了', testNote: 'テスト決済です。実際の請求は発生しません。',
     goDashboard: 'ワークスペースへ', goPricing: 'プランに戻る', retry: '承認確認を再試行',
@@ -36,7 +36,7 @@ const labels = {
   },
   zh: {
     testBadge: 'TossPayments 测试付款', confirming: '正在确认测试付款…',
-    doneTitle: '测试付款已完成', doneDesc: '测试会员已启用，不会产生真实扣款。',
+    doneTitle: '创作者会员付款已完成', doneDesc: '创作者会员已启用，不会产生真实扣款。',
     receipt: '付款详情', amount: '付款金额', period: '使用期限', periodValue: '付款批准后30天',
     order: '订单号', status: '处理状态', done: '已完成', testNote: '这是测试付款，不会产生真实扣款。',
     goDashboard: '前往工作空间', goPricing: '返回方案', retry: '重试付款确认',

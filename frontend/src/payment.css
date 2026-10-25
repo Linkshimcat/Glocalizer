@@ -51,8 +51,8 @@
 .payment-result-state { display: flex; flex-direction: column; align-items: center; padding-top: 56px; }
 .payment-result-state h1 { max-width: 520px; margin: 22px 0 0; font-size: clamp(30px, 5vw, 42px); font-weight: 850; letter-spacing: -.055em; line-height: 1.18; word-break: keep-all; }
 .payment-result-desc { margin-top: 12px; color: var(--color-sub); font-size: 16px; font-weight: 600; line-height: 1.65; word-break: keep-all; }
-.payment-success-animation-wrap { display: grid; place-items: center; width: 112px; height: 112px; }
-.payment-success-animation { width: 112px; height: 112px; }
+.payment-success-animation-wrap { display: grid; place-items: center; width: 220px; height: 220px; }
+.payment-success-animation { width: 220px; height: 220px; }
 .payment-success-static-mark { display: grid; place-items: center; width: 104px; height: 104px; border-radius: 34px; background: var(--color-brand-soft); color: var(--payment-accent); }
 .payment-error-mark { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 28px; background: #feeceb; color: #b42318; }
 .payment-result-loading { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 24px; background: var(--color-brand-soft); color: var(--payment-accent); }
