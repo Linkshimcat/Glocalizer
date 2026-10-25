@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Lottie from 'lottie-react'
+import { useLottie } from 'lottie-react'
 import { ArrowLeft, Check, Loader2, ReceiptText, ShieldCheck, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
@@ -42,6 +42,14 @@ const labels = {
     goDashboard: '前往工作空间', goPricing: '返回方案', retry: '重试付款确认',
     failTitle: '未能完成付款确认', failDesc: '无法确认付款状态。请稍后重试。',
   },
+}
+
+function PaymentSuccessAnimation({ prefersReducedMotion }: { prefersReducedMotion: boolean }) {
+  const { View } = useLottie({ animationData: paymentSuccessAnimation, autoplay: !prefersReducedMotion, loop: false }, { width: '100%', height: '100%' })
+
+  return prefersReducedMotion
+    ? <span className="payment-success-static-mark" aria-hidden="true"><Check size={48} strokeWidth={2.4} /></span>
+    : <div className="payment-success-animation">{View}</div>
 }
 
 export default function PaymentSuccess() {
@@ -109,9 +117,7 @@ export default function PaymentSuccess() {
           </section>}
           {status === 'done' && <section className="payment-result-state payment-result-success-state">
             <div className="payment-success-animation-wrap" aria-hidden="true">
-              {prefersReducedMotion
-                ? <span className="payment-success-static-mark"><Check size={48} strokeWidth={2.4} /></span>
-                : <Lottie animationData={paymentSuccessAnimation} autoplay loop={false} className="payment-success-animation" />}
+              <PaymentSuccessAnimation prefersReducedMotion={prefersReducedMotion} />
             </div>
             <h1 ref={resultRef} tabIndex={-1}>{t.doneTitle}</h1>
             <p className="payment-result-desc">{t.doneDesc}</p>
