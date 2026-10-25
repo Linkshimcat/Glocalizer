@@ -45,7 +45,7 @@ const labels = {
 }
 
 function PaymentSuccessAnimation({ prefersReducedMotion }: { prefersReducedMotion: boolean }) {
-  const { View } = useLottie({ animationData: paymentSuccessAnimation, autoplay: !prefersReducedMotion, loop: false }, { width: '100%', height: '100%' })
+  const { View } = useLottie({ animationData: paymentSuccessAnimation, autoplay: !prefersReducedMotion, loop: true }, { width: '100%', height: '100%' })
 
   return prefersReducedMotion
     ? <span className="payment-success-static-mark" aria-hidden="true"><Check size={48} strokeWidth={2.4} /></span>
@@ -121,7 +121,6 @@ export default function PaymentSuccess() {
           <span className="payment-result-topbar-label">{t.testBadge}</span>
         </div>
         <main id="main-content" tabIndex={-1} className="payment-result-main">
-          <p className="payment-result-badge" role="note"><ShieldCheck size={16} aria-hidden="true" />{t.testBadge}</p>
           {status === 'confirming' && <section className="payment-result-state" aria-live="polite">
             <span className="payment-result-loading"><Loader2 size={30} aria-hidden="true" /></span>
             <h1 ref={resultRef} tabIndex={-1}>{t.confirming}</h1>
