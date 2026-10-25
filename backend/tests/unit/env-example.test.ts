@@ -18,4 +18,11 @@ describe('backend .env.example', () => {
       expect(key in envSchema.shape, `${key} is not defined in backend env schema`).toBe(true);
     }
   });
+
+  it('결제 기능에는 서로 짝이 맞는 test_gck_/test_gsk_ 키만 허용한다', () => {
+    const base = { ...process.env, TOSS_CLIENT_KEY: '', TOSS_SECRET_KEY: '' };
+    expect(envSchema.safeParse({ ...base, TOSS_CLIENT_KEY: 'test_gck_demo', TOSS_SECRET_KEY: 'test_gsk_demo' }).success).toBe(true);
+    expect(envSchema.safeParse({ ...base, TOSS_CLIENT_KEY: 'live_gck_demo', TOSS_SECRET_KEY: 'live_gsk_demo' }).success).toBe(false);
+    expect(envSchema.safeParse({ ...base, TOSS_CLIENT_KEY: 'test_gck_demo' }).success).toBe(false);
+  });
 });

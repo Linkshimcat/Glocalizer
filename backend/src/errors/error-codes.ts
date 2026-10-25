@@ -30,6 +30,7 @@ export const ERROR_CODES = {
   PAYMENT_ORDER_NOT_FOUND: { status: 404, message: '주문 정보를 찾을 수 없습니다.' },
   PAYMENT_AMOUNT_MISMATCH: { status: 400, message: '결제 금액이 일치하지 않습니다.' },
   PAYMENT_ALREADY_PROCESSED: { status: 409, message: '이미 처리된 주문입니다.' },
+  PAYMENT_CONFIRM_IN_PROGRESS: { status: 409, message: '결제 확인을 처리 중입니다. 잠시 후 다시 확인해주세요.' },
   PAYMENT_CONFIRM_FAILED: { status: 502, message: '결제 승인에 실패했습니다.' },
   AI_REVIEW_UNAVAILABLE: { status: 503, message: 'AI 심층 피드백 기능이 아직 설정되어 있지 않습니다.' },
   AI_REVIEW_FAILED: { status: 502, message: 'AI 심층 피드백을 생성하지 못했습니다.' },

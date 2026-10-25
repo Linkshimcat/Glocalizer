@@ -13,6 +13,11 @@ services:
         value: 3000
       - key: FRONTEND_ORIGIN
         sync: false
+      # 테스트 결제 전용. test_gck_ 키만 허용하고 라이브 키는 서버가 거부한다.
+      - key: TOSS_CLIENT_KEY
+        sync: false
+      - key: TOSS_SECRET_KEY
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY

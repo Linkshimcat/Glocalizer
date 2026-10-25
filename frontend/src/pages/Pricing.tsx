@@ -33,7 +33,7 @@ export default function Pricing() {
               <p className="pricing-description">{plan.description}</p>
               <div className={`pricing-amount ${i === 2 ? 'pricing-amount-custom' : ''}`}><strong>{plan.price}</strong><span>{plan.unit}</span></div>
               <ul>{plan.features.map(feature => <li key={feature}><span className="pricing-check"><Check size={15} strokeWidth={2.5} aria-hidden="true" /></span><span>{feature}</span></li>)}</ul>
-              <Link to={i === 1 ? '/pricing?checkout=creator' : plan.to} className={`pricing-cta ${i === 1 ? 'pricing-cta-primary' : ''}`}>{i === 1 ? { ko: '결제 화면 미리보기', en: 'Preview checkout', ja: '決済画面プレビュー', zh: '预览付款页面' }[lang] : plan.cta}<ArrowRight size={17} aria-hidden="true" /></Link>
+              <Link to={i === 1 ? '/pricing?checkout=creator' : plan.to} className={`pricing-cta ${i === 1 ? 'pricing-cta-primary' : ''}`}>{i === 1 ? { ko: '테스트 결제 시작', en: 'Start test payment', ja: 'テスト決済を開始', zh: '开始测试付款' }[lang] : plan.cta}<ArrowRight size={17} aria-hidden="true" /></Link>
             </article>
           ))}
         </section>
