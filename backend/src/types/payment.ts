@@ -1,4 +1,4 @@
-export type PaymentStatus = 'pending' | 'done' | 'failed' | 'canceled';
+export type PaymentStatus = 'pending' | 'processing' | 'done' | 'failed' | 'canceled';
 
 export interface PaymentRow {
   id: string;

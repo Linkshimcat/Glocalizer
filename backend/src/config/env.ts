@@ -72,18 +72,9 @@ export const envSchema = z.object({
   OGQ_API_KEY: z.string().min(1).optional(),
   OGQ_API_BASE_URL: z.string().url().default('https://4th-ai-ogq.competition.ogq.me'),
 
-  // TossPayments 결제 연동. 미설정 시 결제 기능만 503으로 비활성화되고 나머지는 정상 동작한다.
-  // .env.example의 test_ck_/test_sk_는 Toss가 공식 문서에 공개한 샌드박스 전용 테스트 키라
-  // 예시값으로 커밋해도 안전하다 — 실제 가맹점 계약 후에는 라이브 키로 교체해야 한다.
-  TOSS_CLIENT_KEY: z
-    .string()
-    .optional()
-    .transform((value) => (value ? value : undefined)),
-  TOSS_SECRET_KEY: z
-    .string()
-    .optional()
-    .transform((value) => (value ? value : undefined)),
-  TOSS_API_BASE_URL: z.string().url().default('https://api.tosspayments.com'),
+  // 공모전 가상 결제 전용. 라이브 키는 앱 설정 단계에서 거부한다.
+  TOSS_CLIENT_KEY: z.preprocess((value) => value || undefined, z.string().regex(/^test_gck_/).optional()),
+  TOSS_SECRET_KEY: z.preprocess((value) => value || undefined, z.string().regex(/^test_gsk_/).optional()),
 
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60_000),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
@@ -185,7 +176,8 @@ export const envSchema = z.object({
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
-}).refine(values => values.JOB_HEARTBEAT_INTERVAL_MS < values.JOB_STALE_AFTER_MS, { message: 'JOB_HEARTBEAT_INTERVAL_MS must be less than JOB_STALE_AFTER_MS', path: ['JOB_HEARTBEAT_INTERVAL_MS'] });
+}).refine(values => values.JOB_HEARTBEAT_INTERVAL_MS < values.JOB_STALE_AFTER_MS, { message: 'JOB_HEARTBEAT_INTERVAL_MS must be less than JOB_STALE_AFTER_MS', path: ['JOB_HEARTBEAT_INTERVAL_MS'] })
+  .refine(values => Boolean(values.TOSS_CLIENT_KEY) === Boolean(values.TOSS_SECRET_KEY), { message: 'Toss test client and secret keys must be configured together.', path: ['TOSS_SECRET_KEY'] });
 
 const parsed = envSchema.safeParse(process.env);
 
