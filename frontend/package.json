@@ -23,6 +23,7 @@
     "@tosspayments/tosspayments-sdk": "^2.10.0",
     "@vercel/speed-insights": "^2.0.0",
     "jszip": "^3.10.1",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^1.25.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
