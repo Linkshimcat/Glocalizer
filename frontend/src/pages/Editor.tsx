@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -52,7 +53,7 @@ import {
   zipLocalizedItems,
 } from '../lib/exportImage'
 import '../editor-fonts.css'
-import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
+import { DEFAULT_STYLE, EDITOR_PREVIEW_SIZE, hexToRgba, isTextOverflowingOriginalArea, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { createCanvasMeasurer, wrapTextToWidth } from '../lib/textWrap'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
@@ -1577,9 +1578,21 @@ export default function Editor() {
                     // 넘기 전에 줄바꿈한다. 실제 다운로드(exportImage.ts)와 같은 결과를 보여주려고
                     // 같은 wrapTextToWidth를 쓴다.
                     const fontSpec = `${overlay.style.weight} ${overlay.style.size}px '${overlay.style.font}', sans-serif`
-                    const maxLineWidth = overlay.normalizedBox ? overlay.normalizedBox.width * 340 : Infinity
-                    const overlayText = wrapTextToWidth(rawText, createCanvasMeasurer(fontSpec), maxLineWidth)
+                    const measure = createCanvasMeasurer(fontSpec)
+                    const maxLineWidth = overlay.normalizedBox ? overlay.normalizedBox.width * EDITOR_PREVIEW_SIZE : Infinity
+                    const overlayText = wrapTextToWidth(rawText, measure, maxLineWidth)
                     const transform = `translate(-50%, -50%) translate(${overlay.style.x}px, ${overlay.style.y}px) rotate(${overlay.style.rotation}deg)`
+
+                    // 캐릭터 윤곽 데이터가 없어서, 원래 캡션이 있던 자리를 안전 영역 근사치로 쓴다
+                    // (자세한 이유는 lib/style.ts의 isTextOverflowingOriginalArea 주석 참고).
+                    const overflowLines = overlayText.split('\n')
+                    const renderedWidth = Math.max(0, ...overflowLines.map(line => measure(line)))
+                    const renderedHeight = overlay.style.size * 1.15 * overflowLines.length
+                    const overflowsOriginalArea = Boolean(overlay.normalizedBox) && isTextOverflowingOriginalArea(
+                      { x: overlay.style.x, y: overlay.style.y },
+                      { width: renderedWidth, height: renderedHeight },
+                      overlay.normalizedBox as NormalizedRect,
+                    )
 
                     // 브러시 모드에서도 지금 선택돼 드래그/크기조절 박스가 떠 있는 텍스트는 계속
                     // 조작할 수 있어야 하므로, 그 텍스트만 예외로 pointer-events를 살려둔다.
@@ -1592,6 +1605,15 @@ export default function Editor() {
                         className={`absolute left-1/2 top-1/2 ${blockedByBrush ? 'pointer-events-none' : ''}`}
                         style={{ transform }}
                       >
+                        {!preview && isActive && overflowsOriginalArea && (
+                          <span
+                            role="status"
+                            title={e.hintTextOverflowsOriginalArea}
+                            className="pointer-events-none absolute -top-3 left-full z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-amber-300 bg-amber-50 text-amber-700"
+                          >
+                            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+                          </span>
+                        )}
                         {preview || !isActive || !selected ? (
                           <span
                             onPointerDown={preview ? undefined : event => {
