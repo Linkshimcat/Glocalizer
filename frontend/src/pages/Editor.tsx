@@ -2011,6 +2011,11 @@ export default function Editor() {
                         <span className="text-[11px] font-semibold text-sub">
                           {sug.tone}
                         </span>
+                        {sug.cultureRisk && (
+                          <span className="flex items-center gap-0.5 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-800">
+                            <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />{e.cultureRiskBadge}
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block text-[15px] font-bold">{sug.text}</span>
                     </span>
@@ -2021,6 +2026,59 @@ export default function Editor() {
                 )
               })}
             </div>
+            {(() => {
+              // 아직 못 고른 상태(AI 후보를 그대로 쓰는 중)와, 이미 대안을 골라 customText가
+              // 된 상태(usingCustom=true) 둘 다에서 패널을 보여줘야 한다. 후자는
+              // cultureRiskDecision에 원래 경고 사유·대안을 같이 저장해 둬서, suggestion
+              // 인덱스를 다시 안 뒤져도 패널을 그대로 재구성할 수 있게 했다.
+              const pending = !usingCustom ? activeRegion.suggestions[style.suggestion]?.cultureRisk : undefined
+              const decision = style.cultureRiskDecision
+              const resolved = usingCustom && decision && style.customText === decision.chosenText ? decision : undefined
+              const reason = pending?.reason ?? resolved?.originalReason
+              const alternatives = pending?.alternatives ?? resolved?.alternatives
+              if (!reason || !alternatives) return null
+              const chosenText = resolved?.chosenText
+              const userNote = resolved?.userNote ?? ''
+              return (
+                <div className="mt-3 rounded-panel border border-amber-200 bg-amber-50 p-3">
+                  <p className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />{e.cultureRiskTitle}</p>
+                  <p className="mt-1 text-xs text-amber-900">{reason}</p>
+                  <p className="mt-3 text-[11px] font-bold text-amber-900">{e.cultureRiskAlternatives}</p>
+                  <div className="mt-1.5 flex flex-col gap-1.5">
+                    {alternatives.map(alternative => (
+                      <button
+                        key={alternative}
+                        type="button"
+                        onClick={() => update({
+                          customText: alternative,
+                          cultureRiskDecision: { originalReason: reason, alternatives, chosenText: alternative, userNote },
+                        })}
+                        className={`rounded-control border-2 px-3 py-2 text-left text-sm font-bold transition-colors ${
+                          chosenText === alternative
+                            ? 'border-brand bg-white'
+                            : 'border-amber-200 bg-white hover:border-amber-300'
+                        }`}
+                      >
+                        {alternative}
+                      </button>
+                    ))}
+                  </div>
+                  {chosenText && (
+                    <>
+                      <label className="mt-3 block text-[11px] font-bold text-amber-900" htmlFor="culture-risk-reason">{e.cultureRiskReasonLabel}</label>
+                      <input
+                        id="culture-risk-reason"
+                        type="text"
+                        value={userNote}
+                        onChange={event => live({ cultureRiskDecision: { originalReason: reason, alternatives, chosenText, userNote: event.target.value } })}
+                        placeholder={e.cultureRiskReasonPlaceholder}
+                        className="mt-1 w-full rounded-control border-2 border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+                      />
+                    </>
+                  )}
+                </div>
+              )
+            })()}
             {activeLanguage.code === 'ja' && <JapaneseMeaning key={`${current.id}:${activeRegion.id}`} fileId={current.id} regionId={activeRegion.id} text={resolveText(style, activeRegion.suggestions)} />}
             {/* 직접 입력 */}
             <p className="mt-4 text-[11px] font-semibold text-sub">

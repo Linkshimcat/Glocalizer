@@ -14,6 +14,11 @@ export interface ApiCandidate {
   text: string
   tone: string
   best?: boolean
+  /** Culture & Policy Risk Guard(FEAT-08) — 이 후보가 확인이 필요하다고 판단된 경우만 채워짐 */
+  cultureRisk?: {
+    reason: string
+    alternatives: [string, string, string]
+  }
 }
 
 export interface LandingShowcase {

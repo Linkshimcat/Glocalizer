@@ -40,6 +40,15 @@ import {
   type ApiCaptionSuggestion,
 } from '../lib/api'
 
+/** demo.ts의 Suggestion과 같은 모양이지만, demo.ts가 이 파일에서 UploadFile을 가져오고
+ *  있어 거꾸로 가져오면 순환 참조가 돼서 여기 따로 정의한다. */
+export interface UploadSuggestion {
+  text: string
+  tone: string
+  best?: boolean
+  cultureRisk?: { reason: string; alternatives: [string, string, string] }
+}
+
 export interface UploadFile {
   id: string
   name: string
@@ -54,7 +63,7 @@ export interface UploadFile {
     korean: string
     localizations: Record<string, LocalizedAnalysis>
     /** 다국어 state 도입 전 sessionStorage 데이터 호환용 */
-    suggestions?: Array<{ text: string; tone: string; best?: boolean }>
+    suggestions?: UploadSuggestion[]
     recommendedFont?: string
     originalUrl: string | null
     cleanedUrl: string | null
@@ -84,7 +93,7 @@ export interface RegionAnalysis {
 
 export interface LocalizedAnalysis {
   status: 'translated' | 'failed'
-  suggestions: Array<{ text: string; tone: string; best?: boolean }>
+  suggestions: UploadSuggestion[]
   recommendedFont: string
   /** 번역 AI가 문구 뉘앙스로 함께 추천한 정렬·외곽선·그림자 (지금까지는 fontCategory만 쓰고 나머진 버려졌음) */
   recommendedAlignment?: 'left' | 'center' | 'right'
