@@ -2,10 +2,19 @@ import type { UploadFile } from '../store/uploads'
 
 /** OCR/번역 API 연동 전, 시연용 데모 데이터 */
 
+/** Culture & Policy Risk Guard(FEAT-08)가 이 후보에서 확인이 필요하다고 판단한 경우만 채워짐.
+ *  백엔드가 "금지·불법·차별"이라고 단정하지 않고 항상 "확인 필요" 수준으로만 말하므로,
+ *  reason도 그 톤 그대로 보여준다 — 차단 아님, 참고 안내. */
+export interface CultureRiskHint {
+  reason: string
+  alternatives: [string, string, string]
+}
+
 export interface Suggestion {
   text: string
   tone: string
   best?: boolean
+  cultureRisk?: CultureRiskHint
 }
 
 export interface DemoItem extends UploadFile {
