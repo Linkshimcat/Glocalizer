@@ -32,6 +32,8 @@ import {
   saveEditorState,
   reviseOcr,
   recordDownload as recordDownloadApi,
+  inspectQa,
+  type QaInspectResult,
   type ProjectResults,
   type ProjectStatus,
   type DetectedOcrSelection,
@@ -186,6 +188,8 @@ interface UploadState {
   suggestCaption: (fileId: string) => Promise<ApiCaptionSuggestion>
   explainJapanese: (fileId: string, regionId: string, text: string) => Promise<{ text: string; explanation: JapaneseMeaning }>
   retryTranslation: (fileId: string, regionId: string, languageCode: string) => Promise<void>
+  /** QA 재검사 요청 — 윤재의 /qa/inspect 계약이 아직 확정 전이라 응답 모양은 잠정이다 */
+  requestQaInspect: (fileId: string) => Promise<QaInspectResult>
 }
 
 const UploadContext = createContext<UploadState | null>(null)
@@ -610,6 +614,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     await regenerateTranslation(projectId, projectToken, file.assetId, regionId, languageCode)
   }, [files, projectId, projectToken])
 
+  const requestQaInspect = useCallback(async (fileId: string): Promise<QaInspectResult> => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('재검사 세션을 찾을 수 없어요.')
+    return inspectQa(projectId, projectToken, file.assetId)
+  }, [files, projectId, projectToken])
+
   const value = useMemo(
     () => ({
       cloudSaving: cloudSaving || pendingStyleSaves > 0,
@@ -648,6 +658,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       suggestCaption: suggestAssetCaption,
       explainJapanese,
       retryTranslation: retryAssetTranslation,
+      requestQaInspect,
     }),
     [
       cloudSaving,
@@ -685,6 +696,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       suggestAssetCaption,
       explainJapanese,
       retryAssetTranslation,
+      requestQaInspect,
     ],
   )
 

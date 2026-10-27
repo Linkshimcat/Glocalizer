@@ -312,6 +312,12 @@ export default function Editor() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const cleanupRequest = searchParams.get('cleanup')
+  // QA Board("/qa?projectId=")에서 특정 이미지·영역을 고치라고 보낸 딥링크.
+  // 예: /editor?projectId=..&asset=..&region=x,y,w,h&from=qa
+  const qaProjectId = searchParams.get('projectId')
+  const qaAssetId = searchParams.get('asset')
+  const qaRegionParam = searchParams.get('region')
+  const isQaDeepLink = searchParams.get('from') === 'qa' && Boolean(qaProjectId)
   const {
     files,
     selectedFileIds,
@@ -333,6 +339,8 @@ export default function Editor() {
     detectOcrRegion,
     addOcrRegion,
     retryTranslation,
+    openCloudProject,
+    requestQaInspect,
   } = useUploads()
 
   const availableLanguages = useMemo(
@@ -451,6 +459,7 @@ export default function Editor() {
   const [downloadPreviewOpen, setDownloadPreviewOpen] = useState(false)
   const [batchUndo, setBatchUndo] = useState<{ language: string; project: string | undefined; edits: FrameTextEdit[] } | null>(null)
   const [autoFitConfirmOpen, setAutoFitConfirmOpen] = useState(false)
+  const [reinspecting, setReinspecting] = useState(false)
   const [batchAutoFitUndo, setBatchAutoFitUndo] = useState<{ language: string; project: string | undefined; edits: Array<{ fileId: string; regionId: string | null; style: Style; previousStyle: Style }> } | null>(null)
   const cleanupToolsRef = useRef<HTMLElement>(null)
   const [ocrDraft, setOcrDraft] = useState('')
@@ -543,6 +552,22 @@ export default function Editor() {
     }
     setBatchAutoFitUndo(null)
     toast(e.autoFitUndone, 'success')
+  }
+
+  const requestReinspect = async () => {
+    if (reinspecting) return
+    setReinspecting(true)
+    saveActiveStyle()
+    try {
+      const result = await requestQaInspect(current.id)
+      toast(result.passed ? e.qaPassed : e.qaStillFailing, result.passed ? 'success' : 'warning')
+      if (qaProjectId) navigate(`/qa?projectId=${encodeURIComponent(qaProjectId)}`)
+    } catch {
+      // 실패해도 편집 내용(style)은 이미 저장 큐에 들어가 있어 그대로 남는다 — 다시 시도만 안내.
+      toast(e.qaInspectFailed, 'warning')
+    } finally {
+      setReinspecting(false)
+    }
   }
 
   const openCleanupTools = () => {
@@ -642,6 +667,46 @@ export default function Editor() {
     // Run once per requested file; subsequent edits must stay in the user's selected frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cleanupRequest, isLoading, items])
+
+  // QA 딥링크 1단계 — 지금 세션에 로드된 프로젝트가 아니면 통째로 불러온다(ProjectLibrary의
+  // "계속 작업하기"와 같은 경로, openCloudProject). 같은 프로젝트면 다시 불러오지 않는다.
+  const [loadingQaProject, setLoadingQaProject] = useState(false)
+  const consumedQaProjectLoad = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isQaDeepLink || !qaProjectId || consumedQaProjectLoad.current === qaProjectId) return
+    if (projectStatus?.projectId === qaProjectId) return
+    consumedQaProjectLoad.current = qaProjectId
+    setLoadingQaProject(true)
+    openCloudProject(qaProjectId)
+      .then(route => { if (route !== '/editor') navigate(route, { replace: true }) })
+      .catch(() => toast(e.qaLoadFailed))
+      .finally(() => setLoadingQaProject(false))
+  }, [isQaDeepLink, qaProjectId, projectStatus?.projectId, openCloudProject, navigate, toast, e.qaLoadFailed])
+
+  // QA 딥링크 2단계 — 프로젝트가 (이미 있었든 방금 불러왔든) 준비되면 해당 이미지와, region
+  // 좌표가 있으면 가장 가까운 영역까지 선택한다. 부동소수점 반올림을 감안해 근접 비교한다.
+  const consumedQaSelection = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isQaDeepLink || !qaAssetId || loadingQaProject || isLoading) return
+    const selectionKey = `${qaProjectId}:${qaAssetId}:${qaRegionParam}`
+    if (consumedQaSelection.current === selectionKey) return
+    const idx = items.findIndex(item => item.assetId === qaAssetId)
+    if (idx < 0) return
+    consumedQaSelection.current = selectionKey
+    selectItem(idx)
+    const coords = qaRegionParam?.split(',').map(Number)
+    if (coords?.length === 4 && coords.every(Number.isFinite)) {
+      const [x, y, width, height] = coords
+      const target = items[idx].textRegions?.find(region => region.normalizedBox
+        && Math.abs(region.normalizedBox.x - x) < 0.01
+        && Math.abs(region.normalizedBox.y - y) < 0.01
+        && Math.abs(region.normalizedBox.width - width) < 0.01
+        && Math.abs(region.normalizedBox.height - height) < 0.01)
+      if (target) setSelectedRegionId(target.id)
+    }
+    // 요청 하나당 한 번만 — 이후 사용자가 다른 영역을 고르면 그대로 둔다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isQaDeepLink, qaAssetId, qaRegionParam, qaProjectId, loadingQaProject, isLoading, items])
 
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
@@ -1460,6 +1525,15 @@ export default function Editor() {
         {/* 원본 / 변환 미리보기 캔버스 */}
         <section className="studio-editor-canvas relative min-w-0 flex flex-col items-center justify-center gap-4 overflow-hidden bg-surface pb-24 pt-5 lg:gap-5 lg:pb-8 lg:pt-5">
           <div className="w-full max-w-[800px] px-4">
+            {isQaDeepLink && (
+              <div role="status" className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+                <span className="min-w-0 flex-1 font-bold text-blue-900">{e.qaReturnBanner}</span>
+                <button type="button" disabled={reinspecting} onClick={() => void requestReinspect()} className="min-h-11 rounded-control bg-white px-3 font-bold text-blue-900 disabled:opacity-50">
+                  {reinspecting ? e.qaInspecting : e.qaReinspect}
+                </button>
+                {qaProjectId && <button type="button" onClick={() => navigate(`/qa?projectId=${encodeURIComponent(qaProjectId)}`)} className="min-h-11 rounded-control border border-blue-200 bg-white px-3 font-bold text-blue-900">{e.qaBackToResults}</button>}
+              </div>
+            )}
             {(current.analysis?.needsManualCleanup || activeRegion.needsManualCleanup) && <div role="status" className="mb-3 flex flex-wrap items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
               <details className="min-w-0 flex-1 text-amber-900"><summary className="min-h-11 cursor-pointer py-2 font-bold">{w.cleanup}</summary><p className="pb-2">{w.cleanupHint}</p></details>
               <button type="button" className="min-h-11 rounded-control bg-white px-3 font-bold text-amber-900" onClick={openCleanupTools}>{w.cleanupAction}</button>
