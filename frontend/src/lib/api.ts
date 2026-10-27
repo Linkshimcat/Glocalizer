@@ -206,6 +206,19 @@ export async function regenerateTranslation(projectId: string, token: string, as
   }, token)
 }
 
+export interface QaInspectResult {
+  passed: boolean
+  summary?: string
+  failures?: Array<{ regionId: string; code: string; message: string }>
+}
+
+/** 윤재의 QA 재검사 엔드포인트 — 정확한 요청/응답 모양은 아직 합의 전이라 잠정이다.
+ *  다른 project-scoped API처럼 /projects/:id/... 경로로 추정해 뒀다(실제 경로·응답
+ *  모양이 다르면 이 함수와 QaInspectResult 타입만 고치면 된다). */
+export async function inspectQa(projectId: string, token: string, assetId?: string): Promise<QaInspectResult> {
+  return request(`/projects/${projectId}/qa/inspect`, { method: 'POST', body: JSON.stringify({ assetId }) }, token)
+}
+
 export async function recordDownload(projectId: string, token: string, kind: 'single' | 'zip', languageCode?: string): Promise<void> {
   await request(`/projects/${projectId}/downloads`, { method: 'POST', body: JSON.stringify({ kind, languageCode }) }, token)
 }
