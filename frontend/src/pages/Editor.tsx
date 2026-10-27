@@ -43,6 +43,7 @@ import {
   clampWeight,
   fontWeights,
   toDemoItems,
+  type DemoItem,
 } from '../data/demo'
 import {
   downloadBlob,
@@ -51,6 +52,7 @@ import {
   renderItemToPng,
   textOverlaysForItem,
   zipLocalizedItems,
+  type TextOverlay,
 } from '../lib/exportImage'
 import '../editor-fonts.css'
 import { DEFAULT_STYLE, EDITOR_PREVIEW_SIZE, hexToRgba, isTextOverflowingOriginalArea, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
@@ -103,6 +105,44 @@ function initialStyleFor(
   }
 }
 
+/** "자동 처리 결과" 비교 탭에 쓸, 저장된 사용자 수정 없이 AI 추천값만으로 계산한 pristine
+ *  스타일. textOverlaysForItem과 같은 구조로 region을 순회하지만 savedStyles를 전혀 보지
+ *  않는다 — 자동저장이 거의 즉시 savedStyles를 채우기 때문에, 그걸 보면 "자동"과 "수정"이
+ *  항상 같아 보이게 된다. */
+function pristineOverlaysForItem(item: DemoItem): TextOverlay[] {
+  const primaryRegionId = item.analysis?.regionId ?? null
+  const regions = item.textRegions?.length
+    ? item.textRegions
+    : [{
+        id: primaryRegionId ?? item.id,
+        suggestions: item.suggestions,
+        normalizedBox: item.analysis?.normalizedBox ?? null,
+        textColor: item.analysis?.textColor ?? null,
+        recommendedFont: item.recommendedFont,
+        recommendedAlignment: item.recommendedAlignment,
+        strokeRecommended: item.strokeRecommended,
+        shadowRecommended: item.shadowRecommended,
+      }]
+  return regions.map(region => ({
+    regionId: region.id,
+    suggestions: region.suggestions,
+    normalizedBox: region.normalizedBox,
+    style: region.normalizedBox
+      ? initialStyleFor(region.normalizedBox, region.textColor, region.suggestions, region.recommendedFont, region.recommendedAlignment, region.strokeRecommended, region.shadowRecommended)
+      : DEFAULT_STYLE,
+  }))
+}
+
+/** 자동 처리 결과 대비 사용자가 실제로 손댄 영역인지 — 글자·크기·위치·폰트만 비교한다
+ *  (그림자·외곽선 같은 꾸밈 속성은 자동 추천이 적용된 것도 "변경"으로 보일 수 있어 뺐다). */
+function isRegionChanged(pristine: Style, current: Style): boolean {
+  return pristine.customText !== current.customText
+    || Math.round(pristine.size) !== Math.round(current.size)
+    || Math.round(pristine.x) !== Math.round(current.x)
+    || Math.round(pristine.y) !== Math.round(current.y)
+    || pristine.font !== current.font
+}
+
 // 단일 굵기 폰트에도 사용자가 굵기를 커스텀할 수 있게 하는 표준 굵기(미지원 굵기는 브라우저 합성 볼드).
 const CUSTOM_WEIGHTS = [
   { label: 'Regular', value: 400 },
@@ -149,7 +189,7 @@ function paintBrushPreview(previewCtx: CanvasRenderingContext2D, maskSource: Can
 }
 
 type MobileTab = '번역' | '폰트' | '스타일'
-type MobileCanvasTab = '원본' | '미리보기'
+type MobileCanvasTab = '원본' | '자동' | '미리보기'
 type SelectionMode = 'reselect' | 'add'
 
 interface SelectionDraft {
@@ -1245,6 +1285,21 @@ export default function Editor() {
 
   const canvasOverlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
 
+  // "자동" 비교 탭 — AI 추천 그대로의 pristine 렌더와, 그 대비 실제로 바뀐 영역 집합.
+  const pristineOverlays = pristineOverlaysForItem(current)
+  const pristineBaseStyle = pristineOverlays.find(overlay => overlay.regionId === current.analysis?.regionId)?.style ?? pristineOverlays[0]?.style ?? DEFAULT_STYLE
+  const changedRegionIds = new Set(
+    textRegions
+      .filter(region => {
+        const pristine = pristineOverlays.find(overlay => overlay.regionId === region.id)?.style
+        if (!pristine || !region.normalizedBox) return false
+        const key = styleKeyForRegion(current.id, region.id, current.analysis?.regionId)
+        const liveStyle = key === activeStyleKey ? style : savedStyles[key]?.[langCode]
+        return liveStyle ? isRegionChanged(pristine, liveStyle) : false
+      })
+      .map(region => region.id),
+  )
+
   const cornerHandles = [
     '-left-1 -top-1 cursor-nwse-resize',
     '-right-1 -top-1 cursor-nesw-resize',
@@ -1568,8 +1623,8 @@ export default function Editor() {
               )}
             </div>
           </div>
-          <div className="studio-tool-tabs grid w-full max-w-[480px] grid-cols-2 gap-2 px-2">
-            {(['원본', '미리보기'] as const).map(tab => (
+          <div className="studio-tool-tabs grid w-full max-w-[480px] grid-cols-3 gap-2 px-2">
+            {(['원본', '자동', '미리보기'] as const).map(tab => (
               <button
                 key={tab}
                 aria-pressed={mobileCanvasTab === tab}
@@ -1580,7 +1635,7 @@ export default function Editor() {
                     : 'bg-white text-sub'
                 }`}
               >
-                {tab === '원본' ? e.canvasOriginal : e.canvasPreview}
+                {tab === '원본' ? e.canvasOriginal : tab === '자동' ? e.canvasAuto : e.canvasPreview}
               </button>
             ))}
           </div>
@@ -1661,6 +1716,37 @@ export default function Editor() {
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
                 {selectionMode ? e.selectionHint : activeRegion.korean ? e.foundText : e.notFoundText}
+              </p>
+            </article>
+
+            {/* 가운데: AI 추천 그대로의 자동 처리 결과 — 읽기 전용, 수정 결과와의 비교 대상 */}
+            <article className={`${mobileCanvasTab === '자동' ? 'block' : 'hidden'}`}>
+              <div className="mb-2 flex h-8 items-center justify-center"><p className="text-sm font-extrabold text-ink">{e.canvasAuto}</p></div>
+              <div className="studio-canvas-stage checkerboard relative">
+                <div className="studio-logical-canvas relative flex shrink-0 items-center justify-center" style={canvasZoomStyle}>
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
+                    <PngPreview item={current} overlays={pristineOverlays} baseStyle={pristineBaseStyle} preset={outputPreset} />
+                  </div>
+                  {textRegions.map(region => region.normalizedBox && (
+                    <span
+                      key={region.id}
+                      className={`pointer-events-none absolute border-2 ${
+                        changedRegionIds.has(region.id)
+                          ? 'border-amber-500 bg-amber-100/20'
+                          : 'border-transparent'
+                      }`}
+                      style={{
+                        left: `${region.normalizedBox.x * 100}%`,
+                        top: `${region.normalizedBox.y * 100}%`,
+                        width: `${region.normalizedBox.width * 100}%`,
+                        height: `${region.normalizedBox.height * 100}%`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="mt-3 text-center text-xs font-semibold text-sub">
+                {changedRegionIds.size > 0 ? e.canvasAutoChangedHint.replace('{n}', String(changedRegionIds.size)) : e.canvasAutoUnchangedHint}
               </p>
             </article>
 
@@ -1888,6 +1974,7 @@ export default function Editor() {
               <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || activeRegion.korean, detectedBox, activeRegion.id).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || activeRegion.korean).trim()} className="mt-2 rounded-control bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
             </div>
             <PanelTitle>{e.aiSuggest}</PanelTitle>
+            <p className="mt-1 text-xs text-sub">{e.aiSuggestDisclosure}</p>
             {activeRegion.translationStatus === 'failed' && (
               <div className="mt-3 rounded-panel border border-amber-200 bg-amber-50 p-3">
                 <p className="text-xs font-semibold text-amber-800">{e.translationMissing}</p>
