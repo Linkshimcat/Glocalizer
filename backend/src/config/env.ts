@@ -125,6 +125,10 @@ export const envSchema = z.object({
   AI_REVIEW_MODEL: z.string().default('gpt-5.6-luna'),
   AI_REVIEW_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   AI_REVIEW_MAX_PER_HOUR: z.coerce.number().int().positive().default(10),
+  // Culture & Policy Risk Guard(FEAT-08) — 번역 후보의 문화권별 민감성 검토 전용. 이미지가
+  // 없는 텍스트 전용 검사라 deep-review보다 타임아웃을 짧게 둔다.
+  CULTURE_RISK_MODEL: z.string().default('gpt-5.6-luna'),
+  CULTURE_RISK_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
   GEMINI_API_KEY: z.string().min(1).optional(),
   GEMINI_VISION_MODEL: z.string().default('gemini-2.5-flash'),
   VISION_PROVIDER: z.enum(['groq', 'gemini']).default('groq'),
