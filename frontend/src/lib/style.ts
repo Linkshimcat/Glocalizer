@@ -1,4 +1,5 @@
 import { COLORS, FONT_NAMES } from '../data/demo'
+import type { LayoutMetric } from './autoFit'
 
 export interface NormalizedRect {
   x: number
@@ -61,6 +62,19 @@ export interface Style {
   imageScale: number
   /** 원문을 수동으로 가릴 때 쓰는 원본 이미지 기준(0~1) 사각형 */
   manualCleanup?: ManualCleanup
+  /** autoFit.ts가 계산한 넘침 측정값. QA(/qa/inspect)가 재검사 판정에 쓸 수 있도록 editor
+   *  state 저장 시 함께 보낸다(윤재와 합의한 layoutMetrics 포맷, 10/27). */
+  layoutMetrics?: LayoutMetric
+  /** Culture & Policy Risk Guard(FEAT-08)가 확인 필요로 표시했을 때 사용자가 고른 대안과
+   *  이유. AI의 원래 경고 사유·대안 목록을 그대로 같이 저장해, customText가 대안 중 하나로
+   *  바뀐 뒤에도(= usingCustom=true) 패널을 다시 보여줄 수 있게 한다. 위험이 없던 캡션에는
+   *  안 채워진다. */
+  cultureRiskDecision?: {
+    originalReason: string
+    alternatives: [string, string, string]
+    chosenText: string
+    userNote: string
+  }
 }
 
 /** 대표 영역은 기존 파일 키를 유지하고, 추가 영역만 합성 키를 써 세션 데이터와 호환한다. */

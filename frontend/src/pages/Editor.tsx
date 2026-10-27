@@ -43,6 +43,7 @@ import {
   clampWeight,
   fontWeights,
   toDemoItems,
+  type DemoItem,
 } from '../data/demo'
 import {
   downloadBlob,
@@ -51,10 +52,12 @@ import {
   renderItemToPng,
   textOverlaysForItem,
   zipLocalizedItems,
+  type TextOverlay,
 } from '../lib/exportImage'
 import '../editor-fonts.css'
 import { DEFAULT_STYLE, EDITOR_PREVIEW_SIZE, hexToRgba, isTextOverflowingOriginalArea, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { createCanvasMeasurer, wrapTextToWidth } from '../lib/textWrap'
+import { autoFitText, layoutMetricFor } from '../lib/autoFit'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { cloudCopy } from '../i18n/cloud'
@@ -68,6 +71,16 @@ const preloadResultPage = () => import('./Result').then(() => true, () => false)
 /** 자동 크기 맞춤에 쓸 대표(best) 번역 문구 */
 function bestSuggestionText(suggestions?: Array<{ text: string; best?: boolean }>): string {
   return suggestions?.find(s => s.best)?.text ?? suggestions?.[0]?.text ?? ''
+}
+
+/** 박스 안에 들어올 때까지 글자 크기를 줄이고, 넘침 측정값(layoutMetrics)을 같이 계산한다.
+ *  size/layoutMetrics만 바꾸는 패치를 돌려준다 — 나머지 스타일(색상·굵기 등)은 그대로 둔다. */
+function computeAutoFit(style: Style, text: string, normalizedBox: NormalizedRect): { patch: Partial<Style>; fits: boolean } {
+  const box = { widthPx: normalizedBox.width * EDITOR_PREVIEW_SIZE, heightPx: normalizedBox.height * EDITOR_PREVIEW_SIZE }
+  const result = autoFitText(text, box, {
+    fontSpecFor: size => `${style.weight} ${size}px '${style.font}', sans-serif`,
+  })
+  return { patch: { size: result.fontSizePx, layoutMetrics: layoutMetricFor(result, box) }, fits: result.fits }
 }
 
 /** 감지 box로 초기 스타일을 만들되, AI 추천 폰트·정렬·외곽선·그림자를 자동 적용
@@ -90,6 +103,44 @@ function initialStyleFor(
     ...(strokeRecommended ? { strokeOn: true } : {}),
     ...(shadowRecommended ? { shadowOn: true } : {}),
   }
+}
+
+/** "자동 처리 결과" 비교 탭에 쓸, 저장된 사용자 수정 없이 AI 추천값만으로 계산한 pristine
+ *  스타일. textOverlaysForItem과 같은 구조로 region을 순회하지만 savedStyles를 전혀 보지
+ *  않는다 — 자동저장이 거의 즉시 savedStyles를 채우기 때문에, 그걸 보면 "자동"과 "수정"이
+ *  항상 같아 보이게 된다. */
+function pristineOverlaysForItem(item: DemoItem): TextOverlay[] {
+  const primaryRegionId = item.analysis?.regionId ?? null
+  const regions = item.textRegions?.length
+    ? item.textRegions
+    : [{
+        id: primaryRegionId ?? item.id,
+        suggestions: item.suggestions,
+        normalizedBox: item.analysis?.normalizedBox ?? null,
+        textColor: item.analysis?.textColor ?? null,
+        recommendedFont: item.recommendedFont,
+        recommendedAlignment: item.recommendedAlignment,
+        strokeRecommended: item.strokeRecommended,
+        shadowRecommended: item.shadowRecommended,
+      }]
+  return regions.map(region => ({
+    regionId: region.id,
+    suggestions: region.suggestions,
+    normalizedBox: region.normalizedBox,
+    style: region.normalizedBox
+      ? initialStyleFor(region.normalizedBox, region.textColor, region.suggestions, region.recommendedFont, region.recommendedAlignment, region.strokeRecommended, region.shadowRecommended)
+      : DEFAULT_STYLE,
+  }))
+}
+
+/** 자동 처리 결과 대비 사용자가 실제로 손댄 영역인지 — 글자·크기·위치·폰트만 비교한다
+ *  (그림자·외곽선 같은 꾸밈 속성은 자동 추천이 적용된 것도 "변경"으로 보일 수 있어 뺐다). */
+function isRegionChanged(pristine: Style, current: Style): boolean {
+  return pristine.customText !== current.customText
+    || Math.round(pristine.size) !== Math.round(current.size)
+    || Math.round(pristine.x) !== Math.round(current.x)
+    || Math.round(pristine.y) !== Math.round(current.y)
+    || pristine.font !== current.font
 }
 
 // 단일 굵기 폰트에도 사용자가 굵기를 커스텀할 수 있게 하는 표준 굵기(미지원 굵기는 브라우저 합성 볼드).
@@ -138,7 +189,7 @@ function paintBrushPreview(previewCtx: CanvasRenderingContext2D, maskSource: Can
 }
 
 type MobileTab = '번역' | '폰트' | '스타일'
-type MobileCanvasTab = '원본' | '미리보기'
+type MobileCanvasTab = '원본' | '자동' | '미리보기'
 type SelectionMode = 'reselect' | 'add'
 
 interface SelectionDraft {
@@ -301,6 +352,12 @@ export default function Editor() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const cleanupRequest = searchParams.get('cleanup')
+  // QA Board("/qa?projectId=")에서 특정 이미지·영역을 고치라고 보낸 딥링크.
+  // 예: /editor?projectId=..&asset=..&region=x,y,w,h&from=qa
+  const qaProjectId = searchParams.get('projectId')
+  const qaAssetId = searchParams.get('asset')
+  const qaRegionParam = searchParams.get('region')
+  const isQaDeepLink = searchParams.get('from') === 'qa' && Boolean(qaProjectId)
   const {
     files,
     selectedFileIds,
@@ -322,6 +379,8 @@ export default function Editor() {
     detectOcrRegion,
     addOcrRegion,
     retryTranslation,
+    openCloudProject,
+    requestQaInspect,
   } = useUploads()
 
   const availableLanguages = useMemo(
@@ -439,6 +498,9 @@ export default function Editor() {
   // 내보내기 규격은 프로젝트 전체(모든 이미지·언어)에 공통으로 적용한다.
   const [downloadPreviewOpen, setDownloadPreviewOpen] = useState(false)
   const [batchUndo, setBatchUndo] = useState<{ language: string; project: string | undefined; edits: FrameTextEdit[] } | null>(null)
+  const [autoFitConfirmOpen, setAutoFitConfirmOpen] = useState(false)
+  const [reinspecting, setReinspecting] = useState(false)
+  const [batchAutoFitUndo, setBatchAutoFitUndo] = useState<{ language: string; project: string | undefined; edits: Array<{ fileId: string; regionId: string | null; style: Style; previousStyle: Style }> } | null>(null)
   const cleanupToolsRef = useRef<HTMLElement>(null)
   const [ocrDraft, setOcrDraft] = useState('')
   const [selectionMode, setSelectionMode] = useState<SelectionMode | null>(null)
@@ -483,6 +545,71 @@ export default function Editor() {
     setBatchUndo(null)
     toast(w.undone, 'success')
   }
+
+  const applyAutoFit = () => {
+    if (!activeRegion.normalizedBox) return
+    const text = resolveText(style, activeRegion.suggestions)
+    if (!text.trim()) return
+    const { patch, fits } = computeAutoFit(style, text, activeRegion.normalizedBox)
+    update(patch)
+    toast(fits ? e.autoFitDone : e.autoFitStillOverflows, fits ? 'success' : 'warning')
+  }
+
+  const autoFitFrameEdits = (): Array<{ fileId: string; regionId: string | null; style: Style; previousStyle: Style }> => {
+    return items
+      .filter(item => !item.analysis || item.analysis.regionId || item.textRegions?.length)
+      .flatMap(item => {
+        const overlays = textOverlaysForItem(item, activeLanguage.code, savedStyles)
+        const primary = overlays.find(overlay => overlay.regionId === item.analysis?.regionId) ?? overlays[0]
+        if (!primary?.normalizedBox) return []
+        const key = styleKeyForRegion(item.id, primary.regionId, item.analysis?.regionId)
+        const currentStyle = item.id === current.id && key === activeStyleKey ? style : primary.style
+        const text = resolveText(currentStyle, primary.suggestions)
+        if (!text.trim()) return []
+        const { patch } = computeAutoFit(currentStyle, text, primary.normalizedBox)
+        return [{ fileId: item.id, regionId: primary.regionId, style: { ...currentStyle, ...patch }, previousStyle: currentStyle }]
+      })
+  }
+
+  const applyAutoFitToFrames = () => {
+    const edits = autoFitFrameEdits()
+    setAutoFitConfirmOpen(false)
+    if (!edits.length) return
+    for (const edit of edits) saveStyle(edit.fileId, activeLanguage.code, edit.style, edit.regionId)
+    const local = edits.find(edit => edit.fileId === current.id && styleKeyForRegion(current.id, edit.regionId, current.analysis?.regionId) === activeStyleKey)
+    if (local) { setStyle(local.style); setPast([]); setFuture([]) }
+    setBatchAutoFitUndo({ language: activeLanguage.code, project: projectStatus?.projectId, edits })
+    toast(e.autoFitApplied.replace('{n}', String(edits.length)), 'success')
+  }
+
+  const undoAutoFitFrames = () => {
+    if (!batchAutoFitUndo || batchAutoFitUndo.project !== projectStatus?.projectId) return
+    for (const edit of batchAutoFitUndo.edits) {
+      saveStyle(edit.fileId, batchAutoFitUndo.language, edit.previousStyle, edit.regionId)
+      if (edit.fileId === current.id && batchAutoFitUndo.language === activeLanguage.code && styleKeyForRegion(current.id, edit.regionId, current.analysis?.regionId) === activeStyleKey) {
+        setStyle(edit.previousStyle); setPast([]); setFuture([])
+      }
+    }
+    setBatchAutoFitUndo(null)
+    toast(e.autoFitUndone, 'success')
+  }
+
+  const requestReinspect = async () => {
+    if (reinspecting) return
+    setReinspecting(true)
+    saveActiveStyle()
+    try {
+      const result = await requestQaInspect(current.id)
+      toast(result.passed ? e.qaPassed : e.qaStillFailing, result.passed ? 'success' : 'warning')
+      if (qaProjectId) navigate(`/qa?projectId=${encodeURIComponent(qaProjectId)}`)
+    } catch {
+      // 실패해도 편집 내용(style)은 이미 저장 큐에 들어가 있어 그대로 남는다 — 다시 시도만 안내.
+      toast(e.qaInspectFailed, 'warning')
+    } finally {
+      setReinspecting(false)
+    }
+  }
+
   const openCleanupTools = () => {
     setMobileTab('스타일')
     setMobileToolsCollapsed(false)
@@ -580,6 +707,46 @@ export default function Editor() {
     // Run once per requested file; subsequent edits must stay in the user's selected frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cleanupRequest, isLoading, items])
+
+  // QA 딥링크 1단계 — 지금 세션에 로드된 프로젝트가 아니면 통째로 불러온다(ProjectLibrary의
+  // "계속 작업하기"와 같은 경로, openCloudProject). 같은 프로젝트면 다시 불러오지 않는다.
+  const [loadingQaProject, setLoadingQaProject] = useState(false)
+  const consumedQaProjectLoad = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isQaDeepLink || !qaProjectId || consumedQaProjectLoad.current === qaProjectId) return
+    if (projectStatus?.projectId === qaProjectId) return
+    consumedQaProjectLoad.current = qaProjectId
+    setLoadingQaProject(true)
+    openCloudProject(qaProjectId)
+      .then(route => { if (route !== '/editor') navigate(route, { replace: true }) })
+      .catch(() => toast(e.qaLoadFailed))
+      .finally(() => setLoadingQaProject(false))
+  }, [isQaDeepLink, qaProjectId, projectStatus?.projectId, openCloudProject, navigate, toast, e.qaLoadFailed])
+
+  // QA 딥링크 2단계 — 프로젝트가 (이미 있었든 방금 불러왔든) 준비되면 해당 이미지와, region
+  // 좌표가 있으면 가장 가까운 영역까지 선택한다. 부동소수점 반올림을 감안해 근접 비교한다.
+  const consumedQaSelection = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isQaDeepLink || !qaAssetId || loadingQaProject || isLoading) return
+    const selectionKey = `${qaProjectId}:${qaAssetId}:${qaRegionParam}`
+    if (consumedQaSelection.current === selectionKey) return
+    const idx = items.findIndex(item => item.assetId === qaAssetId)
+    if (idx < 0) return
+    consumedQaSelection.current = selectionKey
+    selectItem(idx)
+    const coords = qaRegionParam?.split(',').map(Number)
+    if (coords?.length === 4 && coords.every(Number.isFinite)) {
+      const [x, y, width, height] = coords
+      const target = items[idx].textRegions?.find(region => region.normalizedBox
+        && Math.abs(region.normalizedBox.x - x) < 0.01
+        && Math.abs(region.normalizedBox.y - y) < 0.01
+        && Math.abs(region.normalizedBox.width - width) < 0.01
+        && Math.abs(region.normalizedBox.height - height) < 0.01)
+      if (target) setSelectedRegionId(target.id)
+    }
+    // 요청 하나당 한 번만 — 이후 사용자가 다른 영역을 고르면 그대로 둔다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isQaDeepLink, qaAssetId, qaRegionParam, qaProjectId, loadingQaProject, isLoading, items])
 
   // 다음/이전은 이동만 — 완료 표시는 실제 다운로드했을 때만 (아래 markCurrentDone)
   const goNext = () => {
@@ -1118,6 +1285,21 @@ export default function Editor() {
 
   const canvasOverlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
 
+  // "자동" 비교 탭 — AI 추천 그대로의 pristine 렌더와, 그 대비 실제로 바뀐 영역 집합.
+  const pristineOverlays = pristineOverlaysForItem(current)
+  const pristineBaseStyle = pristineOverlays.find(overlay => overlay.regionId === current.analysis?.regionId)?.style ?? pristineOverlays[0]?.style ?? DEFAULT_STYLE
+  const changedRegionIds = new Set(
+    textRegions
+      .filter(region => {
+        const pristine = pristineOverlays.find(overlay => overlay.regionId === region.id)?.style
+        if (!pristine || !region.normalizedBox) return false
+        const key = styleKeyForRegion(current.id, region.id, current.analysis?.regionId)
+        const liveStyle = key === activeStyleKey ? style : savedStyles[key]?.[langCode]
+        return liveStyle ? isRegionChanged(pristine, liveStyle) : false
+      })
+      .map(region => region.id),
+  )
+
   const cornerHandles = [
     '-left-1 -top-1 cursor-nwse-resize',
     '-right-1 -top-1 cursor-nesw-resize',
@@ -1398,6 +1580,15 @@ export default function Editor() {
         {/* 원본 / 변환 미리보기 캔버스 */}
         <section className="studio-editor-canvas relative min-w-0 flex flex-col items-center justify-center gap-4 overflow-hidden bg-surface pb-24 pt-5 lg:gap-5 lg:pb-8 lg:pt-5">
           <div className="w-full max-w-[800px] px-4">
+            {isQaDeepLink && (
+              <div role="status" className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+                <span className="min-w-0 flex-1 font-bold text-blue-900">{e.qaReturnBanner}</span>
+                <button type="button" disabled={reinspecting} onClick={() => void requestReinspect()} className="min-h-11 rounded-control bg-white px-3 font-bold text-blue-900 disabled:opacity-50">
+                  {reinspecting ? e.qaInspecting : e.qaReinspect}
+                </button>
+                {qaProjectId && <button type="button" onClick={() => navigate(`/qa?projectId=${encodeURIComponent(qaProjectId)}`)} className="min-h-11 rounded-control border border-blue-200 bg-white px-3 font-bold text-blue-900">{e.qaBackToResults}</button>}
+              </div>
+            )}
             {(current.analysis?.needsManualCleanup || activeRegion.needsManualCleanup) && <div role="status" className="mb-3 flex flex-wrap items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
               <details className="min-w-0 flex-1 text-amber-900"><summary className="min-h-11 cursor-pointer py-2 font-bold">{w.cleanup}</summary><p className="pb-2">{w.cleanupHint}</p></details>
               <button type="button" className="min-h-11 rounded-control bg-white px-3 font-bold text-amber-900" onClick={openCleanupTools}>{w.cleanupAction}</button>
@@ -1432,8 +1623,8 @@ export default function Editor() {
               )}
             </div>
           </div>
-          <div className="studio-tool-tabs grid w-full max-w-[480px] grid-cols-2 gap-2 px-2">
-            {(['원본', '미리보기'] as const).map(tab => (
+          <div className="studio-tool-tabs grid w-full max-w-[480px] grid-cols-3 gap-2 px-2">
+            {(['원본', '자동', '미리보기'] as const).map(tab => (
               <button
                 key={tab}
                 aria-pressed={mobileCanvasTab === tab}
@@ -1444,7 +1635,7 @@ export default function Editor() {
                     : 'bg-white text-sub'
                 }`}
               >
-                {tab === '원본' ? e.canvasOriginal : e.canvasPreview}
+                {tab === '원본' ? e.canvasOriginal : tab === '자동' ? e.canvasAuto : e.canvasPreview}
               </button>
             ))}
           </div>
@@ -1525,6 +1716,37 @@ export default function Editor() {
               </div>
               <p className="mt-3 text-center text-xs font-semibold text-sub">
                 {selectionMode ? e.selectionHint : activeRegion.korean ? e.foundText : e.notFoundText}
+              </p>
+            </article>
+
+            {/* 가운데: AI 추천 그대로의 자동 처리 결과 — 읽기 전용, 수정 결과와의 비교 대상 */}
+            <article className={`${mobileCanvasTab === '자동' ? 'block' : 'hidden'}`}>
+              <div className="mb-2 flex h-8 items-center justify-center"><p className="text-sm font-extrabold text-ink">{e.canvasAuto}</p></div>
+              <div className="studio-canvas-stage checkerboard relative">
+                <div className="studio-logical-canvas relative flex shrink-0 items-center justify-center" style={canvasZoomStyle}>
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
+                    <PngPreview item={current} overlays={pristineOverlays} baseStyle={pristineBaseStyle} preset={outputPreset} />
+                  </div>
+                  {textRegions.map(region => region.normalizedBox && (
+                    <span
+                      key={region.id}
+                      className={`pointer-events-none absolute border-2 ${
+                        changedRegionIds.has(region.id)
+                          ? 'border-amber-500 bg-amber-100/20'
+                          : 'border-transparent'
+                      }`}
+                      style={{
+                        left: `${region.normalizedBox.x * 100}%`,
+                        top: `${region.normalizedBox.y * 100}%`,
+                        width: `${region.normalizedBox.width * 100}%`,
+                        height: `${region.normalizedBox.height * 100}%`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="mt-3 text-center text-xs font-semibold text-sub">
+                {changedRegionIds.size > 0 ? e.canvasAutoChangedHint.replace('{n}', String(changedRegionIds.size)) : e.canvasAutoUnchangedHint}
               </p>
             </article>
 
@@ -1752,6 +1974,7 @@ export default function Editor() {
               <button onClick={() => { if (detectedBox) void reviseOcr(current.id, ocrDraft || activeRegion.korean, detectedBox, activeRegion.id).then(() => { setOcrDraft(''); refreshProject() }) }} disabled={!detectedBox || !(ocrDraft || activeRegion.korean).trim()} className="mt-2 rounded-control bg-brand px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40">{e.ocrResave}</button>
             </div>
             <PanelTitle>{e.aiSuggest}</PanelTitle>
+            <p className="mt-1 text-xs text-sub">{e.aiSuggestDisclosure}</p>
             {activeRegion.translationStatus === 'failed' && (
               <div className="mt-3 rounded-panel border border-amber-200 bg-amber-50 p-3">
                 <p className="text-xs font-semibold text-amber-800">{e.translationMissing}</p>
@@ -1788,6 +2011,11 @@ export default function Editor() {
                         <span className="text-[11px] font-semibold text-sub">
                           {sug.tone}
                         </span>
+                        {sug.cultureRisk && (
+                          <span className="flex items-center gap-0.5 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-800">
+                            <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />{e.cultureRiskBadge}
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block text-[15px] font-bold">{sug.text}</span>
                     </span>
@@ -1798,6 +2026,59 @@ export default function Editor() {
                 )
               })}
             </div>
+            {(() => {
+              // 아직 못 고른 상태(AI 후보를 그대로 쓰는 중)와, 이미 대안을 골라 customText가
+              // 된 상태(usingCustom=true) 둘 다에서 패널을 보여줘야 한다. 후자는
+              // cultureRiskDecision에 원래 경고 사유·대안을 같이 저장해 둬서, suggestion
+              // 인덱스를 다시 안 뒤져도 패널을 그대로 재구성할 수 있게 했다.
+              const pending = !usingCustom ? activeRegion.suggestions[style.suggestion]?.cultureRisk : undefined
+              const decision = style.cultureRiskDecision
+              const resolved = usingCustom && decision && style.customText === decision.chosenText ? decision : undefined
+              const reason = pending?.reason ?? resolved?.originalReason
+              const alternatives = pending?.alternatives ?? resolved?.alternatives
+              if (!reason || !alternatives) return null
+              const chosenText = resolved?.chosenText
+              const userNote = resolved?.userNote ?? ''
+              return (
+                <div className="mt-3 rounded-panel border border-amber-200 bg-amber-50 p-3">
+                  <p className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />{e.cultureRiskTitle}</p>
+                  <p className="mt-1 text-xs text-amber-900">{reason}</p>
+                  <p className="mt-3 text-[11px] font-bold text-amber-900">{e.cultureRiskAlternatives}</p>
+                  <div className="mt-1.5 flex flex-col gap-1.5">
+                    {alternatives.map(alternative => (
+                      <button
+                        key={alternative}
+                        type="button"
+                        onClick={() => update({
+                          customText: alternative,
+                          cultureRiskDecision: { originalReason: reason, alternatives, chosenText: alternative, userNote },
+                        })}
+                        className={`rounded-control border-2 px-3 py-2 text-left text-sm font-bold transition-colors ${
+                          chosenText === alternative
+                            ? 'border-brand bg-white'
+                            : 'border-amber-200 bg-white hover:border-amber-300'
+                        }`}
+                      >
+                        {alternative}
+                      </button>
+                    ))}
+                  </div>
+                  {chosenText && (
+                    <>
+                      <label className="mt-3 block text-[11px] font-bold text-amber-900" htmlFor="culture-risk-reason">{e.cultureRiskReasonLabel}</label>
+                      <input
+                        id="culture-risk-reason"
+                        type="text"
+                        value={userNote}
+                        onChange={event => live({ cultureRiskDecision: { originalReason: reason, alternatives, chosenText, userNote: event.target.value } })}
+                        placeholder={e.cultureRiskReasonPlaceholder}
+                        className="mt-1 w-full rounded-control border-2 border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+                      />
+                    </>
+                  )}
+                </div>
+              )
+            })()}
             {activeLanguage.code === 'ja' && <JapaneseMeaning key={`${current.id}:${activeRegion.id}`} fileId={current.id} regionId={activeRegion.id} text={resolveText(style, activeRegion.suggestions)} />}
             {/* 직접 입력 */}
             <p className="mt-4 text-[11px] font-semibold text-sub">
@@ -1923,6 +2204,17 @@ export default function Editor() {
                 onBegin={beginGesture}
                 onLive={v => live({ rotation: v })}
               />
+            </div>
+            <div className="mt-3 flex flex-col gap-2">
+              <button type="button" onClick={applyAutoFit} disabled={!activeRegion.normalizedBox} className="min-h-11 rounded-control border border-gray-200 px-3 py-2 text-sm font-bold disabled:opacity-40">{e.autoFit}</button>
+              {items.length > 1 && (
+                <>
+                  <button type="button" onClick={() => setAutoFitConfirmOpen(true)} className="min-h-11 text-xs font-bold text-brand-dark underline">{e.autoFitAll}</button>
+                  {batchAutoFitUndo?.language === activeLanguage.code && batchAutoFitUndo.project === projectStatus?.projectId && (
+                    <button type="button" onClick={undoAutoFitFrames} className="min-h-11 text-xs font-bold text-brand-dark underline">{w.undoAll}</button>
+                  )}
+                </>
+              )}
             </div>
           </section>
 
@@ -2382,6 +2674,16 @@ export default function Editor() {
                 {selectionSaving && <LoaderCircle className="h-4 w-4 animate-spin" />}{e.confirmArea}
               </button>
             </div>
+        </Modal>
+      )}
+      {autoFitConfirmOpen && (
+        <Modal onClose={() => setAutoFitConfirmOpen(false)} closeLabel={w.close} labelledBy="auto-fit-confirm-title">
+          <h2 id="auto-fit-confirm-title" className="pr-8 font-bold">{e.autoFitConfirmTitle}</h2>
+          <p className="mt-2 text-sm text-sub">{e.autoFitConfirmBody}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button onClick={() => setAutoFitConfirmOpen(false)} className="h-11 rounded-control border-2 border-gray-100 text-sm font-bold text-sub">{w.close}</button>
+            <button onClick={applyAutoFitToFrames} className="h-11 rounded-control bg-brand text-sm font-extrabold text-white">{e.autoFitConfirmAction}</button>
+          </div>
         </Modal>
       )}
       {downloadPreviewOpen && <Modal onClose={() => setDownloadPreviewOpen(false)} closeLabel={w.close} labelledBy="editor-png-preview" className="max-w-4xl">
