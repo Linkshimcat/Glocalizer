@@ -55,6 +55,7 @@ import {
 import '../editor-fonts.css'
 import { DEFAULT_STYLE, EDITOR_PREVIEW_SIZE, hexToRgba, isTextOverflowingOriginalArea, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from '../lib/style'
 import { createCanvasMeasurer, wrapTextToWidth } from '../lib/textWrap'
+import { autoFitText, layoutMetricFor } from '../lib/autoFit'
 import { useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { cloudCopy } from '../i18n/cloud'
@@ -68,6 +69,16 @@ const preloadResultPage = () => import('./Result').then(() => true, () => false)
 /** 자동 크기 맞춤에 쓸 대표(best) 번역 문구 */
 function bestSuggestionText(suggestions?: Array<{ text: string; best?: boolean }>): string {
   return suggestions?.find(s => s.best)?.text ?? suggestions?.[0]?.text ?? ''
+}
+
+/** 박스 안에 들어올 때까지 글자 크기를 줄이고, 넘침 측정값(layoutMetrics)을 같이 계산한다.
+ *  size/layoutMetrics만 바꾸는 패치를 돌려준다 — 나머지 스타일(색상·굵기 등)은 그대로 둔다. */
+function computeAutoFit(style: Style, text: string, normalizedBox: NormalizedRect): { patch: Partial<Style>; fits: boolean } {
+  const box = { widthPx: normalizedBox.width * EDITOR_PREVIEW_SIZE, heightPx: normalizedBox.height * EDITOR_PREVIEW_SIZE }
+  const result = autoFitText(text, box, {
+    fontSpecFor: size => `${style.weight} ${size}px '${style.font}', sans-serif`,
+  })
+  return { patch: { size: result.fontSizePx, layoutMetrics: layoutMetricFor(result, box) }, fits: result.fits }
 }
 
 /** 감지 box로 초기 스타일을 만들되, AI 추천 폰트·정렬·외곽선·그림자를 자동 적용
@@ -439,6 +450,8 @@ export default function Editor() {
   // 내보내기 규격은 프로젝트 전체(모든 이미지·언어)에 공통으로 적용한다.
   const [downloadPreviewOpen, setDownloadPreviewOpen] = useState(false)
   const [batchUndo, setBatchUndo] = useState<{ language: string; project: string | undefined; edits: FrameTextEdit[] } | null>(null)
+  const [autoFitConfirmOpen, setAutoFitConfirmOpen] = useState(false)
+  const [batchAutoFitUndo, setBatchAutoFitUndo] = useState<{ language: string; project: string | undefined; edits: Array<{ fileId: string; regionId: string | null; style: Style; previousStyle: Style }> } | null>(null)
   const cleanupToolsRef = useRef<HTMLElement>(null)
   const [ocrDraft, setOcrDraft] = useState('')
   const [selectionMode, setSelectionMode] = useState<SelectionMode | null>(null)
@@ -483,6 +496,55 @@ export default function Editor() {
     setBatchUndo(null)
     toast(w.undone, 'success')
   }
+
+  const applyAutoFit = () => {
+    if (!activeRegion.normalizedBox) return
+    const text = resolveText(style, activeRegion.suggestions)
+    if (!text.trim()) return
+    const { patch, fits } = computeAutoFit(style, text, activeRegion.normalizedBox)
+    update(patch)
+    toast(fits ? e.autoFitDone : e.autoFitStillOverflows, fits ? 'success' : 'warning')
+  }
+
+  const autoFitFrameEdits = (): Array<{ fileId: string; regionId: string | null; style: Style; previousStyle: Style }> => {
+    return items
+      .filter(item => !item.analysis || item.analysis.regionId || item.textRegions?.length)
+      .flatMap(item => {
+        const overlays = textOverlaysForItem(item, activeLanguage.code, savedStyles)
+        const primary = overlays.find(overlay => overlay.regionId === item.analysis?.regionId) ?? overlays[0]
+        if (!primary?.normalizedBox) return []
+        const key = styleKeyForRegion(item.id, primary.regionId, item.analysis?.regionId)
+        const currentStyle = item.id === current.id && key === activeStyleKey ? style : primary.style
+        const text = resolveText(currentStyle, primary.suggestions)
+        if (!text.trim()) return []
+        const { patch } = computeAutoFit(currentStyle, text, primary.normalizedBox)
+        return [{ fileId: item.id, regionId: primary.regionId, style: { ...currentStyle, ...patch }, previousStyle: currentStyle }]
+      })
+  }
+
+  const applyAutoFitToFrames = () => {
+    const edits = autoFitFrameEdits()
+    setAutoFitConfirmOpen(false)
+    if (!edits.length) return
+    for (const edit of edits) saveStyle(edit.fileId, activeLanguage.code, edit.style, edit.regionId)
+    const local = edits.find(edit => edit.fileId === current.id && styleKeyForRegion(current.id, edit.regionId, current.analysis?.regionId) === activeStyleKey)
+    if (local) { setStyle(local.style); setPast([]); setFuture([]) }
+    setBatchAutoFitUndo({ language: activeLanguage.code, project: projectStatus?.projectId, edits })
+    toast(e.autoFitApplied.replace('{n}', String(edits.length)), 'success')
+  }
+
+  const undoAutoFitFrames = () => {
+    if (!batchAutoFitUndo || batchAutoFitUndo.project !== projectStatus?.projectId) return
+    for (const edit of batchAutoFitUndo.edits) {
+      saveStyle(edit.fileId, batchAutoFitUndo.language, edit.previousStyle, edit.regionId)
+      if (edit.fileId === current.id && batchAutoFitUndo.language === activeLanguage.code && styleKeyForRegion(current.id, edit.regionId, current.analysis?.regionId) === activeStyleKey) {
+        setStyle(edit.previousStyle); setPast([]); setFuture([])
+      }
+    }
+    setBatchAutoFitUndo(null)
+    toast(e.autoFitUndone, 'success')
+  }
+
   const openCleanupTools = () => {
     setMobileTab('스타일')
     setMobileToolsCollapsed(false)
@@ -1924,6 +1986,17 @@ export default function Editor() {
                 onLive={v => live({ rotation: v })}
               />
             </div>
+            <div className="mt-3 flex flex-col gap-2">
+              <button type="button" onClick={applyAutoFit} disabled={!activeRegion.normalizedBox} className="min-h-11 rounded-control border border-gray-200 px-3 py-2 text-sm font-bold disabled:opacity-40">{e.autoFit}</button>
+              {items.length > 1 && (
+                <>
+                  <button type="button" onClick={() => setAutoFitConfirmOpen(true)} className="min-h-11 text-xs font-bold text-brand-dark underline">{e.autoFitAll}</button>
+                  {batchAutoFitUndo?.language === activeLanguage.code && batchAutoFitUndo.project === projectStatus?.projectId && (
+                    <button type="button" onClick={undoAutoFitFrames} className="min-h-11 text-xs font-bold text-brand-dark underline">{w.undoAll}</button>
+                  )}
+                </>
+              )}
+            </div>
           </section>
 
           {/* ── 스타일 탭 ── */}
@@ -2382,6 +2455,16 @@ export default function Editor() {
                 {selectionSaving && <LoaderCircle className="h-4 w-4 animate-spin" />}{e.confirmArea}
               </button>
             </div>
+        </Modal>
+      )}
+      {autoFitConfirmOpen && (
+        <Modal onClose={() => setAutoFitConfirmOpen(false)} closeLabel={w.close} labelledBy="auto-fit-confirm-title">
+          <h2 id="auto-fit-confirm-title" className="pr-8 font-bold">{e.autoFitConfirmTitle}</h2>
+          <p className="mt-2 text-sm text-sub">{e.autoFitConfirmBody}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button onClick={() => setAutoFitConfirmOpen(false)} className="h-11 rounded-control border-2 border-gray-100 text-sm font-bold text-sub">{w.close}</button>
+            <button onClick={applyAutoFitToFrames} className="h-11 rounded-control bg-brand text-sm font-extrabold text-white">{e.autoFitConfirmAction}</button>
+          </div>
         </Modal>
       )}
       {downloadPreviewOpen && <Modal onClose={() => setDownloadPreviewOpen(false)} closeLabel={w.close} labelledBy="editor-png-preview" className="max-w-4xl">

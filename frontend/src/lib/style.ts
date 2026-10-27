@@ -1,4 +1,5 @@
 import { COLORS, FONT_NAMES } from '../data/demo'
+import type { LayoutMetric } from './autoFit'
 
 export interface NormalizedRect {
   x: number
@@ -61,6 +62,9 @@ export interface Style {
   imageScale: number
   /** 원문을 수동으로 가릴 때 쓰는 원본 이미지 기준(0~1) 사각형 */
   manualCleanup?: ManualCleanup
+  /** autoFit.ts가 계산한 넘침 측정값. QA(/qa/inspect)가 재검사 판정에 쓸 수 있도록 editor
+   *  state 저장 시 함께 보낸다(윤재와 합의한 layoutMetrics 포맷, 10/27). */
+  layoutMetrics?: LayoutMetric
 }
 
 /** 대표 영역은 기존 파일 키를 유지하고, 추가 영역만 합성 키를 써 세션 데이터와 호환한다. */
