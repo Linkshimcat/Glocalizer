@@ -47,8 +47,18 @@ export async function sendWelcomeEmail(user: UserRow): Promise<void> {
   }
 }
 
-async function sendSecurityEmail(user: UserRow, message: EmailMessage, event: string): Promise<void> {
-  if (!user.email || !user.security_email_notifications) return;
+type SecurityEmailType = 'new_device_login' | 'password_changed' | 'other_sessions_signed_out';
+
+/** 전체 보안 알림이 꺼져 있거나 해당 종류만 꺼져 있으면 보내지 않는다. 종류별 컬럼이 없는 행은 켜진 것으로 본다. */
+function wantsSecurityEmail(user: UserRow, event: SecurityEmailType): boolean {
+  if (!user.security_email_notifications) return false;
+  if (event === 'new_device_login') return user.security_email_new_device ?? true;
+  if (event === 'password_changed') return user.security_email_password_changed ?? true;
+  return user.security_email_sessions_revoked ?? true;
+}
+
+async function sendSecurityEmail(user: UserRow, message: EmailMessage, event: SecurityEmailType): Promise<void> {
+  if (!user.email || !wantsSecurityEmail(user, event)) return;
   try {
     const sent = await sendEmail(message);
     if (sent) logger.info({ userId: user.id, event }, '보안 이메일 발송');

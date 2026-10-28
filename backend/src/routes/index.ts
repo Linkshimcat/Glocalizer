@@ -1,5 +1,6 @@
 import { generationRouter } from './generation.routes.js';
 import { Router } from 'express';
+import { accountRouter } from './account.routes.js';
 import { authRouter } from './auth.routes.js';
 import { downloadRouter } from './download.routes.js';
 import { deepReviewRouter } from './deep-review.routes.js';
@@ -18,6 +19,7 @@ export const apiRouter = Router();
 
 apiRouter.use(healthRouter);
 apiRouter.use(authRouter);
+apiRouter.use(accountRouter);
 apiRouter.use(projectRouter);
 apiRouter.use(uploadRouter);
 apiRouter.use(processRouter);

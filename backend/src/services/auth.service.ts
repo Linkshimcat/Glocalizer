@@ -20,7 +20,7 @@ import {
   linkNaverProfile,
   updateUserPassword,
   updateUserProfile,
-  updateSecurityEmailNotifications,
+  updateSecurityEmailPreferences,
 } from '../repositories/user.repository.js';
 import type { ChangePasswordInput, EmailPreferencesInput, GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
 import { extendSession, insertSession, listActiveSessions, revokeOtherSessions, revokeSession } from '../repositories/session.repository.js';
@@ -61,6 +61,12 @@ function toPublicUser(user: UserRow): PublicUser {
     membershipPlan: user.membership_plan,
     membershipExpiresAt: user.membership_expires_at,
     securityEmailNotifications: user.security_email_notifications ?? true,
+    securityEmailTypes: {
+      newDeviceLogin: user.security_email_new_device ?? true,
+      passwordChanged: user.security_email_password_changed ?? true,
+      otherSessionsSignedOut: user.security_email_sessions_revoked ?? true,
+    },
+    createdAt: user.created_at,
   };
 }
 
@@ -147,8 +153,7 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
 }
 
 export async function updateEmailPreferences(userId: string, input: EmailPreferencesInput): Promise<PublicUser> {
-  const user = await updateSecurityEmailNotifications(userId, input.securityEmailNotifications);
-  return toPublicUser(user);
+  return toPublicUser(await updateSecurityEmailPreferences(userId, input));
 }
 
 export async function changePassword(userId: string, input: ChangePasswordInput): Promise<void> {

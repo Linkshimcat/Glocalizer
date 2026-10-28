@@ -53,6 +53,17 @@ export async function listActiveSessions(userId: string): Promise<SessionRow[]> 
   return unwrapList<SessionRow>(result, '로그인 세션 조회에 실패했습니다.');
 }
 
+/** 폐기·만료된 세션까지 포함한 최근 로그인 기록. 세션 행은 삭제하지 않으므로 그대로 이력이 된다. */
+export async function listLoginHistory(userId: string, limit: number): Promise<SessionRow[]> {
+  const result = await supabase
+    .from('user_sessions')
+    .select()
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return unwrapList<SessionRow>(result, '로그인 기록 조회에 실패했습니다.');
+}
+
 /** 본인 소유의 활성 세션만 폐기한다. 폐기한 행이 없으면 false. */
 export async function revokeSession(userId: string, sessionId: string): Promise<boolean> {
   const result = await supabase

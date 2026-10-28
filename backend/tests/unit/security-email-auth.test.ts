@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/repositories/user.repository.js', () => ({
   findUserByEmail: vi.fn(), findUserById: vi.fn(), findUserByNaverId: vi.fn(), findUserByKakaoId: vi.fn(), findUserBySupabaseAuthId: vi.fn(),
   insertEmailUser: vi.fn(), insertGoogleUser: vi.fn(), insertKakaoUser: vi.fn(), insertNaverUser: vi.fn(), linkGoogleProfile: vi.fn(), linkKakaoProfile: vi.fn(), linkNaverProfile: vi.fn(),
-  updateUserPassword: vi.fn(), updateUserProfile: vi.fn(), updateSecurityEmailNotifications: vi.fn(), bumpSessionVersion: vi.fn(),
+  updateUserPassword: vi.fn(), updateUserProfile: vi.fn(), updateSecurityEmailPreferences: vi.fn(), bumpSessionVersion: vi.fn(),
 }));
 vi.mock('../../src/repositories/session.repository.js', () => ({ insertSession: vi.fn(), revokeOtherSessions: vi.fn(), revokeSession: vi.fn(), listActiveSessions: vi.fn(), extendSession: vi.fn() }));
 vi.mock('../../src/repositories/known-device.repository.js', () => ({ rememberDevice: vi.fn() }));
@@ -63,7 +63,14 @@ describe('security email auth events', () => {
   });
 
   it('returns the updated preference in the public user response', async () => {
-    vi.mocked(users.updateSecurityEmailNotifications).mockResolvedValue(user({ security_email_notifications: false }) as never);
+    vi.mocked(users.updateSecurityEmailPreferences).mockResolvedValue(user({ security_email_notifications: false }) as never);
     await expect(auth.updateEmailPreferences(user().id, { securityEmailNotifications: false })).resolves.toMatchObject({ securityEmailNotifications: false });
+    expect(users.updateSecurityEmailPreferences).toHaveBeenCalledWith(user().id, { securityEmailNotifications: false });
+  });
+
+  it('exposes per-type preferences, defaulting to on when the columns are missing', async () => {
+    vi.mocked(users.updateSecurityEmailPreferences).mockResolvedValue(user({ security_email_password_changed: false }) as never);
+    const result = await auth.updateEmailPreferences(user().id, { passwordChanged: false });
+    expect(result.securityEmailTypes).toEqual({ newDeviceLogin: true, passwordChanged: false, otherSessionsSignedOut: true });
   });
 });
