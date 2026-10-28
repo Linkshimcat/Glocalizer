@@ -47,6 +47,10 @@ const Review = lazyPage(() => import('./pages/Review'))
 const ServiceIntro = lazyPage(() => import('./pages/ServiceIntro'))
 const Terms = lazyPage(() => import('./pages/Terms'))
 const Support = lazyPage(() => import('./pages/Support'))
+// 본선 대응 기능(docs/finals) — 라우트만 미리 등록해 두고 각 담당자는 자기 페이지 파일만 수정한다.
+const QaBoardPage = lazyPage(() => import('./features/qa/QaBoardPage'))
+const ProofPage = lazyPage(() => import('./features/proof/ProofPage'))
+const DemoLabPage = lazyPage(() => import('./features/demo-lab/DemoLabPage'))
 
 /** Public pages rendered to static HTML at build time (see scripts/prerender.mjs). */
 // oxlint-disable-next-line react/only-export-components -- read once by main.tsx before the first render
@@ -181,6 +185,9 @@ export function AppRoutes() {
                       <Route path="/editor" element={<Editor />} />
                       <Route path="/result" element={<Result />} />
                       <Route path="/review" element={<Review />} />
+                      <Route path="/qa" element={<QaBoardPage />} />
+                      <Route path="/proof" element={<ProofPage />} />
+                      <Route path="/demo-lab" element={<DemoLabPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
