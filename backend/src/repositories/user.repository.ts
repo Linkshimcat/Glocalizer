@@ -44,10 +44,23 @@ export async function updateUserPassword(userId: string, passwordHash: string, v
   if (!user) throw new AppError('UNAUTHORIZED');
 }
 
-export async function updateSecurityEmailNotifications(userId: string, enabled: boolean): Promise<UserRow> {
+export interface SecurityEmailPreferencePatch {
+  securityEmailNotifications?: boolean;
+  newDeviceLogin?: boolean;
+  passwordChanged?: boolean;
+  otherSessionsSignedOut?: boolean;
+}
+
+/** 요청에 들어온 항목만 바꾼다. */
+export async function updateSecurityEmailPreferences(userId: string, patch: SecurityEmailPreferencePatch): Promise<UserRow> {
+  const columns: Record<string, boolean> = {};
+  if (patch.securityEmailNotifications !== undefined) columns.security_email_notifications = patch.securityEmailNotifications;
+  if (patch.newDeviceLogin !== undefined) columns.security_email_new_device = patch.newDeviceLogin;
+  if (patch.passwordChanged !== undefined) columns.security_email_password_changed = patch.passwordChanged;
+  if (patch.otherSessionsSignedOut !== undefined) columns.security_email_sessions_revoked = patch.otherSessionsSignedOut;
   const result = await supabase
     .from('users')
-    .update({ security_email_notifications: enabled, updated_at: new Date().toISOString() })
+    .update({ ...columns, updated_at: new Date().toISOString() })
     .eq('id', userId)
     .select()
     .single();

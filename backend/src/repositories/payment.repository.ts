@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { unwrapRow, unwrapVoid } from '../utils/db-result.js';
+import { unwrapList, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 import type { PaymentRow } from '../types/payment.js';
 import { AppError } from '../errors/app-error.js';
 
@@ -60,4 +60,18 @@ export async function failPayment(orderId: string, paymentKey: string, rawRespon
     p_order_id: orderId, p_payment_key: paymentKey, p_raw_response: rawResponse,
   });
   unwrapVoid(result, '결제 실패 상태를 저장하지 못했습니다.');
+}
+
+/** 시작만 하고 끝내지 않은 주문(pending)은 내역으로 보여주지 않는다. */
+export type PaymentListRow = Omit<PaymentRow, 'toss_payment_key' | 'raw_response'>;
+
+export async function listPaymentsByUser(userId: string, limit: number): Promise<PaymentListRow[]> {
+  const result = await supabase
+    .from('payments')
+    .select('id, order_id, user_id, plan_id, amount, status, method, approved_at, created_at, updated_at')
+    .eq('user_id', userId)
+    .neq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return unwrapList<PaymentListRow>(result, '결제 내역을 불러오지 못했습니다.');
 }

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { taskFetch } from '../utils/task-context.js';
 import { env } from '../config/env.js';
 import { AppError } from '../errors/app-error.js';
-import { claimPaymentConfirmation, failPayment, finalizePayment, insertPendingPayment } from '../repositories/payment.repository.js';
+import { claimPaymentConfirmation, failPayment, finalizePayment, insertPendingPayment, listPaymentsByUser } from '../repositories/payment.repository.js';
 
 /** 결제 금액의 유일한 소스. 클라이언트가 보낸 금액은 절대 신뢰하지 않고, 여기서 고정한 값만
  *  주문 생성·Toss 승인 호출에 쓴다. */
@@ -96,4 +96,28 @@ async function finalizeApprovedPayment(userId: string, input: ConfirmInput, paym
     rawResponse: payment,
     expiresAt: new Date(Date.now() + MEMBERSHIP_DURATION_MS),
   });
+}
+
+export interface PublicPayment {
+  orderId: string;
+  planName: string;
+  amount: number;
+  status: 'processing' | 'done' | 'failed' | 'canceled';
+  method: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+/** 결제 키·승인 원문(raw_response)은 내려주지 않는다. */
+export async function listPayments(userId: string, limit = 20): Promise<PublicPayment[]> {
+  const rows = await listPaymentsByUser(userId, limit);
+  return rows.map(row => ({
+    orderId: row.order_id,
+    planName: (PLANS as Record<string, { name: string }>)[row.plan_id]?.name ?? row.plan_id,
+    amount: row.amount,
+    status: row.status as PublicPayment['status'],
+    method: row.method,
+    approvedAt: row.approved_at,
+    createdAt: row.created_at,
+  }));
 }

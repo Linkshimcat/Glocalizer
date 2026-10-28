@@ -17,8 +17,11 @@ export const changePasswordSchema = z.object({
 });
 
 export const emailPreferencesSchema = z.object({
-  securityEmailNotifications: z.boolean(),
-});
+  securityEmailNotifications: z.boolean().optional(),
+  newDeviceLogin: z.boolean().optional(),
+  passwordChanged: z.boolean().optional(),
+  otherSessionsSignedOut: z.boolean().optional(),
+}).refine(value => Object.values(value).some(item => item !== undefined), { message: '변경할 설정이 필요합니다.' });
 
 export const naverCallbackSchema = z.object({
   code: z.string().min(1),

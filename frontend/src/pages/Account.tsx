@@ -2,17 +2,22 @@ import { requestErrorMessage } from '../lib/requestError'
 import { Camera, ChevronRight, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import AccountSummaryCard from '../components/AccountSummaryCard'
+import DataExportCard from '../components/DataExportCard'
+import DefaultTargetLanguages from '../components/DefaultTargetLanguages'
 import DeviceSessions from '../components/DeviceSessions'
 import GoogleIcon from '../components/GoogleIcon'
+import LanguageSelect from '../components/LanguageSelect'
+import LoginHistoryCard from '../components/LoginHistoryCard'
 import Modal from '../components/Modal'
+import PaymentHistoryCard from '../components/PaymentHistoryCard'
 import SessionNotice from '../components/SessionNotice'
 import { experienceCopy } from '../i18n/experience'
 import profileDeleteIcon from '../assets/iconsax-profile-delete.svg'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { accountCopy } from '../i18n/account'
-import { SITE_LANGS } from '../i18n/translations'
-import type { ProfileUpdate } from '../lib/authApi'
+import type { ProfileUpdate, SecurityEmailTypes } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
 import { useTheme } from '../store/ThemeContext'
 
@@ -38,7 +43,7 @@ async function toAvatarDataUrl(file: File): Promise<string> {
 export default function Account() {
   const { user, isAuthenticated, checkingSession, refreshUser, updateProfile, updateEmailPreferences, changePassword, deleteAccount } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const { t, lang, setLang } = useSiteLang()
+  const { t, lang } = useSiteLang()
   const tAccount = accountCopy(lang)
   const toast = useToast()
   const navigate = useNavigate()
@@ -199,7 +204,7 @@ export default function Account() {
     const next = !(user.securityEmailNotifications ?? true)
     setEmailAlertsSaving(true)
     try {
-      await updateEmailPreferences(next)
+      await updateEmailPreferences({ securityEmailNotifications: next })
       toast(next ? tAccount.accountEmailAlertsOn : tAccount.accountEmailAlertsSavedOff, 'success')
     } catch (error) {
       toast(requestErrorMessage(error, lang, tAccount.accountEmailAlertsFailed))
@@ -207,6 +212,24 @@ export default function Account() {
       setEmailAlertsSaving(false)
     }
   }
+
+  const setEmailType = async (key: keyof SecurityEmailTypes, next: boolean) => {
+    setEmailAlertsSaving(true)
+    try {
+      await updateEmailPreferences({ [key]: next })
+      toast(tAccount.accountEmailTypeSaved, 'success')
+    } catch (error) {
+      toast(requestErrorMessage(error, lang, tAccount.accountEmailAlertsFailed))
+    } finally {
+      setEmailAlertsSaving(false)
+    }
+  }
+
+  const emailTypes: [keyof SecurityEmailTypes, string][] = [
+    ['newDeviceLogin', tAccount.accountEmailTypeNewDevice],
+    ['passwordChanged', tAccount.accountEmailTypePassword],
+    ['otherSessionsSignedOut', tAccount.accountEmailTypeSessions],
+  ]
 
   const jumpToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -302,6 +325,12 @@ export default function Account() {
               <dt className="text-sm font-semibold text-sub">{tAccount.accountEmail}</dt>
               <dd className="mt-2 break-words text-base font-bold text-ink">{user.email?.trim() || tAccount.accountMissing}</dd>
             </div>
+            {user.createdAt && (
+              <div className="py-5">
+                <dt className="text-sm font-semibold text-sub">{tAccount.accountJoinedAt}</dt>
+                <dd className="mt-2 text-base font-bold text-ink">{new Intl.DateTimeFormat(lang, { dateStyle: 'long' }).format(new Date(user.createdAt))}</dd>
+              </div>
+            )}
             <div className="pt-5">
               <dt className="text-sm font-semibold text-sub">{tAccount.accountSignupMethod}</dt>
               <dd className="mt-2 flex flex-col gap-2">
@@ -352,6 +381,8 @@ export default function Account() {
           )}
         </form>
 
+        <AccountSummaryCard />
+
         <section id="plan" className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -371,6 +402,8 @@ export default function Account() {
             </button>
           </div>
         </section>
+
+        <PaymentHistoryCard />
 
         <div id="security" className="scroll-mt-6">
         {user.hasPassword && (
@@ -454,6 +487,8 @@ export default function Account() {
 
         <DeviceSessions />
 
+        <LoginHistoryCard />
+
         <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountEmailAlertsTitle}>
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -465,6 +500,21 @@ export default function Account() {
               {emailAlertsSaving ? <Loader2 className="mx-auto h-4 w-4 animate-spin text-white" /> : <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${(user.securityEmailNotifications ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />}
             </button>
           </div>
+          {(user.securityEmailNotifications ?? true) && (
+            <ul className="mt-5 divide-y divide-line border-t border-line">
+              {emailTypes.map(([key, label]) => {
+                const on = user.securityEmailTypes?.[key] ?? true
+                return (
+                  <li key={key} className="flex items-center justify-between gap-4 py-3">
+                    <span className="text-sm font-bold text-ink">{label}</span>
+                    <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={emailAlertsSaving} onClick={() => void setEmailType(key, !on)} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${on ? 'bg-action' : 'bg-gray-200'}`}>
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </section>
         </div>
 
@@ -491,11 +541,9 @@ export default function Account() {
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountLanguageTitle}</h2>
               <p className="mt-1 text-sm text-sub">{tAccount.accountLanguageDesc}</p>
             </div>
-            <label className="sr-only" htmlFor="account-language">{tAccount.accountLanguageTitle}</label>
-            <select id="account-language" value={lang} onChange={event => setLang(event.target.value as typeof lang)} className="rounded-control border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-ink outline-none focus:border-brand dark:bg-surface">
-              {SITE_LANGS.map(option => <option key={option.code} value={option.code}>{option.label}</option>)}
-            </select>
+            <LanguageSelect />
           </div>
+          <DefaultTargetLanguages />
           <div className="flex items-center justify-between gap-4 pt-5">
             <div>
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountThemeTitle}</h2>
@@ -513,6 +561,8 @@ export default function Account() {
             </button>
           </div>
         </section>
+
+        <DataExportCard />
 
         <section className="mt-6 max-w-2xl rounded-panel border border-red-200 bg-red-50/40 p-6 dark:border-red-900/50 dark:bg-red-950/20 sm:p-8" aria-label={tAccount.accountDangerZoneTitle}>
           <h2 className="text-lg font-extrabold text-red-600 dark:text-red-400">{tAccount.accountDangerZoneTitle}</h2>

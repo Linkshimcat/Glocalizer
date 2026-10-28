@@ -25,16 +25,37 @@ function formatLastActive(iso: string, locale: string): string {
   return rtf.format(0, 'second')
 }
 
+/** 페이지를 다시 열 때 직전 목록을 먼저 보여 주기 위한 메모리 캐시. 계정이 바뀌면 쓰지 않고, 새로고침하면 사라진다. */
+let cachedSessions: { userId: string; sessions: AuthSession[] } | null = null
+
+function SessionsSkeleton({ label }: { label: string }) {
+  return (
+    <ul role="status" aria-busy="true" aria-label={label} className="mt-5 divide-y divide-line">
+      {[0, 1].map(index => (
+        <li key={index} className="flex animate-pulse items-center gap-3 py-4">
+          <span className="h-5 w-5 shrink-0 rounded bg-surface" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <span className="block h-4 w-32 rounded bg-surface" />
+            <span className="block h-3 w-48 max-w-full rounded bg-surface" />
+          </div>
+          <span className="h-9 w-20 shrink-0 rounded-control bg-surface" />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /** 이 계정으로 로그인된 기기 목록과 기기별 로그아웃. 로그인 방식과 관계없이 모든 계정에 보인다. */
 export default function DeviceSessions() {
-  const { listSessions, revokeSession, revokeOtherSessions } = useAuth()
+  const { user, listSessions, revokeSession, revokeOtherSessions } = useAuth()
   const { lang, t: common } = useSiteLang()
   const t = accountCopy(lang)
   const toast = useToast()
-  const [sessions, setSessions] = useState<AuthSession[] | null>(null)
+  const [sessions, setSessions] = useState<AuthSession[] | null>(() => (cachedSessions && cachedSessions.userId === user?.id ? cachedSessions.sessions : null))
   const [loadFailed, setLoadFailed] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmingOthers, setConfirmingOthers] = useState(false)
+  const [confirmingSession, setConfirmingSession] = useState<AuthSession | null>(null)
 
   const load = useCallback(async () => {
     setLoadFailed(false)
@@ -47,6 +68,10 @@ export default function DeviceSessions() {
 
   useEffect(() => { void load() }, [load])
 
+  useEffect(() => {
+    if (sessions && user) cachedSessions = { userId: user.id, sessions }
+  }, [sessions, user])
+
   const signOut = async (session: AuthSession) => {
     setBusyId(session.id)
     try {
@@ -58,6 +83,7 @@ export default function DeviceSessions() {
       void load()
     } finally {
       setBusyId(null)
+      setConfirmingSession(null)
     }
   }
 
@@ -86,7 +112,7 @@ export default function DeviceSessions() {
       {sessions && <p className="mt-3 text-sm font-semibold text-brand-dark">{t.accountSessionsSummary.replace('{count}', String(sessions.length))}</p>}
 
       {sessions === null && !loadFailed && (
-        <div role="status" className="mt-5 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.accountSessionsLoading}</div>
+        <SessionsSkeleton label={t.accountSessionsLoading} />
       )}
 
       {loadFailed && (
@@ -117,11 +143,10 @@ export default function DeviceSessions() {
                 {!session.current && (
                   <button
                     type="button"
-                    onClick={() => void signOut(session)}
+                    onClick={() => setConfirmingSession(session)}
                     disabled={busyId !== null}
                     className="flex shrink-0 items-center gap-1.5 rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50"
                   >
-                    {busyId === session.id && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t.accountSessionsSignOut}
                   </button>
                 )}
@@ -137,6 +162,25 @@ export default function DeviceSessions() {
             </div>
           )}
         </>
+      )}
+
+      {confirmingSession && (
+        <Modal
+          onClose={() => { if (busyId === null) setConfirmingSession(null) }}
+          labelledBy="sign-out-device-title"
+          closeLabel={common.commonClose}
+        >
+          <h2 id="sign-out-device-title" className="pr-8 text-lg font-extrabold text-ink">{t.accountSessionsSignOut}</h2>
+          <p className="mt-2 text-sm font-bold text-ink">{confirmingSession.legacy ? t.accountSessionsLegacy : confirmingSession.deviceLabel ?? t.accountSessionsUnknownDevice}</p>
+          <p className="mt-1 text-sm text-sub">{t.accountSessionsSignOutOneAsk}</p>
+          <div className="mt-6 flex justify-end gap-2">
+            <button type="button" onClick={() => setConfirmingSession(null)} disabled={busyId !== null} className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50">{t.accountCancel}</button>
+            <button type="button" onClick={() => void signOut(confirmingSession)} disabled={busyId !== null} className="flex items-center gap-1.5 rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+              {busyId === confirmingSession.id && <Loader2 className="h-4 w-4 animate-spin" />}
+              {t.accountSessionsConfirm}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {confirmingOthers && (

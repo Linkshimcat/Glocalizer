@@ -16,6 +16,7 @@ import {
   signupWithEmail as apiSignupWithEmail,
   updateProfile as apiUpdateProfile,
   updateEmailPreferences as apiUpdateEmailPreferences,
+  type EmailPreferencePatch,
   type ProfileUpdate,
   type AuthSession,
   type AuthUser,
@@ -71,7 +72,7 @@ interface AuthState {
   /** 저장된 토큰이 아직 유효한지 서버에 확인해 user 정보를 최신화한다. */
   refreshUser: () => Promise<void>
   updateProfile: (update: ProfileUpdate) => Promise<void>
-  updateEmailPreferences: (securityEmailNotifications: boolean) => Promise<void>
+  updateEmailPreferences: (patch: EmailPreferencePatch) => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   deleteAccount: () => Promise<void>
   /** 이 계정으로 로그인된 기기 목록. */
@@ -198,9 +199,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistSession(token, nextUser)
   }, [token])
 
-  const updateEmailPreferences = useCallback(async (securityEmailNotifications: boolean) => {
+  const updateEmailPreferences = useCallback(async (patch: EmailPreferencePatch) => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
-    const { user: nextUser } = await apiUpdateEmailPreferences(token, securityEmailNotifications)
+    const { user: nextUser } = await apiUpdateEmailPreferences(token, patch)
     setUser(nextUser)
     persistSession(token, nextUser)
   }, [token])
