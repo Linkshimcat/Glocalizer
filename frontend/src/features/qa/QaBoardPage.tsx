@@ -11,7 +11,7 @@ import { trackEvent } from '../../lib/analytics'
 import { restoreCloudProject, type CloudWorkspace } from '../../lib/api'
 import { RequestError, requestErrorMessage } from '../../lib/requestError'
 import { useAuth } from '../../store/AuthContext'
-import type { QaProjectResponse } from '../../types/qa'
+import { isQaReportStale, type QaProjectResponse } from '../../types/qa'
 import EvidenceDrawer from './EvidenceDrawer'
 import { MOCK_IMAGES, MOCK_QA_RESPONSE } from './mockQaReport'
 import { fetchQaProject, runQaInspect } from './qaApi'
@@ -171,6 +171,7 @@ export default function QaBoardPage() {
             )}
           </div>
 
+          {isQaReportStale(qa) && <StateNotice className="mt-6">{copy.qaStale}</StateNotice>}
           {qa.latest
             ? <p className="mt-3 text-xs text-sub">{copy.qaInspectedAt} {formatter.format(new Date(qa.latest.inspectedAt))} · {copy.qaRuleset} {qa.latest.rulesetVersion}</p>
             : <StateNotice className="mt-6">{copy.qaEmpty}</StateNotice>}
