@@ -83,6 +83,8 @@ export default function DeviceSessions() {
       <h2 className="text-lg font-extrabold text-ink">{t.accountSessionsTitle}</h2>
       <p className="mt-1 text-sm text-sub">{t.accountSessionsDesc}</p>
 
+      {sessions && <p className="mt-3 text-sm font-semibold text-brand-dark">{t.accountSessionsSummary.replace('{count}', String(sessions.length))}</p>}
+
       {sessions === null && !loadFailed && (
         <div role="status" className="mt-5 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" />{t.accountSessionsLoading}</div>
       )}

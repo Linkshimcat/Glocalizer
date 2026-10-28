@@ -14,6 +14,7 @@ export interface UserRow {
   avatar_customized: boolean;
   membership_plan: string | null;
   membership_expires_at: string | null;
+  security_email_notifications: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -30,4 +31,5 @@ export interface PublicUser {
   hasKakao: boolean;
   membershipPlan: string | null;
   membershipExpiresAt: string | null;
+  securityEmailNotifications: boolean;
 }

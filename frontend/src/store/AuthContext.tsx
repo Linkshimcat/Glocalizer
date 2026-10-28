@@ -15,6 +15,7 @@ import {
   serverLogout as apiServerLogout,
   signupWithEmail as apiSignupWithEmail,
   updateProfile as apiUpdateProfile,
+  updateEmailPreferences as apiUpdateEmailPreferences,
   type ProfileUpdate,
   type AuthSession,
   type AuthUser,
@@ -70,6 +71,7 @@ interface AuthState {
   /** 저장된 토큰이 아직 유효한지 서버에 확인해 user 정보를 최신화한다. */
   refreshUser: () => Promise<void>
   updateProfile: (update: ProfileUpdate) => Promise<void>
+  updateEmailPreferences: (securityEmailNotifications: boolean) => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   deleteAccount: () => Promise<void>
   /** 이 계정으로 로그인된 기기 목록. */
@@ -196,6 +198,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistSession(token, nextUser)
   }, [token])
 
+  const updateEmailPreferences = useCallback(async (securityEmailNotifications: boolean) => {
+    if (!token) throw new AuthApiError('로그인이 필요해요.')
+    const { user: nextUser } = await apiUpdateEmailPreferences(token, securityEmailNotifications)
+    setUser(nextUser)
+    persistSession(token, nextUser)
+  }, [token])
+
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
     await apiChangePassword(token, currentPassword, newPassword)
@@ -244,12 +253,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     refreshUser,
     updateProfile,
+    updateEmailPreferences,
     changePassword,
     deleteAccount,
     listSessions,
     revokeSession,
     revokeOtherSessions,
-  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeKakaoLogin, completeGoogleLogin, logout, refreshUser, updateProfile, changePassword, deleteAccount, listSessions, revokeSession, revokeOtherSessions])
+  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeKakaoLogin, completeGoogleLogin, logout, refreshUser, updateProfile, updateEmailPreferences, changePassword, deleteAccount, listSessions, revokeSession, revokeOtherSessions])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

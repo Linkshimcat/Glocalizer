@@ -12,6 +12,7 @@ export interface AuthUser {
   hasNaver?: boolean
   hasGoogle?: boolean
   hasKakao?: boolean
+  securityEmailNotifications?: boolean
 }
 
 interface AuthResult {
@@ -41,9 +42,25 @@ async function authRequest<T>(path: string, init: RequestInit = {}): Promise<T> 
   return response.json() as Promise<T>
 }
 
+const DEVICE_ID_KEY = 'glocalizer:deviceId'
+
+function deviceHeaders(): Record<string, string> {
+  try {
+    let deviceId = localStorage.getItem(DEVICE_ID_KEY)
+    if (!deviceId && typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      deviceId = crypto.randomUUID()
+      localStorage.setItem(DEVICE_ID_KEY, deviceId)
+    }
+    return deviceId ? { 'X-Glocalizer-Device-Id': deviceId } : {}
+  } catch {
+    return {}
+  }
+}
+
 export function signupWithEmail(email: string, password: string, name?: string): Promise<AuthResult> {
   return authRequest<AuthResult>('/auth/signup', {
     method: 'POST',
+    headers: deviceHeaders(),
     body: JSON.stringify({ email, password, name }),
   })
 }
@@ -51,6 +68,7 @@ export function signupWithEmail(email: string, password: string, name?: string):
 export function loginWithEmail(email: string, password: string): Promise<AuthResult> {
   return authRequest<AuthResult>('/auth/login', {
     method: 'POST',
+    headers: deviceHeaders(),
     body: JSON.stringify({ email, password }),
   })
 }
@@ -58,6 +76,7 @@ export function loginWithEmail(email: string, password: string): Promise<AuthRes
 export function loginWithNaver(code: string, state: string): Promise<AuthResult> {
   return authRequest<AuthResult>('/auth/naver/callback', {
     method: 'POST',
+    headers: deviceHeaders(),
     body: JSON.stringify({ code, state }),
   })
 }
@@ -65,6 +84,7 @@ export function loginWithNaver(code: string, state: string): Promise<AuthResult>
 export function loginWithKakao(code: string, redirectUri: string): Promise<AuthResult> {
   return authRequest<AuthResult>('/auth/kakao/callback', {
     method: 'POST',
+    headers: deviceHeaders(),
     body: JSON.stringify({ code, redirectUri }),
   })
 }
@@ -72,6 +92,7 @@ export function loginWithKakao(code: string, redirectUri: string): Promise<AuthR
 export function loginWithGoogle(accessToken: string): Promise<AuthResult> {
   return authRequest<AuthResult>('/auth/google', {
     method: 'POST',
+    headers: deviceHeaders(),
     body: JSON.stringify({ accessToken }),
   })
 }
@@ -116,6 +137,14 @@ export function updateProfile(token: string, update: ProfileUpdate): Promise<{ u
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(update),
+  })
+}
+
+export function updateEmailPreferences(token: string, securityEmailNotifications: boolean): Promise<{ user: AuthUser }> {
+  return authRequest<{ user: AuthUser }>('/auth/me/email-preferences', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ securityEmailNotifications }),
   })
 }
 

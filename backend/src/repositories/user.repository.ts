@@ -44,6 +44,16 @@ export async function updateUserPassword(userId: string, passwordHash: string, v
   if (!user) throw new AppError('UNAUTHORIZED');
 }
 
+export async function updateSecurityEmailNotifications(userId: string, enabled: boolean): Promise<UserRow> {
+  const result = await supabase
+    .from('users')
+    .update({ security_email_notifications: enabled, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .select()
+    .single();
+  return unwrapRow<UserRow>(result, '보안 이메일 설정을 저장하지 못했습니다.');
+}
+
 /** 모든 기기의 토큰을 무효화한다(session_version +1). 동시에 바뀌었으면 UNAUTHORIZED. */
 export async function bumpSessionVersion(userId: string, version: number): Promise<number> {
   const result = await supabase

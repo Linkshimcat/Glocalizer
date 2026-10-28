@@ -2,6 +2,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { renderWelcomeEmail } from '../emails/welcome-email.js';
+import { renderNewDeviceLoginEmail, renderOtherSessionsSignedOutEmail, renderPasswordChangedEmail } from '../emails/security-email.js';
 import type { UserRow } from '../types/user.js';
 
 interface EmailMessage {
@@ -44,4 +45,26 @@ export async function sendWelcomeEmail(user: UserRow): Promise<void> {
   } catch (error) {
     logger.warn({ err: error, userId: user.id }, '환영 메일 발송 실패 (가입은 정상 처리)');
   }
+}
+
+async function sendSecurityEmail(user: UserRow, message: EmailMessage, event: string): Promise<void> {
+  if (!user.email || !user.security_email_notifications) return;
+  try {
+    const sent = await sendEmail(message);
+    if (sent) logger.info({ userId: user.id, event }, '보안 이메일 발송');
+  } catch (error) {
+    logger.warn({ err: error, userId: user.id, event }, '보안 이메일 발송 실패');
+  }
+}
+
+export function sendNewDeviceLoginEmail(user: UserRow, deviceLabel: string | null, ipMasked: string | null): Promise<void> {
+  return sendSecurityEmail(user, { to: user.email!, ...renderNewDeviceLoginEmail({ deviceLabel, ipMasked, siteUrl: env.FRONTEND_ORIGIN }) }, 'new_device_login');
+}
+
+export function sendPasswordChangedEmail(user: UserRow): Promise<void> {
+  return sendSecurityEmail(user, { to: user.email!, ...renderPasswordChangedEmail({ siteUrl: env.FRONTEND_ORIGIN }) }, 'password_changed');
+}
+
+export function sendOtherSessionsSignedOutEmail(user: UserRow): Promise<void> {
+  return sendSecurityEmail(user, { to: user.email!, ...renderOtherSessionsSignedOutEmail({ siteUrl: env.FRONTEND_ORIGIN }) }, 'other_sessions_signed_out');
 }

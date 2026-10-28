@@ -11,6 +11,7 @@ import profileDeleteIcon from '../assets/iconsax-profile-delete.svg'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { accountCopy } from '../i18n/account'
+import { SITE_LANGS } from '../i18n/translations'
 import type { ProfileUpdate } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
 import { useTheme } from '../store/ThemeContext'
@@ -35,9 +36,9 @@ async function toAvatarDataUrl(file: File): Promise<string> {
 }
 
 export default function Account() {
-  const { user, isAuthenticated, checkingSession, refreshUser, updateProfile, changePassword, deleteAccount } = useAuth()
+  const { user, isAuthenticated, checkingSession, refreshUser, updateProfile, updateEmailPreferences, changePassword, deleteAccount } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const { t, lang } = useSiteLang()
+  const { t, lang, setLang } = useSiteLang()
   const tAccount = accountCopy(lang)
   const toast = useToast()
   const navigate = useNavigate()
@@ -57,10 +58,24 @@ export default function Account() {
   const [ackDataLoss, setAckDataLoss] = useState(false)
   const [ackResignup, setAckResignup] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [emailAlertsSaving, setEmailAlertsSaving] = useState(false)
+  const [activeSection, setActiveSection] = useState('profile')
 
   useEffect(() => {
     if (isAuthenticated) void refreshUser()
   }, [isAuthenticated, refreshUser])
+
+  useEffect(() => {
+    const sections = ['profile', 'security', 'preferences', 'plan', 'policy']
+      .map(id => document.getElementById(id))
+      .filter((section): section is HTMLElement => section !== null)
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+      if (visible) setActiveSection(visible.target.id)
+    }, { rootMargin: '-20% 0px -65%', threshold: 0 })
+    sections.forEach(section => observer.observe(section))
+    return () => observer.disconnect()
+  }, [isAuthenticated])
 
   if (checkingSession && !user) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{experienceCopy[lang].loading}</main>
   if (!isAuthenticated || !user) return <Navigate to={enteredAuthenticated.current ? '/' : '/login?next=/account'} replace />
@@ -180,13 +195,46 @@ export default function Account() {
     }
   }
 
+  const setSecurityEmailAlerts = async () => {
+    const next = !(user.securityEmailNotifications ?? true)
+    setEmailAlertsSaving(true)
+    try {
+      await updateEmailPreferences(next)
+      toast(next ? tAccount.accountEmailAlertsOn : tAccount.accountEmailAlertsSavedOff, 'success')
+    } catch (error) {
+      toast(requestErrorMessage(error, lang, tAccount.accountEmailAlertsFailed))
+    } finally {
+      setEmailAlertsSaving(false)
+    }
+  }
+
+  const jumpToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setActiveSection(id)
+  }
+
+  const navItems = [
+    ['profile', tAccount.accountNavProfile],
+    ['security', tAccount.accountNavSecurity],
+    ['preferences', tAccount.accountNavPreferences],
+    ['plan', tAccount.accountNavPlan],
+    ['policy', tAccount.accountNavPolicy],
+  ] as const
+
   return (
     <div className="studio-account min-h-screen bg-[#FAFBFC]">
       <main id="main-content" tabIndex={-1} className="layout-app py-10 sm:py-16">
         <SessionNotice />
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{tAccount.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{tAccount.accountDesc}</p>
-        <form onSubmit={onSubmit} className="mt-8 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountTitle}>
+        <nav aria-label={tAccount.accountQuickNavLabel} className="mt-6 -mx-4 flex max-w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:max-w-2xl sm:px-0">
+          {navItems.map(([id, label]) => (
+            <button key={id} type="button" onClick={() => jumpToSection(id)} aria-current={activeSection === id ? 'true' : undefined} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors ${activeSection === id ? 'bg-brand-soft text-brand-dark' : 'bg-surface text-sub hover:text-ink'}`}>
+              {label}
+            </button>
+          ))}
+        </nav>
+        <form id="profile" onSubmit={onSubmit} className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountTitle}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 shrink-0">
@@ -304,7 +352,7 @@ export default function Account() {
           )}
         </form>
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
+        <section id="plan" className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPlanTitle}</h2>
@@ -324,6 +372,7 @@ export default function Account() {
           </div>
         </section>
 
+        <div id="security" className="scroll-mt-6">
         {user.hasPassword && (
           <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountSecurityTitle}>
             <div className="flex items-start justify-between gap-4">
@@ -405,7 +454,21 @@ export default function Account() {
 
         <DeviceSessions />
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPolicyTitle}>
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountEmailAlertsTitle}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-ink">{tAccount.accountEmailAlertsTitle}</h2>
+              <p className="mt-1 text-sm leading-6 text-sub">{tAccount.accountEmailAlertsDesc}</p>
+              {!(user.securityEmailNotifications ?? true) && <p className="mt-2 text-sm font-semibold text-amber-700 dark:text-amber-300">{tAccount.accountEmailAlertsOff}</p>}
+            </div>
+            <button type="button" role="switch" aria-checked={user.securityEmailNotifications ?? true} aria-label={tAccount.accountEmailAlertsTitle} disabled={emailAlertsSaving} onClick={() => void setSecurityEmailAlerts()} className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${(user.securityEmailNotifications ?? true) ? 'bg-action' : 'bg-gray-200'}`}>
+              {emailAlertsSaving ? <Loader2 className="mx-auto h-4 w-4 animate-spin text-white" /> : <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${(user.securityEmailNotifications ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />}
+            </button>
+          </div>
+        </section>
+        </div>
+
+        <section id="policy" className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPolicyTitle}>
           <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPolicyTitle}</h2>
           <p className="mt-1 text-sm text-sub">{tAccount.accountPolicyDesc}</p>
           <div className="mt-5 divide-y divide-gray-100">
@@ -422,8 +485,18 @@ export default function Account() {
           </div>
         </section>
 
-        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountThemeTitle}>
-          <div className="flex items-center justify-between gap-4">
+        <section id="preferences" className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountThemeTitle}>
+          <div className="flex items-center justify-between gap-4 border-b border-line pb-5">
+            <div>
+              <h2 className="text-lg font-extrabold text-ink">{tAccount.accountLanguageTitle}</h2>
+              <p className="mt-1 text-sm text-sub">{tAccount.accountLanguageDesc}</p>
+            </div>
+            <label className="sr-only" htmlFor="account-language">{tAccount.accountLanguageTitle}</label>
+            <select id="account-language" value={lang} onChange={event => setLang(event.target.value as typeof lang)} className="rounded-control border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-ink outline-none focus:border-brand dark:bg-surface">
+              {SITE_LANGS.map(option => <option key={option.code} value={option.code}>{option.label}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-5">
             <div>
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountThemeTitle}</h2>
               <p className="mt-1 text-sm text-sub">{tAccount.accountThemeDesc}</p>

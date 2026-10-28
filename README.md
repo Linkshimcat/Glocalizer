@@ -28,7 +28,7 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 - **다국어 현지화(EN/JA/ZH)**: 원문의 존댓말·타이핑 감정 표현(ㅋㅋ/ㅠㅠ 등)까지 반영해 번역하고, 후보 3안 중 베스트를 추천
 - **AI 문구 추천**: 글자가 없어 OCR이 한글 문구를 찾지 못한 이모티콘은 "번역 실패"로 끝내지 않고, AI가 표정·동작·상황을 분석해 한국어 문구 3안을 추천함. 고르거나 직접 입력한 문구는 기존 OCR 영역 추가 흐름을 그대로 타고 번역·배경 정리·에디터로 이어짐
 - **클라우드 작업 저장**: 로그인 후 진행 중인 프로젝트가 자동 저장돼 다른 기기·세션에서 이어서 작업할 수 있고, 완료된 프로젝트는 보관함에서 다시 열람 가능
-- **이메일 · 네이버 · 구글 로그인**: 가입 시 이용약관·개인정보처리방침 동의를 받고, 신규 가입자에게 서비스 안내 환영 메일을 발송함(SMTP 미설정 시 메일만 건너뛰고 가입은 정상 동작)
+- **이메일 · 네이버 · 구글 로그인**: 가입 시 이용약관·개인정보처리방침 동의를 받고, 신규 가입자에게 환영 메일을 발송하며 새 브라우저 로그인·비밀번호 변경·다른 기기 로그아웃 완료를 보안 이메일로 알림(SMTP 미설정 시 메일만 건너뛰고 가입은 정상 동작)
 - **OGQ 마켓 연동**: 랜딩페이지 예시 갤러리, 업로드 페이지 샘플 체험, 완료된 프로젝트·직접 업로드 이미지의 OGQ 규격 검사, 유사 스티커 검색, AI 심층 검토, 출시 체크리스트("OGQ 출시 검토")
 - **AI 캐릭터 생성**: 텍스트 설명(카테고리·스타일 선택 포함)과 선택적 참고 이미지로 오리지널 캐릭터의 대표 이미지 1장 + 표정 23종을 자동 생성해 OGQ용 24장 세트를 만들고, 여러 캐릭터를 한 번에 이어서 생성할 수도 있음. 비용 보호를 위해 `ENABLE_IMAGE_GENERATION=true`와 `OPENAI_API_KEY`가 있는 환경에서만 켜지며 일일 예산 한도가 적용됨(저장소 기본값은 꺼짐)
 - **사이트 환경**: 한국어·영어·일본어·중국어 화면, 라이트·다크 모드(설정에서 선택), 멤버십 가격 안내·TossPayments 테스트 결제 흐름(`/pricing`), 공개 페이지의 빌드 시 프리렌더(SEO·초기 로딩)
@@ -384,7 +384,7 @@ flowchart TB
 | OCR · 이미지 처리 | PaddleOCR(Python), OpenCV, Sharp |
 | AI 모델 | OpenAI GPT-5.6 · GPT-5.6 Luna · gpt-image-2.5-sunburst, Groq Qwen3.8 27B(Vision·문구 추천), Google Gemini 2.5 Flash |
 | 인증 | 이메일(자체 JWT), 네이버 로그인, 구글 로그인(Supabase Auth) |
-| 메일 | Nodemailer(SMTP) — 가입 환영 메일 |
+| 메일 | Nodemailer(SMTP) — 환영·보안 이메일 |
 | SEO·성능 | 공개 페이지 빌드 시 프리렌더(Vite SSR 빌드 + `scripts/prerender.mjs`), 라우트별 코드 분할 |
 | 배포 | Frontend → Vercel, Backend → Render, DB·Storage·Auth → Supabase |
 | Design | Figma, Claude Design |
@@ -400,7 +400,7 @@ flowchart TB
 #    - OpenAI API 키는 OCR_PROVIDER=luna 또는 TRANSLATION_PROVIDER=openai일 때 필요
 #      (저장소 기본값은 각각 paddle/groq라 OPENAI_API_KEY 없이도 로컬 실행 가능. AI 캐릭터 생성은
 #      ENABLE_IMAGE_GENERATION=true + OPENAI_API_KEY가 있을 때만 켜짐)
-#    - 선택: OGQ_API_KEY(OGQ 갤러리·한국 인기 탭·유사 스티커 검색), SMTP_USER/SMTP_PASS(가입 환영 메일),
+#    - 선택: OGQ_API_KEY(OGQ 갤러리·한국 인기 탭·유사 스티커 검색), SMTP_USER/SMTP_PASS(환영·보안 이메일),
 #      NAVER_CLIENT_ID/SECRET(네이버 로그인), 프론트 VITE_GOOGLE_CLIENT_ID(구글 로그인)
 
 git clone https://github.com/Linkshimcat/Glocalizer.git
@@ -486,7 +486,7 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | pino / pino-http / pino-pretty | ^10.3.1 / ^11.0.0 / ^13.1.3 | MIT | 구조화 로깅과 개발용 출력 |
 | zod | ^4.4.3 | MIT | 요청·환경변수 스키마 검증 |
 | dotenv | ^17.4.2 | BSD-2-Clause | 로컬 환경변수 로드 |
-| nodemailer | 10.0.10 | MIT-0 | 가입 환영 메일 SMTP 발송 |
+| nodemailer | 10.0.10 | MIT-0 | 환영·보안 이메일 SMTP 발송 |
 | sharp | ^0.35.3 | Apache-2.0 | 이미지 디코딩·마스킹·합성 |
 | supertest / vitest / tsx | ^7.2.2 / ^4.1.10 / ^4.23.1 | MIT | 통합 테스트, 테스트 러너, TypeScript 실행 |
 | typescript | ^7.0.2 | Apache-2.0 | 정적 타입 검사와 빌드 |
