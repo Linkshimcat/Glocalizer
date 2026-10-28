@@ -35,6 +35,8 @@
 .main-restyle .remake-scene-copy { position: relative; z-index: 3; min-width: 0; animation: remake-copy-in .5s cubic-bezier(.22,1,.36,1) both; }
 .main-restyle .remake-scene-copy h2 { margin-top: 20px; font-size: clamp(38px,3.5vw,54px); letter-spacing: -.045em; line-height: 1.16; font-weight: 800; word-break: keep-all; overflow-wrap: normal; }
 .main-restyle .remake-scene-copy > div:not(.remake-scene-progress) { max-width: 380px; margin-top: 22px; color: #d6e5dc; font-size: 18px; font-weight: 400; line-height: 1.7; word-break: keep-all; }
+.main-restyle .remake-scene-copy-stack { display: contents; }
+.main-restyle .remake-scene-copy-sizer { display: none; }
 .main-restyle .remake-scene-progress { display: flex; width: min(100%,160px); gap: 6px; margin-top: 28px; }
 .main-restyle .remake-scene-progress span { height: 4px; flex: 1; border-radius: 4px; background: rgba(255,255,255,.35); transition: background-color .25s; }
 .main-restyle .remake-scene-progress span[data-active="true"] { background: #fff; }
@@ -108,6 +110,9 @@
   .main-restyle .remake-story-sticky { padding: 24px; }
   .main-restyle .remake-story-scene { height: 100%; grid-template-columns: 1fr; grid-template-rows: auto minmax(0,1fr); justify-items: center; gap: 16px; }
   .main-restyle .remake-scene-copy { width: 100%; text-align: center; }
+  .main-restyle .remake-scene-copy-stack { display: grid; width: 100%; }
+  .main-restyle .remake-scene-copy-stack > .remake-scene-copy { grid-area: 1 / 1; }
+  .main-restyle .remake-scene-copy-sizer { display: block; visibility: hidden; animation: none; pointer-events: none; }
   .main-restyle .remake-scene-copy h2 { font-size: clamp(30px,4.4vw,40px); margin-top: 8px; }
   .main-restyle .remake-scene-copy > div:not(.remake-scene-progress) { max-width: 560px; margin: 12px auto 0; font-size: 16px; }
   .main-restyle .remake-scene-progress { margin: 16px auto 0; }

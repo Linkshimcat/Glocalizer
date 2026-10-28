@@ -566,14 +566,22 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
     storyRef.current?.scrollIntoView({ behavior })
   }
 
+  const renderSceneCopy = (index: number, sizer = false) => (
+    <div className={sizer ? 'remake-scene-copy remake-scene-copy-sizer' : 'remake-scene-copy'} key={`${sizer ? 'sizer-' : ''}${lang}-${index}`} aria-hidden={sizer || undefined}>
+      <h2>{copy.scenes[index].title.split('\n').map(line => <span key={line}>{line}</span>)}</h2>
+      <div>{copy.scenes[index].description}</div>
+      <div className="remake-scene-progress" aria-hidden>
+        {copy.scenes.map((item, step) => <span key={item.title} data-active={step <= index} />)}
+      </div>
+    </div>
+  )
+
   const renderStoryScene = (index: number) => (
     <div className="remake-story-scene" key={staticStory ? index : 'active'}>
-      <div className="remake-scene-copy" key={`${lang}-${index}`}>
-        <h2>{copy.scenes[index].title.split('\n').map(line => <span key={line}>{line}</span>)}</h2>
-        <div>{copy.scenes[index].description}</div>
-        <div className="remake-scene-progress" aria-hidden>
-          {copy.scenes.map((item, step) => <span key={item.title} data-active={step <= index} />)}
-        </div>
+      {/* 문구 길이가 장면마다 달라 폰 목업이 남는 높이에 맞춰 커졌다 작아졌다 하므로, 보이지 않는 다른 장면 문구를 같은 칸에 겹쳐 가장 긴 문구 높이로 고정한다. */}
+      <div className="remake-scene-copy-stack">
+        {!staticStory && copy.scenes.map((_, step) => step !== index && renderSceneCopy(step, true))}
+        {renderSceneCopy(index)}
       </div>
       <div className="remake-device-wrap">
         <div className="remake-device">
