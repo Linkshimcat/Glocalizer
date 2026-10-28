@@ -1,5 +1,5 @@
 import { requestErrorMessage } from '../lib/requestError'
-import { ArrowRight, Globe2, Loader2, Pencil, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Globe2, Loader2, Pencil, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { deleteCloudProject, listCloudProjects, renameCloudProject, type CloudProject } from '../lib/api'
@@ -8,6 +8,7 @@ import { filterProjects, libraryProjects, type LibraryProject } from '../lib/pro
 import { experienceCopy } from '../i18n/experience'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { cloudCopy } from '../i18n/cloud'
+import { qaCopy } from '../i18n/qa'
 import { useAuth } from '../store/AuthContext'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import Button from './Button'
@@ -172,7 +173,7 @@ export default function ProjectLibrary({ archive = false, loginMessage }: { arch
         return <article key={project.key} data-project-key={project.key} className="project-library-card">
           <button type="button" className="project-library-preview" aria-label={`${project.name} ${tCloud.cloudOpen}`} disabled={busy} onClick={() => { void open(project) }}>{cloud?.thumbnailUrl ? <img src={cloud.thumbnailUrl} alt="" loading="lazy" decoding="async" /> : thumbnail?.url ? <StickerThumbnail image={thumbnail} /> : <Icon size={28} aria-hidden="true" />}</button>
           <div className="project-library-info"><p className="text-xs text-sub">{copy[project.kind]}</p><h3 title={project.name}>{project.name}</h3><p className="project-library-status" data-state={project.needsAttention ? 'attention' : project.status}>{copy[project.status]}{project.needsAttention && project.status !== 'attention' ? ` · ${copy.attention}` : ''}</p><p className="text-sm text-sub">{cloud ? t.hubFiles.replace('{n}', String(project.imageCount)) : `${project.imageCount}/24`}{cloud && cloud.targetLanguages.length ? ` · ${LANGUAGES.filter(item => cloud.targetLanguages.includes(item.code)).map(item => item.label).join(' · ')}` : ''}</p><p className="text-xs text-sub">{copy.latest} · {new Date(project.createdAt).toLocaleDateString(lang)}</p></div>
-          <div className="project-library-actions"><Button disabled={busy} onClick={() => { void open(project) }}>{opening === project.key ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} aria-hidden="true" />}{archive ? tCloud.cloudOpen : t.hubContinue}</Button><details><summary aria-label={`${project.name} ${copy.details}`}>{copy.details}</summary><div><Button variant="ghost" disabled={busy} onClick={() => { setTarget({ project, action: 'rename' }); setName(project.kind === 'generation' ? (project.source as GenerationProject).name ?? '' : project.name) }}><Pencil size={16} aria-hidden="true" />{tCloud.cloudRename}</Button><Button variant="ghost" disabled={busy} onClick={() => setTarget({ project, action: 'delete' })}><Trash2 size={16} aria-hidden="true" />{tCloud.cloudDelete}</Button></div></details></div>
+          <div className="project-library-actions"><Button disabled={busy} onClick={() => { void open(project) }}>{opening === project.key ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} aria-hidden="true" />}{archive ? tCloud.cloudOpen : t.hubContinue}</Button><details><summary aria-label={`${project.name} ${copy.details}`}>{copy.details}</summary><div>{cloud && <Button variant="ghost" disabled={busy} onClick={() => navigate(`/qa?projectId=${encodeURIComponent(cloud.id)}`)}><CheckCircle2 size={16} aria-hidden="true" />{qaCopy(lang).qaEntryOpen}</Button>}<Button variant="ghost" disabled={busy} onClick={() => { setTarget({ project, action: 'rename' }); setName(project.kind === 'generation' ? (project.source as GenerationProject).name ?? '' : project.name) }}><Pencil size={16} aria-hidden="true" />{tCloud.cloudRename}</Button><Button variant="ghost" disabled={busy} onClick={() => setTarget({ project, action: 'delete' })}><Trash2 size={16} aria-hidden="true" />{tCloud.cloudDelete}</Button></div></details></div>
         </article>
       })}</div>
     </>}

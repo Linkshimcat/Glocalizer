@@ -1,6 +1,6 @@
 import { BrainCircuit, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import StateNotice from '../components/StateNotice'
 import SessionNotice from '../components/SessionNotice'
@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast'
 import OgqSpecChecker, { type OgqProjectImage } from '../components/OgqSpecChecker'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { reviewCopy } from '../i18n/review'
+import { qaCopy } from '../i18n/qa'
 import { cloudCopy } from '../i18n/cloud'
 import {
   fetchOgqStickers,
@@ -58,6 +59,7 @@ export default function Review() {
   const { isAuthenticated, token } = useAuth()
   const { t, lang } = useSiteLang()
   const tReview = reviewCopy(lang)
+  const tQa = qaCopy(lang)
   const tCloud = cloudCopy(lang)
   const copy = experienceCopy[lang]
   const { flushCloudWork, openCloudProject } = useUploads()
@@ -71,6 +73,7 @@ export default function Review() {
   const [projects, setProjects] = useState<ReviewProject[] | null>(null)
   const [projectsFailed, setProjectsFailed] = useState(false)
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
+  const selectedLocalizations = (projects ?? []).filter((item): item is Extract<ReviewProject, { kind: 'localization' }> => item.kind === 'localization' && selectedKeys.includes(item.key))
   const [projectImages, setProjectImages] = useState<OgqProjectImage[]>([])
   const [loadingWorkspace, setLoadingWorkspace] = useState(false)
   const [workspaceFailed, setWorkspaceFailed] = useState(false)
@@ -274,6 +277,24 @@ export default function Review() {
             </section>
 
             {selectedKeys.length > 0 && <nav aria-label={t.hubReview} className="my-8 flex flex-wrap gap-6"><a className="ui-link" href="#review-specs">{copy.reviewTypes[0]}</a><a className="ui-link" href="#review-similar">{copy.reviewTypes[1]}</a><a className="ui-link" href="#review-ai">{copy.reviewTypes[2]}</a></nav>}
+            {/* 본선 FEAT-02: 선택한 현지화 프로젝트의 QA Board 진입점 */}
+            {selectedLocalizations.length > 0 && (
+              <section id="review-qa" className="mt-10">
+                <h2 className="text-lg font-bold">{tQa.qaEntryTitle}</h2>
+                <p className="mt-1 text-sm font-medium text-sub">{tQa.qaEntryDesc}</p>
+                <ul className="mt-4 flex flex-wrap gap-3">
+                  {selectedLocalizations.map(item => (
+                    <li key={item.key}>
+                      <Link to={`/qa?projectId=${encodeURIComponent(item.project.id)}`} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-gray-200 px-4 text-sm font-bold hover:border-brand">
+                        <CheckCircle2 className="h-4 w-4 text-brand" aria-hidden="true" />
+                        <span className="max-w-[16rem] truncate">{item.project.name}</span>
+                        <span className="text-sub">· {tQa.qaEntryOpen}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             <OgqSpecChecker projectImages={projectImages} />
             {selectedKeys.length > 0 && (
               <section id="review-similar" className="mt-10">

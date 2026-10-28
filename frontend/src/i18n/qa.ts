@@ -43,6 +43,9 @@ const copy = {
   qaRecommendation: ['조치', 'What to do', '対処', '处理方法'],
   qaFixInEditor: ['에디터에서 고치기', 'Fix in editor', 'エディターで直す', '在编辑器中修改'],
   qaImageCount: ['이미지', 'Images', '画像', '图片'],
+  qaEntryTitle: ['QA 검사 결과', 'QA results', 'QA検査結果', 'QA 检查结果'],
+  qaEntryDesc: ['선택한 현지화 프로젝트의 이미지별 판정과 근거를 확인하고, 문제가 있는 곳을 에디터에서 바로 고쳐요.', 'See per-image verdicts and evidence for the selected localization projects, and jump to the editor to fix issues.', '選択したローカライズプロジェクトの画像ごとの判定と根拠を確認し、問題箇所をエディターですぐ直せます。', '查看所选本地化项目的逐图判定与依据，并直接在编辑器中修改问题。'],
+  qaEntryOpen: ['QA 검사 결과 보기', 'Open QA results', 'QA検査結果を見る', '查看 QA 检查结果'],
 }
 
 export function qaCopy(lang: SiteLang) {
