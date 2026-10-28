@@ -1,5 +1,5 @@
 import { Loader2, RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../../components/Button'
 import Footer from '../../components/Footer'
@@ -7,6 +7,7 @@ import StateNotice from '../../components/StateNotice'
 import { useToast } from '../../components/Toast'
 import { useSiteLang } from '../../i18n/LanguageContext'
 import { qaCopy } from '../../i18n/qa'
+import { trackEvent } from '../../lib/analytics'
 import { restoreCloudProject, type CloudWorkspace } from '../../lib/api'
 import { RequestError, requestErrorMessage } from '../../lib/requestError'
 import { useAuth } from '../../store/AuthContext'
@@ -45,6 +46,7 @@ export default function QaBoardPage() {
   const [running, setRunning] = useState(false)
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const reviewedProject = useRef<string | null>(null)
 
   const load = useCallback(async () => {
     if (mock) {
@@ -72,6 +74,11 @@ export default function QaBoardPage() {
         throw error
       })
       setQa(response)
+      // 본선 C-04: 실제 프로젝트의 검사 결과를 연 횟수(목업은 세지 않음). 프로젝트당 한 번만.
+      if (reviewedProject.current !== projectId) {
+        reviewedProject.current = projectId
+        trackEvent('qa_reviewed', { projectId, imageCount: restored.results.assets.length })
+      }
     } catch (error) {
       setLoadError(requestErrorMessage(error, lang, copy.qaLoadFailed))
     } finally {

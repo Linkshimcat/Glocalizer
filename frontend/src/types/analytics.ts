@@ -34,6 +34,14 @@ export interface ProofPercentiles {
   sampleCount: number
 }
 
+/**
+ * GET /api/v1/proof/export.csv 열(제안, 윤재 확인 필요). scripts/verify-proof.mjs가 이 열로
+ * summary를 다시 계산해 화면 숫자와 맞는지 점검한다(QA-02).
+ * event_name,client_event_id,occurred_at,experiment_group,project_id,duration_ms,image_count,stage
+ * - stage: 워커가 기록하는 단계 시간 행만 'ocr' | 'translation' | 'cleanup' | 'total', 나머지는 빈 값
+ */
+export const PROOF_CSV_COLUMNS = ['event_name', 'client_event_id', 'occurred_at', 'experiment_group', 'project_id', 'duration_ms', 'image_count', 'stage'] as const
+
 /** GET /api/v1/proof/summary 응답 */
 export interface ProofSummary {
   groups: ExperimentGroup[]

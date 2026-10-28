@@ -2,6 +2,7 @@ import type { DemoItem } from '../data/demo'
 import { OGQ_CATEGORY_DIMENSIONS } from './ogqSpecCheck'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from './style'
 import { wrapTextToWidth } from './textWrap'
+import { currentCloudProjectId, trackEvent } from './analytics'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 기본 512px 정사각 캔버스로 합성 */
 const CANVAS_SIZE = 512
@@ -279,7 +280,26 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
   })
 }
 
+/**
+ * 본선 C-04 내보내기 이벤트. 미리보기(usePngPreview)도 renderItemToPng를 쓰므로 렌더가 아니라
+ * 실제 다운로드 순간(downloadBlob)에 성공을 센다. ZIP은 생성 시작 시각과 장 수를 기억해 둔다.
+ * 단일 PNG 렌더 실패는 미리보기 실패와 구분할 수 없어 export_failed로 세지 않는다.
+ */
+let pendingZipExport: { startedAt: number; imageCount: number } | null = null
+
+function trackExportSucceeded(filename: string) {
+  const isZip = filename.toLowerCase().endsWith('.zip')
+  const pending = isZip ? pendingZipExport : null
+  if (isZip) pendingZipExport = null
+  trackEvent('export_succeeded', {
+    projectId: currentCloudProjectId() ?? undefined,
+    imageCount: pending?.imageCount ?? 1,
+    ...(pending ? { durationMs: performance.now() - pending.startedAt } : {}),
+  })
+}
+
 export function downloadBlob(blob: Blob, filename: string) {
+  trackExportSucceeded(filename)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -307,14 +327,23 @@ export async function zipLocalizedItems(
   styles: Record<string, Record<string, Style>>,
   preset: OutputPreset = 'default',
 ): Promise<Blob> {
-  const { default: JSZip } = await import('jszip')
-  const zip = new JSZip()
-  for (const { languageCode, items } of itemsByLanguage) {
-    for (const item of items) {
-      const style = imageStyleForItem(item, languageCode, styles)
-      const overlays = textOverlaysForItem(item, languageCode, styles)
-      zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays, preset))
+  const startedAt = performance.now()
+  const imageCount = itemsByLanguage.reduce((sum, group) => sum + group.items.length, 0)
+  try {
+    const { default: JSZip } = await import('jszip')
+    const zip = new JSZip()
+    for (const { languageCode, items } of itemsByLanguage) {
+      for (const item of items) {
+        const style = imageStyleForItem(item, languageCode, styles)
+        const overlays = textOverlaysForItem(item, languageCode, styles)
+        zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays, preset))
+      }
     }
+    const blob = await zip.generateAsync({ type: 'blob' })
+    pendingZipExport = { startedAt, imageCount }
+    return blob
+  } catch (error) {
+    trackEvent('export_failed', { projectId: currentCloudProjectId() ?? undefined, imageCount, durationMs: performance.now() - startedAt })
+    throw error
   }
-  return zip.generateAsync({ type: 'blob' })
 }
