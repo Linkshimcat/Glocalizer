@@ -16,6 +16,7 @@ import { OUTPUT_PRESETS, type OutputPreset } from '../lib/exportImage'
 import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
 import { pickFontByStyle } from '../data/demo'
+import { loadDefaultTargetLangCodes } from '../lib/defaultLanguages'
 import {
   explainJapaneseText,
   type JapaneseMeaning,
@@ -114,6 +115,12 @@ export const LANGUAGES: Language[] = [
   { code: 'ja', flag: '🇯🇵', label: '日本語' },
   { code: 'zh', flag: '🇨🇳', label: '中文 (简体)' },
 ]
+
+/** 설정 페이지에서 고른 기본 번역 언어. 없으면 아무것도 미리 선택하지 않는다. */
+function defaultTargetLangs(): Language[] {
+  const codes = loadDefaultTargetLangCodes()
+  return LANGUAGES.filter(language => codes.includes(language.code))
+}
 
 /* ── 클라우드 작업 포인터 및 이전 탭 저장 데이터 정리 ─────────────── */
 
@@ -217,7 +224,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
   const [files, setFiles] = useState<UploadFile[]>([])
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>([])
-  const [targetLangs, setTargetLangs] = useState<Language[]>([])
+  const [targetLangs, setTargetLangs] = useState<Language[]>(defaultTargetLangs)
   const [styles, setStyles] = useState<StylesByLanguage>({})
   const [projectId, setProjectId] = useState<string | null>(null)
   const [projectToken, setProjectToken] = useState<string | null>(null)
@@ -244,7 +251,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setCloudError(null)
     setFiles([])
     setSelectedFileIds([])
-    setTargetLangs([])
+    setTargetLangs(defaultTargetLangs())
     setStyles({})
     setProjectId(null)
     setProjectToken(null)

@@ -13,6 +13,15 @@ export interface AuthUser {
   hasGoogle?: boolean
   hasKakao?: boolean
   securityEmailNotifications?: boolean
+  securityEmailTypes?: SecurityEmailTypes
+  /** 이전 버전 localStorage에는 없을 수 있다. */
+  createdAt?: string
+}
+
+export interface SecurityEmailTypes {
+  newDeviceLogin: boolean
+  passwordChanged: boolean
+  otherSessionsSignedOut: boolean
 }
 
 interface AuthResult {
@@ -140,11 +149,15 @@ export function updateProfile(token: string, update: ProfileUpdate): Promise<{ u
   })
 }
 
-export function updateEmailPreferences(token: string, securityEmailNotifications: boolean): Promise<{ user: AuthUser }> {
+export interface EmailPreferencePatch extends Partial<SecurityEmailTypes> {
+  securityEmailNotifications?: boolean
+}
+
+export function updateEmailPreferences(token: string, patch: EmailPreferencePatch): Promise<{ user: AuthUser }> {
   return authRequest<{ user: AuthUser }>('/auth/me/email-preferences', {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ securityEmailNotifications }),
+    body: JSON.stringify(patch),
   })
 }
 
@@ -212,4 +225,52 @@ export function submitFeedback(token: string, category: FeedbackCategory, messag
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ category, message }),
   })
+}
+
+export interface AccountSummary {
+  projectCount: number
+  completedProjectCount: number
+  lastActivityAt: string | null
+}
+
+export async function getAccountSummary(token: string): Promise<AccountSummary> {
+  return (await authRequest<{ summary: AccountSummary }>('/auth/me/summary', { headers: { Authorization: `Bearer ${token}` } })).summary
+}
+
+export interface LoginRecord {
+  id: string
+  deviceLabel: string | null
+  ipMasked: string | null
+  loginMethod: 'email' | 'naver' | 'google' | 'kakao'
+  createdAt: string
+  current: boolean
+  active: boolean
+}
+
+export async function getLoginHistory(token: string): Promise<LoginRecord[]> {
+  return (await authRequest<{ history: LoginRecord[] }>('/auth/login-history', { headers: { Authorization: `Bearer ${token}` } })).history
+}
+
+export interface PaymentRecord {
+  orderId: string
+  planName: string
+  amount: number
+  status: 'processing' | 'done' | 'failed' | 'canceled'
+  method: string | null
+  approvedAt: string | null
+  createdAt: string
+}
+
+export async function getPayments(token: string): Promise<PaymentRecord[]> {
+  return (await authRequest<{ payments: PaymentRecord[] }>('/payments', { headers: { Authorization: `Bearer ${token}` } })).payments
+}
+
+/** 내 데이터 사본(JSON)을 파일로 받는다. */
+export async function downloadMyData(token: string): Promise<Blob> {
+  const response = await apiFetch(`${API_BASE_URL}/auth/me/export`, { headers: { Authorization: `Bearer ${token}` } })
+  if (!response.ok) {
+    const error = await responseFailure(response, '요청에 실패했어요.')
+    throw new AuthApiError(error.message, error.status, error.code, error.retryAfterSeconds)
+  }
+  return response.blob()
 }
