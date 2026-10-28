@@ -1,9 +1,9 @@
 import { authEntryRateLimit, passwordRateLimit } from '../middleware/auth-rate-limit.middleware.js';
 import { Router } from 'express';
-import { changePasswordHandler, deleteAccountHandler, googleLoginHandler, kakaoCallbackHandler, listSessionsHandler, loginHandler, logoutHandler, meHandler, naverCallbackHandler, revokeOtherSessionsHandler, revokeSessionHandler, signupHandler, updateProfileHandler } from '../controllers/auth.controller.js';
+import { changePasswordHandler, deleteAccountHandler, googleLoginHandler, kakaoCallbackHandler, listSessionsHandler, loginHandler, logoutHandler, meHandler, naverCallbackHandler, revokeOtherSessionsHandler, revokeSessionHandler, signupHandler, updateEmailPreferencesHandler, updateProfileHandler } from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
-import { changePasswordSchema, googleLoginSchema, kakaoCallbackSchema, loginSchema, naverCallbackSchema, sessionIdParamsSchema, signupSchema, updateProfileSchema } from '../schemas/auth.schema.js';
+import { changePasswordSchema, emailPreferencesSchema, googleLoginSchema, kakaoCallbackSchema, loginSchema, naverCallbackSchema, sessionIdParamsSchema, signupSchema, updateProfileSchema } from '../schemas/auth.schema.js';
 import { asyncHandler } from '../utils/async-handler.js';
 
 export const authRouter = Router();
@@ -15,6 +15,7 @@ authRouter.post('/auth/kakao/callback', authEntryRateLimit, validate(kakaoCallba
 authRouter.post('/auth/google', authEntryRateLimit, validate(googleLoginSchema), asyncHandler(googleLoginHandler));
 authRouter.get('/auth/me', authMiddleware, asyncHandler(meHandler));
 authRouter.patch('/auth/me', authMiddleware, validate(updateProfileSchema), asyncHandler(updateProfileHandler));
+authRouter.patch('/auth/me/email-preferences', authMiddleware, validate(emailPreferencesSchema), asyncHandler(updateEmailPreferencesHandler));
 authRouter.patch('/auth/me/password', authMiddleware, passwordRateLimit, validate(changePasswordSchema), asyncHandler(changePasswordHandler));
 authRouter.delete('/auth/me', authMiddleware, asyncHandler(deleteAccountHandler));
 authRouter.post('/auth/logout', authMiddleware, asyncHandler(logoutHandler));

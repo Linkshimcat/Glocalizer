@@ -41,7 +41,7 @@ services:
         sync: false
       - key: NAVER_CLIENT_SECRET
         sync: false
-      # 가입 환영 메일 발송용 Gmail 계정과 앱 비밀번호(Google 계정 2단계 인증 후 발급, 계정
+      # 환영·보안 이메일 발송용 Gmail 계정과 앱 비밀번호(Google 계정 2단계 인증 후 발급, 계정
       # 비밀번호 아님). 미설정 시 메일 발송만 건너뛰고 가입·로그인은 정상 동작한다.
       - key: SMTP_USER
         sync: false

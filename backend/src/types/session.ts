@@ -29,4 +29,5 @@ export interface PublicSession {
 export interface SessionContext {
   userAgent?: string;
   ip?: string;
+  deviceId?: string;
 }

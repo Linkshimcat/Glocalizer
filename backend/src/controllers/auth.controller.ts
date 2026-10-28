@@ -1,10 +1,15 @@
 import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.middleware.js';
-import { changePassword, deleteAccount, getCurrentUser, getSessions, login, loginWithGoogle, loginWithKakao, loginWithNaver, logoutSession, revokeOtherUserSessions, revokeUserSession, signup, updateProfile } from '../services/auth.service.js';
+import { changePassword, deleteAccount, getCurrentUser, getSessions, login, loginWithGoogle, loginWithKakao, loginWithNaver, logoutSession, revokeOtherUserSessions, revokeUserSession, signup, updateEmailPreferences, updateProfile } from '../services/auth.service.js';
 import type { SessionContext } from '../types/session.js';
 
 function sessionContext(req: Request): SessionContext {
-  return { userAgent: req.get('user-agent') ?? undefined, ip: req.ip };
+  const deviceId = req.get('x-glocalizer-device-id');
+  return {
+    userAgent: req.get('user-agent') ?? undefined,
+    ip: req.ip,
+    deviceId: deviceId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(deviceId) ? deviceId : undefined,
+  };
 }
 
 export async function signupHandler(req: Request, res: Response) {
@@ -41,6 +46,11 @@ export async function meHandler(req: Request, res: Response) {
 
 export async function updateProfileHandler(req: Request, res: Response) {
   const user = await updateProfile(requireAuth(req).sub, req.body);
+  res.status(200).json({ user });
+}
+
+export async function updateEmailPreferencesHandler(req: Request, res: Response) {
+  const user = await updateEmailPreferences(requireAuth(req).sub, req.body);
   res.status(200).json({ user });
 }
 

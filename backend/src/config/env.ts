@@ -54,7 +54,7 @@ export const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value ? value : undefined)),
-  // 가입 환영 메일 발송용 SMTP. Gmail은 2단계 인증 후 발급한 앱 비밀번호를 SMTP_PASS에 넣는다.
+  // 환영·보안 이메일 발송용 SMTP. Gmail은 2단계 인증 후 발급한 앱 비밀번호를 SMTP_PASS에 넣는다.
   // 미설정 시 메일 발송만 건너뛰고 가입·로그인은 정상 동작한다. 도메인이 생기면 HOST/PORT만 바꿔 다른 SMTP로 옮길 수 있다.
   SMTP_USER: z
     .string()

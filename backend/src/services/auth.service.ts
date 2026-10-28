@@ -20,15 +20,17 @@ import {
   linkNaverProfile,
   updateUserPassword,
   updateUserProfile,
+  updateSecurityEmailNotifications,
 } from '../repositories/user.repository.js';
-import type { ChangePasswordInput, GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
+import type { ChangePasswordInput, EmailPreferencesInput, GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
 import { extendSession, insertSession, listActiveSessions, revokeOtherSessions, revokeSession } from '../repositories/session.repository.js';
+import { rememberDevice } from '../repositories/known-device.repository.js';
 import type { LoginMethod, PublicSession, SessionContext } from '../types/session.js';
 import type { PublicUser, UserRow } from '../types/user.js';
 import { parseDeviceLabel, maskIp } from '../utils/device-info.js';
 import { AUTH_TOKEN_TTL_SECONDS, signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
-import { sendWelcomeEmail } from './email.service.js';
+import { sendNewDeviceLoginEmail, sendOtherSessionsSignedOutEmail, sendPasswordChangedEmail, sendWelcomeEmail } from './email.service.js';
 
 async function fetchAuthProvider(url: string, init: RequestInit, failureCode: 'NAVER_LOGIN_FAILED' | 'KAKAO_LOGIN_FAILED' = 'NAVER_LOGIN_FAILED'): Promise<Response> {
   try { return await taskFetch(url, init); }
@@ -58,6 +60,7 @@ function toPublicUser(user: UserRow): PublicUser {
     hasKakao: user.kakao_id !== null,
     membershipPlan: user.membership_plan,
     membershipExpiresAt: user.membership_expires_at,
+    securityEmailNotifications: user.security_email_notifications ?? true,
   };
 }
 
@@ -74,9 +77,14 @@ function sessionDevice(context: SessionContext) {
   };
 }
 
-async function issueSession(user: UserRow, loginMethod: LoginMethod, context: SessionContext): Promise<AuthResult> {
+async function issueSession(user: UserRow, loginMethod: LoginMethod, context: SessionContext, notifyNewDevice: boolean): Promise<AuthResult> {
   if (user.deleting_at) throw new AppError('UNAUTHORIZED');
+  const isNewDevice = context.deviceId ? await rememberDevice(user.id, context.deviceId) : false;
   const session = await insertSession({ userId: user.id, loginMethod, expiresAt: sessionExpiry(), ...sessionDevice(context) });
+  if (notifyNewDevice && isNewDevice) {
+    const device = sessionDevice(context);
+    void sendNewDeviceLoginEmail(user, device.deviceLabel, device.ipMasked);
+  }
   return { token: signAuthToken({ sub: user.id, ver: user.session_version ?? 0, sid: session.id }), user: toPublicUser(user) };
 }
 
@@ -94,7 +102,7 @@ export async function signup(input: SignupInput, context: SessionContext = {}): 
   // 메일은 기다리지 않는다: 발송이 느리거나 실패해도 가입 응답에 영향을 주지 않는다.
   void sendWelcomeEmail(user);
 
-  return issueSession(user, 'email', context);
+  return issueSession(user, 'email', context, false);
 }
 
 export async function login(input: LoginInput, context: SessionContext = {}): Promise<AuthResult> {
@@ -103,7 +111,7 @@ export async function login(input: LoginInput, context: SessionContext = {}): Pr
     throw new AppError('INVALID_CREDENTIALS');
   }
 
-  return issueSession(user, 'email', context);
+  return issueSession(user, 'email', context, true);
 }
 
 export async function getCurrentUser(userId: string): Promise<PublicUser> {
@@ -138,6 +146,11 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
   return toPublicUser(await updateUserProfile(userId, { name: input.name, avatarUrl }));
 }
 
+export async function updateEmailPreferences(userId: string, input: EmailPreferencesInput): Promise<PublicUser> {
+  const user = await updateSecurityEmailNotifications(userId, input.securityEmailNotifications);
+  return toPublicUser(user);
+}
+
 export async function changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
   const user = await findUserById(userId);
   if (!user) throw new AppError('UNAUTHORIZED');
@@ -148,6 +161,7 @@ export async function changePassword(userId: string, input: ChangePasswordInput)
 
   await updateUserPassword(userId, await hashPassword(input.newPassword), user.session_version ?? 0);
   await revokeOtherSessions(userId, null);
+  void sendPasswordChangedEmail(user);
 }
 
 /** 로그인 중인 기기 목록. sid가 없는 현재 토큰(이전 방식)은 "이전 세션" 한 줄로 맨 앞에 보여준다. */
@@ -190,6 +204,7 @@ export async function revokeOtherUserSessions(userId: string, currentSid: string
   if (sid) await extendSession(sid, sessionExpiry());
   else sid = (await insertSession({ userId, loginMethod: user.signup_method, expiresAt: sessionExpiry(), ...sessionDevice(context) })).id;
 
+  void sendOtherSessionsSignedOutEmail(user);
   return { token: signAuthToken({ sub: userId, ver: version, sid }), user: toPublicUser({ ...user, session_version: version }) };
 }
 
@@ -219,6 +234,7 @@ export async function loginWithGoogle(input: GoogleLoginInput, context: SessionC
   const avatarUrl = identityString(identityData.avatar_url) ?? identityString(identityData.picture);
   const profile = { supabaseAuthId: authUser.id, email, name, avatarUrl };
 
+  let created = false;
   let user = await findUserBySupabaseAuthId(authUser.id);
   if (user) {
     user = await linkGoogleProfile(user, profile);
@@ -228,11 +244,12 @@ export async function loginWithGoogle(input: GoogleLoginInput, context: SessionC
       throw new AppError('ACCOUNT_LINK_REQUIRED');
     } else {
       user = await insertGoogleUser(profile);
+      created = true;
       void sendWelcomeEmail(user);
     }
   }
 
-  return issueSession(user, 'google', context);
+  return issueSession(user, 'google', context, !created);
 }
 
 interface NaverTokenResponse {
@@ -284,6 +301,7 @@ export async function loginWithNaver(code: string, state: string, context: Sessi
 
   // A matching email alone is not proof of ownership of an existing local account.
   // Only the already linked provider identity may authenticate that account.
+  let created = false;
   let user = await findUserByNaverId(profile.id);
   if (user) {
     user = await linkNaverProfile(user.id, {
@@ -297,11 +315,12 @@ export async function loginWithNaver(code: string, state: string, context: Sessi
       throw new AppError('ACCOUNT_LINK_REQUIRED');
     } else {
       user = await insertNaverUser({ naverId: profile.id, email, name, avatarUrl });
+      created = true;
       void sendWelcomeEmail(user);
     }
   }
 
-  return issueSession(user, 'naver', context);
+  return issueSession(user, 'naver', context, !created);
 }
 
 interface KakaoTokenResponse {
@@ -358,6 +377,7 @@ export async function loginWithKakao(code: string, redirectUri: string, context:
 
   // A matching email alone is not proof of ownership of an existing local account.
   // Only the already linked provider identity may authenticate that account.
+  let created = false;
   let user = await findUserByKakaoId(kakaoId);
   if (user) {
     user = await linkKakaoProfile(user.id, {
@@ -371,9 +391,10 @@ export async function loginWithKakao(code: string, redirectUri: string, context:
       throw new AppError('ACCOUNT_LINK_REQUIRED');
     } else {
       user = await insertKakaoUser({ kakaoId, email, name, avatarUrl });
+      created = true;
       void sendWelcomeEmail(user);
     }
   }
 
-  return issueSession(user, 'kakao', context);
+  return issueSession(user, 'kakao', context, !created);
 }
