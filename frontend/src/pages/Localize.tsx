@@ -9,7 +9,10 @@ import SessionNotice from '../components/SessionNotice'
 import OgqSamplePicker from '../components/OgqSamplePicker'
 import UploadSpecBadge from '../components/UploadSpecBadge'
 import { useToast } from '../components/Toast'
-import type { OgqSticker } from '../lib/api'
+import { saveProjectPersona, type OgqSticker } from '../lib/api'
+import PersonaFields from '../features/persona/PersonaFields'
+import { EMPTY_PERSONA, personaPayload, type PersonaDraft } from '../features/persona/persona'
+import { personaCopy } from '../i18n/persona'
 import { LANGUAGES, useUploads } from '../store/uploads'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { cloudCopy } from '../i18n/cloud'
@@ -59,6 +62,9 @@ export default function Localize() {
   const [showAllLangs, setShowAllLangs] = useState(false)
   const [showSamplePicker, setShowSamplePicker] = useState(false)
   const [selectingSampleId, setSelectingSampleId] = useState<string | null>(null)
+  const [persona, setPersona] = useState<PersonaDraft>(EMPTY_PERSONA)
+  // 한 번이라도 손댔을 때만 서버에 보낸다. 손대지 않았으면 지금과 똑같이 시작한다.
+  const personaTouched = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const desktopStartContainerRef = useRef<HTMLDivElement>(null)
   const desktopStartButtonWidthRef = useRef<number | null>(null)
@@ -119,6 +125,15 @@ export default function Localize() {
       })
     }
     try {
+      if (personaTouched.current) {
+        // saveDraft는 같은 내용이면 기존 초안 ID를 그대로 돌려주므로, startLocalization이 다시 불러도 프로젝트가 새로 생기지 않는다.
+        const projectId = await saveDraft()
+        try {
+          await saveProjectPersona(projectId, 'account', personaPayload(persona))
+        } catch {
+          throw new Error(personaCopy(lang).personaSaveFailed)
+        }
+      }
       await startLocalization()
       navigate('/caption-suggest')
     } catch (error) {
@@ -389,6 +404,11 @@ export default function Localize() {
               </button>
             )}
           </div>
+          <PersonaFields
+            value={persona}
+            onChange={next => { personaTouched.current = true; setPersona(next) }}
+            disabled={!hasFiles || starting}
+          />
         </section>
 
         {/* CTA */}

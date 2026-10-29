@@ -1,4 +1,4 @@
-import type { LocalizationOptions, TargetLanguage } from './project.js';
+import type { LocalizationOptions, ProjectPersona, TargetLanguage } from './project.js';
 
 export type { TargetLanguage } from './project.js';
 
@@ -18,6 +18,7 @@ export interface LocalizationPromptInput {
     audience: LocalizationOptions['audience'];
     translationStyle: LocalizationOptions['translationStyle'];
     siblingCaptions?: string[];
+    persona?: ProjectPersona | null;
   };
   constraints: {
     maxCharacters: number;

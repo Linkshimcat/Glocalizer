@@ -2,7 +2,7 @@ import { jobMutation } from './job-mutation.js';
 import { AppError } from '../errors/app-error.js';
 import { supabase } from '../config/supabase.js';
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
-import type { LocalizationOptions, ProjectRow, ProjectStatus, TargetLanguage } from '../types/project.js';
+import type { LocalizationOptions, ProjectPersona, ProjectRow, ProjectStatus, TargetLanguage } from '../types/project.js';
 
 interface CreateProjectInput {
   accessTokenHash: string;
@@ -62,6 +62,11 @@ export async function updateProjectStage(projectId: string, patch: ProjectStageU
 export async function renameProject(projectId: string, name: string | null): Promise<void> {
   const { error } = await supabase.from('projects').update({ name }).eq('id', projectId);
   if (error) throw new AppError('INTERNAL_ERROR', { cause: error.message }, '작업 이름 저장 실패');
+}
+
+export async function updateProjectPersona(projectId: string, persona: ProjectPersona | null): Promise<void> {
+  const { error } = await supabase.from('projects').update({ persona }).eq('id', projectId);
+  if (error) throw new AppError('INTERNAL_ERROR', { cause: error.message }, '캐릭터 페르소나 저장 실패');
 }
 
 export async function deleteProjectRow(projectId: string): Promise<void> {
