@@ -2,6 +2,9 @@ import sharp from 'sharp';
 import type { QaFinding } from '../types/qa.js';
 import { MARGIN_MIN_RATIO, OGQ_DIMENSIONS, OGQ_MAX_FILE_BYTES, OPAQUE_ALPHA_THRESHOLD, TRANSPARENT_ALPHA_THRESHOLD } from './constants.js';
 
+/** 내보낸 PNG를 읽지 못해 생긴 IMAGE_LOAD_FAILED를 파이프라인 실패와 구분하는 표시. 재검사 때 규격 판정을 이어받을지 정하는 데 쓴다. */
+export const SPEC_LOAD_FAILED_CRITERION = '내보낸 PNG 판독';
+
 interface PixelAnalysis {
   hasTransparency: boolean;
   /** 캐릭터 가장자리와 이미지 가장자리 사이의 최소 거리(px). 캐릭터 영역을 가를 수 없으면 null. */
@@ -49,7 +52,7 @@ export async function inspectSpec(imageId: string, buffer: Buffer): Promise<QaFi
     height = raw.info.height;
     pixels = analyzePixels(raw.data, width, height);
   } catch {
-    return [{ code: 'IMAGE_LOAD_FAILED', severity: 'fail', source: 'rule', imageId, message: '이미지를 읽을 수 없어 규격을 검사하지 못했습니다.', recommendation: '유효한 PNG 파일로 다시 내보내 주세요.' }];
+    return [{ code: 'IMAGE_LOAD_FAILED', severity: 'fail', source: 'rule', imageId, message: '이미지를 읽을 수 없어 규격을 검사하지 못했습니다.', criterion: SPEC_LOAD_FAILED_CRITERION, recommendation: '유효한 PNG 파일로 다시 내보내 주세요.' }];
   }
 
   const dimensionsOk = OGQ_DIMENSIONS.some((size) => size.width === width && size.height === height);
