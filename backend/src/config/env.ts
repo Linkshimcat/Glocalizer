@@ -178,6 +178,12 @@ export const envSchema = z.object({
     .positive()
     .default(30 * 60 * 1000),
 
+  // 팀원 계정 이메일(쉼표 구분). 이 계정의 분석 이벤트는 클라이언트가 보낸 값과 상관없이 internal로 저장해 실사용 지표에서 뺀다.
+  ANALYTICS_INTERNAL_EMAILS: z
+    .string()
+    .default('')
+    .transform((value) => value.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean)),
+
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
 }).refine(values => values.JOB_HEARTBEAT_INTERVAL_MS < values.JOB_STALE_AFTER_MS, { message: 'JOB_HEARTBEAT_INTERVAL_MS must be less than JOB_STALE_AFTER_MS', path: ['JOB_HEARTBEAT_INTERVAL_MS'] })

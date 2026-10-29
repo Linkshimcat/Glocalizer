@@ -36,8 +36,7 @@ beforeEach(() => {
   } as never);
 });
 
-// PR-0 스캐폴드: 계약 경로는 열어 두되 구현 전까지 501을 돌려준다. 구현이 들어오면 해당 줄을 실제 동작 테스트로 바꾼다.
-// QA 라우트는 구현됐고(qa-api.test.ts), 여기서는 인증·경로 검증만 남긴다.
+// PR-0 스캐폴드에서 열어 둔 경로는 모두 구현됐다(qa-api, events-proof-api 테스트). 여기서는 QA 경로의 인증·형식 검증만 남긴다.
 describe('본선 스캐폴드 라우트', () => {
   it('QA 라우트는 토큰이 없으면 401로 막는다 (스텁도 프로젝트 인증을 건너뛰지 않는다)', async () => {
     const res = await request(app).get(`/api/v1/projects/${PROJECT_ID}/qa`);
@@ -47,15 +46,5 @@ describe('본선 스캐폴드 라우트', () => {
   it('QA 라우트는 UUID가 아닌 projectId를 400으로 거절한다', async () => {
     const res = await request(app).get('/api/v1/projects/not-a-uuid/qa').set('X-Project-Token', TOKEN);
     expect(res.status).toBe(400);
-  });
-
-  it.each([
-    ['POST', '/api/v1/events'],
-    ['GET', '/api/v1/proof/summary'],
-    ['GET', '/api/v1/proof/export.csv'],
-  ] as const)('%s %s: 501을 반환한다', async (method, path) => {
-    const res = await request(app)[method.toLowerCase() as 'get' | 'post'](path);
-    expect(res.status).toBe(501);
-    expect(res.body.error.code).toBe('NOT_IMPLEMENTED');
   });
 });

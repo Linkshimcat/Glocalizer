@@ -12,7 +12,10 @@ import {
 import type { AssetRow } from '../../types/asset.js';
 import { MAX_CHARACTERS_BY_LANGUAGE } from '../../types/localization.js';
 import type { TargetLanguage } from '../../types/localization.js';
-import type { LocalizationOptions } from '../../types/project.js';
+import type { LocalizationOptions, ProjectPersona } from '../../types/project.js';
+
+/** 프로젝트 번역 옵션 + 캐릭터 페르소나. 페르소나는 프로젝트 단위로 저장돼 세트의 모든 캡션에 같이 쓰인다. */
+export type TranslationOptions = LocalizationOptions & { persona?: ProjectPersona | null };
 import type { OcrRegionRow } from '../../types/ocr.js';
 import { mapWithConcurrency } from '../../utils/concurrency.js';
 import { LOCALIZATION_PROMPT_VERSION } from '../prompts/prompt-version.js';
@@ -45,7 +48,7 @@ export interface AssetTranslationResult {
 function buildLocalizationInput(
   region: OcrRegionRow,
   targetLanguages: TargetLanguage[],
-  options: LocalizationOptions,
+  options: TranslationOptions,
   siblingCaptions: string[] = [],
 ): LocalizationBatchInput {
   return {
@@ -58,6 +61,7 @@ function buildLocalizationInput(
       audience: options.audience,
       translationStyle: options.translationStyle,
       siblingCaptions,
+      ...(options.persona ? { persona: options.persona } : {}),
     },
     constraintsByLanguage: Object.fromEntries(
       targetLanguages.map((languageCode) => [
@@ -75,7 +79,7 @@ function buildLocalizationInput(
 export async function localizeRegionForLanguages(
   region: OcrRegionRow,
   targetLanguages: TargetLanguage[],
-  options: LocalizationOptions,
+  options: TranslationOptions,
   siblingCaptions: string[] = [],
   suppliedContext?: TranslationExecutionContext,
 ): Promise<LanguageTranslationResult[]> {
@@ -246,7 +250,7 @@ export async function localizeRegionForLanguages(
 export async function runTranslationsForAsset(
   asset: AssetRow,
   targetLanguages: TargetLanguage[],
-  options: LocalizationOptions,
+  options: TranslationOptions,
 ): Promise<AssetTranslationResult> {
   const regions = (await findRegionsByAssetId(asset.id)).filter((region) => region.contains_korean);
   if (regions.length === 0) {
@@ -348,7 +352,7 @@ export async function runProjectTranslations(projectId: string): Promise<AssetTr
   const assets = await findAssetsByProjectAndStatus(projectId, ['ocr']);
   await updateProjectStage(projectId, { status: 'processing', stage: 'translating' });
   const results = await mapWithConcurrency(assets, env.AI_CONCURRENCY, (asset) =>
-    runTranslationsForAsset(asset, project.target_languages, project.localization_options),
+    runTranslationsForAsset(asset, project.target_languages, { ...project.localization_options, persona: project.persona ?? null }),
   );
 
   if (results.length > 0 && results.every((result) => result.status === 'failed')) {
@@ -395,8 +399,9 @@ export async function regenerateTranslation(
     );
   }
 
-  const options: LocalizationOptions = {
+  const options: TranslationOptions = {
     ...project.localization_options,
+    persona: project.persona ?? null,
     tone: overrides.tone ?? project.localization_options.tone,
     translationStyle: overrides.translationStyle ?? project.localization_options.translationStyle,
   };

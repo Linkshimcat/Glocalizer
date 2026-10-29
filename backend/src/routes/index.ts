@@ -10,6 +10,7 @@ import { feedbackRouter } from './feedback.routes.js';
 import { healthRouter } from './health.routes.js';
 import { ogqRouter } from './ogq.routes.js';
 import { paymentRouter } from './payment.routes.js';
+import { personaRouter } from './persona.routes.js';
 import { processRouter } from './process.routes.js';
 import { projectRouter } from './project.routes.js';
 import { proofRouter } from './proof.routes.js';
@@ -34,6 +35,7 @@ apiRouter.use(feedbackRouter);
 apiRouter.use(ogqRouter);
 apiRouter.use(paymentRouter);
 apiRouter.use(qaRouter);
+apiRouter.use(personaRouter);
 apiRouter.use(eventsRouter);
 apiRouter.use(proofRouter);
 

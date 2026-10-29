@@ -9,6 +9,14 @@ export interface LocalizationOptions {
   highQualityReview: boolean;
 }
 
+/** 캐릭터 말투 프로필. 번역의 말투에만 영향을 주고 의미 보존 규칙보다 앞서지 않는다. */
+export interface ProjectPersona {
+  personality?: string;
+  speechStyle?: string;
+  age?: string;
+  avoidExpressions?: string[];
+}
+
 export interface ProjectRow {
   deleting_at?: string | null;
   id: string;
@@ -27,4 +35,5 @@ export interface ProjectRow {
   name?: string | null;
   selected_client_ids?: string[] | null;
   result_ready?: boolean;
+  persona?: ProjectPersona | null;
 }

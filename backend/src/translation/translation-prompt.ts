@@ -21,6 +21,22 @@ const SYSTEM = [
   '- 죄송해요 ㅠㅠ -> en: ["I\'m so sorry T_T", "Sorry about that...", "I apologize"]; ja: ["ごめんなさい…", "本当にごめんね泣", "申し訳ありません"]; zh: ["对不起呜呜", "真的抱歉", "非常抱歉"]',
 ].join('\n');
 
+// 페르소나는 사용자 메시지에만 넣는다. 시스템 프롬프트의 우선순위(의미·감정 보존 > 자연스러움 > 길이 > 유머)는 그대로 두고,
+// 값은 JSON 문자열로 감싸 지시문과 섞이지 않게 한다. 페르소나가 없으면 프롬프트는 이전과 같다.
+function personaLines(persona: LocalizationBatchInput['context']['persona']): string[] {
+  if (!persona) return [];
+  const parts = [
+    ...(persona.personality ? [`personality=${JSON.stringify(persona.personality)}`] : []),
+    ...(persona.speechStyle ? [`speech style=${JSON.stringify(persona.speechStyle)}`] : []),
+    ...(persona.age ? [`age=${JSON.stringify(persona.age)}`] : []),
+    ...(persona.avoidExpressions?.length ? [`never use these expressions=${JSON.stringify(persona.avoidExpressions)}`] : []),
+  ];
+  if (parts.length === 0) return [];
+  return [
+    `Character persona (written in Korean): ${parts.join('; ')}. Use it ONLY for the voice and word choice, so every caption in the set sounds like the same character. It must never change the meaning or emotion of the source; if the persona's speech style conflicts with the source's politeness level, keep the source's politeness. Length limits still apply.`,
+  ];
+}
+
 export function buildTranslationMessages(input: LocalizationBatchInput): PromptMessage[] {
   const limits = input.targetLanguages.map(
     (languageCode) =>
@@ -35,6 +51,7 @@ export function buildTranslationMessages(input: LocalizationBatchInput): PromptM
       : []),
     `Requested languages and limits: ${limits.join('; ')}.`,
     `Context: tone=${input.context.tone}; audience=${input.context.audience}; style=${input.context.translationStyle}. These only shape playfulness when the source allows it; fidelity always comes first.`,
+    ...personaLines(input.context.persona),
     'JSON schema: {"translations":[{"languageCode":"en|ja|zh","candidates":[{"text":"string","tone":"string","meaning":"short Korean explanation of what this candidate conveys","best":true}],"recommendedStyle":{"fontCategory":"bold|comic|cute|handwriting|minimal","alignment":"left|center|right","strokeRecommended":false,"shadowRecommended":false}}]}',
   ].join('\n');
   return [

@@ -160,6 +160,19 @@ export async function startProject(projectId: string, token: string): Promise<vo
   await request(`/projects/${projectId}/process`, { method: 'POST' }, token)
 }
 
+/** 캐릭터 말투 프로필(모두 선택). 서버가 빈 칸을 빼고 저장하며, 다 비면 null로 지운다. */
+export interface ProjectPersona {
+  personality?: string
+  speechStyle?: string
+  age?: string
+  avoidExpressions?: string[]
+}
+
+export async function saveProjectPersona(projectId: string, token: string, persona: ProjectPersona | null): Promise<ProjectPersona | null> {
+  const result = await request<{ persona: ProjectPersona | null }>(`/projects/${projectId}/persona`, { method: 'PUT', body: JSON.stringify({ persona }) }, token)
+  return result.persona
+}
+
 export function getProjectStatus(projectId: string, token: string): Promise<ProjectStatus> {
   return request(`/projects/${projectId}/status`, {}, token)
 }
