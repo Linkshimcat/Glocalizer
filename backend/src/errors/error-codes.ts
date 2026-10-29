@@ -48,6 +48,7 @@ export const ERROR_CODES = {
   IMAGE_CLEANUP_FAILED: { status: 500, message: '이미지 정리 중 오류가 발생했습니다.' },
   RATE_LIMITED: { status: 429, message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
   NOT_FOUND: { status: 404, message: '요청한 리소스를 찾을 수 없습니다.' },
+  NOT_IMPLEMENTED: { status: 501, message: '아직 구현되지 않은 기능입니다.' },
   INTERNAL_ERROR: { status: 500, message: '내부 서버 오류가 발생했습니다.' },
 } as const;
 
