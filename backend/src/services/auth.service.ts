@@ -126,17 +126,18 @@ export async function getCurrentUser(userId: string): Promise<PublicUser> {
   return toPublicUser(user);
 }
 
-const AVATAR_SIZE = 256;
+// 화면에서 가장 크게 보이는 곳이 80px(설정 페이지)이라 레티나 2배인 160px이면 충분하다. 사진은 data URL로 users 행에 들어가므로 작을수록 좋다.
+const AVATAR_SIZE = 160;
 
-/** 업로드된 이미지를 256px 정사각형 WebP로 다시 인코딩해 data URL로 저장한다.
- *  재인코딩으로 메타데이터/비정상 페이로드를 제거하고, DB에 들어가는 크기를 수십 KB로 묶는다. */
+/** 업로드된 이미지를 160px 정사각형 WebP로 다시 인코딩해 data URL로 저장한다.
+ *  재인코딩으로 메타데이터/비정상 페이로드를 제거하고, DB에 들어가는 크기를 수 KB로 묶는다. */
 async function normalizeAvatar(dataUrl: string): Promise<string> {
   const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
   try {
     const webp = await sharp(Buffer.from(base64, 'base64'), { limitInputPixels: 40_000_000 })
       .rotate()
       .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: 'cover' })
-      .webp({ quality: 85 })
+      .webp({ quality: 80 })
       .toBuffer();
     return `data:image/webp;base64,${webp.toString('base64')}`;
   } catch {

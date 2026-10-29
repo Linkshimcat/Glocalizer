@@ -56,15 +56,22 @@ describe('PATCH /auth/me', () => {
     expect((await request(app).patch('/api/v1/auth/me').set('Authorization', auth).send({ name: 'x'.repeat(31) })).status).toBe(400);
     expect((await request(app).patch('/api/v1/auth/me').set('Authorization', auth).send({})).status).toBe(400);
   });
-  it('re-encodes the avatar to a 256px webp', async () => {
+  it('re-encodes the avatar to a 160px webp (80px 자리의 2배 해상도)', async () => {
     const png = await sharp({ create: { width: 800, height: 400, channels: 3, background: '#ff0000' } }).png().toBuffer();
     const res = await request(app).patch('/api/v1/auth/me').set('Authorization', auth).send({ avatar: `data:image/png;base64,${png.toString('base64')}` });
     expect(res.status).toBe(200);
     const saved = vi.mocked(users.updateUserProfile).mock.calls[0][1].avatarUrl!;
     expect(saved.startsWith('data:image/webp;base64,')).toBe(true);
     const meta = await sharp(Buffer.from(saved.split(',')[1], 'base64')).metadata();
-    expect([meta.width, meta.height]).toEqual([256, 256]);
+    expect([meta.width, meta.height]).toEqual([160, 160]);
   });
+  it('GIF 프로필 사진은 400으로 거절한다 (움직이는 사진은 지원하지 않음)', async () => {
+    const gif = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#00ff00' } }).gif().toBuffer();
+    const res = await request(app).patch('/api/v1/auth/me').set('Authorization', auth).send({ avatar: `data:image/gif;base64,${gif.toString('base64')}` });
+    expect(res.status).toBe(400);
+    expect(users.updateUserProfile).not.toHaveBeenCalled();
+  });
+
   it('resets the avatar with null and rejects broken images', async () => {
     expect((await request(app).patch('/api/v1/auth/me').set('Authorization', auth).send({ avatar: null })).status).toBe(200);
     expect(users.updateUserProfile).toHaveBeenCalledWith(owner, { name: undefined, avatarUrl: null });

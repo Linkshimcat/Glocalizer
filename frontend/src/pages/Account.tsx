@@ -23,6 +23,7 @@ import { useTheme } from '../store/ThemeContext'
 
 const NAME_MAX_LENGTH = 30
 const PHOTO_MAX_BYTES = 10 * 1024 * 1024
+const PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const PHOTO_EDGE = 512
 
 /** 정사각형으로 가운데를 잘라 줄인 뒤 data URL로 만든다. 서버가 한 번 더 256px WebP로 재인코딩한다. */
@@ -129,7 +130,8 @@ export default function Account() {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    if (!file.type.startsWith('image/') || file.size > PHOTO_MAX_BYTES) {
+    // GIF는 받지 않는다. 움직이는 사진은 프로필에서 첫 장면만 남아 의도와 달라 보인다.
+    if (!PHOTO_TYPES.includes(file.type) || file.size > PHOTO_MAX_BYTES) {
       toast(tAccount.accountPhotoInvalid)
       return
     }
@@ -312,7 +314,7 @@ export default function Account() {
                   )}
                 </div>
               )}
-              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={onPickPhoto} />
+              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onPickPhoto} />
             </div>
             {!editing && (
               <button type="button" onClick={startEditing} className="shrink-0 rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface">

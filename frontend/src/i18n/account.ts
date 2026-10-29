@@ -21,7 +21,7 @@ const copy = {
   accountNameRequired: ['닉네임을 입력해주세요.', 'Please enter a nickname.', 'ニックネームを入力してください。', '请输入昵称。'],
   accountSaved: ['프로필을 저장했어요.', 'Profile saved.', 'プロフィールを保存しました。', '个人资料已保存。'],
   accountSaveFailed: ['프로필 저장에 실패했어요.', 'Could not save your profile.', 'プロフィールを保存できませんでした。', '个人资料保存失败。'],
-  accountPhotoInvalid: ['이미지 파일만 올릴 수 있어요. (최대 10MB)', 'Only image files up to 10MB are supported.', '10MBまでの画像ファイルのみアップロードできます。', '仅支持10MB以内的图片文件。'],
+  accountPhotoInvalid: ['PNG·JPG·WebP 이미지만 올릴 수 있어요. (최대 10MB, GIF 제외)', 'Only PNG, JPG or WebP images up to 10MB are supported (no GIFs).', '10MBまでのPNG・JPG・WebP画像のみアップロードできます（GIFは不可）。', '仅支持10MB以内的PNG、JPG、WebP图片（不支持GIF）。'],
   accountDangerZoneTitle: ['위험 구역', 'Danger zone', '危険ゾーン', '危险区域'],
   accountDangerZoneDesc: ['계정을 탈퇴하면 저장된 모든 프로젝트와 이미지, 프로필 정보가 영구적으로 삭제되고 되돌릴 수 없어요.', 'Deleting your account permanently removes all saved projects, images, and profile information. This cannot be undone.', 'アカウントを削除すると、保存済みのプロジェクト・画像・プロフィール情報がすべて完全に削除され、元に戻せません。', '删除账户后，已保存的所有项目、图片和个人资料信息都会被永久删除，且无法恢复。'],
   accountDeleteButton: ['계정 탈퇴', 'Delete account', 'アカウント削除', '删除账户'],

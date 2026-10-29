@@ -45,7 +45,7 @@ export const updateProfileSchema = z
     avatar: z
       .string()
       .max(900_000, '프로필 사진 용량이 너무 큽니다.')
-      .regex(/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/, '지원하지 않는 이미지 형식입니다.')
+      .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/, '지원하지 않는 이미지 형식입니다. (PNG·JPG·WebP)')
       .nullable()
       .optional(),
   })
