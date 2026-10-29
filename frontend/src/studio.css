@@ -108,6 +108,13 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .workspace-stepbar { padding-block: 12px; border-bottom: 1px solid var(--studio-line); background: var(--color-card); }
 .service-feature-card { background: var(--color-card); }
 #service-workflow { scroll-margin-top: calc(var(--site-header-height) + 24px); }
+/* 설정 페이지 바로가기 칩: 헤더 바로 아래에 붙어 따라오고, 페이지 배경을 양옆 끝까지 깔아 지나가는 카드가 비치지 않게 한다. */
+.studio-account { --account-page-bg: #fafbfc; }
+.dark .studio-account { --account-page-bg: var(--ui-page); }
+.account-quick-nav { position: sticky; top: var(--site-header-height); z-index: 20; margin-top: 14px; padding-block: 10px; background: var(--account-page-bg); box-shadow: 0 0 0 100vmax var(--account-page-bg); clip-path: inset(0 -100vmax); scrollbar-width: none; }
+.account-quick-nav::-webkit-scrollbar { display: none; }
+.account-quick-nav[data-stuck='true'] { box-shadow: 0 0 0 100vmax var(--account-page-bg), 0 1px 0 100vmax var(--color-line); clip-path: inset(0 -100vmax -1px); }
+.account-anchor { scroll-margin-top: calc(var(--site-header-height) + 76px); }
 .studio-generate details > div > div { border: 0; border-bottom: 1px solid var(--studio-line); border-radius: 0; padding-inline: 0; }
 @media (min-width: 1024px) {
   :root { --site-header-height: 72px; }

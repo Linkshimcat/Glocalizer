@@ -65,6 +65,10 @@ export default function Account() {
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [emailAlertsSaving, setEmailAlertsSaving] = useState(false)
   const [activeSection, setActiveSection] = useState('profile')
+  const quickNavRef = useRef<HTMLElement>(null)
+  const [quickNavStuck, setQuickNavStuck] = useState(false)
+  // 사용자 정보가 늦게 오면 첫 렌더에는 섹션이 없으므로, 화면이 그려진 뒤 다시 연결한다.
+  const pageReady = Boolean(isAuthenticated && user)
 
   useEffect(() => {
     if (isAuthenticated) void refreshUser()
@@ -77,10 +81,31 @@ export default function Account() {
     const observer = new IntersectionObserver(entries => {
       const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
       if (visible) setActiveSection(visible.target.id)
-    }, { rootMargin: '-20% 0px -65%', threshold: 0 })
+    }, { rootMargin: '-25% 0px -60%', threshold: 0 })
     sections.forEach(section => observer.observe(section))
     return () => observer.disconnect()
-  }, [isAuthenticated])
+  }, [pageReady])
+
+  // 바로가기 칩은 헤더 아래에 붙어 따라온다. 붙어 있는 동안에만 아래 경계선을 보여 주려고 위치를 확인한다.
+  useEffect(() => {
+    const nav = quickNavRef.current
+    if (!nav) return
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const stickyTop = parseFloat(getComputedStyle(nav).top) || 0
+      setQuickNavStuck(nav.getBoundingClientRect().top <= stickyTop + 0.5 && window.scrollY > 0)
+    }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
+    update()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [pageReady])
 
   if (checkingSession && !user) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{experienceCopy[lang].loading}</main>
   if (!isAuthenticated || !user) return <Navigate to={enteredAuthenticated.current ? '/' : '/login?next=/account'} replace />
@@ -250,14 +275,14 @@ export default function Account() {
         <SessionNotice />
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{tAccount.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{tAccount.accountDesc}</p>
-        <nav aria-label={tAccount.accountQuickNavLabel} className="mt-6 -mx-4 flex max-w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:max-w-2xl sm:px-0">
+        <nav ref={quickNavRef} data-stuck={quickNavStuck} aria-label={tAccount.accountQuickNavLabel} className="account-quick-nav -mx-4 flex max-w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 sm:mx-0 sm:max-w-2xl sm:px-0">
           {navItems.map(([id, label]) => (
             <button key={id} type="button" onClick={() => jumpToSection(id)} aria-current={activeSection === id ? 'true' : undefined} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors ${activeSection === id ? 'bg-brand-soft text-brand-dark' : 'bg-surface text-sub hover:text-ink'}`}>
               {label}
             </button>
           ))}
         </nav>
-        <form id="profile" onSubmit={onSubmit} className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountTitle}>
+        <form id="profile" onSubmit={onSubmit} className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountTitle}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 shrink-0">
@@ -383,7 +408,7 @@ export default function Account() {
 
         <AccountSummaryCard />
 
-        <section id="plan" className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
+        <section id="plan" className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPlanTitle}</h2>
@@ -405,7 +430,7 @@ export default function Account() {
 
         <PaymentHistoryCard />
 
-        <div id="security" className="scroll-mt-6">
+        <div id="security" className="account-anchor">
         {user.hasPassword && (
           <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountSecurityTitle}>
             <div className="flex items-start justify-between gap-4">
@@ -518,7 +543,7 @@ export default function Account() {
         </section>
         </div>
 
-        <section id="policy" className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPolicyTitle}>
+        <section id="policy" className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPolicyTitle}>
           <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPolicyTitle}</h2>
           <p className="mt-1 text-sm text-sub">{tAccount.accountPolicyDesc}</p>
           <div className="mt-5 divide-y divide-gray-100">
@@ -535,7 +560,7 @@ export default function Account() {
           </div>
         </section>
 
-        <section id="preferences" className="mt-6 max-w-2xl scroll-mt-6 rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountThemeTitle}>
+        <section id="preferences" className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountThemeTitle}>
           <div className="flex items-center justify-between gap-4 border-b border-line pb-5">
             <div>
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountLanguageTitle}</h2>

@@ -9,7 +9,7 @@ export async function authenticateSession(header: string | undefined) {
   if (!payload) throw new AppError('UNAUTHORIZED');
   // 두 조회는 서로 의존하지 않아 DB 왕복을 한 번으로 합친다.
   const [user, session] = await Promise.all([
-    findUserById(payload.sub),
+    findUserById(payload.sub, 'auth'),
     payload.sid ? findSessionById(payload.sid) : Promise.resolve(null),
   ]);
   if (!user || user.id !== payload.sub || (user.session_version ?? 0) !== payload.ver) throw new AppError('UNAUTHORIZED');

@@ -23,9 +23,16 @@ export async function findUserBySupabaseAuthId(supabaseAuthId: string): Promise<
   return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
 }
 
-export async function findUserById(id: string): Promise<UserRow | null> {
-  const result = await supabase.from('users').select().eq('id', id).maybeSingle();
-  return unwrapNullableRow<UserRow>(result, '사용자 조회에 실패했습니다.');
+/** 로그인 확인은 모든 인증 요청마다 돈다. 프로필 사진(data URL, 수십 KB)을 매번 읽지 않도록 필요한 컬럼만 고른다. */
+const AUTH_USER_COLUMNS = 'id, email, session_version, deleting_at';
+export type AuthUserRow = Pick<UserRow, 'id' | 'email' | 'session_version' | 'deleting_at'>;
+
+export async function findUserById(id: string): Promise<UserRow | null>;
+export async function findUserById(id: string, columns: 'auth'): Promise<AuthUserRow | null>;
+export async function findUserById(id: string, columns?: 'auth'): Promise<UserRow | AuthUserRow | null> {
+  const query = supabase.from('users');
+  const result = await (columns === 'auth' ? query.select(AUTH_USER_COLUMNS) : query.select()).eq('id', id).maybeSingle();
+  return unwrapNullableRow<UserRow>(result as { data: UserRow | null; error: { message: string } | null }, '사용자 조회에 실패했습니다.');
 }
 
 /** projects/generation_projects는 owner_id가 ON DELETE CASCADE라 이 행을 지우면 함께

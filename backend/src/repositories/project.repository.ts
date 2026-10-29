@@ -74,6 +74,12 @@ export async function findExpiredProjects(): Promise<ProjectRow[]> {
   return unwrapList<ProjectRow>(result, '만료된 프로젝트 조회에 실패했습니다.');
 }
 
+/** 설정 페이지 작업 요약용. 개수·완료 수·마지막 작업일만 필요해 두 컬럼만 읽는다. */
+export async function findProjectActivityByOwner(ownerId: string): Promise<Array<Pick<ProjectRow, 'result_ready' | 'updated_at'>>> {
+  const result = await supabase.from('projects').select('result_ready, updated_at').eq('owner_id', ownerId).is('deleting_at', null).order('updated_at', { ascending: false });
+  return unwrapList<Pick<ProjectRow, 'result_ready' | 'updated_at'>>(result, '작업 요약을 불러오지 못했습니다.');
+}
+
 export async function findProjectsByOwner(ownerId: string): Promise<ProjectRow[]> {
   const result = await supabase.from('projects').select().eq('owner_id', ownerId).is('deleting_at', null).order('updated_at', { ascending: false });
   return unwrapList<ProjectRow>(result, '작업 목록을 불러오지 못했습니다.');

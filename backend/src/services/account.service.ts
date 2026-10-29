@@ -1,4 +1,4 @@
-import { findProjectsByOwner } from '../repositories/project.repository.js';
+import { findProjectActivityByOwner, findProjectsByOwner } from '../repositories/project.repository.js';
 import { listLoginHistory } from '../repositories/session.repository.js';
 import type { LoginMethod } from '../types/session.js';
 import { getCurrentUser } from './auth.service.js';
@@ -26,7 +26,7 @@ export interface PublicLoginRecord {
 }
 
 export async function getAccountSummary(userId: string): Promise<AccountSummary> {
-  const projects = await findProjectsByOwner(userId);
+  const projects = await findProjectActivityByOwner(userId);
   return {
     projectCount: projects.length,
     completedProjectCount: projects.filter(project => project.result_ready).length,
