@@ -40,16 +40,21 @@ describe('runQaInspection: 에셋별 격리', () => {
   it('이미지 하나를 못 읽어도 나머지는 그대로 판정한다', async () => {
     const assets = [
       await goodAsset('unreadable', { image: Buffer.from('garbage') }),
-      await goodAsset('missing', { image: null }),
       await goodAsset('fine'),
     ];
     const { findings } = await runQaInspection({ targetLanguages: ['en'], assets });
 
     expect(findingFor(findings, 'IMAGE_LOAD_FAILED', 'unreadable').severity).toBe('fail');
-    expect(findingFor(findings, 'IMAGE_LOAD_FAILED', 'missing').severity).toBe('fail');
     expect(findings.filter((f) => f.imageId === 'fine').every((f) => f.severity === 'pass')).toBe(true);
     // 읽지 못한 이미지도 파이프라인 항목(번역 등)은 그대로 판정한다.
-    expect(findingFor(findings, 'TRANSLATION_MISSING', 'missing').severity).toBe('pass');
+    expect(findingFor(findings, 'TRANSLATION_MISSING', 'unreadable').severity).toBe('pass');
+  });
+
+  it('내보낸 PNG를 받지 않은 에셋은 규격을 측정하지 않는다 (fail로 꾸미지 않고 SPEC 항목을 아예 만들지 않는다)', async () => {
+    const { findings } = await runQaInspection({ targetLanguages: ['en'], assets: [await goodAsset('no-upload', { image: null })] });
+    expect(findings.some((f) => f.code.startsWith('SPEC_') || f.code === 'IMAGE_LOAD_FAILED')).toBe(false);
+    expect(findingFor(findings, 'TRANSLATION_MISSING', 'no-upload').severity).toBe('pass');
+    expect(findingFor(findings, 'TEXT_OVERFLOW', 'no-upload').severity).toBe('pass');
   });
 
   it('파이프라인에서 실패한 에셋은 이미지가 없어도 IMAGE_LOAD_FAILED를 중복으로 내지 않는다', async () => {

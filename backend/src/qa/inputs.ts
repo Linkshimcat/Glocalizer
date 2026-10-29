@@ -14,6 +14,6 @@ export interface QaAssetInput {
   regions: QaOcrRegionRow[];
   translations: QaTranslationRow[];
   editorStates: QaEditorStateRow[];
-  /** 규격 검사에 쓸 이미지 바이트. 불러오지 못했으면 null. */
+  /** 브라우저가 내보내 보낸 최종 PNG. 받지 않았으면 null — 규격은 측정하지 않는다. */
   image: Buffer | null;
 }

@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import type { TargetLanguage } from '../types/project.js';
-import type { QaFinding } from '../types/qa.js';
+import type { QaFinding, QaReport } from '../types/qa.js';
 import { capAiSuggestionSeverity } from './findings.js';
 import type { QaAssetInput } from './inputs.js';
 import { inspectLayout } from './layout-rules.js';
 import { inspectPipeline } from './pipeline-rules.js';
-import { inspectSpec } from './spec-rules.js';
+import { inspectSpec, SPEC_LOAD_FAILED_CRITERION } from './spec-rules.js';
 
 export interface QaInspectionInput {
   targetLanguages: TargetLanguage[];
@@ -40,15 +40,8 @@ export async function runQaInspection(input: QaInspectionInput): Promise<QaInspe
     findings.push(...inspectPipeline(assetInput, input.targetLanguages, cleanupResolved));
     if (asset.status === 'failed') continue;
 
-    if (image) {
-      findings.push(...(await inspectSpec(asset.id, image)));
-    } else {
-      findings.push({
-        code: 'IMAGE_LOAD_FAILED', severity: 'fail', source: 'rule', imageId: asset.id,
-        message: '저장된 결과 이미지를 불러오지 못해 규격을 검사하지 못했습니다.',
-        recommendation: '잠시 후 다시 검사하거나 이 이미지를 다시 처리해 주세요.',
-      });
-    }
+    // 규격은 브라우저가 내보낸 PNG를 받았을 때만 판정한다. 받지 않았으면 측정하지 않은 것으로 두고 항목을 만들지 않는다.
+    if (image) findings.push(...(await inspectSpec(asset.id, image)));
     findings.push(...inspectLayout(asset.id, regions.filter((region) => region.contains_korean), editorStates));
   }
 
@@ -83,4 +76,15 @@ export function computeImageRevision(assets: QaAssetInput[], targetLanguages: Ta
     })),
   };
   return createHash('sha256').update(stableStringify(state)).digest('hex').slice(0, 16);
+}
+
+/**
+ * 에디터 재검사처럼 일부 이미지의 PNG만 다시 받은 경우, 나머지 이미지의 규격 판정은 직전 리포트에서 이어받는다.
+ * PNG 판독 실패 기록도 규격 판정의 일부라 함께 가져오고, 파이프라인 실패는 이번에 DB 상태로 다시 판정하므로 가져오지 않는다.
+ */
+export function carryOverSpecFindings(previous: QaReport | null, assetIds: string[]): QaFinding[] {
+  if (!previous) return [];
+  const wanted = new Set(assetIds);
+  return previous.findings.filter((finding) => wanted.has(finding.imageId)
+    && (finding.code.startsWith('SPEC_') || (finding.code === 'IMAGE_LOAD_FAILED' && finding.criterion === SPEC_LOAD_FAILED_CRITERION)));
 }
