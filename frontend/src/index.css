@@ -7,7 +7,7 @@
 @theme {
   /* Landing PNG 기준 디자인 토큰 (Source of Truth) */
   --font-sans:
-    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    'Pretendard Variable', -apple-system, BlinkMacSystemFont,
     system-ui, Roboto, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 
   --color-brand: #22c55e;
