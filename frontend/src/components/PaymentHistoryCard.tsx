@@ -3,6 +3,7 @@ import { useSiteLang } from '../i18n/LanguageContext'
 import { getPayments, type PaymentRecord } from '../lib/authApi'
 import { AccountCard, CardLoadFailed, CardSkeleton } from './AccountCard'
 import { useAccountResource } from './useAccountResource'
+import { useInViewOnce } from './useInView'
 
 const STATUS_STYLE: Record<PaymentRecord['status'], string> = {
   done: 'bg-brand-soft text-brand-dark',
@@ -15,7 +16,9 @@ const STATUS_STYLE: Record<PaymentRecord['status'], string> = {
 export default function PaymentHistoryCard() {
   const { lang } = useSiteLang()
   const t = accountCopy(lang)
-  const { data, failed, reload } = useAccountResource(getPayments)
+  // 페이지 아래쪽 카드라 보이기 직전에 불러온다. 설정 페이지를 열 때 동시에 나가는 요청을 줄인다.
+  const [cardRef, inView] = useInViewOnce<HTMLElement>()
+  const { data, failed, reload } = useAccountResource(getPayments, inView)
   const date = new Intl.DateTimeFormat(lang, { dateStyle: 'medium' })
   const won = new Intl.NumberFormat(lang, { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 })
   const statusLabel: Record<PaymentRecord['status'], string> = {
@@ -26,7 +29,7 @@ export default function PaymentHistoryCard() {
   }
 
   return (
-    <AccountCard title={t.accountPaymentsTitle} description={t.accountPaymentsDesc}>
+    <AccountCard sectionRef={cardRef} title={t.accountPaymentsTitle} description={t.accountPaymentsDesc}>
       {failed && <CardLoadFailed onRetry={() => void reload()} />}
       {!data && !failed && <CardSkeleton label={t.accountSessionsLoading} />}
       {data && (data.length === 0 ? (

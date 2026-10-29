@@ -7,7 +7,7 @@ vi.mock('../../src/repositories/user.repository.js', () => ({
 vi.mock('../../src/repositories/session.repository.js', () => ({
   insertSession: vi.fn(), findSessionById: vi.fn(), touchSessionIfStale: vi.fn(), listActiveSessions: vi.fn(), listLoginHistory: vi.fn(), revokeSession: vi.fn(), revokeOtherSessions: vi.fn(), extendSession: vi.fn(),
 }));
-vi.mock('../../src/repositories/project.repository.js', async importOriginal => ({ ...(await importOriginal<object>()), findProjectsByOwner: vi.fn() }));
+vi.mock('../../src/repositories/project.repository.js', async importOriginal => ({ ...(await importOriginal<object>()), findProjectsByOwner: vi.fn(), findProjectActivityByOwner: vi.fn() }));
 vi.mock('../../src/repositories/payment.repository.js', async importOriginal => ({ ...(await importOriginal<object>()), listPaymentsByUser: vi.fn() }));
 const { createApp } = await import('../../src/app.js');
 const users = await import('../../src/repositories/user.repository.js');
@@ -33,14 +33,14 @@ beforeEach(() => {
 
 describe('GET /auth/me/summary', () => {
   it('counts projects and completed results', async () => {
-    vi.mocked(projects.findProjectsByOwner).mockResolvedValue([projectRow('b'), projectRow('a', { result_ready: false })] as never);
+    vi.mocked(projects.findProjectActivityByOwner).mockResolvedValue([projectRow('b'), projectRow('a', { result_ready: false })] as never);
     const res = await request(app).get('/api/v1/auth/me/summary').set('Authorization', bearer());
     expect(res.status).toBe(200);
     expect(res.body.summary).toEqual({ projectCount: 2, completedProjectCount: 1, lastActivityAt: '2026-10-03T00:00:00Z' });
   });
 
   it('returns zeros for an empty account', async () => {
-    vi.mocked(projects.findProjectsByOwner).mockResolvedValue([]);
+    vi.mocked(projects.findProjectActivityByOwner).mockResolvedValue([]);
     const res = await request(app).get('/api/v1/auth/me/summary').set('Authorization', bearer());
     expect(res.body.summary).toEqual({ projectCount: 0, completedProjectCount: 0, lastActivityAt: null });
   });

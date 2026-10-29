@@ -4,6 +4,7 @@ import { useSiteLang } from '../i18n/LanguageContext'
 import { getLoginHistory } from '../lib/authApi'
 import { AccountCard, CardLoadFailed, CardSkeleton } from './AccountCard'
 import { useAccountResource } from './useAccountResource'
+import { useInViewOnce } from './useInView'
 
 const INITIAL_COUNT = 5
 
@@ -11,14 +12,16 @@ const INITIAL_COUNT = 5
 export default function LoginHistoryCard() {
   const { lang } = useSiteLang()
   const t = accountCopy(lang)
-  const { data, failed, reload } = useAccountResource(getLoginHistory)
+  // 페이지 아래쪽 카드라 보이기 직전에 불러온다. 설정 페이지를 열 때 동시에 나가는 요청을 줄인다.
+  const [cardRef, inView] = useInViewOnce<HTMLElement>()
+  const { data, failed, reload } = useAccountResource(getLoginHistory, inView)
   const [expanded, setExpanded] = useState(false)
   const dateTime = new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' })
   const methodLabel = { email: t.accountEmailLogin, naver: t.accountNaverLogin, google: t.accountGoogleLogin, kakao: t.accountKakaoLogin }
   const shown = data && !expanded ? data.slice(0, INITIAL_COUNT) : data
 
   return (
-    <AccountCard title={t.accountLoginHistoryTitle} description={t.accountLoginHistoryDesc}>
+    <AccountCard sectionRef={cardRef} title={t.accountLoginHistoryTitle} description={t.accountLoginHistoryDesc}>
       {failed && <CardLoadFailed onRetry={() => void reload()} />}
       {!data && !failed && <CardSkeleton label={t.accountSessionsLoading} />}
       {shown && (shown.length === 0 ? (

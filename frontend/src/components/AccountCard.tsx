@@ -1,13 +1,13 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { accountCopy } from '../i18n/account'
 import { useSiteLang } from '../i18n/LanguageContext'
 
 const ACCOUNT_CARD_CLASS = 'mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8'
 
 /** 설정 페이지의 카드 껍데기. 제목·설명과, 불러오는 중·실패 상태를 같은 모양으로 보여 준다. */
-export function AccountCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+export function AccountCard({ title, description, children, sectionRef }: { title: string; description?: string; children: ReactNode; sectionRef?: Ref<HTMLElement> }) {
   return (
-    <section className={ACCOUNT_CARD_CLASS} aria-label={title}>
+    <section ref={sectionRef} className={ACCOUNT_CARD_CLASS} aria-label={title}>
       <h2 className="text-lg font-extrabold text-ink">{title}</h2>
       {description && <p className="mt-1 text-sm text-sub">{description}</p>}
       {children}
