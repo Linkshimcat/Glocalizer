@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.middleware.js';
-import { changePassword, deleteAccount, getCurrentUser, getSessions, login, loginWithGoogle, loginWithKakao, loginWithNaver, logoutSession, revokeOtherUserSessions, revokeUserSession, signup, updateEmailPreferences, updateProfile } from '../services/auth.service.js';
+import { changePassword, deleteAccount, sendVerificationCode, getCurrentUser, getSessions, login, loginWithGoogle, loginWithKakao, loginWithNaver, logoutSession, revokeOtherUserSessions, revokeUserSession, signup, updateEmailPreferences, updateProfile } from '../services/auth.service.js';
 import type { SessionContext } from '../types/session.js';
 
 function sessionContext(req: Request): SessionContext {
@@ -60,8 +60,12 @@ export async function changePasswordHandler(req: Request, res: Response) {
 }
 
 export async function deleteAccountHandler(req: Request, res: Response) {
-  await deleteAccount(requireAuth(req).sub);
+  await deleteAccount(requireAuth(req).sub, req.body);
   res.status(200).json({ success: true });
+}
+
+export async function sendVerificationCodeHandler(req: Request, res: Response) {
+  res.status(200).json(await sendVerificationCode(requireAuth(req).sub, req.body.purpose));
 }
 
 export async function listSessionsHandler(req: Request, res: Response) {

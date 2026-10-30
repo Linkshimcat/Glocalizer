@@ -15,6 +15,7 @@ import { exportAccountData } from './account.service.js';
 import { sendEmail } from './email.service.js';
 import { captionSticker } from './generation.service.js';
 import { getProjectResults } from './result.service.js';
+import { maskEmail } from '../utils/mask-email.js';
 
 /** ZIP 안 경로에 쓸 수 없는 문자를 바꾸고 길이를 줄인다. 비면 대체 이름을 쓴다. */
 export function safeFileName(value: string | null | undefined, fallback: string): string {
@@ -190,11 +191,6 @@ export async function writeAccountExport(userId: string, sid: string | undefined
   writer.throwIfAborted();
   writer.zip.end();
   await Promise.race([once(writer.zip.outputStream, 'end'), writer.aborted]);
-}
-
-function maskEmail(email: string): string {
-  const [local = '', domain = ''] = email.split('@');
-  return `${local.slice(0, 1)}${'*'.repeat(Math.max(1, local.length - 1))}@${domain}`;
 }
 
 /** 계정 이메일로 24시간짜리 다운로드 링크를 보낸다. 보낸 주소는 가려서 돌려준다. */

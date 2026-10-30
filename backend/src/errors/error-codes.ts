@@ -51,6 +51,9 @@ export const ERROR_CODES = {
   NOT_IMPLEMENTED: { status: 501, message: '아직 구현되지 않은 기능입니다.' },
   EMAIL_NOT_CONFIGURED: { status: 503, message: '메일 발송이 설정되어 있지 않습니다.' },
   EMAIL_REQUIRED: { status: 400, message: '계정에 등록된 이메일이 없습니다.' },
+  VERIFICATION_CODE_REQUIRED: { status: 400, message: '이메일로 받은 인증코드를 입력해주세요.' },
+  VERIFICATION_CODE_INVALID: { status: 400, message: '인증코드가 올바르지 않습니다.' },
+  VERIFICATION_CODE_EXPIRED: { status: 400, message: '인증코드가 만료되었습니다. 새 코드를 받아주세요.' },
   INTERNAL_ERROR: { status: 500, message: '내부 서버 오류가 발생했습니다.' },
 } as const;
 
