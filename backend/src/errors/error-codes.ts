@@ -14,6 +14,7 @@ export const ERROR_CODES = {
   CURRENT_PASSWORD_INCORRECT: { status: 400, message: '현재 비밀번호가 올바르지 않습니다.' },
   PASSWORD_CHANGE_UNAVAILABLE: { status: 400, message: '이메일로 가입한 계정만 비밀번호를 변경할 수 있습니다.' },
   UNAUTHORIZED: { status: 401, message: '로그인이 필요합니다.' },
+  ACCOUNT_DELETING: { status: 409, message: '탈퇴 처리 중인 계정입니다. 처리가 끝난 뒤 다시 가입할 수 있어요. 잠시 후 다시 시도해주세요.' },
   NAVER_NOT_CONFIGURED: { status: 503, message: '네이버 로그인이 설정되어 있지 않습니다.' },
   NAVER_LOGIN_FAILED: { status: 502, message: '네이버 로그인에 실패했습니다.' },
   KAKAO_NOT_CONFIGURED: { status: 503, message: '카카오 로그인이 설정되어 있지 않습니다.' },

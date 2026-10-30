@@ -87,7 +87,8 @@ function sessionDevice(context: SessionContext) {
 }
 
 async function issueSession(user: UserRow, loginMethod: LoginMethod, context: SessionContext, notifyNewDevice: boolean): Promise<AuthResult> {
-  if (user.deleting_at) throw new AppError('UNAUTHORIZED');
+  // 탈퇴가 아직 끝나지 않은 계정. 이유 없는 401만 돌려주면 화면에서 "다시 로그인하세요"만 반복돼 원인을 알 수 없다.
+  if (user.deleting_at) throw new AppError('ACCOUNT_DELETING');
   const isNewDevice = context.deviceId ? await rememberDevice(user.id, context.deviceId) : false;
   const session = await insertSession({ userId: user.id, loginMethod, expiresAt: sessionExpiry(), ...sessionDevice(context) });
   if (notifyNewDevice && isNewDevice) {
