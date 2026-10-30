@@ -1,5 +1,5 @@
 import { requestErrorMessage } from '../lib/requestError'
-import { Camera, ChevronRight, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
+import { Camera, Check, ChevronRight, Download, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import AccountSummaryCard from '../components/AccountSummaryCard'
@@ -12,6 +12,7 @@ import LoginHistoryCard from '../components/LoginHistoryCard'
 import Modal from '../components/Modal'
 import PaymentHistoryCard from '../components/PaymentHistoryCard'
 import SessionNotice from '../components/SessionNotice'
+import { useAccountExport } from '../components/useAccountExport'
 import { experienceCopy } from '../i18n/experience'
 import profileDeleteIcon from '../assets/iconsax-profile-delete.svg'
 import { useToast } from '../components/Toast'
@@ -63,6 +64,9 @@ export default function Account() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [ackDataLoss, setAckDataLoss] = useState(false)
   const [ackResignup, setAckResignup] = useState(false)
+  // 탈퇴는 "데이터 받기" → "확인 체크" 두 단계. 받기는 권하지만 건너뛸 수 있다(백업 오류로 탈퇴가 막히면 안 된다).
+  const [deleteStep, setDeleteStep] = useState<'backup' | 'confirm'>('backup')
+  const backup = useAccountExport()
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [emailAlertsSaving, setEmailAlertsSaving] = useState(false)
   const [activeSection, setActiveSection] = useState('profile')
@@ -210,6 +214,7 @@ export default function Account() {
   const openDeleteModal = () => {
     setAckDataLoss(false)
     setAckResignup(false)
+    setDeleteStep('backup')
     setDeleteModalOpen(true)
   }
 
@@ -609,7 +614,7 @@ export default function Account() {
 
       {deleteModalOpen && (
         <Modal
-          onClose={() => { if (!deletingAccount) setDeleteModalOpen(false) }}
+          onClose={() => { if (!deletingAccount && !backup.busy) setDeleteModalOpen(false) }}
           labelledBy="delete-account-title"
           closeLabel={t.commonClose}
         >
@@ -619,6 +624,53 @@ export default function Account() {
               <h2 id="delete-account-title" className="mt-4 text-lg font-extrabold text-ink">{tAccount.accountDeleteProcessingTitle}</h2>
               <p className="mt-2 text-sm text-sub">{tAccount.accountDeleteProcessingDesc}</p>
             </div>
+          ) : deleteStep === 'backup' ? (
+            <>
+              <h2 id="delete-account-title" className="text-lg font-extrabold text-ink">{tAccount.accountDeleteBackupTitle}</h2>
+              <p className="mt-2 text-sm text-sub">{tAccount.accountDeleteBackupDesc}</p>
+              <div className="mt-5 rounded-control border border-gray-200 p-4">
+                <p className="text-sm font-bold text-ink">{tAccount.accountDataTitle}</p>
+                <p className="mt-1 text-xs text-sub">{tAccount.accountDataDesc}</p>
+                <button
+                  type="button"
+                  onClick={() => { void backup.downloadToComputer() }}
+                  disabled={backup.busy}
+                  className="mt-3 flex items-center gap-1.5 rounded-control border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-60"
+                >
+                  {backup.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : backup.downloaded ? <Check className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                  {backup.downloaded ? tAccount.accountDeleteBackupDone : tAccount.accountDataLocal}
+                </button>
+                <p className="mt-2 text-xs text-sub" role={backup.busy ? 'status' : undefined} aria-live="polite">{backup.progressLabel ?? tAccount.accountDeleteBackupEmailNote}</p>
+              </div>
+              <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
+                {!backup.downloaded && (
+                  <button
+                    type="button"
+                    disabled={backup.busy}
+                    onClick={() => setDeleteStep('confirm')}
+                    className="mr-auto text-sm font-semibold text-sub underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"
+                  >
+                    {tAccount.accountDeleteBackupSkip}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={backup.busy}
+                  onClick={() => setDeleteModalOpen(false)}
+                  className="rounded-control border border-gray-200 px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-50"
+                >
+                  {tAccount.accountCancel}
+                </button>
+                <button
+                  type="button"
+                  disabled={!backup.downloaded}
+                  onClick={() => setDeleteStep('confirm')}
+                  className="rounded-control bg-action px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {tAccount.accountDeleteBackupNext}
+                </button>
+              </div>
+            </>
           ) : (
             <>
               <h2 id="delete-account-title" className="text-lg font-extrabold text-ink">{tAccount.accountDeleteModalTitle}</h2>
@@ -646,6 +698,13 @@ export default function Account() {
               </div>
 
               <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteStep('backup')}
+                  className="mr-auto rounded-control px-3 py-2.5 text-sm font-bold text-sub transition-colors hover:text-ink"
+                >
+                  {tAccount.accountDeleteBack}
+                </button>
                 <button
                   type="button"
                   onClick={() => setDeleteModalOpen(false)}

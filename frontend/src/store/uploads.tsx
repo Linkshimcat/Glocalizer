@@ -15,7 +15,7 @@ import {
 import { OUTPUT_PRESETS, type OutputPreset } from '../lib/exportImage'
 import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
-import { pickFontByStyle } from '../data/demo'
+import { restoreFile, restoreStyles } from '../lib/workspaceRestore'
 import { loadDefaultTargetLangCodes } from '../lib/defaultLanguages'
 import {
   explainJapaneseText,
@@ -386,83 +386,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     if (status.status === 'completed' || status.status === 'failed') {
       const results = workspace?.results ?? await getProjectResults(activeId, activeToken)
       setProjectResults(results)
-      setStyles(previous => {
-        const restored = { ...previous }
-        for (const file of activeFiles) {
-          const asset = results.assets.find(result => result.id === file.assetId)
-          for (const language of activeLanguages) {
-            for (const region of asset?.ocr.regions ?? []) {
-              const savedStyle = asset?.regionEditorStates?.[region.id]?.[language.code]
-              if (!savedStyle) continue
-              const key = styleKeyForRegion(file.id, region.id, asset?.ocr.primaryRegionId)
-              restored[key] = { ...restored[key], [language.code]: savedStyle as Style }
-            }
-          }
-        }
-        return restored
-      })
-      setFiles(previous => (workspace ? activeFiles : previous).map(file => {
-        const asset = results.assets.find(result => result.id === file.assetId)
-        if (!asset) return file
-        return {
-          ...file,
-          // Editor의 변환 미리보기와 PNG export는 cleanup 결과를 base image로 사용해야 한다.
-          // originalUrl은 좌측 원본 비교 화면에서 analysis.originalUrl로 별도 유지한다.
-          url: asset.cleanedUrl ?? asset.originalUrl ?? file.url,
-          analysis: {
-            korean: asset.ocr.fullText ?? '',
-            localizations: Object.fromEntries(activeLanguages.map(language => {
-              const localization = asset.localizations[language.code]
-              // 원본 글자 시각 분석(font-style-vision.service.ts)이 있으면 그걸로 유사 폰트를
-              // 찾고, 실패했을 때만 번역 LLM이 텍스트 뉘앙스로 찍은 카테고리로 대체한다.
-              const suggestedFont = asset.ocr.fontStyle
-                ? pickFontByStyle(asset.ocr.fontStyle, asset.id)
-                : fontForCategory(localization?.recommendedStyle?.fontCategory)
-              return [language.code, {
-                status: localization?.status ?? 'failed',
-                suggestions: localization?.candidates ?? [],
-                recommendedFont: fontForLanguage(language.code, suggestedFont),
-                recommendedAlignment: localization?.recommendedStyle?.alignment,
-                strokeRecommended: localization?.recommendedStyle?.strokeRecommended,
-                shadowRecommended: localization?.recommendedStyle?.shadowRecommended,
-              }]
-            })),
-            originalUrl: asset.originalUrl,
-            cleanedUrl: asset.cleanedUrl,
-            width: asset.width,
-            height: asset.height,
-            regionId: asset.ocr.primaryRegionId,
-            normalizedBox: asset.ocr.regions.find(region => region.id === asset.ocr.primaryRegionId)?.normalizedBox ?? null,
-            cleanupMethod: asset.cleanup.method,
-            cleanupQuality: asset.cleanup.quality,
-            needsManualCleanup: asset.cleanup.needsManualCleanup,
-            needsManualOcrReview: asset.needsManualOcrReview,
-            textColor: asset.cleanup.textColor,
-            regions: asset.ocr.regions.map(region => ({
-              id: region.id,
-              korean: region.text,
-              normalizedBox: region.normalizedBox,
-              localizations: Object.fromEntries(activeLanguages.map(language => {
-                const localization = region.localizations[language.code]
-                const suggestedFont = region.fontStyle
-                  ? pickFontByStyle(region.fontStyle, region.id)
-                  : fontForCategory(localization?.recommendedStyle?.fontCategory)
-                return [language.code, {
-                  status: localization?.status ?? 'failed',
-                  suggestions: localization?.candidates ?? [],
-                  recommendedFont: fontForLanguage(language.code, suggestedFont),
-                  recommendedAlignment: localization?.recommendedStyle?.alignment,
-                  strokeRecommended: localization?.recommendedStyle?.strokeRecommended,
-                  shadowRecommended: localization?.recommendedStyle?.shadowRecommended,
-                }]
-              })),
-              needsManualCleanup: region.needsManualCleanup,
-              needsManualOcrReview: region.needsManualReview,
-              textColor: region.textColor,
-            })),
-          },
-        }
-      }))
+      const languageCodes = activeLanguages.map(language => language.code)
+      setStyles(previous => restoreStyles(activeFiles, results, languageCodes, previous))
+      setFiles(previous => (workspace ? activeFiles : previous).map(file => restoreFile(file, results, languageCodes)))
     }
     return status
   }, [files, projectId, projectToken, targetLangs])
@@ -717,21 +643,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   )
 
   return <UploadContext.Provider value={value}>{children}</UploadContext.Provider>
-}
-
-function fontForCategory(category: string | undefined): string {
-  if (category === 'comic') return 'Bangers'
-  if (category === 'cute') return 'Fredoka'
-  if (category === 'handwriting') return 'Gaegu'
-  if (category === 'minimal') return 'Gothic A1'
-  // 기본값: 통통 둥근 이모티콘 친화 폰트(다중 굵기 지원 → 굵기 조절 가능).
-  return 'Baloo 2'
-}
-
-function fontForLanguage(languageCode: string, suggestedFont: string): string {
-  if (languageCode === 'ja') return 'Noto Sans JP'
-  if (languageCode === 'zh') return 'Noto Sans SC'
-  return suggestedFont
 }
 
 async function fileToUploadFile(file: UploadFile): Promise<File> {
