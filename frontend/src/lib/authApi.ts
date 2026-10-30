@@ -161,18 +161,35 @@ export function updateEmailPreferences(token: string, patch: EmailPreferencePatc
   })
 }
 
-export function changePassword(token: string, currentPassword: string, newPassword: string): Promise<{ success: true }> {
+export type VerificationPurpose = 'delete-account' | 'change-password'
+/** 메일로 받은 6자리 코드와, 코드를 요청할 때 서버가 준 챌린지 */
+export interface VerificationProof { challenge: string; code: string }
+/** 비밀번호 변경 본인 확인: 현재 비밀번호 또는 메일 인증코드 */
+export type PasswordProof = { currentPassword: string } | VerificationProof
+
+export function changePassword(token: string, proof: PasswordProof, newPassword: string): Promise<{ success: true }> {
   return authRequest<{ success: true }>('/auth/me/password', {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ currentPassword, newPassword }),
+    body: JSON.stringify({ ...proof, newPassword }),
   })
 }
 
-export function deleteAccount(token: string): Promise<{ success: true }> {
+/** 이메일이 있는 계정은 인증코드가 있어야 탈퇴된다. 이메일이 없는 계정은 proof 없이 보낸다. */
+export function deleteAccount(token: string, proof?: VerificationProof): Promise<{ success: true }> {
   return authRequest<{ success: true }>('/auth/me', {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(proof ?? {}),
+  })
+}
+
+/** 탈퇴·비밀번호 변경용 6자리 코드를 계정 이메일로 보낸다. 코드는 메일로만 가고 응답에는 챌린지만 온다. */
+export function requestVerificationCode(token: string, purpose: VerificationPurpose): Promise<{ challenge: string; sentTo: string; expiresInSeconds: number }> {
+  return authRequest('/auth/me/verification-code', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ purpose }),
   })
 }
 

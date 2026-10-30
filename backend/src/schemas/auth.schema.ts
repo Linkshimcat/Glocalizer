@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { VERIFICATION_PURPOSES } from '../utils/verification-code.js';
 
 export const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email('올바른 이메일 형식이 아닙니다.'),
@@ -11,10 +12,25 @@ export const loginSchema = z.object({
   password: z.string().min(1, '비밀번호를 입력해주세요.').max(72),
 });
 
+const verificationCodeFields = {
+  challenge: z.string().min(1).max(2048).optional(),
+  code: z.string().regex(/^\d{6}$/, '6자리 인증코드를 입력해주세요.').optional(),
+};
+
+// 현재 비밀번호 대신 이메일 인증코드(challenge + code)로 본인을 확인할 수도 있다.
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, '현재 비밀번호를 입력해주세요.').max(72),
+  currentPassword: z.string().min(1, '현재 비밀번호를 입력해주세요.').max(72).optional(),
+  ...verificationCodeFields,
   newPassword: z.string().min(8, '새 비밀번호는 8자 이상이어야 합니다.').max(72),
+}).refine((value) => value.currentPassword !== undefined || (value.challenge !== undefined && value.code !== undefined), {
+  message: '현재 비밀번호 또는 인증코드를 입력해주세요.',
+  path: ['currentPassword'],
 });
+
+export const verificationCodeRequestSchema = z.object({ purpose: z.enum(VERIFICATION_PURPOSES) });
+
+/** 이메일이 있는 계정은 인증코드가 필요하다(서비스에서 확인). 이메일이 없는 계정은 빈 본문으로 탈퇴한다. */
+export const deleteAccountSchema = z.object(verificationCodeFields).default({});
 
 export const emailPreferencesSchema = z.object({
   securityEmailNotifications: z.boolean().optional(),
@@ -54,6 +70,7 @@ export const updateProfileSchema = z
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
 export type EmailPreferencesInput = z.infer<typeof emailPreferencesSchema>;
 export type NaverCallbackInput = z.infer<typeof naverCallbackSchema>;
 export type KakaoCallbackInput = z.infer<typeof kakaoCallbackSchema>;

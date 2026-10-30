@@ -22,7 +22,7 @@ import {
   updateUserProfile,
   updateSecurityEmailPreferences,
 } from '../repositories/user.repository.js';
-import type { ChangePasswordInput, EmailPreferencesInput, GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
+import type { ChangePasswordInput, DeleteAccountInput, EmailPreferencesInput, GoogleLoginInput, LoginInput, SignupInput, UpdateProfileInput } from '../schemas/auth.schema.js';
 import { extendSession, insertSession, listActiveSessions, revokeOtherSessions, revokeSession } from '../repositories/session.repository.js';
 import { rememberDevice } from '../repositories/known-device.repository.js';
 import type { LoginMethod, PublicSession, SessionContext } from '../types/session.js';
@@ -30,7 +30,10 @@ import type { PublicUser, UserRow } from '../types/user.js';
 import { parseDeviceLabel, maskIp } from '../utils/device-info.js';
 import { AUTH_TOKEN_TTL_SECONDS, signAuthToken } from '../utils/jwt.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
-import { sendNewDeviceLoginEmail, sendOtherSessionsSignedOutEmail, sendPasswordChangedEmail, sendWelcomeEmail } from './email.service.js';
+import { sendEmail, sendNewDeviceLoginEmail, sendOtherSessionsSignedOutEmail, sendPasswordChangedEmail, sendWelcomeEmail } from './email.service.js';
+import { renderVerificationCodeEmail } from '../emails/verification-code-email.js';
+import { maskEmail } from '../utils/mask-email.js';
+import { createVerificationChallenge, verifyVerificationCode, VERIFICATION_CODE_TTL_SECONDS, type VerificationPurpose } from '../utils/verification-code.js';
 
 async function fetchAuthProvider(url: string, init: RequestInit, failureCode: 'NAVER_LOGIN_FAILED' | 'KAKAO_LOGIN_FAILED' = 'NAVER_LOGIN_FAILED'): Promise<Response> {
   try { return await taskFetch(url, init); }
@@ -161,8 +164,10 @@ export async function changePassword(userId: string, input: ChangePasswordInput)
   const user = await findUserById(userId);
   if (!user) throw new AppError('UNAUTHORIZED');
   if (!user.password_hash) throw new AppError('PASSWORD_CHANGE_UNAVAILABLE');
-  if (!await verifyPassword(input.currentPassword, user.password_hash)) {
-    throw new AppError('CURRENT_PASSWORD_INCORRECT');
+  if (input.currentPassword !== undefined) {
+    if (!await verifyPassword(input.currentPassword, user.password_hash)) throw new AppError('CURRENT_PASSWORD_INCORRECT');
+  } else {
+    assertVerificationCode(input, user, 'change-password');
   }
 
   await updateUserPassword(userId, await hashPassword(input.newPassword), user.session_version ?? 0);
@@ -217,8 +222,35 @@ export async function revokeOtherUserSessions(userId: string, currentSid: string
 /** 현지화 프로젝트·생성 결과의 Storage 파일부터 지운 뒤 계정 행을 지운다 — 순서를 바꾸면
  *  users 행 삭제가 먼저 FK cascade로 projects/generation_projects를 지워버려 Storage 파일이
  *  고아로 남는다. Google 연동 계정이면 Supabase Auth 사용자도 함께 정리한다. */
-export async function deleteAccount(userId: string): Promise<void> {
+export async function deleteAccount(userId: string, input: DeleteAccountInput = {}): Promise<void> {
+  const user = await findUserById(userId);
+  if (!user) throw new AppError('UNAUTHORIZED');
+  // 로그인 토큰만 탈취당해도 계정이 지워지지 않도록 메일 인증코드를 받는다. 이메일이 없는 계정은 받을 곳이 없어 생략한다.
+  if (user.email) assertVerificationCode(input, user, 'delete-account');
   await deleteDurably('account', userId);
+}
+
+/** 탈퇴·비밀번호 변경 전에 계정 이메일로 6자리 코드를 보낸다. 코드는 응답에 넣지 않고 서명된 챌린지만 돌려준다. */
+export async function sendVerificationCode(userId: string, purpose: VerificationPurpose): Promise<{ challenge: string; sentTo: string; expiresInSeconds: number }> {
+  const user = await findUserById(userId);
+  if (!user) throw new AppError('UNAUTHORIZED');
+  if (!user.email) throw new AppError('EMAIL_REQUIRED');
+  if (purpose === 'change-password' && !user.password_hash) throw new AppError('PASSWORD_CHANGE_UNAVAILABLE');
+
+  const { code, challenge } = createVerificationChallenge(user, purpose);
+  const sent = await sendEmail({
+    to: user.email,
+    ...renderVerificationCodeEmail({ code, purpose, siteUrl: env.FRONTEND_ORIGIN, ttlMinutes: VERIFICATION_CODE_TTL_SECONDS / 60 }),
+  });
+  if (!sent) throw new AppError('EMAIL_NOT_CONFIGURED');
+  return { challenge, sentTo: maskEmail(user.email), expiresInSeconds: VERIFICATION_CODE_TTL_SECONDS };
+}
+
+function assertVerificationCode(input: { challenge?: string; code?: string }, user: UserRow, purpose: VerificationPurpose): void {
+  if (!input.challenge || !input.code) throw new AppError('VERIFICATION_CODE_REQUIRED');
+  const result = verifyVerificationCode(input.challenge, input.code, user, purpose);
+  if (result === 'expired') throw new AppError('VERIFICATION_CODE_EXPIRED');
+  if (result !== 'ok') throw new AppError('VERIFICATION_CODE_INVALID');
 }
 
 function identityString(value: unknown): string | null {
