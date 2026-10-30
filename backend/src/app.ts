@@ -1,8 +1,8 @@
 import cors from 'cors';
-import { safeLogError } from './utils/log-error.js';
 import express from 'express';
 import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
+import { httpLoggerOptions } from './config/http-logger.js';
 import { logger } from './config/logger.js';
 import { errorMiddleware, notFoundHandler } from './middleware/error.middleware.js';
 import { rateLimitMiddleware } from './middleware/rate-limit.middleware.js';
@@ -20,22 +20,7 @@ export function createApp() {
 
   app.use(requestIdMiddleware);
   app.use(securityHeadersMiddleware);
-  app.use(
-    pinoHttp({
-      logger,
-      serializers: { err: safeLogError },
-      redact: {
-        paths: ['req.headers.x-project-token', 'req.headers.authorization', 'req.headers.x-admin-key', 'req.headers.cookie', 'res.headers.set-cookie'],
-        censor: '[REDACTED]',
-      },
-      genReqId: (req) => (req as express.Request).id,
-      customLogLevel: (_req, res, err) => {
-        if (err || res.statusCode >= 500) return 'error';
-        if (res.statusCode >= 400) return 'warn';
-        return 'info';
-      },
-    }),
-  );
+  app.use(pinoHttp(httpLoggerOptions(logger)));
   app.use(
     cors({
       origin(origin, callback) {

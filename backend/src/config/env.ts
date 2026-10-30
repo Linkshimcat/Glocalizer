@@ -184,6 +184,12 @@ export const envSchema = z.object({
     .default('')
     .transform((value) => value.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean)),
 
+  // 내 데이터 받기(ZIP)는 계정의 모든 이미지를 읽는 무거운 요청이라 사용자당 시간당 횟수를 묶는다.
+  DATA_EXPORT_MAX_PER_HOUR: z.coerce.number().int().positive().default(5),
+  DATA_EXPORT_EMAIL_MAX_PER_HOUR: z.coerce.number().int().positive().default(3),
+  // 메일 속 다운로드 링크의 API 주소. 비우면 요청이 들어온 주소(https://<host>)를 쓴다.
+  PUBLIC_API_ORIGIN: z.preprocess((value) => value || undefined, z.string().url().optional()),
+
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
 }).refine(values => values.JOB_HEARTBEAT_INTERVAL_MS < values.JOB_STALE_AFTER_MS, { message: 'JOB_HEARTBEAT_INTERVAL_MS must be less than JOB_STALE_AFTER_MS', path: ['JOB_HEARTBEAT_INTERVAL_MS'] })

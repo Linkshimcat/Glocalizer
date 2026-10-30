@@ -16,6 +16,7 @@ async function buildAssetResult(
   regions: OcrRegionRow[],
   translations: TranslationRow[],
   editorStates: EditorStateRow[],
+  signUrls: boolean,
 ) {
   const primaryRegion = regions.find((region) => region.is_primary) ?? null;
 
@@ -36,10 +37,12 @@ async function buildAssetResult(
   };
   const localizations = primaryRegion ? toLocalizations(primaryRegion.id) : {};
 
-  const [originalUrl, cleanedUrl] = await Promise.all([
-    asset.original_path ? createSignedUrl(asset.original_path) : Promise.resolve(null),
-    asset.cleaned_path ? createSignedUrl(asset.cleaned_path) : Promise.resolve(null),
-  ]);
+  const [originalUrl, cleanedUrl] = signUrls
+    ? await Promise.all([
+      asset.original_path ? createSignedUrl(asset.original_path) : Promise.resolve(null),
+      asset.cleaned_path ? createSignedUrl(asset.cleaned_path) : Promise.resolve(null),
+    ])
+    : [null, null];
   const editorStatesByRegion = new Map<string, typeof editorStates>();
   for (const state of editorStates) {
     const regionStates = editorStatesByRegion.get(state.ocr_region_id) ?? [];
@@ -92,7 +95,8 @@ async function buildAssetResult(
   };
 }
 
-export async function getProjectResults(projectId: string) {
+/** signUrls=false면 이미지 서명 URL을 만들지 않는다(내 데이터 받기처럼 파일을 직접 담는 경우). */
+export async function getProjectResults(projectId: string, { signUrls = true }: { signUrls?: boolean } = {}) {
   const project = await findProjectById(projectId);
   if (!project) {
     throw new AppError('PROJECT_NOT_FOUND', { projectId });
@@ -132,6 +136,7 @@ export async function getProjectResults(projectId: string) {
     regionsByAsset.get(asset.id) ?? [],
     translationsByAsset.get(asset.id) ?? [],
     editorStatesByAsset.get(asset.id) ?? [],
+    signUrls,
   )));
 
   return {

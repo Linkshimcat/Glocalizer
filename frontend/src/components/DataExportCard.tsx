@@ -1,45 +1,35 @@
-import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { Download, Loader2, Mail } from 'lucide-react'
 import { accountCopy } from '../i18n/account'
 import { useSiteLang } from '../i18n/LanguageContext'
-import { downloadMyData } from '../lib/authApi'
-import { requestErrorMessage } from '../lib/requestError'
 import { useAuth } from '../store/AuthContext'
 import { AccountCard } from './AccountCard'
-import { useToast } from './Toast'
+import { maskEmail, useAccountExport } from './useAccountExport'
 
-/** 내 데이터 사본(JSON)을 내려받는다. */
+/** 내 데이터 ZIP 받기: 내 컴퓨터로(완성 이미지 포함) 또는 이메일 링크로(24시간, 완성 이미지 제외). */
 export default function DataExportCard() {
-  const { token } = useAuth()
+  const { user } = useAuth()
   const { lang } = useSiteLang()
   const t = accountCopy(lang)
-  const toast = useToast()
-  const [busy, setBusy] = useState(false)
-
-  const download = async () => {
-    if (!token) return
-    setBusy(true)
-    try {
-      const url = URL.createObjectURL(await downloadMyData(token))
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'glocalizer-my-data.json'
-      link.click()
-      URL.revokeObjectURL(url)
-      toast(t.accountDataDone, 'success')
-    } catch (error) {
-      toast(requestErrorMessage(error, lang, t.accountDataFailed))
-    } finally {
-      setBusy(false)
-    }
-  }
+  const { busy, progressLabel, downloadToComputer, emailing, emailLink } = useAccountExport()
+  const email = user?.email ?? null
 
   return (
     <AccountCard title={t.accountDataTitle} description={t.accountDataDesc}>
-      <button type="button" onClick={() => void download()} disabled={busy} className="mt-5 flex items-center gap-1.5 rounded-control border border-gray-200 px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:opacity-60">
-        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-        {t.accountDataButton}
-      </button>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <button type="button" onClick={() => void downloadToComputer()} disabled={busy} className="flex items-center gap-1.5 rounded-control bg-action px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          {t.accountDataLocal}
+        </button>
+        <button type="button" onClick={() => void emailLink()} disabled={!email || emailing} className="flex items-center gap-1.5 rounded-control border border-gray-200 px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50">
+          {emailing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+          {t.accountDataEmail}
+        </button>
+      </div>
+      <p className="mt-3 text-xs font-semibold text-ink" role={busy ? 'status' : undefined} aria-live="polite">
+        {progressLabel ?? t.accountDataTimeNote}
+      </p>
+      {busy && <p className="mt-1 text-xs text-sub">{t.accountDataTimeNote}</p>}
+      <p className="mt-1 text-xs text-sub">{email ? t.accountDataEmailHint.replace('{email}', maskEmail(email)) : t.accountDataNoEmail}</p>
     </AccountCard>
   )
 }

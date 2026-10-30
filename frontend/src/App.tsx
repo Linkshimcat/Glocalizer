@@ -5,6 +5,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { SiteLangProvider } from './i18n/LanguageContext'
 import LandingRemake from './pages/LandingRemake'
+import { AccountExportProvider } from './store/AccountExportContext'
 import { AuthProvider } from './store/AuthContext'
 import { ThemeProvider } from './store/ThemeContext'
 import { UploadProvider } from './store/uploads'
@@ -150,6 +151,7 @@ export function AppRoutes() {
           <AppErrorBoundary>
             <ToastProvider>
               <AuthProvider>
+                <AccountExportProvider>
                 <UploadProvider>
                   <Header />
                   <Suspense fallback={<RouteFallback />}>
@@ -183,6 +185,7 @@ export function AppRoutes() {
                     </Routes>
                   </Suspense>
                 </UploadProvider>
+                </AccountExportProvider>
               </AuthProvider>
             </ToastProvider>
           </AppErrorBoundary>

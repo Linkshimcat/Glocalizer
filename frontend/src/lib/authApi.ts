@@ -274,3 +274,21 @@ export async function downloadMyData(token: string): Promise<Blob> {
   }
   return response.blob()
 }
+
+/** 프로필·프로젝트 원본·글자 지운 이미지·번역·생성 이미지를 담은 계정 ZIP(서버 생성분). */
+// 계정 전체 이미지를 받는 동안 응답 본문이 계속 흘러오므로 일반 API 제한(2분) 대신 넉넉히 둔다.
+const ACCOUNT_ZIP_TIMEOUT_MS = 30 * 60 * 1000
+
+export async function downloadMyDataZip(token: string): Promise<Blob> {
+  const response = await apiFetch(`${API_BASE_URL}/auth/me/export.zip`, { headers: { Authorization: `Bearer ${token}` } }, ACCOUNT_ZIP_TIMEOUT_MS)
+  if (!response.ok) {
+    const error = await responseFailure(response, '요청에 실패했어요.')
+    throw new AuthApiError(error.message, error.status, error.code, error.retryAfterSeconds)
+  }
+  return response.blob()
+}
+
+/** 계정 이메일로 24시간짜리 다운로드 링크를 보낸다. 보낸 주소(가린 형태)를 돌려준다. */
+export async function emailMyDataLink(token: string): Promise<{ sentTo: string }> {
+  return authRequest<{ sentTo: string }>('/auth/me/export/email', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+}

@@ -49,6 +49,8 @@ export const ERROR_CODES = {
   RATE_LIMITED: { status: 429, message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
   NOT_FOUND: { status: 404, message: '요청한 리소스를 찾을 수 없습니다.' },
   NOT_IMPLEMENTED: { status: 501, message: '아직 구현되지 않은 기능입니다.' },
+  EMAIL_NOT_CONFIGURED: { status: 503, message: '메일 발송이 설정되어 있지 않습니다.' },
+  EMAIL_REQUIRED: { status: 400, message: '계정에 등록된 이메일이 없습니다.' },
   INTERNAL_ERROR: { status: 500, message: '내부 서버 오류가 발생했습니다.' },
 } as const;
 
