@@ -1,4 +1,6 @@
 import JSZip from 'jszip'
+// 완성 이미지에 저장된 글꼴을 쓰려면 글꼴 선언이 필요하다. 에디터·결과 페이지를 거치지 않고 설정에서 바로 받아도 같은 글꼴로 그린다.
+import '../editor-fonts.css'
 import { toDemoItems } from '../data/demo'
 import { downloadMyDataZip } from './authApi'
 import { listCloudProjects, restoreCloudProject } from './api'
