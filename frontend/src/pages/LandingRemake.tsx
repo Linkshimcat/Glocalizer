@@ -607,7 +607,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
         <section ref={heroRef} className="remake-hero" data-lang={lang} data-motion-paused={heroMotionPaused}>
           <div className="remake-hero-inner">
             <h1 key={`title-${lang}`}>
-              <span className="sr-only">{t.heroLine1} {t.heroLine2}</span>
+              <span className="sr-only">Glocalizer: {t.heroLine1} {t.heroLine2}</span>
               <span aria-hidden="true" className="remake-hero-prefix">{t.heroLine1}</span>
               <RollingText items={t.heroLine2Roll} per="char" className="remake-hero-roll" />
             </h1>
