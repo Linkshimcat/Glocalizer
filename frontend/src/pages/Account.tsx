@@ -80,7 +80,7 @@ export default function Account() {
   }, [isAuthenticated, refreshUser])
 
   useEffect(() => {
-    const sections = ['profile', 'security', 'preferences', 'plan', 'policy']
+    const sections = ['profile', 'plan', 'security', 'policy', 'preferences']
       .map(id => document.getElementById(id))
       .filter((section): section is HTMLElement => section !== null)
     const observer = new IntersectionObserver(entries => {
@@ -270,15 +270,17 @@ export default function Account() {
 
   const navItems = [
     ['profile', tAccount.accountNavProfile],
-    ['security', tAccount.accountNavSecurity],
-    ['preferences', tAccount.accountNavPreferences],
     ['plan', tAccount.accountNavPlan],
+    ['security', tAccount.accountNavSecurity],
     ['policy', tAccount.accountNavPolicy],
+    ['preferences', tAccount.accountNavPreferences],
   ] as const
 
   return (
     <div className="studio-account min-h-screen bg-[#FAFBFC]">
       <main id="main-content" tabIndex={-1} className="layout-app py-10 sm:py-16">
+        {/* 패널 폭(max-w-2xl)이 layout-app(880px)보다 좁아 왼쪽에 붙지 않도록 가운데에 둔다. */}
+        <div className="mx-auto max-w-2xl">
         <SessionNotice />
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{tAccount.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{tAccount.accountDesc}</p>
@@ -610,6 +612,7 @@ export default function Account() {
             {tAccount.accountDeleteButton}
           </button>
         </section>
+        </div>
       </main>
 
       {deleteModalOpen && (
