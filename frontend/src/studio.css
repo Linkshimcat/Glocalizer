@@ -115,6 +115,13 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .account-quick-nav::-webkit-scrollbar { display: none; }
 .account-quick-nav[data-stuck='true'] { box-shadow: 0 0 0 100vmax var(--account-page-bg), 0 1px 0 100vmax var(--color-line); clip-path: inset(0 -100vmax -1px); }
 .account-anchor { scroll-margin-top: calc(var(--site-header-height) + 76px); }
+/* 설정 카드를 계정·플랜·보안·환경설정·개인정보 그룹으로 묶는다. 그룹 안은 촘촘하게, 그룹 사이는 넓게 띄운다.
+   카드 컴포넌트마다 붙은 mt-6을 여기서 덮는다(이 파일은 Tailwind 레이어 밖이라 유틸리티보다 우선한다). */
+.account-group { margin-top: 48px; }
+.account-quick-nav + .account-group { margin-top: 20px; }
+.account-group-title { margin: 0 0 12px; padding-inline: 4px; font-size: 13px; font-weight: 800; letter-spacing: 0.02em; color: var(--color-sub); }
+.account-group > * + * { margin-top: 12px; }
+.account-group > .account-group-title + * { margin-top: 0; }
 .studio-generate details > div > div { border: 0; border-bottom: 1px solid var(--studio-line); border-radius: 0; padding-inline: 0; }
 @media (min-width: 1024px) {
   :root { --site-header-height: 72px; }

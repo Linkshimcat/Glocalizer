@@ -1,4 +1,4 @@
-import { requestErrorMessage } from '../lib/requestError'
+import { RequestError, requestErrorMessage } from '../lib/requestError'
 import { Camera, Check, ChevronRight, Download, FileText, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
@@ -12,13 +12,14 @@ import LoginHistoryCard from '../components/LoginHistoryCard'
 import Modal from '../components/Modal'
 import PaymentHistoryCard from '../components/PaymentHistoryCard'
 import SessionNotice from '../components/SessionNotice'
+import VerificationCodeField from '../components/VerificationCodeField'
 import { useAccountExport } from '../components/useAccountExport'
 import { experienceCopy } from '../i18n/experience'
 import profileDeleteIcon from '../assets/iconsax-profile-delete.svg'
 import { useToast } from '../components/Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { accountCopy } from '../i18n/account'
-import type { ProfileUpdate, SecurityEmailTypes } from '../lib/authApi'
+import type { ProfileUpdate, SecurityEmailTypes, VerificationProof } from '../lib/authApi'
 import { useAuth } from '../store/AuthContext'
 import { useTheme } from '../store/ThemeContext'
 
@@ -26,6 +27,9 @@ const NAME_MAX_LENGTH = 30
 const PHOTO_MAX_BYTES = 10 * 1024 * 1024
 const PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const PHOTO_EDGE = 512
+// 화면에 그룹이 놓인 순서. 바로가기 칩과 스크롤 위치 추적이 함께 써서 순서가 어긋나지 않는다.
+const ACCOUNT_GROUPS = ['profile', 'plan', 'security', 'preferences', 'privacy'] as const
+type AccountGroup = (typeof ACCOUNT_GROUPS)[number]
 
 /** 정사각형으로 가운데를 잘라 줄인 뒤 data URL로 만든다. 서버가 한 번 더 256px WebP로 재인코딩한다. */
 async function toAvatarDataUrl(file: File): Promise<string> {
@@ -61,6 +65,10 @@ export default function Account() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
+  // 현재 비밀번호가 기억나지 않으면 메일 인증코드로 대신 확인한다.
+  const [passwordMode, setPasswordMode] = useState<'current' | 'code'>('current')
+  const [passwordProof, setPasswordProof] = useState<VerificationProof | null>(null)
+  const [deleteProof, setDeleteProof] = useState<VerificationProof | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [ackDataLoss, setAckDataLoss] = useState(false)
   const [ackResignup, setAckResignup] = useState(false)
@@ -69,7 +77,7 @@ export default function Account() {
   const backup = useAccountExport()
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [emailAlertsSaving, setEmailAlertsSaving] = useState(false)
-  const [activeSection, setActiveSection] = useState('profile')
+  const [activeSection, setActiveSection] = useState<string>('profile')
   const quickNavRef = useRef<HTMLElement>(null)
   const [quickNavStuck, setQuickNavStuck] = useState(false)
   // 사용자 정보가 늦게 오면 첫 렌더에는 섹션이 없으므로, 화면이 그려진 뒤 다시 연결한다.
@@ -80,7 +88,7 @@ export default function Account() {
   }, [isAuthenticated, refreshUser])
 
   useEffect(() => {
-    const sections = ['profile', 'plan', 'security', 'policy', 'preferences']
+    const sections = ACCOUNT_GROUPS
       .map(id => document.getElementById(id))
       .filter((section): section is HTMLElement => section !== null)
     const observer = new IntersectionObserver(entries => {
@@ -177,6 +185,7 @@ export default function Account() {
     setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
+    setPasswordMode('current')
     setChangingPassword(true)
   }
 
@@ -184,8 +193,12 @@ export default function Account() {
 
   const onChangePassword = async (event: FormEvent) => {
     event.preventDefault()
-    if (!currentPassword) {
+    if (passwordMode === 'current' && !currentPassword) {
       toast(tAccount.accountPasswordCurrentRequired)
+      return
+    }
+    if (passwordMode === 'code' && !passwordProof) {
+      toast(tAccount.accountCodeRequired)
       return
     }
     if (newPassword.length < 8) {
@@ -198,14 +211,14 @@ export default function Account() {
     }
     setPasswordSaving(true)
     try {
-      await changePassword(currentPassword, newPassword)
+      await changePassword(passwordMode === 'code' && passwordProof ? passwordProof : { currentPassword }, newPassword)
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       setChangingPassword(false)
       toast(tAccount.accountPasswordSuccess, 'success')
     } catch (error) {
-      toast(requestErrorMessage(error, lang, tAccount.accountPasswordFailed))
+      toast(verificationErrorMessage(error, tAccount.accountPasswordFailed))
     } finally {
       setPasswordSaving(false)
     }
@@ -215,18 +228,29 @@ export default function Account() {
     setAckDataLoss(false)
     setAckResignup(false)
     setDeleteStep('backup')
+    setDeleteProof(null)
     setDeleteModalOpen(true)
+  }
+
+  // 서버 메시지는 한국어라, 인증코드 오류는 화면 언어 문구로 바꿔 보여 준다.
+  const verificationErrorMessage = (error: unknown, fallback: string) => {
+    if (error instanceof RequestError) {
+      if (error.code === 'VERIFICATION_CODE_INVALID') return tAccount.accountCodeInvalid
+      if (error.code === 'VERIFICATION_CODE_EXPIRED') return tAccount.accountCodeExpired
+      if (error.code === 'VERIFICATION_CODE_REQUIRED') return tAccount.accountCodeRequired
+    }
+    return requestErrorMessage(error, lang, fallback)
   }
 
   const onConfirmDelete = async () => {
     setDeletingAccount(true)
     try {
-      await deleteAccount()
+      await deleteAccount(deleteProof ?? undefined)
       setDeleteModalOpen(false)
       toast(tAccount.accountDeleteSuccess, 'success')
       navigate('/')
     } catch (error) {
-      toast(requestErrorMessage(error, lang, tAccount.accountDeleteFailed))
+      toast(verificationErrorMessage(error, tAccount.accountDeleteFailed))
     } finally {
       setDeletingAccount(false)
     }
@@ -263,18 +287,20 @@ export default function Account() {
     ['otherSessionsSignedOut', tAccount.accountEmailTypeSessions],
   ]
 
-  const jumpToSection = (id: string) => {
+  const jumpToSection = (id: AccountGroup) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setActiveSection(id)
   }
 
-  const navItems = [
-    ['profile', tAccount.accountNavProfile],
-    ['plan', tAccount.accountNavPlan],
-    ['security', tAccount.accountNavSecurity],
-    ['policy', tAccount.accountNavPolicy],
-    ['preferences', tAccount.accountNavPreferences],
-  ] as const
+  const groupLabels: Record<AccountGroup, string> = {
+    profile: tAccount.accountNavProfile,
+    plan: tAccount.accountNavPlan,
+    security: tAccount.accountNavSecurity,
+    preferences: tAccount.accountNavPreferences,
+    privacy: tAccount.accountNavPrivacy,
+  }
+  const groupTitle = (id: AccountGroup) => <h2 id={`${id}-group-title`} className="account-group-title">{groupLabels[id]}</h2>
+  const groupClass = 'account-group account-anchor'
 
   return (
     <div className="studio-account min-h-screen bg-[#FAFBFC]">
@@ -285,13 +311,15 @@ export default function Account() {
         <h1 className="mt-3 text-[30px] font-extrabold tracking-tight sm:text-[38px]">{tAccount.accountTitle}</h1>
         <p className="mt-3 text-base text-sub">{tAccount.accountDesc}</p>
         <nav ref={quickNavRef} data-stuck={quickNavStuck} aria-label={tAccount.accountQuickNavLabel} className="account-quick-nav -mx-4 flex max-w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 sm:mx-0 sm:max-w-2xl sm:px-0">
-          {navItems.map(([id, label]) => (
+          {ACCOUNT_GROUPS.map(id => (
             <button key={id} type="button" onClick={() => jumpToSection(id)} aria-current={activeSection === id ? 'true' : undefined} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors ${activeSection === id ? 'bg-brand-soft text-brand-dark' : 'bg-surface text-sub hover:text-ink'}`}>
-              {label}
+              {groupLabels[id]}
             </button>
           ))}
         </nav>
-        <form id="profile" onSubmit={onSubmit} className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountTitle}>
+        <section id="profile" className={groupClass} aria-labelledby="profile-group-title">
+        {groupTitle('profile')}
+        <form onSubmit={onSubmit} className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountTitle}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 shrink-0">
@@ -416,8 +444,11 @@ export default function Account() {
         </form>
 
         <AccountSummaryCard />
+        </section>
 
-        <section id="plan" className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
+        <section id="plan" className={groupClass} aria-labelledby="plan-group-title">
+        {groupTitle('plan')}
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPlanTitle}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPlanTitle}</h2>
@@ -438,13 +469,15 @@ export default function Account() {
         </section>
 
         <PaymentHistoryCard />
+        </section>
 
-        <div id="security" className="account-anchor">
+        <section id="security" className={groupClass} aria-labelledby="security-group-title">
+        {groupTitle('security')}
         {user.hasPassword && (
-          <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountSecurityTitle}>
+          <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPasswordTitle}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-extrabold text-ink">{tAccount.accountSecurityTitle}</h2>
+                <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPasswordTitle}</h2>
                 <p className="mt-1 text-sm text-sub">{tAccount.accountSecurityDesc}</p>
               </div>
               {!changingPassword && (
@@ -460,21 +493,35 @@ export default function Account() {
 
             {changingPassword && (
               <form onSubmit={onChangePassword} className="mt-5 space-y-4">
-                <div>
-                  <label htmlFor="current-password" className="text-sm font-semibold text-sub">
-                    {tAccount.accountPasswordCurrentLabel}
-                  </label>
-                  <input
-                    id="current-password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={event => setCurrentPassword(event.target.value)}
-                    maxLength={72}
-                    autoFocus
-                    autoComplete="current-password"
-                    className="mt-2 w-full rounded-control border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
-                  />
-                </div>
+                {passwordMode === 'current' ? (
+                  <div>
+                    <label htmlFor="current-password" className="text-sm font-semibold text-sub">
+                      {tAccount.accountPasswordCurrentLabel}
+                    </label>
+                    <input
+                      id="current-password"
+                      type="password"
+                      value={currentPassword}
+                      onChange={event => setCurrentPassword(event.target.value)}
+                      maxLength={72}
+                      autoFocus
+                      autoComplete="current-password"
+                      className="mt-2 w-full rounded-control border border-gray-200 px-4 py-3 text-base font-bold text-ink outline-none transition-colors focus:border-brand"
+                    />
+                    {user.email && (
+                      <button type="button" onClick={() => { setPasswordProof(null); setPasswordMode('code') }} className="mt-2 text-xs font-semibold text-sub underline-offset-2 hover:text-ink hover:underline">
+                        {tAccount.accountPasswordUseCode}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <VerificationCodeField purpose="change-password" onProofChange={setPasswordProof} />
+                    <button type="button" onClick={() => setPasswordMode('current')} className="mt-2 text-xs font-semibold text-sub underline-offset-2 hover:text-ink hover:underline">
+                      {tAccount.accountPasswordUseCurrent}
+                    </button>
+                  </div>
+                )}
                 <div>
                   <label htmlFor="new-password" className="text-sm font-semibold text-sub">
                     {tAccount.accountPasswordNewLabel}
@@ -550,26 +597,12 @@ export default function Account() {
             </ul>
           )}
         </section>
-        </div>
-
-        <section id="policy" className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPolicyTitle}>
-          <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPolicyTitle}</h2>
-          <p className="mt-1 text-sm text-sub">{tAccount.accountPolicyDesc}</p>
-          <div className="mt-5 divide-y divide-gray-100">
-            <button type="button" onClick={() => navigate('/privacy')} className="flex w-full items-center gap-3 py-4 text-left font-bold text-ink transition-colors hover:text-brand-dark">
-              <ShieldCheck aria-hidden="true" className="h-5 w-5 text-brand-dark" />
-              <span className="flex-1">{t.privacyPolicy}</span>
-              <ChevronRight aria-hidden="true" className="h-5 w-5 text-sub" />
-            </button>
-            <button type="button" onClick={() => navigate('/terms')} className="flex w-full items-center gap-3 py-4 text-left font-bold text-ink transition-colors hover:text-brand-dark">
-              <FileText aria-hidden="true" className="h-5 w-5 text-brand-dark" />
-              <span className="flex-1">{t.termsOfService}</span>
-              <ChevronRight aria-hidden="true" className="h-5 w-5 text-sub" />
-            </button>
-          </div>
         </section>
 
-        <section id="preferences" className="mt-6 max-w-2xl account-anchor rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountThemeTitle}>
+
+        <section id="preferences" className={groupClass} aria-labelledby="preferences-group-title">
+        {groupTitle('preferences')}
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountThemeTitle}>
           <div className="flex items-center justify-between gap-4 border-b border-line pb-5">
             <div>
               <h2 className="text-lg font-extrabold text-ink">{tAccount.accountLanguageTitle}</h2>
@@ -595,6 +628,26 @@ export default function Account() {
             </button>
           </div>
         </section>
+        </section>
+
+        <section id="privacy" className={groupClass} aria-labelledby="privacy-group-title">
+        {groupTitle('privacy')}
+        <section className="mt-6 max-w-2xl rounded-panel border border-gray-200/70 bg-white p-6 sm:p-8" aria-label={tAccount.accountPolicyTitle}>
+          <h2 className="text-lg font-extrabold text-ink">{tAccount.accountPolicyTitle}</h2>
+          <p className="mt-1 text-sm text-sub">{tAccount.accountPolicyDesc}</p>
+          <div className="mt-5 divide-y divide-gray-100">
+            <button type="button" onClick={() => navigate('/privacy')} className="flex w-full items-center gap-3 py-4 text-left font-bold text-ink transition-colors hover:text-brand-dark">
+              <ShieldCheck aria-hidden="true" className="h-5 w-5 text-brand-dark" />
+              <span className="flex-1">{t.privacyPolicy}</span>
+              <ChevronRight aria-hidden="true" className="h-5 w-5 text-sub" />
+            </button>
+            <button type="button" onClick={() => navigate('/terms')} className="flex w-full items-center gap-3 py-4 text-left font-bold text-ink transition-colors hover:text-brand-dark">
+              <FileText aria-hidden="true" className="h-5 w-5 text-brand-dark" />
+              <span className="flex-1">{t.termsOfService}</span>
+              <ChevronRight aria-hidden="true" className="h-5 w-5 text-sub" />
+            </button>
+          </div>
+        </section>
 
         <DataExportCard />
 
@@ -611,6 +664,7 @@ export default function Account() {
             </span>
             {tAccount.accountDeleteButton}
           </button>
+        </section>
         </section>
         </div>
       </main>
@@ -702,6 +756,13 @@ export default function Account() {
                 </label>
               </div>
 
+              {user.email && (
+                <div className="mt-5 border-t border-line pt-5">
+                  <p className="mb-3 text-sm text-sub">{tAccount.accountDeleteCodeDesc}</p>
+                  <VerificationCodeField purpose="delete-account" onProofChange={setDeleteProof} />
+                </div>
+              )}
+
               <div className="mt-6 flex justify-end gap-2">
                 <button
                   type="button"
@@ -719,7 +780,7 @@ export default function Account() {
                 </button>
                 <button
                   type="button"
-                  disabled={!ackDataLoss || !ackResignup}
+                  disabled={!ackDataLoss || !ackResignup || (Boolean(user.email) && !deleteProof)}
                   onClick={() => { void onConfirmDelete() }}
                   className="rounded-control bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-red-700"
                 >

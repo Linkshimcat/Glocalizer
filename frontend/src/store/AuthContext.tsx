@@ -4,6 +4,7 @@ import {
   AuthApiError,
   changePassword as apiChangePassword,
   deleteAccount as apiDeleteAccount,
+  requestVerificationCode as apiRequestVerificationCode,
   fetchCurrentUser,
   loginWithGoogle as apiLoginWithGoogle,
   loginWithEmail as apiLoginWithEmail,
@@ -20,6 +21,9 @@ import {
   type ProfileUpdate,
   type AuthSession,
   type AuthUser,
+  type PasswordProof,
+  type VerificationProof,
+  type VerificationPurpose,
 } from '../lib/authApi'
 
 const STORAGE_PREFIX = 'glocalizer:'
@@ -73,8 +77,9 @@ interface AuthState {
   refreshUser: () => Promise<void>
   updateProfile: (update: ProfileUpdate) => Promise<void>
   updateEmailPreferences: (patch: EmailPreferencePatch) => Promise<void>
-  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
-  deleteAccount: () => Promise<void>
+  changePassword: (proof: PasswordProof, newPassword: string) => Promise<void>
+  deleteAccount: (proof?: VerificationProof) => Promise<void>
+  requestVerificationCode: (purpose: VerificationPurpose) => Promise<{ challenge: string; sentTo: string; expiresInSeconds: number }>
   /** 이 계정으로 로그인된 기기 목록. */
   listSessions: () => Promise<AuthSession[]>
   revokeSession: (sessionId: string) => Promise<void>
@@ -206,15 +211,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistSession(token, nextUser)
   }, [token])
 
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+  const changePassword = useCallback(async (proof: PasswordProof, newPassword: string) => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
-    await apiChangePassword(token, currentPassword, newPassword)
+    await apiChangePassword(token, proof, newPassword)
     clearSession()
   }, [token, clearSession])
 
-  const deleteAccount = useCallback(async () => {
+  const requestVerificationCode = useCallback(async (purpose: VerificationPurpose) => {
     if (!token) throw new AuthApiError('로그인이 필요해요.')
-    await apiDeleteAccount(token)
+    return apiRequestVerificationCode(token, purpose)
+  }, [token])
+
+  const deleteAccount = useCallback(async (proof?: VerificationProof) => {
+    if (!token) throw new AuthApiError('로그인이 필요해요.')
+    await apiDeleteAccount(token, proof)
     setApiAccountToken(null)
     tokenRef.current = null
     setCheckingSession(false)
@@ -257,10 +267,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateEmailPreferences,
     changePassword,
     deleteAccount,
+    requestVerificationCode,
     listSessions,
     revokeSession,
     revokeOtherSessions,
-  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeKakaoLogin, completeGoogleLogin, logout, refreshUser, updateProfile, updateEmailPreferences, changePassword, deleteAccount, listSessions, revokeSession, revokeOtherSessions])
+  }), [user, token, checkingSession, sessionError, loginWithEmail, signupWithEmail, completeNaverLogin, completeKakaoLogin, completeGoogleLogin, logout, refreshUser, updateProfile, updateEmailPreferences, changePassword, deleteAccount, requestVerificationCode, listSessions, revokeSession, revokeOtherSessions])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
