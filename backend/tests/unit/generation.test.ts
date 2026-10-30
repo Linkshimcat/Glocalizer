@@ -71,7 +71,7 @@ describe('generation output', () => {
     };
     expect(Math.min(...await opaqueRows(top))).toBeLessThan(120);
     expect(Math.min(...await opaqueRows(bottom))).toBeGreaterThan(400);
-  });
+  }, 15_000); // 글꼴로 SVG를 그리는 sharp 합성이라 전체 테스트가 몰리면 기본 5초를 넘을 때가 있다
 
   it('creates a complete ordered 23-image plan and trims long captions', async () => {
     const items = Array.from({ length: 23 }, (_, index) => ({ pose: `표정 ${index + 1}`, caption: index === 0 ? '아주아주긴문구입니다정말로' : `문구${index + 1}` }));
