@@ -13,6 +13,7 @@ import { findUserById } from '../repositories/user.repository.js';
 import { EXPORT_TOKEN_TTL_SECONDS, signExportToken } from '../utils/export-token.js';
 import { exportAccountData } from './account.service.js';
 import { sendEmail } from './email.service.js';
+import { captionSticker } from './generation.service.js';
 import { getProjectResults } from './result.service.js';
 
 /** ZIP 안 경로에 쓸 수 없는 문자를 바꾸고 길이를 줄인다. 비면 대체 이름을 쓴다. */
@@ -28,6 +29,8 @@ const withoutExtension = (name: string) => name.replace(/\.[^.]+$/, '');
 class ExportWriter {
   readonly zip = new ZipFile();
   readonly missing: string[] = [];
+  /** 문구를 합성하지 못해 문구 없는 원본으로 넣은 생성 이모티콘 */
+  readonly uncaptioned: string[] = [];
 
   /** 한 파일씩 순서대로 넣는다. 앞 파일이 다 쓰인 뒤에 다음 파일을 받으므로 메모리에 이미지가 쌓이지 않는다. */
   async addBuffer(buffer: Buffer, path: string): Promise<void> {
@@ -47,7 +50,7 @@ class ExportWriter {
   }
 }
 
-function readme(exportedAt: string, missing: string[]): string {
+function readme(exportedAt: string, missing: string[], uncaptioned: string[]): string {
   return [
     'Glocalizer 내 데이터 / My Glocalizer data',
     `받은 시각 / Exported at: ${exportedAt}`,
@@ -55,12 +58,15 @@ function readme(exportedAt: string, missing: string[]): string {
     'my-data.json            프로필, 프로젝트 목록, 로그인 기록, 결제 내역 / profile, projects, login history, payments',
     'profile/                업로드한 프로필 사진 / uploaded profile photo',
     'localization/<프로젝트>/  project.json(OCR 원문, 번역 후보, 편집 설정), originals/(원본), text-removed/(글자를 지운 이미지)',
-    'generation/<프로젝트>/    project.json(캐릭터 설명·문구), images/(생성한 이모티콘)',
+    'generation/<프로젝트>/    project.json(캐릭터 설명·문구·문구 스타일), images/(문구를 넣은 완성 이모티콘), images/no-caption/(문구 없는 원본)',
     '',
     '번역 글자까지 합성한 완성 이미지는 설정 페이지의 "내 컴퓨터로 받기"로 받을 때만 final/ 폴더에 들어갑니다.',
     'Finished images with translated text (final/) are included only when downloaded from the account page.',
     ...(missing.length
       ? ['', '저장소에서 읽지 못해 빠진 파일 / Files that could not be read:', ...missing.map((path) => `- ${path}`)]
+      : []),
+    ...(uncaptioned.length
+      ? ['', '문구를 합성하지 못해 문구 없는 원본으로 넣은 파일 / Saved without the caption:', ...uncaptioned.map((path) => `- ${path}`)]
       : []),
     '',
   ].join('\n');
@@ -126,14 +132,24 @@ export async function writeAccountExport(userId: string, sid: string | undefined
     const folder = `generation/${safeFileName(generation.name, 'generation')}_${generation.id.slice(0, 8)}`;
     writer.addJson({
       id: generation.id, name: generation.name, prompt: generation.prompt, status: generation.status, createdAt: generation.createdAt, plan: generation.plan,
-      images: generation.images.map((image) => ({ slot: image.slot, caption: image.caption, prompt: image.prompt })),
+      images: generation.images.map((image) => ({ slot: image.slot, caption: image.caption, captionStyle: image.captionStyle, prompt: image.prompt })),
     }, `${folder}/project.json`);
     for (const image of generation.images) {
-      await writer.addStorageFile(image.path, `${folder}/images/slot-${String(image.slot).padStart(2, '0')}.${extensionOf(image.path, 'png')}`);
+      const name = `slot-${String(image.slot).padStart(2, '0')}.png`;
+      const raw = await downloadFromStorage(image.path).catch(() => null);
+      if (!raw) {
+        writer.missing.push(`${folder}/images/${name}`);
+        continue;
+      }
+      // 다운로드 버튼(generation.routes.ts)과 같이 저장된 문구 스타일로 문구를 합성한 완성본을 넣는다.
+      const captioned = await captionSticker(raw, image.caption, image.captionStyle).catch(() => null);
+      if (!captioned) writer.uncaptioned.push(`${folder}/images/${name}`);
+      await writer.addBuffer(captioned ?? raw, `${folder}/images/${name}`);
+      await writer.addBuffer(raw, `${folder}/images/no-caption/${name}`);
     }
   }
 
-  writer.zip.addBuffer(Buffer.from(readme(exportedAt, writer.missing)), 'README.txt');
+  writer.zip.addBuffer(Buffer.from(readme(exportedAt, writer.missing, writer.uncaptioned)), 'README.txt');
   writer.zip.end();
   await once(writer.zip.outputStream, 'end');
 }

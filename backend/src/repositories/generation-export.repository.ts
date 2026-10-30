@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase.js';
+import type { CaptionStyle } from '../services/generation.service.js';
 import { unwrapList } from '../utils/db-result.js';
 
 export interface GenerationExport {
@@ -9,7 +10,7 @@ export interface GenerationExport {
   createdAt: string;
   plan: unknown;
   /** 칸(slot)마다 가장 최근에 완성된 이미지 하나 */
-  images: Array<{ slot: number; caption: string; prompt: string; path: string }>;
+  images: Array<{ slot: number; caption: string; captionStyle: CaptionStyle | null; prompt: string; path: string }>;
 }
 
 /** 내 데이터 받기용. 삭제 중이 아닌 생성 프로젝트와, 칸별 최신 완성 이미지 경로를 읽는다. */
@@ -19,16 +20,16 @@ export async function listGenerationExports(ownerId: string): Promise<Generation
     '생성 프로젝트를 불러오지 못했습니다.',
   );
   if (projects.length === 0) return [];
-  const images = unwrapList<{ project_id: string; slot: number; caption: string; prompt: string; path: string | null; created_at: string }>(
-    await supabase.from('generation_images').select('project_id, slot, caption, prompt, path, created_at')
+  const images = unwrapList<{ project_id: string; slot: number; caption: string; caption_style: CaptionStyle | null; prompt: string; path: string | null; created_at: string }>(
+    await supabase.from('generation_images').select('project_id, slot, caption, caption_style, prompt, path, created_at')
       .in('project_id', projects.map((project) => project.id)).eq('status', 'completed').order('created_at', { ascending: false }),
     '생성 이미지를 불러오지 못했습니다.',
   );
   return projects.map((project) => {
-    const latest = new Map<number, { slot: number; caption: string; prompt: string; path: string }>();
+    const latest = new Map<number, GenerationExport['images'][number]>();
     for (const image of images) {
       if (image.project_id === project.id && image.path && !latest.has(image.slot)) {
-        latest.set(image.slot, { slot: image.slot, caption: image.caption, prompt: image.prompt, path: image.path });
+        latest.set(image.slot, { slot: image.slot, caption: image.caption, captionStyle: image.caption_style ?? null, prompt: image.prompt, path: image.path });
       }
     }
     return {

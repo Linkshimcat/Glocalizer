@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import sharp from 'sharp';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 
@@ -39,6 +40,8 @@ const PROJECT = 'aaaaaaaa-0000-4000-8000-000000000001';
 const ASSET = 'bbbbbbbb-0000-4000-8000-000000000001';
 const REGION = 'cccccccc-0000-4000-8000-000000000001';
 const bearer = `Bearer ${signAuthToken({ sub: OWNER, ver: 0 })}`;
+const CAPTION_STYLE = { anchor: 'top-center', size: 46, color: '#202630', stroke: '#ffffff' };
+const stickerPng = await sharp({ create: { width: 740, height: 640, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).png().toBuffer();
 
 const userRow = (patch: object = {}) => ({
   id: OWNER, email: 'me@example.com', password_hash: 'hash', naver_id: null, kakao_id: null, supabase_auth_id: null, signup_method: 'email',
@@ -81,10 +84,10 @@ beforeEach(() => {
   }] as never);
   vi.mocked(editorStates.findEditorStatesByAssetIds).mockResolvedValue([{ asset_id: ASSET, ocr_region_id: REGION, language_code: 'en', style: { size: 30 } }]);
   vi.mocked(storage.createSignedUrl).mockResolvedValue('https://signed.example/x');
-  vi.mocked(storage.downloadFromStorage).mockImplementation(async (path: string) => Buffer.from(`bytes:${path}`));
+  vi.mocked(storage.downloadFromStorage).mockImplementation(async (path: string) => (path.startsWith('generation/') ? stickerPng : Buffer.from(`bytes:${path}`)));
   vi.mocked(generation.listGenerationExports).mockResolvedValue([{
     id: 'dddddddd-0000-4000-8000-000000000001', name: '토끼', prompt: '분홍 토끼', status: 'completed', createdAt: '2026-10-04T00:00:00Z',
-    plan: [], images: [{ slot: 0, caption: '안녕', prompt: '토끼', path: 'generation/a/0.png' }],
+    plan: [], images: [{ slot: 0, caption: '안녕', captionStyle: CAPTION_STYLE, prompt: '토끼', path: 'generation/a/0.png' }],
   }]);
 });
 
@@ -101,6 +104,7 @@ describe('GET /api/v1/auth/me/export.zip', () => {
       `${folder}/project.json`,
       `${folder}/text-removed/01_안녕.png`,
       'generation/토끼_dddddddd/images/slot-00.png',
+      'generation/토끼_dddddddd/images/no-caption/slot-00.png',
       'generation/토끼_dddddddd/project.json',
       'my-data.json',
       'profile/avatar.webp',
@@ -113,6 +117,14 @@ describe('GET /api/v1/auth/me/export.zip', () => {
     expect(JSON.stringify(project)).not.toContain('signed.example'); // 만료되는 서명 URL은 넣지 않는다
     expect(storage.createSignedUrl).not.toHaveBeenCalled(); // 파일을 직접 담으므로 쓰지 않을 서명 URL을 만들지 않는다
     expect(await zip.file('profile/avatar.webp')!.async('string')).toBe('avatar-bytes');
+    // 생성 이모티콘은 다운로드 버튼과 같이 문구를 합성한 완성본을 넣고, 문구 없는 원본과 문구 스타일도 함께 남긴다.
+    const captioned = await zip.file('generation/토끼_dddddddd/images/slot-00.png')!.async('nodebuffer');
+    const raw = await zip.file('generation/토끼_dddddddd/images/no-caption/slot-00.png')!.async('nodebuffer');
+    expect(raw.equals(stickerPng)).toBe(true);
+    expect(captioned.equals(stickerPng)).toBe(false);
+    expect((await sharp(captioned).stats()).channels[3]!.max).toBeGreaterThan(0); // 투명 원본 위에 글자가 그려졌다
+    const generationJson = JSON.parse(await zip.file('generation/토끼_dddddddd/project.json')!.async('string'));
+    expect(generationJson.images[0]).toMatchObject({ slot: 0, caption: '안녕', captionStyle: CAPTION_STYLE });
     const myData = JSON.parse(await zip.file('my-data.json')!.async('string'));
     expect(myData.profile.email).toBe('me@example.com');
   });
@@ -124,6 +136,14 @@ describe('GET /api/v1/auth/me/export.zip', () => {
     expect(names.some((name) => name.includes('text-removed/'))).toBe(false);
     expect(names.some((name) => name.includes('originals/'))).toBe(true);
     expect(await zip.file('README.txt')!.async('string')).toContain('text-removed/01_안녕.png');
+  });
+
+  it('문구를 합성하지 못한 생성 이모티콘은 원본으로 넣고 README에 적는다', async () => {
+    vi.mocked(storage.downloadFromStorage).mockImplementation(async () => Buffer.from('not-an-image'));
+    const res = await request(app).get('/api/v1/auth/me/export.zip').set('Authorization', bearer).buffer(true).parse(binary);
+    const { zip } = await unzip(res.body as Buffer);
+    expect(await zip.file('generation/토끼_dddddddd/images/slot-00.png')!.async('string')).toBe('not-an-image');
+    expect(await zip.file('README.txt')!.async('string')).toContain('generation/토끼_dddddddd/images/slot-00.png');
   });
 
   it('이메일 링크 토큰(?token=)으로도 받을 수 있다', async () => {
