@@ -26,10 +26,14 @@ const service = serviceDict.ko
 const legal = legalDict.ko
 const ui = legalUi.ko
 
+// Google이 "Glocalizer"를 일반 단어 glocalization으로 읽지 않고 이 사이트 이름으로 인식하도록 한국어 표기를 함께 알린다.
+const BRAND_ALTERNATE_NAMES = ['글로컬라이저', 'Glocalizer 이모티콘']
+
 const organization: JsonLd = {
   '@type': 'Organization',
   '@id': `${SITE_URL}/#organization`,
   name: SITE_NAME,
+  alternateName: BRAND_ALTERNATE_NAMES,
   url: `${SITE_URL}/`,
   logo: `${SITE_URL}/favicon.png`,
   email: LEGAL_CONTACT,
@@ -40,6 +44,7 @@ const website: JsonLd = {
   '@type': 'WebSite',
   '@id': `${SITE_URL}/#website`,
   name: SITE_NAME,
+  alternateName: BRAND_ALTERNATE_NAMES,
   url: `${SITE_URL}/`,
   inLanguage: ['ko', 'en', 'ja', 'zh'],
   publisher: { '@id': `${SITE_URL}/#organization` },
