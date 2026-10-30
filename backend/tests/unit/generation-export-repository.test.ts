@@ -17,8 +17,14 @@ vi.mock('../../src/config/supabase.js', () => ({
       select: (columns: string) => {
         selected[table] = columns;
         const chain: Record<string, unknown> = {};
+        let page: [number, number] | null = null;
         for (const method of ['eq', 'is', 'in', 'order']) chain[method] = () => chain;
-        chain.then = (resolve: (value: unknown) => void) => resolve({ data: rows[table], error: null });
+        chain.range = (from: number, to: number) => { page = [from, to]; return chain; };
+        // PostgREST처럼 한 번에 최대 1,000행만 돌려준다.
+        chain.then = (resolve: (value: unknown) => void) => {
+          const [from, to] = page ?? [0, 999];
+          resolve({ data: rows[table].slice(from, Math.min(to, from + 999) + 1), error: null });
+        };
         return chain;
       },
     }),
@@ -34,5 +40,16 @@ describe('listGenerationExports', () => {
     expect(project!.images).toEqual([
       { slot: 0, caption: '새 문구', captionStyle: { anchor: 'top-center', size: 46, color: '#000000', stroke: '#ffffff' }, prompt: 'p', path: 'gen/p1/0-new.png' },
     ]); // 경로가 없는 칸(slot 1)은 뺀다
+  });
+});
+
+describe('listGenerationExports 페이지 나눠 읽기', () => {
+  it('완성 이미지가 1,000개를 넘어도 끝까지 읽어 마지막 페이지의 칸도 빠뜨리지 않는다', async () => {
+    const history = Array.from({ length: 1000 }, (_, i) => ({
+      project_id: 'p1', slot: 0, caption: `이력 ${i}`, caption_style: null, prompt: 'p', path: `gen/p1/0-${i}.png`, created_at: '2026-10-05T00:00:00Z',
+    }));
+    rows.generation_images = [...history, { project_id: 'p1', slot: 7, caption: '맨 끝', caption_style: null, prompt: 'p', path: 'gen/p1/7.png', created_at: '2026-10-01T00:00:00Z' }];
+    const [project] = await listGenerationExports('owner');
+    expect(project!.images.map((image) => image.slot)).toEqual([0, 7]);
   });
 });
