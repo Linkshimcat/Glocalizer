@@ -91,6 +91,16 @@ describe('POST /auth/google', () => {
     expect(users.findUserByEmail).not.toHaveBeenCalled();
   });
 
+  it('탈퇴 처리 중인 계정은 세션을 주지 않고 원인을 알려준다 (이전에는 이유 없는 401만 반복됐다)', async () => {
+    vi.mocked(users.findUserBySupabaseAuthId).mockResolvedValue(row({ deleting_at: '2026-10-30T06:07:52Z' }));
+    vi.mocked(users.linkGoogleProfile).mockImplementation(async (found) => found as never);
+    const res = await request(app).post('/api/v1/auth/google').send({ accessToken: 'verified-token' });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('ACCOUNT_DELETING');
+    expect(res.body.error.message).toContain('탈퇴');
+    expect(res.body.token).toBeUndefined();
+  });
+
   it('does not overwrite an email account linked to another Google identity', async () => {
     vi.mocked(users.findUserByEmail).mockResolvedValue(row({ supabase_auth_id: '00000000-0000-4000-8000-000000000099' }));
     const res = await request(app).post('/api/v1/auth/google').send({ accessToken: 'verified-token' });
