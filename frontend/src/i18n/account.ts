@@ -128,6 +128,7 @@ const copy = {
   accountDataProgressCollect: ['파일을 모으는 중...', 'Collecting your files...', 'ファイルを集めています...', '正在收集文件...'],
   accountDataProgressRender: ['완성 이미지 만드는 중 ({done}/{total})', 'Creating finished images ({done}/{total})', '完成画像を作成中 ({done}/{total})', '正在生成成品图 ({done}/{total})'],
   accountDataProgressPack: ['압축하는 중...', 'Compressing...', '圧縮しています...', '正在压缩...'],
+  accountDataTimeNote: ['이미지가 많으면 몇 분 걸릴 수 있어요. 받는 동안 이 페이지를 닫거나 이동하지 마세요.', 'This can take a few minutes if you have many images. Keep this page open until it finishes.', '画像が多いと数分かかることがあります。完了するまでこのページを閉じたり移動したりしないでください。', '图片较多时可能需要几分钟，完成前请不要关闭或离开此页面。'],
   accountDataPartial: ['일부 프로젝트는 완성 이미지 없이 받았어요. ZIP 안의 README를 확인해주세요.', 'Some projects were saved without finished images. See README in the ZIP.', '一部のプロジェクトは完成画像なしで保存しました。ZIP内のREADMEをご確認ください。', '部分项目未包含成品图，请查看 ZIP 中的 README。'],
   accountDeleteBackupTitle: ['탈퇴 전에 내 데이터를 받아 두세요', 'Save your data before you leave', '退会前にデータを保存してください', '删除账户前请先保存数据'],
   accountDeleteBackupDesc: ['탈퇴하면 프로젝트와 이미지가 모두 지워지고 되돌릴 수 없어요. 먼저 내 컴퓨터로 받아 두는 걸 권해요.', 'Deleting your account permanently removes all projects and images. We recommend downloading your data first.', '退会するとプロジェクトと画像はすべて削除され、元に戻せません。先にこのデバイスに保存することをおすすめします。', '删除账户后，所有项目和图片都会被永久删除且无法恢复。建议先下载到本机。'],

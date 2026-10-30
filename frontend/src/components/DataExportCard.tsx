@@ -25,9 +25,11 @@ export default function DataExportCard() {
           {t.accountDataEmail}
         </button>
       </div>
-      <p className="mt-3 text-xs text-sub" role={busy ? 'status' : undefined} aria-live="polite">
-        {progressLabel ?? (email ? t.accountDataEmailHint.replace('{email}', maskEmail(email)) : t.accountDataNoEmail)}
+      <p className="mt-3 text-xs font-semibold text-ink" role={busy ? 'status' : undefined} aria-live="polite">
+        {progressLabel ?? t.accountDataTimeNote}
       </p>
+      {busy && <p className="mt-1 text-xs text-sub">{t.accountDataTimeNote}</p>}
+      <p className="mt-1 text-xs text-sub">{email ? t.accountDataEmailHint.replace('{email}', maskEmail(email)) : t.accountDataNoEmail}</p>
     </AccountCard>
   )
 }

@@ -640,7 +640,9 @@ export default function Account() {
                   {backup.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : backup.downloaded ? <Check className="h-4 w-4" /> : <Download className="h-4 w-4" />}
                   {backup.downloaded ? tAccount.accountDeleteBackupDone : tAccount.accountDataLocal}
                 </button>
-                <p className="mt-2 text-xs text-sub" role={backup.busy ? 'status' : undefined} aria-live="polite">{backup.progressLabel ?? tAccount.accountDeleteBackupEmailNote}</p>
+                <p className="mt-2 text-xs font-semibold text-ink" role={backup.busy ? 'status' : undefined} aria-live="polite">{backup.progressLabel ?? tAccount.accountDataTimeNote}</p>
+                {backup.busy && <p className="mt-1 text-xs text-sub">{tAccount.accountDataTimeNote}</p>}
+                <p className="mt-1 text-xs text-sub">{tAccount.accountDeleteBackupEmailNote}</p>
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
                 {!backup.downloaded && (
