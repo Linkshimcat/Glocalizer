@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // 테이블별로 돌려줄 행. 쿼리 빌더 체인은 결과만 흉내 낸다.
 const rows = vi.hoisted(() => ({
-  generation_projects: [{ id: 'p1', name: '토끼', prompt: '분홍 토끼', status: 'completed', created_at: '2026-10-04T00:00:00Z', plan: [] }],
+  generation_projects: [{ id: 'p1', name: '토끼', prompt: '분홍 토끼', status: 'completed', created_at: '2026-10-04T00:00:00Z', plan: [], reference_path: 'gen/p1/reference.png' }],
   generation_images: [
     // 최신순(created_at 내림차순)으로 온다
     { project_id: 'p1', slot: 0, caption: '새 문구', caption_style: { anchor: 'top-center', size: 46, color: '#000000', stroke: '#ffffff' }, prompt: 'p', path: 'gen/p1/0-new.png', created_at: '2026-10-05T00:00:00Z' },
@@ -37,6 +37,8 @@ describe('listGenerationExports', () => {
   it('칸마다 가장 최근 완성 이미지 하나와 저장된 문구 스타일을 돌려준다', async () => {
     const [project] = await listGenerationExports('owner');
     expect(selected.generation_images).toContain('caption_style');
+    expect(selected.generation_projects).toContain('reference_path');
+    expect(project!.referencePath).toBe('gen/p1/reference.png');
     expect(project!.images).toEqual([
       { slot: 0, caption: '새 문구', captionStyle: { anchor: 'top-center', size: 46, color: '#000000', stroke: '#ffffff' }, prompt: 'p', path: 'gen/p1/0-new.png' },
     ]); // 경로가 없는 칸(slot 1)은 뺀다

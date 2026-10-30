@@ -91,7 +91,7 @@ function readme(exportedAt: string, missing: string[], uncaptioned: string[]): s
     'my-data.json            프로필, 프로젝트 목록, 로그인 기록, 결제 내역 / profile, projects, login history, payments',
     'profile/                업로드한 프로필 사진 / uploaded profile photo',
     'localization/<프로젝트>/  project.json(OCR 원문, 번역 후보, 편집 설정), originals/(원본), text-removed/(글자를 지운 이미지)',
-    'generation/<프로젝트>/    project.json(캐릭터 설명·문구·문구 스타일), images/(문구를 넣은 완성 이모티콘), images/no-caption/(문구 없는 원본)',
+    'generation/<프로젝트>/    project.json(캐릭터 설명·문구·문구 스타일), reference.*(올린 참고 이미지), images/(문구를 넣은 완성 이모티콘), images/no-caption/(문구 없는 원본)',
     '',
     '번역 글자까지 합성한 완성 이미지는 설정 페이지의 "내 컴퓨터로 받기"로 받을 때만 final/ 폴더에 들어갑니다.',
     'Finished images with translated text (final/) are included only when downloaded from the account page.',
@@ -170,6 +170,7 @@ export async function writeAccountExport(userId: string, sid: string | undefined
       id: generation.id, name: generation.name, prompt: generation.prompt, status: generation.status, createdAt: generation.createdAt, plan: generation.plan,
       images: generation.images.map((image) => ({ slot: image.slot, caption: image.caption, captionStyle: image.captionStyle, prompt: image.prompt })),
     }, `${folder}/project.json`);
+    if (generation.referencePath) await writer.addStorageFile(generation.referencePath, `${folder}/reference.${extensionOf(generation.referencePath, 'png')}`);
     for (const image of generation.images) {
       const name = `slot-${String(image.slot).padStart(2, '0')}.png`;
       const raw = await downloadFromStorage(image.path).catch(() => null);

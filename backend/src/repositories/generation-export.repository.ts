@@ -11,14 +11,16 @@ export interface GenerationExport {
   status: string;
   createdAt: string;
   plan: unknown;
+  /** 사용자가 올린 참고 이미지의 저장소 경로 */
+  referencePath: string | null;
   /** 칸(slot)마다 가장 최근에 완성된 이미지 하나 */
   images: Array<{ slot: number; caption: string; captionStyle: CaptionStyle | null; prompt: string; path: string }>;
 }
 
 /** 내 데이터 받기용. 삭제 중이 아닌 생성 프로젝트와, 칸별 최신 완성 이미지 경로를 읽는다. */
 export async function listGenerationExports(ownerId: string): Promise<GenerationExport[]> {
-  const projects = unwrapList<{ id: string; name: string | null; prompt: string; status: string; created_at: string; plan: unknown }>(
-    await supabase.from('generation_projects').select('id, name, prompt, status, created_at, plan').eq('owner_id', ownerId).is('deleting_at', null).order('created_at'),
+  const projects = unwrapList<{ id: string; name: string | null; prompt: string; status: string; created_at: string; plan: unknown; reference_path: string | null }>(
+    await supabase.from('generation_projects').select('id, name, prompt, status, created_at, plan, reference_path').eq('owner_id', ownerId).is('deleting_at', null).order('created_at'),
     '생성 프로젝트를 불러오지 못했습니다.',
   );
   if (projects.length === 0) return [];
@@ -44,6 +46,7 @@ export async function listGenerationExports(ownerId: string): Promise<Generation
     }
     return {
       id: project.id, name: project.name, prompt: project.prompt, status: project.status, createdAt: project.created_at, plan: project.plan,
+      referencePath: project.reference_path ?? null,
       images: [...latest.values()].sort((a, b) => a.slot - b.slot),
     };
   });

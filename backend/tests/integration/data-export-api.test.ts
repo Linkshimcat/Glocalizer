@@ -86,7 +86,7 @@ beforeEach(() => {
   vi.mocked(storage.createSignedUrl).mockResolvedValue('https://signed.example/x');
   vi.mocked(storage.downloadFromStorage).mockImplementation(async (path: string) => (path.startsWith('generation/') ? stickerPng : Buffer.from(`bytes:${path}`)));
   vi.mocked(generation.listGenerationExports).mockResolvedValue([{
-    id: 'dddddddd-0000-4000-8000-000000000001', name: '토끼', prompt: '분홍 토끼', status: 'completed', createdAt: '2026-10-04T00:00:00Z',
+    id: 'dddddddd-0000-4000-8000-000000000001', name: '토끼', prompt: '분홍 토끼', status: 'completed', createdAt: '2026-10-04T00:00:00Z', referencePath: 'generation/a/reference.jpg',
     plan: [], images: [{ slot: 0, caption: '안녕', captionStyle: CAPTION_STYLE, prompt: '토끼', path: 'generation/a/0.png' }],
   }]);
 });
@@ -105,6 +105,7 @@ describe('GET /api/v1/auth/me/export.zip', () => {
       `${folder}/text-removed/01_안녕.png`,
       'generation/토끼_dddddddd/images/slot-00.png',
       'generation/토끼_dddddddd/images/no-caption/slot-00.png',
+      'generation/토끼_dddddddd/reference.jpg', // 사용자가 올린 참고 이미지
       'generation/토끼_dddddddd/project.json',
       'my-data.json',
       'profile/avatar.webp',
