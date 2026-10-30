@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { logger } from '../config/logger.js';
 import { exportAccountData, getAccountSummary, getLoginHistory } from '../services/account.service.js';
-import { sendDataExportEmail, writeAccountExport } from '../services/data-export.service.js';
+import { ExportAbortedError, sendDataExportEmail, writeAccountExport } from '../services/data-export.service.js';
 import { safeLogError } from '../utils/log-error.js';
 
 export async function accountSummaryHandler(req: Request, res: Response) {
@@ -26,6 +26,8 @@ export async function exportAccountZipHandler(req: Request, res: Response) {
   try {
     await writeAccountExport(userId, req.sid, res);
   } catch (err) {
+    // 사용자가 받다가 취소했으면 오류가 아니다.
+    if (err instanceof ExportAbortedError) return;
     // 이미 ZIP을 보내기 시작했으면 오류 JSON을 덧붙일 수 없으니 연결을 끊어 받다 만 파일임을 알린다.
     if (res.headersSent) {
       logger.warn({ userId, err: safeLogError(err) }, 'Account export stream failed');

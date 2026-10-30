@@ -26,20 +26,53 @@ export function safeFileName(value: string | null | undefined, fallback: string)
 const extensionOf = (path: string, fallback: string) => /\.([a-z0-9]{2,5})$/i.exec(path)?.[1]?.toLowerCase() ?? fallback;
 const withoutExtension = (name: string) => name.replace(/\.[^.]+$/, '');
 
+/** 받는 쪽(브라우저·연결)이 끊겨 ZIP 만들기를 멈췄을 때 */
+export class ExportAbortedError extends Error {
+  constructor() {
+    super('Account export aborted by the client');
+    this.name = 'ExportAbortedError';
+  }
+}
+
 class ExportWriter {
   readonly zip = new ZipFile();
   readonly missing: string[] = [];
+  private abortedError: ExportAbortedError | null = null;
+  private rejectAborted!: (error: ExportAbortedError) => void;
+  /** 중단되면 reject되는 약속. 진행 중인 기다림을 모두 이것과 경쟁시켜 멈춘 채 남지 않게 한다. */
+  readonly aborted = new Promise<never>((_resolve, reject) => { this.rejectAborted = reject; });
+
+  constructor() {
+    this.aborted.catch(() => undefined); // 아무도 기다리지 않을 때 unhandled rejection이 되지 않게
+  }
+
+  abort(): void {
+    if (this.abortedError) return;
+    this.abortedError = new ExportAbortedError();
+    (this.zip.outputStream as Readable).destroy();
+    this.rejectAborted(this.abortedError);
+  }
+
+  throwIfAborted(): void {
+    if (this.abortedError) throw this.abortedError;
+  }
   /** 문구를 합성하지 못해 문구 없는 원본으로 넣은 생성 이모티콘 */
   readonly uncaptioned: string[] = [];
 
   /** 한 파일씩 순서대로 넣는다. 앞 파일이 다 쓰인 뒤에 다음 파일을 받으므로 메모리에 이미지가 쌓이지 않는다. */
   async addBuffer(buffer: Buffer, path: string): Promise<void> {
+    this.throwIfAborted();
     const stream = Readable.from([buffer]);
     this.zip.addReadStream(stream, path);
-    await finished(stream);
+    try {
+      await Promise.race([finished(stream), this.aborted]);
+    } finally {
+      if (this.abortedError) stream.destroy();
+    }
   }
 
   async addStorageFile(storagePath: string | null | undefined, zipPath: string): Promise<void> {
+    this.throwIfAborted();
     const buffer = storagePath ? await downloadFromStorage(storagePath).catch(() => null) : null;
     if (buffer) await this.addBuffer(buffer, zipPath);
     else this.missing.push(zipPath);
@@ -76,6 +109,9 @@ function readme(exportedAt: string, missing: string[], uncaptioned: string[]): s
 export async function writeAccountExport(userId: string, sid: string | undefined, output: Writable): Promise<void> {
   const writer = new ExportWriter();
   writer.zip.outputStream.pipe(output);
+  // 받는 쪽이 다 받기 전에 닫히거나 오류가 나면(탭 닫기·취소) 더 만들지 않고 붙잡은 이미지를 놓는다.
+  output.once('close', () => { if (!output.writableFinished) writer.abort(); });
+  output.once('error', () => writer.abort());
   const exportedAt = new Date().toISOString();
 
   const [data, user, projects, generations] = await Promise.all([
@@ -150,8 +186,9 @@ export async function writeAccountExport(userId: string, sid: string | undefined
   }
 
   writer.zip.addBuffer(Buffer.from(readme(exportedAt, writer.missing, writer.uncaptioned)), 'README.txt');
+  writer.throwIfAborted();
   writer.zip.end();
-  await once(writer.zip.outputStream, 'end');
+  await Promise.race([once(writer.zip.outputStream, 'end'), writer.aborted]);
 }
 
 function maskEmail(email: string): string {

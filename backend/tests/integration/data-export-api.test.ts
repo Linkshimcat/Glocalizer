@@ -205,3 +205,21 @@ describe('POST /api/v1/auth/me/export/email', () => {
     expect(res.body.error.code).toBe('EMAIL_NOT_CONFIGURED');
   });
 });
+
+describe('내려받기 중간 취소', () => {
+  it('받는 쪽 연결이 끊기면 ZIP 만들기를 멈추고 끝난다(메모리를 붙잡고 남지 않음)', async () => {
+    const { PassThrough } = await import('node:stream');
+    const { randomBytes } = await import('node:crypto');
+    const { writeAccountExport } = await import('../../src/services/data-export.service.js');
+    // 압축이 안 되는 큰 파일들 — 아무도 읽지 않으면 곧 버퍼가 가득 차 멈춘다.
+    vi.mocked(storage.downloadFromStorage).mockImplementation(async () => randomBytes(2 * 1024 * 1024));
+    const output = new PassThrough({ highWaterMark: 1024 });
+    const running = writeAccountExport(OWNER, undefined, output);
+    setTimeout(() => output.destroy(), 200);
+    const settled = await Promise.race([
+      running.then(() => 'resolved', () => 'rejected'),
+      new Promise((resolve) => setTimeout(() => resolve('hung'), 3000)),
+    ]);
+    expect(settled).not.toBe('hung');
+  }, 10_000);
+});
