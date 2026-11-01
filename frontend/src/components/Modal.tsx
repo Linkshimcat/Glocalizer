@@ -62,7 +62,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
   // 포털해 조상 영향을 끊는다.
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] min-h-[100dvh] overflow-y-auto bg-black/40"
+      className="animate-modal-overlay fixed inset-0 z-[70] min-h-[100dvh] overflow-y-auto bg-black/40"
       onClick={onClose}
     >
       {/* min-h-full + 이 wrapper에서 중앙 정렬해야, 모달이 화면보다 커도 위쪽이 잘리지 않고
@@ -75,7 +75,7 @@ export default function Modal({ onClose, children, labelledBy, closeLabel, class
           aria-modal="true"
           aria-labelledby={labelledBy}
           onClick={event => event.stopPropagation()}
-          className={`relative w-full min-w-0 rounded-dialog border border-line bg-card p-6 shadow-lg sm:p-8 ${className}`}
+          className={`animate-modal-in relative w-full min-w-0 rounded-dialog border border-line bg-card p-6 shadow-lg sm:p-8 ${className}`}
         >
           <button
             type="button"

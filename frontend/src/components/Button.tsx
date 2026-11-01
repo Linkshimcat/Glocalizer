@@ -36,7 +36,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-2 studio-button text-center leading-snug font-bold transition-colors disabled:cursor-not-allowed disabled:bg-surface disabled:text-sub ${variantClass[variant]} ${sizeClass[size]} ${
+      className={`inline-flex items-center justify-center gap-2 studio-button text-center leading-snug font-bold transition-[color,background-color,border-color,scale] enabled:active:scale-[0.97] motion-reduce:enabled:active:scale-100 disabled:cursor-not-allowed disabled:bg-surface disabled:text-sub ${variantClass[variant]} ${sizeClass[size]} ${
         glow ? 'shadow-sm' : ''
       } ${className}`}
       {...props}
