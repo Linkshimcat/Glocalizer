@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import { AppError } from '../errors/app-error.js';
 import { findAssetsByIds, updateAsset } from '../repositories/asset.repository.js';
 import { findActiveJobForProject } from '../repositories/job.repository.js';
-import { findRegionById, findRegionsByAssetId, insertOcrRegion, updatePrimaryRegion, updateRegionById } from '../repositories/ocr.repository.js';
+import { deleteOcrRegion, findRegionById, findRegionsByAssetId, insertOcrRegion, updatePrimaryRegion, updateRegionById } from '../repositories/ocr.repository.js';
 import { findProjectById } from '../repositories/project.repository.js';
 import { deleteTranslationsByOcrRegionId } from '../repositories/translation.repository.js';
 import { downloadFromStorage } from '../repositories/storage.repository.js';
@@ -134,6 +134,26 @@ export async function createOcrRegionAndReprocess(projectId: string, assetId: st
   });
   await resetAssetForOcrReprocessing(asset);
   return region.id;
+}
+
+/**
+ * OCR이 같은 문구를 중복 영역으로 잘못 인식했을 때 하나를 지운다. 이미지 정리(마스킹)는
+ * 영역을 추가/수정할 때와 달리 다시 돌릴 필요가 없다 — 지우는 대상은 이미 원본 이미지에서
+ * 사라진 글자 영역이라, DB에서 그 영역과 번역만 없애면 에디터 화면과 내보내기에서 더 이상
+ * 안 보인다(무릉도원 작가님 피드백, 2026-11: 중복 텍스트박스를 지울 방법이 없었음).
+ */
+export async function deleteOcrRegionAndReprocess(projectId: string, assetId: string, regionId: string): Promise<void> {
+  const activeJob = await findActiveJobForProject(projectId);
+  if (activeJob && activeJob.id !== currentTask()?.id) {
+    throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id }, '처리 중인 작업이 끝난 뒤 텍스트박스를 삭제해주세요.');
+  }
+  await requireEditableAsset(projectId, assetId);
+  const region = await findRegionById(regionId);
+  if (!region || region.asset_id !== assetId) throw new AppError('INVALID_REQUEST', { regionId }, '해당 이미지에 속하지 않는 OCR 영역입니다.');
+  const regions = await findRegionsByAssetId(assetId);
+  if (regions.length <= 1) throw new AppError('INVALID_REQUEST', { assetId }, '마지막 남은 텍스트박스는 삭제할 수 없습니다.');
+  await deleteTranslationsByOcrRegionId(regionId);
+  await deleteOcrRegion(regionId);
 }
 
 function clampNormalizedBox(points: Array<{ x: number; y: number }>, width: number, height: number): PixelBox | null {

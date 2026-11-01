@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { regenerateTranslation } from '../ai/localization/localization.service.js';
 import { requireProject } from '../middleware/project-auth.middleware.js';
 import { saveEditorState } from '../services/editor-state.service.js';
-import { queueOcrEdit, detectOcrSelection } from '../services/ocr-review.service.js';
+import { queueOcrEdit, detectOcrSelection, deleteOcrRegionAndReprocess } from '../services/ocr-review.service.js';
 import { suggestCaptionForAsset } from '../ocr/caption-suggestion.service.js';
 import { requireParam } from '../utils/request-params.js';
 
@@ -39,6 +39,11 @@ export async function createOcrRegionHandler(req: Request, res: Response) {
   const job = await queueOcrEdit(projectId, assetId, req.body.text, req.body.normalizedBox, 'create');
   const regionId = job.regionId;
   res.status(202).json({ assetId, regionId, status: 'reprocessing', jobId: job.jobId });
+}
+
+export async function deleteOcrRegionHandler(req: Request, res: Response) {
+  await deleteOcrRegionAndReprocess(requireProject(req).id, requireParam(req, 'assetId'), requireParam(req, 'regionId'));
+  res.status(204).send();
 }
 
 export async function suggestCaptionHandler(req: Request, res: Response) {

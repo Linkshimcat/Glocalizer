@@ -107,8 +107,12 @@ export interface FontDef {
   name: string
   /** 이 폰트가 실제로 지원(로드)하는 굵기 목록 */
   weights: FontWeight[]
-  /** 유사도 매칭용 시각적 특성. 언어 강제 폰트(Noto Sans JP/SC)는 매칭 대상이 아니라 생략. */
+  /** 유사도 매칭용 시각적 특성. */
   style?: FontStyleTag
+  /** 이 폰트가 속한 문자 체계. 없으면 라틴/한글 기본 폰트 풀(ko/en 등)에서만 후보가 된다.
+   * 'ja'/'zh' 폰트는 해당 언어로 번역할 때만 후보가 되도록 pickFontByStyle에서 걸러진다 —
+   * 라틴 전용 폰트로는 일본어/중국어 글자를 아예 그릴 수 없기 때문. */
+  lang?: 'ja' | 'zh'
 }
 
 // 굵기 프리셋
@@ -165,6 +169,8 @@ export const FONTS: FontDef[] = [
   { name: 'Nanum Pen Script', weights: SINGLE, style: { weight: 'thin', roundness: 'round', handwritten: true, formality: 'playful' } },
   // formality: 'formal' 태그를 가진 폰트가 하나도 없어 격식체 원문은 항상 neutral 폰트로 대체 매칭되던 공백을 메운다
   { name: 'Noto Sans KR', weights: REG_MED_BOLD_BLACK, style: { weight: 'regular', roundness: 'neutral', handwritten: false, formality: 'formal' } },
+  // 일본어 폰트 — 전용 폰트가 Noto Sans JP 하나뿐이라 분위기를 못 바꾼다는 실사용자 피드백(손도치
+  // 작가님, 2026-10-28)으로 종류를 늘림. 영어/한글 풀처럼 격식·캐주얼·손글씨 스타일을 갖춘다.
   {
     name: 'Noto Sans JP',
     weights: [
@@ -173,7 +179,28 @@ export const FONTS: FontDef[] = [
       { label: 'Bold', value: 700 },
       { label: 'Black', value: 900 },
     ],
+    style: { weight: 'regular', roundness: 'neutral', handwritten: false, formality: 'formal' },
+    lang: 'ja',
   },
+  {
+    name: 'M PLUS Rounded 1c',
+    weights: REG_BOLD,
+    style: { weight: 'regular', roundness: 'round', handwritten: false, formality: 'neutral' },
+    lang: 'ja',
+  },
+  {
+    name: 'Yusei Magic',
+    weights: SINGLE,
+    style: { weight: 'regular', roundness: 'round', handwritten: true, formality: 'playful' },
+    lang: 'ja',
+  },
+  {
+    name: 'Dela Gothic One',
+    weights: SINGLE,
+    style: { weight: 'black', roundness: 'round', handwritten: false, formality: 'playful' },
+    lang: 'ja',
+  },
+  // 중국어(간체) 폰트 — 위와 같은 이유로 Noto Sans SC 외 캐주얼·손글씨 스타일 추가.
   {
     name: 'Noto Sans SC',
     weights: [
@@ -182,6 +209,26 @@ export const FONTS: FontDef[] = [
       { label: 'Bold', value: 700 },
       { label: 'Black', value: 900 },
     ],
+    style: { weight: 'regular', roundness: 'neutral', handwritten: false, formality: 'formal' },
+    lang: 'zh',
+  },
+  {
+    name: 'ZCOOL KuaiLe',
+    weights: SINGLE,
+    style: { weight: 'regular', roundness: 'round', handwritten: false, formality: 'playful' },
+    lang: 'zh',
+  },
+  {
+    name: 'ZCOOL QingKe HuangYou',
+    weights: SINGLE,
+    style: { weight: 'bold', roundness: 'round', handwritten: false, formality: 'playful' },
+    lang: 'zh',
+  },
+  {
+    name: 'Ma Shan Zheng',
+    weights: SINGLE,
+    style: { weight: 'regular', roundness: 'round', handwritten: true, formality: 'playful' },
+    lang: 'zh',
   },
 ]
 
@@ -217,9 +264,10 @@ function hashString(value: string): number {
  * 동점일 때 항상 배열 순서상 앞선 폰트만 고르면 뒤쪽 폰트는 추천에 영원히 뽑히지 못한다.
  * seed(보통 asset id)가 있으면 동점 후보 중 하나를 seed 기반으로 고르게 분산시켜 뽑는다 —
  * 같은 이미지는 항상 같은 폰트로(재현 가능), 다른 이미지끼리는 골고루 갈리도록.
+ * lang을 주면 그 문자 체계(ja/zh) 폰트 중에서만 고른다 — 라틴 전용 폰트는 그 글자를 못 그린다.
  */
-export function pickFontByStyle(original: FontStyleTag, seed?: string): string {
-  const candidates = FONTS.filter((font): font is FontDef & { style: FontStyleTag } => Boolean(font.style))
+export function pickFontByStyle(original: FontStyleTag, seed?: string, lang?: FontDef['lang']): string {
+  const candidates = FONTS.filter((font): font is FontDef & { style: FontStyleTag } => Boolean(font.style) && font.lang === lang)
   let bestDistance = Infinity
   let tied: (FontDef & { style: FontStyleTag })[] = []
   for (const candidate of candidates) {
