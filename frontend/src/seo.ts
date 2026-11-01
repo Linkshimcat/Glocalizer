@@ -10,6 +10,7 @@ const SITE_NAME = 'Glocalizer'
 const HOME_TITLE = 'Glocalizer – 이모티콘 한글을 전 세계 언어로 현지화'
 const HOME_DESCRIPTION = '이모티콘 속 한글을 영어·일본어·중국어 등 자연스러운 현지 표현으로 바꿔주는 AI 이모티콘 현지화 서비스, Glocalizer.'
 const GITHUB_URL = 'https://github.com/Linkshimcat/Glocalizer'
+const INSTAGRAM_URL = 'https://www.instagram.com/glocalizer__ogq/'
 
 type JsonLd = Record<string, unknown>
 
@@ -37,7 +38,7 @@ const organization: JsonLd = {
   url: `${SITE_URL}/`,
   logo: `${SITE_URL}/favicon.png`,
   email: LEGAL_CONTACT,
-  sameAs: [GITHUB_URL],
+  sameAs: [GITHUB_URL, INSTAGRAM_URL],
 }
 
 const website: JsonLd = {
@@ -117,7 +118,9 @@ export function shellHead(): string {
 }
 
 export function sitemapXml(): string {
-  const urls = PUBLIC_PAGES.filter(page => page.indexable).map(page => `  <url><loc>${pageUrl(page.path)}</loc></url>`)
+  // 빌드(=배포) 날짜. 페이지별 수정일을 따로 관리하지 않으므로 배포 시점을 최신성 신호로 쓴다.
+  const lastmod = new Date().toISOString().slice(0, 10)
+  const urls = PUBLIC_PAGES.filter(page => page.indexable).map(page => `  <url><loc>${pageUrl(page.path)}</loc><lastmod>${lastmod}</lastmod></url>`)
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`
 }
 
