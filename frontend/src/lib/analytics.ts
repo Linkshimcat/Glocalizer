@@ -2,7 +2,7 @@ import type { AnalyticsEvent, AnalyticsEventName, ExperimentGroup } from '../typ
 
 /**
  * 본선 C-04 분석 이벤트 발송(README 6-3). 실패해도 화면 동작에 영향을 주지 않는 fire-and-forget이며,
- * 이미지·번역문·이메일·실명 같은 개인정보는 절대 담지 않는다. internal 여부는 서버가 계정으로 다시 판정한다.
+ * 이미지·번역문·이메일·실명 같은 개인정보는 절대 담지 않는다. internal 여부는 서버가 계정으로 판정한다.
  */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
 const SESSION_ID_KEY = 'glocalizer:analyticsSessionId'
@@ -20,10 +20,18 @@ function anonymousSessionId(): string {
   }
 }
 
-/** 로컬 개발은 internal, Demo Lab은 demo, 나머지는 external. */
+/**
+ * Demo Lab은 demo, 나머지는 external로 보낸다. internal은 서버가 로그인한 계정 이메일이 팀원 목록에 있을 때만
+ * 정하고 클라이언트가 보낸 값은 믿지 않는다(resolveExperimentGroup) — 그래서 로컬 개발 빌드가 운영 API로
+ * 이벤트를 보내면 external로 쌓여 실사용 통계에 섞인다. 개발 서버에서는 기본으로 보내지 않는다.
+ */
 function defaultGroup(): ExperimentGroup {
-  if (import.meta.env.DEV) return 'internal'
   return window.location.pathname.startsWith('/demo-lab') ? 'demo' : 'external'
+}
+
+/** 개발 서버(vite dev)는 이벤트를 보내지 않는다. 로컬 백엔드로 직접 점검할 때만 VITE_ANALYTICS_IN_DEV=true로 켠다. */
+function shouldSend(): boolean {
+  return !import.meta.env.DEV || import.meta.env.VITE_ANALYTICS_IN_DEV === 'true'
 }
 
 function accountToken(): string | null {
@@ -52,6 +60,7 @@ export function currentAccountToken(): string | null {
 type EventFields = Partial<Pick<AnalyticsEvent, 'projectId' | 'durationMs' | 'imageCount' | 'experimentGroup'>>
 
 export function trackEvent(eventName: AnalyticsEventName, fields: EventFields = {}): void {
+  if (!shouldSend()) return
   const event: AnalyticsEvent = {
     eventName,
     clientEventId: crypto.randomUUID(),

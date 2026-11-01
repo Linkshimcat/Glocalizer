@@ -274,32 +274,37 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      blob => (blob ? resolve(blob) : reject(new Error('PNG 생성에 실패했어요'))),
+      blob => {
+        if (!blob) return reject(new Error('PNG 생성에 실패했어요'))
+        exportedBlobs.set(blob, { imageCount: 1 })
+        resolve(blob)
+      },
       'image/png',
     )
   })
 }
 
 /**
- * 본선 C-04 내보내기 이벤트. 미리보기(usePngPreview)도 renderItemToPng를 쓰므로 렌더가 아니라
- * 실제 다운로드 순간(downloadBlob)에 성공을 센다. ZIP은 생성 시작 시각과 장 수를 기억해 둔다.
- * 단일 PNG 렌더 실패는 미리보기 실패와 구분할 수 없어 export_failed로 세지 않는다.
+ * 본선 C-04 내보내기 이벤트. "내가 만든 결과물(PNG·ZIP Blob)"만 등록해 두고, 그 Blob이 실제로
+ * 다운로드될 때(downloadBlob) 성공을 센다. 파일 이름이 아니라 Blob 자체로 구분하므로 같은 downloadBlob을 쓰는
+ * 계정 데이터 ZIP(AccountExportContext)은 완주로 잡히지 않고(PR #206 리뷰), 취소·실패로 다운로드되지 않은
+ * Blob의 시작 시각이 다음 다운로드에 섞이는 일도 없다. 미리보기(usePngPreview)도 renderItemToPng를 쓰지만
+ * 다운로드하지 않으므로 세지 않는다. 단일 PNG 렌더 실패는 미리보기 실패와 구분할 수 없어 export_failed로 세지 않는다.
  */
-let pendingZipExport: { startedAt: number; imageCount: number } | null = null
+const exportedBlobs = new WeakMap<Blob, { startedAt?: number; imageCount: number }>()
 
-function trackExportSucceeded(filename: string) {
-  const isZip = filename.toLowerCase().endsWith('.zip')
-  const pending = isZip ? pendingZipExport : null
-  if (isZip) pendingZipExport = null
+function trackExportSucceeded(blob: Blob) {
+  const meta = exportedBlobs.get(blob)
+  if (!meta) return
   trackEvent('export_succeeded', {
     projectId: currentCloudProjectId() ?? undefined,
-    imageCount: pending?.imageCount ?? 1,
-    ...(pending ? { durationMs: performance.now() - pending.startedAt } : {}),
+    imageCount: meta.imageCount,
+    ...(meta.startedAt !== undefined ? { durationMs: performance.now() - meta.startedAt } : {}),
   })
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
-  trackExportSucceeded(filename)
+  trackExportSucceeded(blob)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -340,7 +345,7 @@ export async function zipLocalizedItems(
       }
     }
     const blob = await zip.generateAsync({ type: 'blob' })
-    pendingZipExport = { startedAt, imageCount }
+    exportedBlobs.set(blob, { startedAt, imageCount })
     return blob
   } catch (error) {
     trackEvent('export_failed', { projectId: currentCloudProjectId() ?? undefined, imageCount, durationMs: performance.now() - startedAt })
