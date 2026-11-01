@@ -27,33 +27,31 @@ export interface AnalyticsEvent {
   imageCount?: number
 }
 
-/** 측정값이 없으면 null — 화면에서 0이 아니라 "측정 안 됨"으로 표시한다 */
-export interface ProofPercentiles {
-  p50Ms: number | null
-  p95Ms: number | null
-  sampleCount: number
+/** 이벤트 하나의 durationMs 분포(nearest-rank). 표본이 없으면 해당 이벤트 값이 null → "측정 안 됨" */
+export interface ProofDurationStats {
+  n: number
+  p50Ms: number
+  p95Ms: number
 }
 
 /**
- * GET /api/v1/proof/export.csv 열(제안, 윤재 확인 필요). scripts/verify-proof.mjs가 이 열로
- * summary를 다시 계산해 화면 숫자와 맞는지 점검한다(QA-02).
- * event_name,client_event_id,occurred_at,experiment_group,project_id,duration_ms,image_count,stage
- * - stage: 워커가 기록하는 단계 시간 행만 'ocr' | 'translation' | 'cleanup' | 'total', 나머지는 빈 값
+ * GET /api/v1/proof/summary?group=<external|internal|demo> 응답 — backend/src/analytics/proof.ts와 같은 모양.
+ * 요청한 그룹 하나만 집계한다. 관리자 키(X-Admin-Key)가 필요하다.
  */
-export const PROOF_CSV_COLUMNS = ['event_name', 'client_event_id', 'occurred_at', 'experiment_group', 'project_id', 'duration_ms', 'image_count', 'stage'] as const
-
-/** GET /api/v1/proof/summary 응답 */
 export interface ProofSummary {
-  groups: ExperimentGroup[]
-  periodStart: string | null
-  periodEnd: string | null
-  sampleCount: number
-  /** localization_started 대비 export_succeeded 비율(0~1) */
-  completionRate: number | null
-  stages: {
-    ocr: ProofPercentiles
-    translation: ProofPercentiles
-    cleanup: ProofPercentiles
-    total: ProofPercentiles
-  }
+  experimentGroup: ExperimentGroup
+  /** 첫·마지막 이벤트 시각. 표본이 없으면 null */
+  period: { from: string; to: string } | null
+  /** 서로 다른 익명 세션 수 */
+  sampleSize: number
+  eventCounts: Record<AnalyticsEventName, number>
+  /** 시작한 프로젝트 중 내보내기에 성공한 프로젝트 비율. 시작한 프로젝트가 없으면 rate는 null */
+  completion: { startedProjects: number; exportedProjects: number; rate: number | null }
+  durations: Record<AnalyticsEventName, ProofDurationStats | null>
 }
+
+/**
+ * GET /api/v1/proof/export.csv?group=... 열 — backend/src/analytics/proof.ts CSV_COLUMNS.
+ * frontend/scripts/verify-proof.mjs가 이 열로 summary를 다시 계산해 화면 숫자와 맞는지 점검한다(QA-02).
+ */
+export const PROOF_CSV_COLUMNS = ['event_name', 'client_event_id', 'occurred_at', 'anonymous_session_id', 'project_id', 'experiment_group', 'duration_ms', 'image_count'] as const
