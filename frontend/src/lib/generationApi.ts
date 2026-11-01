@@ -1,5 +1,4 @@
 import { apiFetch, RequestError, responseFailure } from './requestError'
-import JSZip from 'jszip'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
 export interface CaptionStyle { anchor: string; size: number; color: string; stroke: string }
@@ -68,6 +67,7 @@ export function thumbnailImage(project: GenerationProject) {
 export async function downloadGenerationSet(token: string, project: GenerationProject) {
   const images = latestCompletedImages(project)
   if (images.length !== 24) throw new Error('24장 생성을 모두 완료해주세요.')
+  const { default: JSZip } = await import('jszip')
   const zip = new JSZip()
   for (let start = 0; start < images.length; start += 4) {
     const files = await Promise.all(images.slice(start, start + 4).map(image => fetchGenerationFile(token, project.id, image.id, image.slot)))
@@ -94,6 +94,7 @@ export function projectDisplayName(project: Pick<GenerationProject, 'id' | 'name
 }
 
 export async function downloadGenerationSets(token: string, projects: GenerationProject[]): Promise<void> {
+  const { default: JSZip } = await import('jszip')
   const zip = new JSZip()
   const usedNames = new Set<string>()
   for (const project of projects) {

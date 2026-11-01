@@ -260,7 +260,7 @@ export default function Review() {
                       }`}
                     >
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-panel sticker-stage-soft">
-                        {thumbnailSticker?.url ? <StickerThumbnail image={thumbnailSticker} /> : thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
+                        {thumbnailSticker?.url ? <StickerThumbnail image={thumbnailSticker} /> : thumbnailUrl ? <img src={thumbnailUrl} loading="lazy" decoding="async" alt="" className="h-full w-full object-contain" /> : <Sparkles className="h-6 w-6 text-sub" />}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-bold">{projectName}</p>

@@ -271,7 +271,7 @@ export default function Generate() {
   // 저장된 로그인 정보가 있으면 서버 확인(/auth/me)을 기다리지 않고 바로 그린다. 만료됐다면 확인 결과가 logout()으로 이어져 아래 로그인 이동이 처리한다.
   if (checkingSession && !user) return <main id="main-content" tabIndex={-1} role="status" className="ui-recovery-page">{w.checkingSession}</main>
   if (!token) return <Navigate to={`/login?next=${encodeURIComponent(`/generate?${params.toString()}`)}`} replace />
-  const cardImage = (item: GenerationImage | undefined, label: string) => item?.url ? <img src={item.url} alt={label} className="h-full w-full object-contain" /> : <Sparkles className="h-8 w-8 text-brand/35 dark:text-brand/60" />
+  const cardImage = (item: GenerationImage | undefined, label: string) => item?.url ? <img src={item.url} alt={label} loading="lazy" decoding="async" className="h-full w-full object-contain" /> : <Sparkles className="h-8 w-8 text-brand/35 dark:text-brand/60" />
 
   return <div className="studio-generate min-h-screen bg-[#FAFBFC]"><main id="main-content" tabIndex={-1} className="layout-app py-8 sm:py-12">
     <SessionNotice />
