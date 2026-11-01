@@ -4,10 +4,10 @@ import { explainJapaneseSchema } from '../schemas/japanese-meaning.schema.js';
 import { requireProject } from '../middleware/project-auth.middleware.js';
 import { requireParam } from '../utils/request-params.js';
 import { Router } from 'express';
-import { createOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, suggestCaptionHandler, updateOcrHandler } from '../controllers/editor.controller.js';
+import { createOcrRegionHandler, deleteOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, suggestCaptionHandler, updateOcrHandler } from '../controllers/editor.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
-import { assetParamsSchema, createOcrRegionSchema, detectOcrRegionSchema, regenerateSchema, saveEditorStateSchema, updateOcrSchema } from '../schemas/editor-state.schema.js';
+import { assetParamsSchema, createOcrRegionSchema, detectOcrRegionSchema, ocrRegionParamsSchema, regenerateSchema, saveEditorStateSchema, updateOcrSchema } from '../schemas/editor-state.schema.js';
 import { asyncHandler } from '../utils/async-handler.js';
 
 export const editorRouter = Router();
@@ -50,6 +50,13 @@ editorRouter.post(
   projectAuthMiddleware,
   validate(createOcrRegionSchema, 'body'),
   asyncHandler(createOcrRegionHandler),
+);
+
+editorRouter.delete(
+  '/projects/:projectId/assets/:assetId/ocr/regions/:regionId',
+  validate(ocrRegionParamsSchema, 'params'),
+  projectAuthMiddleware,
+  asyncHandler(deleteOcrRegionHandler),
 );
 
 editorRouter.post(

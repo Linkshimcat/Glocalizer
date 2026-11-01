@@ -85,6 +85,11 @@ export async function findRegionById(regionId: string): Promise<OcrRegionRow | n
   return unwrapNullableRow<OcrRegionRow>(result, 'OCR 영역 조회에 실패했습니다.');
 }
 
+export async function deleteOcrRegion(regionId: string): Promise<void> {
+  const result = await supabase.from('ocr_regions').delete().eq('id', regionId);
+  unwrapVoid(result, 'OCR 영역을 삭제하지 못했습니다.');
+}
+
 export async function updatePrimaryRegion(assetId: string, input: { text: string; normalizedBox: OcrRegion['normalizedBox']; box: OcrRegion['box'] }): Promise<OcrRegionRow | null> {
   const primary = await findPrimaryRegion(assetId);
   if (!primary) return null;

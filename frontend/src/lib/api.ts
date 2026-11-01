@@ -205,6 +205,10 @@ export async function createOcrRegion(projectId: string, token: string, assetId:
   }, token)
 }
 
+export async function deleteOcrRegion(projectId: string, token: string, assetId: string, regionId: string): Promise<void> {
+  await request(`/projects/${projectId}/assets/${assetId}/ocr/regions/${regionId}`, { method: 'DELETE' }, token)
+}
+
 export interface ApiCaptionSuggestion {
   emotion: string
   emotionConfidence: number

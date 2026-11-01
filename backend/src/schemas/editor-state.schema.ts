@@ -6,6 +6,10 @@ export const assetParamsSchema = z.object({
   assetId: z.string().uuid(),
 });
 
+export const ocrRegionParamsSchema = assetParamsSchema.extend({
+  regionId: z.string().uuid(),
+});
+
 // 프런트 에디터가 다루는 스타일 필드는 계속 늘어날 수 있어서, 알려진 필드는 타입을 검증하되
 // 새 필드가 추가돼도 백엔드 배포 없이 그대로 저장되도록 passthrough를 둔다.
 const editorStyleSchema = z

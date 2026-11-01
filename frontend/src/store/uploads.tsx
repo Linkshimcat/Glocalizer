@@ -27,6 +27,7 @@ import {
   uploadToSignedUrl,
   completeUploads,
   createOcrRegion,
+  deleteOcrRegion,
   detectOcrRegion,
   suggestCaption,
   regenerateTranslation,
@@ -201,6 +202,7 @@ interface UploadState {
   reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => Promise<void>
   detectOcrRegion: (fileId: string, normalizedBox: NormalizedRect) => Promise<DetectedOcrSelection>
   addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
+  deleteOcrRegion: (fileId: string, regionId: string) => Promise<void>
   suggestCaption: (fileId: string) => Promise<ApiCaptionSuggestion>
   explainJapanese: (fileId: string, regionId: string, text: string) => Promise<{ text: string; explanation: JapaneseMeaning }>
   retryTranslation: (fileId: string, regionId: string, languageCode: string) => Promise<void>
@@ -538,6 +540,19 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
   }, [files, projectId, projectToken])
 
+  // 삭제는 이미지 정리(마스킹)를 다시 돌릴 필요가 없어서(addAssetOcrRegion과 달리) processing
+  // 상태로 전환하지 않고, DB 삭제가 끝나는 대로 analysis.regions에서 바로 빼서 즉시 반영한다.
+  const deleteAssetOcrRegion = useCallback(async (fileId: string, regionId: string) => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
+    await deleteOcrRegion(projectId, projectToken, file.assetId, regionId)
+    setFiles(previous => previous.map(candidate => (
+      candidate.id === fileId && candidate.analysis
+        ? { ...candidate, analysis: { ...candidate.analysis, regions: candidate.analysis.regions.filter(region => region.id !== regionId) } }
+        : candidate
+    )))
+  }, [files, projectId, projectToken])
+
   const suggestAssetCaption = useCallback(async (fileId: string) => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
@@ -597,6 +612,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       reviseOcr: reviseAssetOcr,
       detectOcrRegion: detectAssetOcrRegion,
       addOcrRegion: addAssetOcrRegion,
+      deleteOcrRegion: deleteAssetOcrRegion,
       suggestCaption: suggestAssetCaption,
       explainJapanese,
       retryTranslation: retryAssetTranslation,
@@ -635,6 +651,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       reviseAssetOcr,
       detectAssetOcrRegion,
       addAssetOcrRegion,
+      deleteAssetOcrRegion,
       suggestAssetCaption,
       explainJapanese,
       retryAssetTranslation,
