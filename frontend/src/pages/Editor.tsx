@@ -1803,7 +1803,13 @@ export default function Editor() {
                     const measure = createCanvasMeasurer(fontSpec)
                     const maxLineWidth = overlay.normalizedBox ? overlay.normalizedBox.width * EDITOR_PREVIEW_SIZE : Infinity
                     const overlayText = wrapTextToWidth(rawText, measure, maxLineWidth)
-                    const transform = `translate(-50%, -50%) translate(${overlay.style.x}px, ${overlay.style.y}px) rotate(${overlay.style.rotation}deg)`
+                    // "좌/우" 정렬은 지금까지 기준점(x)만 옮기고 앵커는 항상 중앙(-50%)이라,
+                    // 텍스트가 길면 기준점을 중심으로 가운데 정렬돼 절반이 캔버스 밖으로 잘렸다
+                    // (실제 사용자 리포트, 2026-10-28). 좌/우일 땐 앵커를 그쪽 가장자리로 옮겨
+                    // 텍스트가 기준점에서 안쪽으로 자라나게 한다.
+                    const anchorX = overlay.style.alignH === 'left' ? '0%' : overlay.style.alignH === 'right' ? '-100%' : '-50%'
+                    const transform = `translate(${anchorX}, -50%) translate(${overlay.style.x}px, ${overlay.style.y}px) rotate(${overlay.style.rotation}deg)`
+                    const textAlignClass = overlay.style.alignH === 'left' ? 'text-left' : overlay.style.alignH === 'right' ? 'text-right' : 'text-center'
 
                     // 캐릭터 윤곽 데이터가 없어서, 원래 캡션이 있던 자리를 안전 영역 근사치로 쓴다
                     // (자세한 이유는 lib/style.ts의 isTextOverflowingOriginalArea 주석 참고).
@@ -1844,14 +1850,14 @@ export default function Editor() {
                               setSelected(true)
                               setCleanupSelected(false)
                             }}
-                            className={`select-none whitespace-pre text-center ${preview ? '' : 'cursor-pointer'}`}
+                            className={`select-none whitespace-pre ${textAlignClass} ${preview ? '' : 'cursor-pointer'}`}
                             style={overlayStyle}
                           >
                             {overlayText}
                           </span>
                         ) : (
                           <div ref={boxRef} onPointerDown={event => startGesture(event, 'move')} className="touch-none relative cursor-move border-2 border-brand px-3 py-1">
-                            <span className="select-none whitespace-pre text-center" style={overlayStyle}>{overlayText}</span>
+                            <span className={`select-none whitespace-pre ${textAlignClass}`} style={overlayStyle}>{overlayText}</span>
                             {cornerHandles.map(pos => <span key={pos} onPointerDown={event => startGesture(event, 'resize')} className={`touch-none absolute h-2.5 w-2.5 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
                             {edgeHandles.map(pos => <span key={pos} className={`pointer-events-none absolute h-2 w-2 rounded-[2px] border-2 border-brand bg-white ${pos}`} />)}
                             <span className="pointer-events-none absolute -top-6 left-1/2 h-4 w-px -translate-x-1/2 bg-brand" />
