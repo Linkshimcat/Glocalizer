@@ -9,7 +9,21 @@ export interface QaImage {
   /** 원본 픽셀 크기 — finding.region(원본 px)을 썸네일 위 비율로 바꿀 때 쓴다 */
   width: number | null
   height: number | null
+  /**
+   * 서버가 판정하는 이미지인지. 서버(INSPECTABLE_STATUSES)는 상태가 completed/failed인 이미지만 검사하므로,
+   * 처리 중인 이미지는 finding이 없어도 PASS가 아니라 "검사 전"이다.
+   */
+  inspectable: boolean
 }
+
+/** 서버가 검사하는 에셋 상태 — backend/src/qa/inputs.ts INSPECTABLE_STATUSES와 같게 유지한다. */
+const INSPECTABLE_STATUSES = new Set(['completed', 'failed'])
+export function isInspectableStatus(status: string): boolean {
+  return INSPECTABLE_STATUSES.has(status)
+}
+
+/** pending = 검사 대상이 아니라서(처리 중 등) 아직 판정이 없는 이미지 */
+export type QaVerdict = QaSeverity | 'pending'
 
 const SEVERITY_RANK: Record<QaSeverity, number> = { pass: 0, review: 1, fail: 2 }
 
@@ -38,9 +52,14 @@ export function imageSeverity(findings: QaFinding[] | undefined): QaSeverity {
   return worst
 }
 
-export function severityCounts(images: QaImage[], grouped: Map<string, QaFinding[]>): Record<QaSeverity, number> {
-  const counts: Record<QaSeverity, number> = { pass: 0, review: 0, fail: 0 }
-  for (const image of images) counts[imageSeverity(grouped.get(image.id))]++
+export function imageVerdict(image: QaImage, findings: QaFinding[] | undefined): QaVerdict {
+  return image.inspectable ? imageSeverity(findings) : 'pending'
+}
+
+/** 검사 대상이 아닌 이미지는 PASS로 세지 않고 pending으로 따로 센다 — 서버 이력의 숫자와 맞추기 위해서다. */
+export function severityCounts(images: QaImage[], grouped: Map<string, QaFinding[]>): Record<QaVerdict, number> {
+  const counts: Record<QaVerdict, number> = { pass: 0, review: 0, fail: 0, pending: 0 }
+  for (const image of images) counts[imageVerdict(image, grouped.get(image.id))]++
   return counts
 }
 

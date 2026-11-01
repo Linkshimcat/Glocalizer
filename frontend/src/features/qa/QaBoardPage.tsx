@@ -7,20 +7,21 @@ import StateNotice from '../../components/StateNotice'
 import { useToast } from '../../components/Toast'
 import { useSiteLang } from '../../i18n/LanguageContext'
 import { qaCopy } from '../../i18n/qa'
-import { restoreCloudProject } from '../../lib/api'
+import { restoreCloudProject, type CloudWorkspace } from '../../lib/api'
 import { RequestError, requestErrorMessage } from '../../lib/requestError'
 import { useAuth } from '../../store/AuthContext'
-import type { QaProjectResponse, QaSeverity } from '../../types/qa'
+import type { QaProjectResponse } from '../../types/qa'
 import EvidenceDrawer from './EvidenceDrawer'
 import { MOCK_IMAGES, MOCK_QA_RESPONSE } from './mockQaReport'
 import { fetchQaProject, runQaInspect } from './qaApi'
 import QaGrid from './QaGrid'
 import QaHistory from './QaHistory'
-import { editorLink, findingsByImage, imageSeverity, severityCounts, type QaImage } from './qaReport'
-import SeverityBadge from './SeverityBadge'
+import { renderWorkspacePngs } from './qaRender'
+import { editorLink, findingsByImage, imageVerdict, isInspectableStatus, severityCounts, type QaImage, type QaVerdict } from './qaReport'
+import { VerdictBadge } from './SeverityBadge'
 
-type Filter = QaSeverity | 'all'
-const FILTERS: Filter[] = ['all', 'fail', 'review', 'pass']
+type Filter = QaVerdict | 'all'
+const FILTERS: Filter[] = ['all', 'fail', 'review', 'pass', 'pending']
 const EMPTY_RESPONSE: QaProjectResponse = { latest: null, history: [] }
 
 /** FEAT-02 QA Board — /qa?projectId=<id>. 개발 서버에서는 /qa?mock=1로 목업을 볼 수 있다. */
@@ -36,7 +37,8 @@ export default function QaBoardPage() {
   const { isAuthenticated, checkingSession, token } = useAuth()
 
   const [images, setImages] = useState<QaImage[]>([])
-  const [projectToken, setProjectToken] = useState<string | null>(null)
+  const [workspace, setWorkspace] = useState<CloudWorkspace | null>(null)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [qa, setQa] = useState<QaProjectResponse>(EMPTY_RESPONSE)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -54,17 +56,18 @@ export default function QaBoardPage() {
     setLoading(true)
     setLoadError(null)
     try {
-      const workspace = await restoreCloudProject(projectId)
-      setProjectToken(workspace.projectToken)
-      setImages(workspace.results.assets.map(asset => ({
+      const restored = await restoreCloudProject(projectId)
+      setWorkspace(restored)
+      setImages(restored.results.assets.map(asset => ({
         id: asset.id,
         name: asset.name,
         url: asset.cleanedUrl ?? asset.originalUrl,
         width: asset.width,
         height: asset.height,
+        inspectable: isInspectableStatus(asset.status),
       })))
       // 한 번도 검사하지 않은 프로젝트는 404일 수 있다 — 오류가 아니라 "검사 기록 없음"으로 본다.
-      const response = await fetchQaProject(projectId, token, workspace.projectToken).catch((error: unknown) => {
+      const response = await fetchQaProject(projectId, token, restored.projectToken).catch((error: unknown) => {
         if (error instanceof RequestError && error.status === 404) return EMPTY_RESPONSE
         throw error
       })
@@ -79,15 +82,20 @@ export default function QaBoardPage() {
   useEffect(() => { void load() }, [load])
 
   const runInspection = async () => {
-    if (!projectId || running || mock) return
+    if (!projectId || !workspace || running || mock) return
     setRunning(true)
+    setProgress({ done: 0, total: 0 })
     try {
-      await runQaInspect(projectId, token, projectToken)
-      setQa(await fetchQaProject(projectId, token, projectToken))
+      // 서버는 PNG를 받은 이미지만 규격을 판정하므로, 실제로 내려받을 이미지를 먼저 만들어 같이 보낸다.
+      const { pngs, failed } = await renderWorkspacePngs(workspace, (done, total) => setProgress({ done, total }))
+      await runQaInspect(projectId, token, workspace.projectToken, pngs)
+      setQa(await fetchQaProject(projectId, token, workspace.projectToken))
+      if (failed.length > 0) toast(copy.qaRenderPartial.replace('{n}', String(failed.length)), 'warning')
     } catch (error) {
       toast(requestErrorMessage(error, lang, copy.qaRunFailed), 'warning')
     } finally {
       setRunning(false)
+      setProgress(null)
     }
   }
 
@@ -122,6 +130,7 @@ export default function QaBoardPage() {
     <>
       {mock && <StateNotice className="mt-6">{copy.qaMockBanner}</StateNotice>}
       <p className="mt-4 text-xs text-sub">{copy.qaDisclaimer}</p>
+      <p className="mt-1 text-xs text-sub">{copy.qaSpecHint}</p>
 
       {loading && <p role="status" className="mt-8 flex items-center gap-2 text-sm text-sub"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{copy.qaLoading}</p>}
       {loadError && <StateNotice error className="mt-8" action={<Button variant="secondary" onClick={() => void load()}>{copy.qaRetry}</Button>}>{loadError}</StateNotice>}
@@ -130,7 +139,7 @@ export default function QaBoardPage() {
         <>
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
             <div role="group" aria-label={copy.qaImageCount} className="flex flex-wrap gap-2">
-              {FILTERS.map(value => {
+              {FILTERS.filter(value => value !== 'pending' || counts.pending > 0).map(value => {
                 const count = value === 'all' ? images.length : counts[value]
                 const active = filter === value
                 return (
@@ -141,16 +150,16 @@ export default function QaBoardPage() {
                     onClick={() => setFilter(value)}
                     className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-bold transition ${active ? 'border-brand bg-brand-soft text-ink' : 'border-gray-200 text-sub hover:border-brand/50'}`}
                   >
-                    {value === 'all' ? copy.qaFilterAll : <SeverityBadge severity={value} copy={copy} />}
+                    {value === 'all' ? copy.qaFilterAll : <VerdictBadge verdict={value} copy={copy} />}
                     <span>{count}</span>
                   </button>
                 )
               })}
             </div>
             {!mock && (
-              <Button onClick={() => void runInspection()} disabled={running || images.length === 0}>
+              <Button onClick={() => void runInspection()} disabled={running || !workspace || images.length === 0}>
                 {running ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
-                {running ? copy.qaRunning : qa.latest ? copy.qaRerun : copy.qaRun}
+                {running ? (progress && progress.total > 0 ? copy.qaPreparing.replace('{done}', String(progress.done)).replace('{total}', String(progress.total)) : copy.qaRunning) : qa.latest ? copy.qaRerun : copy.qaRun}
               </Button>
             )}
           </div>
@@ -174,7 +183,7 @@ export default function QaBoardPage() {
                 )}
                 {!selectedImage && images.length > 0 && (
                   <p className="rounded-panel border border-dashed border-gray-200 p-5 text-sm text-sub">
-                    {copy.qaDrawerTitle} — {images.filter(image => imageSeverity(grouped.get(image.id)) !== 'pass').length} / {images.length}
+                    {copy.qaDrawerTitle} — {images.filter(image => ['fail', 'review'].includes(imageVerdict(image, grouped.get(image.id)))).length} / {images.length}
                   </p>
                 )}
                 <QaHistory history={qa.history} copy={copy} locale={lang} />

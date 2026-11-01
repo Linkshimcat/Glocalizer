@@ -9,7 +9,8 @@ async function qaRequest<T>(path: string, accountToken: string | null, projectTo
   const response = await apiFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      // FormData는 브라우저가 boundary를 붙여 Content-Type을 직접 정한다 — 여기서 지정하면 multipart 파싱이 깨진다.
+      ...(init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(accountToken ? { Authorization: `Bearer ${accountToken}` } : {}),
       ...(projectToken ? { 'X-Project-Token': projectToken } : {}),
     },
@@ -25,10 +26,20 @@ export function fetchQaProject(projectId: string, accountToken: string | null, p
   return qaRequest(`/projects/${encodeURIComponent(projectId)}/qa`, accountToken, projectToken)
 }
 
-/** assetId를 빼면 프로젝트 전체를 검사한다. */
-export function runQaInspect(projectId: string, accountToken: string | null, projectToken: string | null, assetId?: string): Promise<QaReport> {
-  return qaRequest(`/projects/${encodeURIComponent(projectId)}/qa/inspect`, accountToken, projectToken, {
-    method: 'POST',
-    body: JSON.stringify(assetId ? { assetId } : {}),
-  })
+/**
+ * 검사를 실행한다. pngs는 assetId → 브라우저가 만든 최종 PNG이고, 서버는 PNG를 받은 이미지만 규격(SPEC_*)을
+ * 판정한다(받지 않으면 "측정 안 함"). 필드 이름 = assetId, 같은 이미지를 두 번 보내면 서버가 거절한다.
+ * assetId를 주면 그 이미지 기준으로 passed를 계산한다(에디터 재검사).
+ */
+export function runQaInspect(
+  projectId: string,
+  accountToken: string | null,
+  projectToken: string | null,
+  pngs: Map<string, Blob>,
+  assetId?: string,
+): Promise<QaReport> {
+  const body = new FormData()
+  if (assetId) body.append('assetId', assetId)
+  for (const [id, png] of pngs) body.append(id, png, `${id}.png`)
+  return qaRequest(`/projects/${encodeURIComponent(projectId)}/qa/inspect`, accountToken, projectToken, { method: 'POST', body })
 }

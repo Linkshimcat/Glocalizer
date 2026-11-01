@@ -6,12 +6,13 @@ import type { QaImage } from './qaReport'
  * 화면에는 항상 "목업 데이터" 배너를 띄운다. README 체크리스트의 결함 5종을 모두 담는다.
  */
 export const MOCK_IMAGES: QaImage[] = [
-  { id: 'mock-pass', name: '01_hello.png', url: null, width: 740, height: 640 },
-  { id: 'mock-overflow', name: '02_long_caption.png', url: null, width: 740, height: 640 },
-  { id: 'mock-spec', name: '03_photo.jpg', url: null, width: 800, height: 800 },
-  { id: 'mock-ocr', name: '04_small_text.png', url: null, width: 740, height: 640 },
-  { id: 'mock-cleanup', name: '05_gradient.png', url: null, width: 740, height: 640 },
-  { id: 'mock-ai', name: '06_slang.png', url: null, width: 740, height: 640 },
+  { id: 'mock-pass', name: '01_hello.png', url: null, width: 740, height: 640, inspectable: true },
+  { id: 'mock-overflow', name: '02_long_caption.png', url: null, width: 740, height: 640, inspectable: true },
+  { id: 'mock-spec', name: '03_photo.jpg', url: null, width: 800, height: 800, inspectable: true },
+  { id: 'mock-ocr', name: '04_small_text.png', url: null, width: 740, height: 640, inspectable: true },
+  { id: 'mock-cleanup', name: '05_gradient.png', url: null, width: 740, height: 640, inspectable: true },
+  { id: 'mock-ai', name: '06_slang.png', url: null, width: 740, height: 640, inspectable: true },
+  { id: 'mock-pending', name: '07_processing.png', url: null, width: 740, height: 640, inspectable: false },
 ]
 
 const findings: QaFinding[] = [

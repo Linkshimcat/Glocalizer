@@ -2,8 +2,8 @@ import { ArrowUpRight, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { QaCopy } from '../../i18n/qa'
 import type { QaEvidenceSource, QaFinding } from '../../types/qa'
-import { effectiveSeverity, imageSeverity, type QaImage } from './qaReport'
-import SeverityBadge from './SeverityBadge'
+import { effectiveSeverity, imageVerdict, type QaImage } from './qaReport'
+import SeverityBadge, { VerdictBadge } from './SeverityBadge'
 
 interface EvidenceDrawerProps {
   image: QaImage
@@ -32,7 +32,7 @@ export default function EvidenceDrawer({ image, findings, copy, onClose, fixLink
           <h2 id="qa-evidence-title" className="mt-1 truncate text-lg font-extrabold text-ink">{image.name}</h2>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <SeverityBadge severity={imageSeverity(findings)} copy={copy} />
+          <VerdictBadge verdict={imageVerdict(image, findings)} copy={copy} />
           {onClose && (
             <button type="button" onClick={onClose} aria-label={copy.qaDrawerClose} className="flex h-9 w-9 items-center justify-center rounded-control text-sub hover:bg-surface">
               <X className="h-4 w-4" aria-hidden="true" />
@@ -41,7 +41,8 @@ export default function EvidenceDrawer({ image, findings, copy, onClose, fixLink
         </div>
       </div>
 
-      {findings.length === 0 && <p className="mt-5 text-sm text-sub">{copy.qaNoFindings}</p>}
+      {!image.inspectable && <p className="mt-5 text-sm text-sub">{copy.qaPendingHint}</p>}
+      {image.inspectable && findings.length === 0 && <p className="mt-5 text-sm text-sub">{copy.qaNoFindings}</p>}
 
       {SECTIONS.map(source => {
         const items = findings.filter(finding => finding.source === source)
