@@ -78,6 +78,18 @@ export function imageStyleForItem(item: DemoItem, languageCode: string, styles: 
   return styles[item.id]?.[languageCode] ?? overlays.find(overlay => overlay.regionId === item.analysis?.regionId)?.style ?? overlays[0]?.style ?? DEFAULT_STYLE
 }
 
+/** 정렬 프리셋(좌/중앙/우)에 맞는 canvas textAlign 값. Editor.tsx 미리보기의 anchor 로직과 짝을 맞춘다. */
+function canvasTextAlign(alignH: Style['alignH']): CanvasTextAlign {
+  return alignH === 'left' ? 'left' : alignH === 'right' ? 'right' : 'center'
+}
+
+/** 정렬 프리셋 기준 텍스트 블록의 좌측 끝(anchor=0 기준 상대 좌표). textAlign과 짝을 맞춰야 한다. */
+function textLeftEdgeFor(alignH: Style['alignH'], measuredWidth: number): number {
+  if (alignH === 'left') return 0
+  if (alignH === 'right') return -measuredWidth
+  return -measuredWidth / 2
+}
+
 function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: Style, fontPx: number, scale: number) {
   if (!style.backgroundOn || !text) return
   const lines = text.split(/\r?\n/)
@@ -86,7 +98,7 @@ function drawTextBackground(ctx: CanvasRenderingContext2D, text: string, style: 
   const padding = style.backgroundPadding * scale
   const width = measuredWidth + padding * 2
   const height = lineHeight * lines.length + padding * 2
-  const x = -width / 2
+  const x = textLeftEdgeFor(style.alignH, measuredWidth) - padding
   const y = -height / 2
   const radius = Math.min(style.backgroundRadius * scale, height / 2, width / 2)
   ctx.fillStyle = hexToRgba(style.backgroundColor, style.backgroundOpacity / 100)
@@ -235,7 +247,7 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
     ctx.translate(size / 2 + overlayStyle.x * scale, size / 2 + overlayStyle.y * scale)
     ctx.rotate((overlayStyle.rotation * Math.PI) / 180)
     ctx.font = fontSpec
-    ctx.textAlign = 'center'
+    ctx.textAlign = canvasTextAlign(overlayStyle.alignH)
     ctx.textBaseline = 'middle'
     // 번역문이 원문보다 길어져도 캐릭터 쪽으로 가로로 삐져나가지 않도록, 사용자가 잡아둔
     // 원본 박스 너비를 넘기 전에 줄바꿈한다. 박스 정보가 없는 레거시 항목은 줄바꿈하지 않는다.
@@ -249,7 +261,9 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
       ctx.shadowOffsetY = overlayStyle.shadowY * scale
     }
     if (overlayStyle.strokeOn) {
-      ctx.lineWidth = overlayStyle.strokeWidth * 2 * scale
+      // 라이브 미리보기(CSS WebkitTextStroke)는 배수를 안 곱한다 — 여기도 맞춰야 다운로드한
+      // PNG의 외곽선 두께가 미리보기와 같아지고, 두꺼운 외곽선이 글자(특히 CJK)를 덜 가린다.
+      ctx.lineWidth = overlayStyle.strokeWidth * scale
       ctx.strokeStyle = overlayStyle.strokeColor
       ctx.lineJoin = 'round'
     }
