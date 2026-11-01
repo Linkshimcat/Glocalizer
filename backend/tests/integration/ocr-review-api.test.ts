@@ -8,7 +8,7 @@ const ocrProvider = vi.hoisted(() => ({ recognize: vi.fn(), name: 'test-ocr' }))
 vi.mock('../../src/repositories/project.repository.js', () => ({ findProjectById: vi.fn() }));
 vi.mock('../../src/repositories/job.repository.js', () => ({ findActiveJobForProject: vi.fn(), insertJob: vi.fn() }));
 vi.mock('../../src/repositories/asset.repository.js', () => ({ findAssetsByIds: vi.fn(), updateAsset: vi.fn(), findAssetsByProjectAndStatus: vi.fn(), findAssetsByProjectId: vi.fn() }));
-vi.mock('../../src/repositories/ocr.repository.js', () => ({ insertOcrRegion: vi.fn(), updatePrimaryRegion: vi.fn(), updateRegionById: vi.fn(), findPrimaryRegion: vi.fn(), findRegionsByAssetId: vi.fn(), findRegionById: vi.fn(), replaceOcrRegions: vi.fn() }));
+vi.mock('../../src/repositories/ocr.repository.js', () => ({ insertOcrRegion: vi.fn(), updatePrimaryRegion: vi.fn(), updateRegionById: vi.fn(), findPrimaryRegion: vi.fn(), findRegionsByAssetId: vi.fn(), findRegionById: vi.fn(), replaceOcrRegions: vi.fn(), deleteOcrRegion: vi.fn() }));
 vi.mock('../../src/repositories/translation.repository.js', () => ({ deleteTranslationsByOcrRegionId: vi.fn(), findTranslation: vi.fn(), incrementRegenerateCount: vi.fn(), upsertTranslation: vi.fn(), findTranslationsByOcrRegionId: vi.fn() }));
 vi.mock('../../src/repositories/storage.repository.js', () => ({ removeFromStorage: vi.fn(), downloadFromStorage: vi.fn(), uploadToStorage: vi.fn(), createSignedUrl: vi.fn() }));
 vi.mock('../../src/ai/localization/localization.service.js', () => ({ regenerateTranslation: vi.fn(), runTranslationsForAsset: vi.fn().mockResolvedValue({ status: 'translating' }) }));
@@ -23,6 +23,7 @@ const projectRepo = await import('../../src/repositories/project.repository.js')
 const jobRepo = await import('../../src/repositories/job.repository.js');
 const assetRepo = await import('../../src/repositories/asset.repository.js');
 const ocrRepo = await import('../../src/repositories/ocr.repository.js');
+const translationRepo = await import('../../src/repositories/translation.repository.js');
 const jobRunner = await import('../../src/workers/job-runner.js');
 const { hashProjectToken } = await import('../../src/utils/hash.js');
 const app = createApp();
@@ -146,5 +147,63 @@ describe('PATCH /api/v1/projects/:projectId/assets/:assetId/ocr', () => {
     expect(jobRepo.insertJob).toHaveBeenCalledWith(projectId, ['ocr'], expect.objectContaining({ operation: 'create', assetId, text: '잼얘 요구권', regionId: response.body.regionId }));
     expect(ocrRepo.insertOcrRegion).not.toHaveBeenCalled();
     expect(jobRunner.processClaimedJob).not.toHaveBeenCalled();
+  });
+});
+
+describe('DELETE /api/v1/projects/:projectId/assets/:assetId/ocr/regions/:regionId', () => {
+  const regionId = 'b7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d';
+  const otherRegionId = 'a7b8c9d0-e1f2-4a5b-9c0d-3e4f5a6b7c8d';
+
+  it('requires a project token', async () => {
+    const response = await request(app).delete(`/api/v1/projects/${projectId}/assets/${assetId}/ocr/regions/${regionId}`);
+    expect(response.status).toBe(401);
+  });
+
+  it('중복 생성된 영역과 그 번역을 지운다(재처리는 걸지 않음)', async () => {
+    vi.mocked(ocrRepo.findRegionById).mockResolvedValue({ id: regionId, asset_id: assetId } as never);
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([{ id: regionId }, { id: otherRegionId }] as never);
+
+    const response = await request(app)
+      .delete(`/api/v1/projects/${projectId}/assets/${assetId}/ocr/regions/${regionId}`)
+      .set('X-Project-Token', token);
+
+    expect(response.status).toBe(204);
+    expect(translationRepo.deleteTranslationsByOcrRegionId).toHaveBeenCalledWith(regionId);
+    expect(ocrRepo.deleteOcrRegion).toHaveBeenCalledWith(regionId);
+    expect(assetRepo.updateAsset).not.toHaveBeenCalled();
+  });
+
+  it('마지막 남은 영역은 삭제를 거부한다', async () => {
+    vi.mocked(ocrRepo.findRegionById).mockResolvedValue({ id: regionId, asset_id: assetId } as never);
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([{ id: regionId }] as never);
+
+    const response = await request(app)
+      .delete(`/api/v1/projects/${projectId}/assets/${assetId}/ocr/regions/${regionId}`)
+      .set('X-Project-Token', token);
+
+    expect(response.status).toBe(400);
+    expect(ocrRepo.deleteOcrRegion).not.toHaveBeenCalled();
+  });
+
+  it('다른 자산에 속한 영역은 거부한다', async () => {
+    vi.mocked(ocrRepo.findRegionById).mockResolvedValue({ id: regionId, asset_id: 'other-asset' } as never);
+
+    const response = await request(app)
+      .delete(`/api/v1/projects/${projectId}/assets/${assetId}/ocr/regions/${regionId}`)
+      .set('X-Project-Token', token);
+
+    expect(response.status).toBe(400);
+    expect(ocrRepo.deleteOcrRegion).not.toHaveBeenCalled();
+  });
+
+  it('project job이 진행 중이면 삭제를 거부한다', async () => {
+    vi.mocked(jobRepo.findActiveJobForProject).mockResolvedValue({ id: 'other-job' } as never);
+
+    const response = await request(app)
+      .delete(`/api/v1/projects/${projectId}/assets/${assetId}/ocr/regions/${regionId}`)
+      .set('X-Project-Token', token);
+
+    expect(response.status).toBe(409);
+    expect(ocrRepo.deleteOcrRegion).not.toHaveBeenCalled();
   });
 });

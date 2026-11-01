@@ -378,6 +378,7 @@ export default function Editor() {
     reviseOcr,
     detectOcrRegion,
     addOcrRegion,
+    deleteOcrRegion,
     retryTranslation,
     openCloudProject,
     requestQaInspect,
@@ -509,6 +510,7 @@ export default function Editor() {
   const [selectionBusy, setSelectionBusy] = useState(false)
   const [selectionSaving, setSelectionSaving] = useState(false)
   const [retryingRegionId, setRetryingRegionId] = useState<string | null>(null)
+  const [deletingRegionId, setDeletingRegionId] = useState<string | null>(null)
 
   const defaultStyleForRegion = (region = activeRegion) => region.normalizedBox
     ? initialStyleFor(region.normalizedBox, region.textColor, region.suggestions, region.recommendedFont, region.recommendedAlignment, region.strokeRecommended, region.shadowRecommended)
@@ -907,6 +909,18 @@ export default function Editor() {
       toast(error instanceof Error ? error.message : t.toastAiFailed)
     } finally {
       setRetryingRegionId(null)
+    }
+  }
+
+  const deleteRegion = async (regionId: string) => {
+    if (textRegions.length <= 1) return
+    setDeletingRegionId(regionId)
+    try {
+      await deleteOcrRegion(current.id, regionId)
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t.toastAiFailed)
+    } finally {
+      setDeletingRegionId(null)
     }
   }
 
@@ -1951,24 +1965,41 @@ export default function Editor() {
                 <p className="mb-2 text-xs font-extrabold text-ink">{e.detectedCaptions}</p>
                 <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto">
                   {textRegions.map((region, index) => (
-                    <button
+                    <div
                       key={region.id}
-                      onClick={() => selectRegion(region.id)}
-                      className={`flex min-h-10 items-center gap-2 rounded-control border px-3 py-2 text-left text-xs font-bold transition-colors ${
+                      className={`flex min-h-10 items-center gap-1 rounded-control border pl-3 pr-1.5 py-1 transition-colors ${
                         activeRegion.id === region.id
                           ? 'border-brand bg-brand-soft text-brand-dark'
                           : 'border-gray-100 bg-white text-ink hover:border-gray-200'
                       }`}
                     >
-                      <span className="w-5 shrink-0 text-center text-[11px] text-sub">{index + 1}</span>
-                      <span className="min-w-0 flex-1 truncate">{region.korean}</span>
-                      {region.translationStatus === 'failed' && (
-                        <span className="shrink-0 rounded-md bg-red-50 px-1.5 py-0.5 text-[9px] text-red-600">{e.translationNeeded}</span>
+                      <button
+                        onClick={() => selectRegion(region.id)}
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs font-bold"
+                      >
+                        <span className="w-5 shrink-0 text-center text-[11px] text-sub">{index + 1}</span>
+                        <span className="min-w-0 flex-1 truncate">{region.korean}</span>
+                        {region.translationStatus === 'failed' && (
+                          <span className="shrink-0 rounded-md bg-red-50 px-1.5 py-0.5 text-[9px] text-red-600">{e.translationNeeded}</span>
+                        )}
+                        {(region.needsManualCleanup || region.needsManualOcrReview) && (
+                          <span className="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">{e.captionReview}</span>
+                        )}
+                      </button>
+                      {textRegions.length > 1 && (
+                        <button
+                          onClick={() => deleteRegion(region.id)}
+                          disabled={deletingRegionId === region.id}
+                          aria-label={`${region.korean}: ${e.deleteCaption}`}
+                          title={e.deleteCaption}
+                          className="shrink-0 rounded-control p-1.5 text-sub hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        >
+                          {deletingRegionId === region.id
+                            ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                            : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
                       )}
-                      {(region.needsManualCleanup || region.needsManualOcrReview) && (
-                        <span className="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">{e.captionReview}</span>
-                      )}
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
