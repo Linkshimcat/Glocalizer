@@ -1,4 +1,4 @@
-import { pickFontByStyle } from '../data/demo'
+import { pickFontByStyle, type FontStyleTag } from '../data/demo'
 import type { ProjectResults } from './api'
 import { styleKeyForRegion, type Style } from './style'
 import type { StylesByLanguage, UploadFile } from '../store/uploads'
@@ -15,9 +15,12 @@ export function fontForCategory(category: string | undefined): string {
   return 'Baloo 2'
 }
 
-export function fontForLanguage(languageCode: string, suggestedFont: string): string {
-  if (languageCode === 'ja') return 'Noto Sans JP'
-  if (languageCode === 'zh') return 'Noto Sans SC'
+// 원본 글자 시각 분석(fontStyle)이 있으면 일본어/중국어도 영어/한글처럼 손글씨·캐주얼·격식 폰트
+// 중에서 가장 비슷한 걸 고른다. 분석이 실패했을 때만 언어별 기본 폰트 하나로 떨어진다 — 손도치
+// 작가님 피드백(일본어/중국어 전용 폰트가 Noto Sans 하나뿐이라 분위기를 못 바꿈, 2026-10-28)으로 추가.
+export function fontForLanguage(languageCode: string, suggestedFont: string, fontStyle?: FontStyleTag | null, seed?: string): string {
+  if (languageCode === 'ja') return fontStyle ? pickFontByStyle(fontStyle, seed, 'ja') : 'Noto Sans JP'
+  if (languageCode === 'zh') return fontStyle ? pickFontByStyle(fontStyle, seed, 'zh') : 'Noto Sans SC'
   return suggestedFont
 }
 
@@ -59,7 +62,7 @@ export function restoreFile(file: UploadFile, results: ProjectResults, languageC
         return [languageCode, {
           status: localization?.status ?? 'failed',
           suggestions: localization?.candidates ?? [],
-          recommendedFont: fontForLanguage(languageCode, suggestedFont),
+          recommendedFont: fontForLanguage(languageCode, suggestedFont, asset.ocr.fontStyle, asset.id),
           recommendedAlignment: localization?.recommendedStyle?.alignment,
           strokeRecommended: localization?.recommendedStyle?.strokeRecommended,
           shadowRecommended: localization?.recommendedStyle?.shadowRecommended,
@@ -88,7 +91,7 @@ export function restoreFile(file: UploadFile, results: ProjectResults, languageC
           return [languageCode, {
             status: localization?.status ?? 'failed',
             suggestions: localization?.candidates ?? [],
-            recommendedFont: fontForLanguage(languageCode, suggestedFont),
+            recommendedFont: fontForLanguage(languageCode, suggestedFont, region.fontStyle, region.id),
             recommendedAlignment: localization?.recommendedStyle?.alignment,
             strokeRecommended: localization?.recommendedStyle?.strokeRecommended,
             shadowRecommended: localization?.recommendedStyle?.shadowRecommended,
