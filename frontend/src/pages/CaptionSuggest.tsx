@@ -169,7 +169,7 @@ export default function CaptionSuggest() {
           {selectedFiles.map(file => {
             const hasCaption = (file.analysis?.regions.length ?? 0) > 0
             return <div key={file.id} className="rounded-panel border border-gray-200 bg-white p-3">
-              <img src={file.url} alt={file.name} className="checkerboard aspect-square w-full rounded-lg object-contain" />
+              <img src={file.url} loading="lazy" decoding="async" alt={file.name} className="checkerboard aspect-square w-full rounded-lg object-contain" />
               <p className="mt-2 truncate text-xs text-sub" title={file.name}>{file.name}</p>
               <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${hasCaption ? 'bg-brand-soft text-brand-dark' : 'bg-amber-50 text-amber-700'}`}>
                 {hasCaption ? t.hasCaption : t.noCaption}
@@ -192,7 +192,7 @@ export default function CaptionSuggest() {
               const done = Boolean(choices[file.id]?.text.trim())
               return <button key={file.id} type="button" onClick={() => setActiveFileId(file.id)}
                 className={`flex shrink-0 items-center gap-2 rounded-lg border p-2 text-left text-xs font-bold lg:w-full ${activeFileId === file.id ? 'border-brand bg-brand-soft' : 'border-gray-200 bg-white'}`}>
-                <img src={file.url} alt="" className="h-10 w-10 shrink-0 rounded object-contain" />
+                <img src={file.url} loading="lazy" decoding="async" alt="" className="h-10 w-10 shrink-0 rounded object-contain" />
                 <span className="min-w-0 truncate">{file.name}</span>
                 <span className="ml-auto shrink-0 text-sub">{analyzing[file.id] ? t.analyzing : done ? <Check className="h-4 w-4 text-brand" /> : t.waiting}</span>
               </button>
@@ -261,7 +261,7 @@ export default function CaptionSuggest() {
             const choice = choices[file.id]
             if (!choice?.text.trim() && !isRemoved) return null
             return <div key={file.id} className="flex items-center gap-3 rounded-panel border border-gray-200 p-3">
-              <img src={file.url} alt={file.name} className="checkerboard h-14 w-14 shrink-0 rounded-lg object-contain" />
+              <img src={file.url} loading="lazy" decoding="async" alt={file.name} className="checkerboard h-14 w-14 shrink-0 rounded-lg object-contain" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold" title={file.name}>{file.name}</p>
                 <p className="text-sm text-sub">{isRemoved ? t.removedNotice : choice?.text}</p>

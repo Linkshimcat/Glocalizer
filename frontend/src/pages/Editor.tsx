@@ -1518,7 +1518,7 @@ export default function Editor() {
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-xl">
                     {item.url ? (
-                      <img src={item.url} alt="" className="h-full w-full object-contain" />
+                      <img src={item.url} loading="lazy" decoding="async" alt="" className="h-full w-full object-contain" />
                     ) : (
                       item.emoji
                     )}

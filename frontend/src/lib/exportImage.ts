@@ -1,4 +1,3 @@
-import JSZip from 'jszip'
 import type { DemoItem } from '../data/demo'
 import { OGQ_CATEGORY_DIMENSIONS } from './ogqSpecCheck'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from './style'
@@ -308,6 +307,7 @@ export async function zipLocalizedItems(
   styles: Record<string, Record<string, Style>>,
   preset: OutputPreset = 'default',
 ): Promise<Blob> {
+  const { default: JSZip } = await import('jszip')
   const zip = new JSZip()
   for (const { languageCode, items } of itemsByLanguage) {
     for (const item of items) {
