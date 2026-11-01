@@ -2,7 +2,9 @@
 <img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/673f60e1-6ba1-4531-9537-40ca9a9ba640" />
 
 
-### [Glocalizer]
+### [Glocalizer](https://glocalizer.vercel.app)
+
+🔗 **서비스 바로가기: https://glocalizer.vercel.app** · [Instagram](https://www.instagram.com/glocalizer__ogq/)
 
 Global + Localizer = 가장 로컬적인 것을 가장 글로벌하게 만들어주는 도구
 
