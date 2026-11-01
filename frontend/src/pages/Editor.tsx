@@ -3,6 +3,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Download,
   Eye,
   EyeOff,
@@ -1299,6 +1300,20 @@ export default function Editor() {
 
   const canvasOverlays = textOverlaysForItem(current, langCode, savedStyles, { regionId: activeRegion.id, style })
 
+  // 손글씨로 직접 작업하는 작가는 번역 결과를 폰트로 바로 쓰기보다, 검토한 텍스트를 손으로
+  // 옮겨 적는 편을 선호한다는 실사용자 피드백(무릉도원 작가님, 2026-10-27)으로 추가 — 현재
+  // 보이는 이미지의 모든 캡션을 한 번에 복사한다(줄바꿈으로 구분, 빈 캡션은 제외).
+  const copyTranslatedText = async () => {
+    const lines = canvasOverlays.map(overlay => resolveText(overlay.style, overlay.suggestions).trim()).filter(Boolean)
+    if (!lines.length) { toast(e.copyTextEmpty); return }
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'))
+      toast(e.copyTextDone, 'success')
+    } catch {
+      toast(e.copyTextFailed)
+    }
+  }
+
   // "자동" 비교 탭 — AI 추천 그대로의 pristine 렌더와, 그 대비 실제로 바뀐 영역 집합.
   const pristineOverlays = pristineOverlaysForItem(current)
   const pristineBaseStyle = pristineOverlays.find(overlay => overlay.regionId === current.analysis?.regionId)?.style ?? pristineOverlays[0]?.style ?? DEFAULT_STYLE
@@ -1960,6 +1975,14 @@ export default function Editor() {
 
           {/* ── 번역 탭 ── */}
           <section className={tabClass('번역')}>
+            <button
+              type="button"
+              onClick={copyTranslatedText}
+              className="mb-4 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-control border border-gray-200 px-3 text-xs font-bold text-ink hover:bg-surface"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              {e.copyTextAll}
+            </button>
             {textRegions.length > 1 && (
               <div className="mb-4">
                 <p className="mb-2 text-xs font-extrabold text-ink">{e.detectedCaptions}</p>
