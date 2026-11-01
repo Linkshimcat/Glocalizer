@@ -402,6 +402,35 @@ body {
   }
 }
 
+/* 모달 등장 — 배경은 페이드, 패널은 살짝 커지며 나타난다(감속 곡선). 줄인 모션에서는 페이드만. */
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes modal-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.animate-modal-overlay {
+  animation: modal-overlay-in 0.18s ease-out;
+}
+.animate-modal-in {
+  animation: modal-in 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-modal-in {
+    animation-name: modal-fade-in;
+  }
+}
+
 /* 완료 체크 — 원 팝인 + 체크 그려지기 + 링 퍼짐 */
 @keyframes success-pop {
   0% {
