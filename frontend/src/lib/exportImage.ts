@@ -2,6 +2,7 @@ import type { DemoItem } from '../data/demo'
 import { OGQ_CATEGORY_DIMENSIONS } from './ogqSpecCheck'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from './style'
 import { wrapTextToWidth } from './textWrap'
+import { currentCloudProjectId, trackEvent } from './analytics'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 기본 512px 정사각 캔버스로 합성 */
 const CANVAS_SIZE = 512
@@ -273,13 +274,37 @@ export async function renderItemToPng(item: DemoItem, style: Style, overlays?: T
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      blob => (blob ? resolve(blob) : reject(new Error('PNG 생성에 실패했어요'))),
+      blob => {
+        if (!blob) return reject(new Error('PNG 생성에 실패했어요'))
+        exportedBlobs.set(blob, { imageCount: 1 })
+        resolve(blob)
+      },
       'image/png',
     )
   })
 }
 
+/**
+ * 본선 C-04 내보내기 이벤트. "내가 만든 결과물(PNG·ZIP Blob)"만 등록해 두고, 그 Blob이 실제로
+ * 다운로드될 때(downloadBlob) 성공을 센다. 파일 이름이 아니라 Blob 자체로 구분하므로 같은 downloadBlob을 쓰는
+ * 계정 데이터 ZIP(AccountExportContext)은 완주로 잡히지 않고(PR #206 리뷰), 취소·실패로 다운로드되지 않은
+ * Blob의 시작 시각이 다음 다운로드에 섞이는 일도 없다. 미리보기(usePngPreview)도 renderItemToPng를 쓰지만
+ * 다운로드하지 않으므로 세지 않는다. 단일 PNG 렌더 실패는 미리보기 실패와 구분할 수 없어 export_failed로 세지 않는다.
+ */
+const exportedBlobs = new WeakMap<Blob, { startedAt?: number; imageCount: number }>()
+
+function trackExportSucceeded(blob: Blob) {
+  const meta = exportedBlobs.get(blob)
+  if (!meta) return
+  trackEvent('export_succeeded', {
+    projectId: currentCloudProjectId() ?? undefined,
+    imageCount: meta.imageCount,
+    ...(meta.startedAt !== undefined ? { durationMs: performance.now() - meta.startedAt } : {}),
+  })
+}
+
 export function downloadBlob(blob: Blob, filename: string) {
+  trackExportSucceeded(blob)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -307,14 +332,23 @@ export async function zipLocalizedItems(
   styles: Record<string, Record<string, Style>>,
   preset: OutputPreset = 'default',
 ): Promise<Blob> {
-  const { default: JSZip } = await import('jszip')
-  const zip = new JSZip()
-  for (const { languageCode, items } of itemsByLanguage) {
-    for (const item of items) {
-      const style = imageStyleForItem(item, languageCode, styles)
-      const overlays = textOverlaysForItem(item, languageCode, styles)
-      zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays, preset))
+  const startedAt = performance.now()
+  const imageCount = itemsByLanguage.reduce((sum, group) => sum + group.items.length, 0)
+  try {
+    const { default: JSZip } = await import('jszip')
+    const zip = new JSZip()
+    for (const { languageCode, items } of itemsByLanguage) {
+      for (const item of items) {
+        const style = imageStyleForItem(item, languageCode, styles)
+        const overlays = textOverlaysForItem(item, languageCode, styles)
+        zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays, preset))
+      }
     }
+    const blob = await zip.generateAsync({ type: 'blob' })
+    exportedBlobs.set(blob, { startedAt, imageCount })
+    return blob
+  } catch (error) {
+    trackEvent('export_failed', { projectId: currentCloudProjectId() ?? undefined, imageCount, durationMs: performance.now() - startedAt })
+    throw error
   }
-  return zip.generateAsync({ type: 'blob' })
 }
