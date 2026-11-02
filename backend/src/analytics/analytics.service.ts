@@ -6,7 +6,7 @@ import { insertAnalyticsEvent, listAnalyticsEvents } from '../repositories/analy
 import { findProjectById } from '../repositories/project.repository.js';
 import { findUserById } from '../repositories/user.repository.js';
 import type { AnalyticsEventInput } from '../schemas/analytics.schema.js';
-import type { AnalyticsEventName, ExperimentGroup } from '../types/analytics.js';
+import type { AnalyticsEventName, ExperimentGroup, StageDurationsMs } from '../types/analytics.js';
 import type { JobRow } from '../types/job.js';
 import { safeLogError } from '../utils/log-error.js';
 import { eventsToCsv, resolveExperimentGroup, summarizeEvents, type ProofSummary } from './proof.js';
@@ -48,7 +48,7 @@ function jobEventId(jobId: string, eventName: AnalyticsEventName): string {
 export async function recordJobEvent(
   job: Pick<JobRow, 'id' | 'project_id'>,
   eventName: AnalyticsEventName,
-  extra: { durationMs?: number; imageCount?: number } = {},
+  extra: { durationMs?: number; imageCount?: number; stageDurationsMs?: StageDurationsMs } = {},
 ): Promise<void> {
   try {
     const project = await findProjectById(job.project_id);
@@ -62,6 +62,7 @@ export async function recordJobEvent(
       experiment_group: resolveExperimentGroup('external', owner?.email ?? null, env.ANALYTICS_INTERNAL_EMAILS),
       duration_ms: extra.durationMs ?? null,
       image_count: extra.imageCount ?? null,
+      ...(extra.stageDurationsMs ? { stage_durations: extra.stageDurationsMs } : {}),
     });
   } catch (err) {
     logger.warn({ jobId: job.id, eventName, err: safeLogError(err) }, 'Analytics job event was not recorded');

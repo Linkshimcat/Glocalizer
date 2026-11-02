@@ -59,4 +59,23 @@ describe('runLocalizationPipeline final state', () => {
     const fontStyleOrder = vi.mocked(fontStyleService.runProjectFontStyleAnalysis).mock.invocationCallOrder[0];
     expect(translationOrder).toBeLessThan(fontStyleOrder);
   });
+
+  it('OCR·번역·정리 단계마다 걸린 시간을 재서 돌려준다', async () => {
+    vi.mocked(assetRepo.findAssetsByProjectId).mockResolvedValue([{ status: 'completed', error_code: null, error_message: null }] as never);
+    const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+    const ocr = await import('../../src/ocr/ocr-pipeline.service.js');
+    const cleanup = await import('../../src/image/cleanup.service.js');
+    vi.mocked(ocr.runOcrPipeline).mockImplementation(() => wait(30) as never);
+    vi.mocked(localizationService.runProjectTranslations).mockImplementation(() => wait(30) as never);
+    vi.mocked(fontStyleService.runProjectFontStyleAnalysis).mockImplementation(() => wait(30) as never);
+    vi.mocked(cleanup.runProjectCleanup).mockImplementation(() => wait(30) as never);
+
+    const { stageDurationsMs } = await runLocalizationPipeline('project-1');
+
+    expect(Object.keys(stageDurationsMs).sort()).toEqual(['cleaning', 'recognizing', 'translating']);
+    expect(stageDurationsMs.recognizing).toBeGreaterThanOrEqual(25);
+    expect(stageDurationsMs.cleaning).toBeGreaterThanOrEqual(25);
+    // 번역 단계는 번역과 폰트 분석을 합친 구간이라 두 작업보다 길다.
+    expect(stageDurationsMs.translating).toBeGreaterThanOrEqual(55);
+  });
 });

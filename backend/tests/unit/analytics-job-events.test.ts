@@ -38,6 +38,14 @@ describe('recordJobEvent', () => {
     }));
   });
 
+  it('완료 이벤트에는 단계별 시간을 함께 저장하고, 다른 이벤트에는 키를 만들지 않는다', async () => {
+    await recordJobEvent(JOB, 'localization_completed', { durationMs: 5000, imageCount: 24, stageDurationsMs: { recognizing: 1000, translating: 3000, cleaning: 800 } });
+    await recordJobEvent(JOB, 'localization_started');
+    const [completed, started] = vi.mocked(analyticsRepo.insertAnalyticsEvent).mock.calls.map(([r]) => r);
+    expect(completed!.stage_durations).toEqual({ recognizing: 1000, translating: 3000, cleaning: 800 });
+    expect(started).not.toHaveProperty('stage_durations');
+  });
+
   it('팀원이 소유한 프로젝트는 internal로 기록한다', async () => {
     vi.mocked(projects.findProjectById).mockResolvedValue({ id: JOB.project_id, owner_id: 'u1' } as never);
     vi.mocked(users.findUserById).mockResolvedValue({ id: 'u1', email: 'team@glocalizer.dev' } as never);

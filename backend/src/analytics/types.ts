@@ -1,4 +1,4 @@
-import type { AnalyticsEventName, ExperimentGroup } from '../types/analytics.js';
+import type { AnalyticsEventName, ExperimentGroup, StageDurationsMs } from '../types/analytics.js';
 
 /** analytics_events 테이블 행. 이미지·번역문·이메일·실명은 이 테이블에 들어가지 않는다. */
 export interface AnalyticsEventRow {
@@ -10,4 +10,6 @@ export interface AnalyticsEventRow {
   experiment_group: ExperimentGroup;
   duration_ms: number | null;
   image_count: number | null;
+  /** localization_completed에만 채운다. 클라이언트 이벤트와 다른 이벤트에는 키 자체가 없다. */
+  stage_durations?: StageDurationsMs | null;
 }

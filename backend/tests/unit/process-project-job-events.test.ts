@@ -15,7 +15,7 @@ const job = (payload: Record<string, unknown> = {}) => ({ id: 'job-1', project_i
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(pipeline.runLocalizationPipeline).mockResolvedValue({ projectId: 'project-1', status: 'completed', completedAssetCount: 22, failedAssetCount: 2 });
+  vi.mocked(pipeline.runLocalizationPipeline).mockResolvedValue({ projectId: 'project-1', status: 'completed', completedAssetCount: 22, failedAssetCount: 2, stageDurationsMs: { recognizing: 3000, translating: 5000, cleaning: 2000 } });
   vi.mocked(assets.findAssetsByIds).mockResolvedValue([]);
 });
 
@@ -24,7 +24,7 @@ describe('handleProcessProjectJob 분석 이벤트', () => {
     await handleProcessProjectJob(job());
     const calls = vi.mocked(analytics.recordJobEvent).mock.calls;
     expect(calls.map(([, name]) => name)).toEqual(['localization_started', 'localization_completed']);
-    expect(calls[1]![2]).toEqual({ durationMs: expect.any(Number), imageCount: 22 });
+    expect(calls[1]![2]).toEqual({ durationMs: expect.any(Number), imageCount: 22, stageDurationsMs: { recognizing: 3000, translating: 5000, cleaning: 2000 } });
     expect(calls[1]![2]!.durationMs).toBeGreaterThanOrEqual(0);
   });
 

@@ -24,6 +24,6 @@ export async function handleProcessProjectJob(job: JobRow): Promise<void> {
     const startedAt = Date.now();
     if (tracked) await recordJobEvent(job, 'localization_started');
     const outcome = await runLocalizationPipeline(job.project_id);
-    if (tracked) await recordJobEvent(job, 'localization_completed', { durationMs: Date.now() - startedAt, imageCount: outcome.completedAssetCount });
+    if (tracked) await recordJobEvent(job, 'localization_completed', { durationMs: Date.now() - startedAt, imageCount: outcome.completedAssetCount, stageDurationsMs: outcome.stageDurationsMs });
   });
 }
