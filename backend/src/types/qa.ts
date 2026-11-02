@@ -70,4 +70,6 @@ export interface QaHistoryEntry {
 export interface QaSummaryResponse {
   latest: QaReport | null;
   history: QaHistoryEntry[];
+  /** 지금 저장 상태의 지문. latest.imageRevision과 다르면 마지막 검사 이후 편집이 있었다는 뜻이다. */
+  currentRevision: string;
 }
