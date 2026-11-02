@@ -13,6 +13,12 @@ import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.web
 import ipadFrame from '../assets/LandingAssets/ipad_frame.webp'
 import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.webp'
 import generatePhoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.webp'
+import generatePhoneCaptureAvif from '../assets/LandingAssets/phone-captures/generate-project-ko.avif'
+import localizePhoneCaptureAvif from '../assets/LandingAssets/phone-captures/localize-upload-ko.avif'
+import reviewPhoneCaptureAvif from '../assets/LandingAssets/phone-captures/review-projects-ko.avif'
+import generateDesktopCaptureAvif from '../assets/LandingAssets/desktop-captures/generate-project-ko.avif'
+import localizeDesktopCaptureAvif from '../assets/LandingAssets/desktop-captures/localize-upload-ko.avif'
+import reviewDesktopCaptureAvif from '../assets/LandingAssets/desktop-captures/review-projects-ko.avif'
 import localizePhoneCapture from '../assets/LandingAssets/phone-captures/localize-upload-ko.webp'
 import reviewPhoneCapture from '../assets/LandingAssets/phone-captures/review-projects-ko.webp'
 import generateDesktopCapture from '../assets/LandingAssets/desktop-captures/generate-project-ko.webp'
@@ -363,7 +369,10 @@ function VideoIntro({ reduceMotion, t }: { reduceMotion: boolean; t: Dict }) {
   )
 }
 
-function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }: { lang: SiteLang; title: string; scene: number; phoneCapture?: string; desktopCapture?: string }) {
+/** 화면 캡처 이미지. avif를 지원하지 않는 브라우저는 webp(src)를 쓴다. */
+interface ProductCapture { src: string; avif: string }
+
+function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }: { lang: SiteLang; title: string; scene: number; phoneCapture?: ProductCapture; desktopCapture?: ProductCapture }) {
   const frameRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [isTablet, setIsTablet] = useState(false)
@@ -419,7 +428,7 @@ function LiveProductScreen({ lang, title, scene, phoneCapture, desktopCapture }:
         loading="eager"
         tabIndex={-1}
       />}
-      {capture && <img src={capture} alt={title} className={`remake-product-screen remake-product-capture${isTablet ? ' remake-product-capture-tablet' : isMobile ? '' : ' remake-product-capture-desktop'}`} loading="lazy" decoding="async" />}
+      {capture && <picture className="remake-picture"><source type="image/avif" srcSet={capture.avif} /><img src={capture.src} alt={title} className={`remake-product-screen remake-product-capture${isTablet ? ' remake-product-capture-tablet' : isMobile ? '' : ' remake-product-capture-desktop'}`} loading="lazy" decoding="async" /></picture>}
     </div>
   )
 }
@@ -590,8 +599,8 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
             lang={lang}
             title={copy.scenes[index].title.replace('\n', ' ')}
             scene={index}
-            phoneCapture={lang === 'ko' ? [generatePhoneCapture, localizePhoneCapture, undefined, reviewPhoneCapture, undefined][index] : undefined}
-            desktopCapture={lang === 'ko' ? [generateDesktopCapture, localizeDesktopCapture, undefined, reviewDesktopCapture, undefined][index] : undefined}
+            phoneCapture={lang === 'ko' ? [{ src: generatePhoneCapture, avif: generatePhoneCaptureAvif }, { src: localizePhoneCapture, avif: localizePhoneCaptureAvif }, undefined, { src: reviewPhoneCapture, avif: reviewPhoneCaptureAvif }, undefined][index] : undefined}
+            desktopCapture={lang === 'ko' ? [{ src: generateDesktopCapture, avif: generateDesktopCaptureAvif }, { src: localizeDesktopCapture, avif: localizeDesktopCaptureAvif }, undefined, { src: reviewDesktopCapture, avif: reviewDesktopCaptureAvif }, undefined][index] : undefined}
           />
           <img src={macbookFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-desktop" />
           <img src={ipadFrame} alt="" aria-hidden loading="lazy" decoding="async" className="remake-device-frame remake-device-frame-tablet" />

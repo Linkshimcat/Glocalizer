@@ -6,6 +6,8 @@ import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.web
 import iphoneFrame from '../assets/LandingAssets/iphone_17_pro_transparent.webp'
 import ipadFrame from '../assets/LandingAssets/ipad_frame.webp'
 import desktopCapture from '../assets/LandingAssets/desktop-captures/generate-project-ko.webp'
+import desktopCaptureAvif from '../assets/LandingAssets/desktop-captures/generate-project-ko.avif'
+import phoneCaptureAvif from '../assets/LandingAssets/phone-captures/generate-project-ko.avif'
 import phoneCapture from '../assets/LandingAssets/phone-captures/generate-project-ko.webp'
 import '../landing-ending.css'
 
@@ -66,15 +68,15 @@ export default function LandingEnding() {
         </div>
         <div className="landing-ending-devices">
           <div className="landing-ending-laptop">
-            <div className="landing-ending-laptop-screen"><img src={desktopCapture} alt={copy.desktopAlt} width={1280} height={1600} loading="lazy" decoding="async" /></div>
+            <div className="landing-ending-laptop-screen"><picture className="remake-picture"><source type="image/avif" srcSet={desktopCaptureAvif} /><img src={desktopCapture} alt={copy.desktopAlt} width={1280} height={1600} loading="lazy" decoding="async" /></picture></div>
             <img src={macbookFrame} alt="" aria-hidden width={2048} height={1250} loading="lazy" decoding="async" className="landing-ending-device-frame" />
           </div>
           <div className="landing-ending-tablet">
-            <div className="landing-ending-tablet-screen"><img src={desktopCapture} alt={copy.tabletAlt} width={1280} height={1600} loading="lazy" decoding="async" /></div>
+            <div className="landing-ending-tablet-screen"><picture className="remake-picture"><source type="image/avif" srcSet={desktopCaptureAvif} /><img src={desktopCapture} alt={copy.tabletAlt} width={1280} height={1600} loading="lazy" decoding="async" /></picture></div>
             <img src={ipadFrame} alt="" aria-hidden width={2640} height={1880} loading="lazy" decoding="async" className="landing-ending-device-frame" />
           </div>
           <div className="landing-ending-phone">
-            <div className="landing-ending-phone-screen"><img src={phoneCapture} alt={copy.phoneAlt} width={390} height={2430} loading="lazy" decoding="async" /></div>
+            <div className="landing-ending-phone-screen"><picture className="remake-picture"><source type="image/avif" srcSet={phoneCaptureAvif} /><img src={phoneCapture} alt={copy.phoneAlt} width={390} height={2430} loading="lazy" decoding="async" /></picture></div>
             <img src={iphoneFrame} alt="" aria-hidden width={450} height={920} loading="lazy" decoding="async" className="landing-ending-device-frame" />
           </div>
         </div>
