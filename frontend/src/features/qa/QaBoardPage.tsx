@@ -8,6 +8,7 @@ import { useToast } from '../../components/Toast'
 import { useSiteLang } from '../../i18n/LanguageContext'
 import { qaCopy } from '../../i18n/qa'
 import { trackEvent } from '../../lib/analytics'
+import { OUTPUT_PRESETS, type OutputPreset } from '../../lib/exportImage'
 import { restoreCloudProject, type CloudWorkspace } from '../../lib/api'
 import { RequestError, requestErrorMessage } from '../../lib/requestError'
 import { useAuth } from '../../store/AuthContext'
@@ -17,12 +18,18 @@ import { MOCK_IMAGES, MOCK_QA_RESPONSE } from './mockQaReport'
 import { fetchQaProject, runQaInspect } from './qaApi'
 import QaGrid from './QaGrid'
 import QaHistory from './QaHistory'
-import { renderWorkspacePngs } from './qaRender'
+import { loadSavedPreset, renderWorkspacePngs, saveSavedPreset } from './qaRender'
 import { editorLink, findingsByImage, imageVerdict, isInspectableStatus, severityCounts, type QaImage, type QaVerdict } from './qaReport'
 import { VerdictBadge } from './SeverityBadge'
 
 type Filter = QaVerdict | 'all'
 const FILTERS: Filter[] = ['all', 'fail', 'review', 'pass', 'pending']
+const PRESET_OPTIONS = [
+  ['default', 'qaPresetDefault'],
+  ['ogq-main', 'qaPresetOgqMain'],
+  ['ogq-sticker', 'qaPresetOgqSticker'],
+  ['ogq-tab', 'qaPresetOgqTab'],
+] as const satisfies ReadonlyArray<readonly [OutputPreset, 'qaPresetDefault' | 'qaPresetOgqMain' | 'qaPresetOgqSticker' | 'qaPresetOgqTab']>
 const EMPTY_RESPONSE: QaProjectResponse = { latest: null, history: [] }
 
 /** FEAT-02 QA Board — /qa?projectId=<id>. 개발 서버에서는 /qa?mock=1로 목업을 볼 수 있다. */
@@ -47,6 +54,9 @@ export default function QaBoardPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const reviewedProject = useRef<string | null>(null)
+  const [preset, setPreset] = useState<OutputPreset>('default')
+  // 에디터·결과 화면에서 이 프로젝트에 고른 규격이 같은 세션에 남아 있으면 그대로 이어받는다.
+  useEffect(() => { if (projectId) setPreset(loadSavedPreset(projectId)) }, [projectId])
 
   const load = useCallback(async () => {
     if (mock) {
@@ -94,7 +104,7 @@ export default function QaBoardPage() {
     setProgress({ done: 0, total: 0 })
     try {
       // 서버는 PNG를 받은 이미지만 규격을 판정하므로, 실제로 내려받을 이미지를 먼저 만들어 같이 보낸다.
-      const { pngs, failed } = await renderWorkspacePngs(workspace, (done, total) => setProgress({ done, total }))
+      const { pngs, failed } = await renderWorkspacePngs(workspace, (done, total) => setProgress({ done, total }), undefined, preset)
       await runQaInspect(projectId, token, workspace.projectToken, pngs)
       setQa(await fetchQaProject(projectId, token, workspace.projectToken))
       if (failed.length > 0) toast(copy.qaRenderPartial.replace('{n}', String(failed.length)), 'warning')
@@ -164,12 +174,32 @@ export default function QaBoardPage() {
               })}
             </div>
             {!mock && (
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-sub">
+                  {copy.qaPresetLabel}
+                  <select
+                    value={preset}
+                    disabled={running}
+                    onChange={event => {
+                      const next = event.target.value as OutputPreset
+                      setPreset(next)
+                      if (projectId) saveSavedPreset(projectId, next)
+                    }}
+                    className="min-h-10 rounded-control border border-gray-200 bg-white px-3 text-sm font-bold text-ink"
+                  >
+                    {PRESET_OPTIONS.map(([value, label]) => (
+                      <option key={value} value={value}>{copy[label]} · {OUTPUT_PRESETS[value].width}×{OUTPUT_PRESETS[value].height}</option>
+                    ))}
+                  </select>
+                </label>
               <Button onClick={() => void runInspection()} disabled={running || !workspace || images.length === 0}>
                 {running ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
                 {running ? (progress && progress.total > 0 ? copy.qaPreparing.replace('{done}', String(progress.done)).replace('{total}', String(progress.total)) : copy.qaRunning) : qa.latest ? copy.qaRerun : copy.qaRun}
               </Button>
+              </div>
             )}
           </div>
+          {!mock && preset === 'default' && <p className="mt-2 text-xs text-sub">{copy.qaPresetDefaultHint}</p>}
 
           {isQaReportStale(qa) && <StateNotice className="mt-6">{copy.qaStale}</StateNotice>}
           {qa.latest
