@@ -63,4 +63,14 @@ export interface QaHistoryEntry {
 export interface QaProjectResponse {
   latest: QaReport | null
   history: QaHistoryEntry[]
+  /**
+   * (선택, 윤재 확인 필요) 지금 editor state의 revision. latest.imageRevision과 다르면 마지막 검사 이후
+   * 편집이 있었다는 뜻 — QA Board와 ZIP 리포트가 "다시 검사 필요"로 표시한다. 없으면 비교하지 않는다.
+   */
+  currentRevision?: string | null
+}
+
+/** 마지막 검사 이후 편집됐는지. 서버가 currentRevision을 안 주면 판단하지 않는다(false). */
+export function isQaReportStale(response: QaProjectResponse): boolean {
+  return Boolean(response.latest && response.currentRevision && response.latest.imageRevision !== response.currentRevision)
 }

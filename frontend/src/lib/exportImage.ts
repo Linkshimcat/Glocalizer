@@ -3,6 +3,7 @@ import { OGQ_CATEGORY_DIMENSIONS } from './ogqSpecCheck'
 import { DEFAULT_STYLE, hexToRgba, resolveText, styleFromNormalizedBox, styleKeyForRegion, type ManualCleanup, type NormalizedRect, type Style } from './style'
 import { wrapTextToWidth } from './textWrap'
 import { currentCloudProjectId, trackEvent } from './analytics'
+import { buildQaReportFiles, fetchQaForExport } from '../features/qa/qaExportReport'
 
 /** 에디터 화면(340px 기준)의 편집 상태를 기본 512px 정사각 캔버스로 합성 */
 const CANVAS_SIZE = 512
@@ -343,6 +344,13 @@ export async function zipLocalizedItems(
         const overlays = textOverlaysForItem(item, languageCode, styles)
         zip.file(exportFileName(item.name, languageCode, 'png'), await renderItemToPng(item, style, overlays, preset))
       }
+    }
+    // FEAT-09: 최신 QA 결과가 있으면 리포트를 같이 넣는다. 못 받아도 PNG ZIP은 그대로 만든다.
+    const qa = await fetchQaForExport()
+    const reportFiles = qa ? buildQaReportFiles(qa, itemsByLanguage.flatMap(group => group.items)) : null
+    if (reportFiles) {
+      zip.file('qa-report.json', reportFiles.json)
+      zip.file('qa-report.md', reportFiles.md)
     }
     const blob = await zip.generateAsync({ type: 'blob' })
     exportedBlobs.set(blob, { startedAt, imageCount })
