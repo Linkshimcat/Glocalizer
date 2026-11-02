@@ -14,6 +14,9 @@ export type AnalyticsEventName =
 /** internal 판정은 서버가 계정 목록으로 다시 하므로, 클라이언트 값은 참고용이다 */
 export type ExperimentGroup = 'internal' | 'external' | 'demo'
 
+/** 현지화 처리 단계 — backend LocalizationStage(projects.stage 값)와 같다. recognizing=OCR, translating=번역+폰트 분석, cleaning=글자 지우기 */
+export type LocalizationStage = 'recognizing' | 'translating' | 'cleaning'
+
 /** POST /api/v1/events 요청 본문 */
 export interface AnalyticsEvent {
   eventName: AnalyticsEventName
@@ -36,7 +39,7 @@ export interface ProofDurationStats {
 
 /**
  * GET /api/v1/proof/summary?group=<external|internal|demo> 응답 — backend/src/analytics/proof.ts와 같은 모양.
- * 요청한 그룹 하나만 집계한다. 관리자 키(X-Admin-Key)가 필요하다.
+ * 요청한 그룹 하나만 집계한다. external은 키 없이 공개(PR #215), internal·demo는 관리자 키(X-Admin-Key)가 필요하다.
  */
 export interface ProofSummary {
   experimentGroup: ExperimentGroup
@@ -48,6 +51,11 @@ export interface ProofSummary {
   /** 시작한 프로젝트 중 내보내기에 성공한 프로젝트 비율. 시작한 프로젝트가 없으면 rate는 null */
   completion: { startedProjects: number; exportedProjects: number; rate: number | null }
   durations: Record<AnalyticsEventName, ProofDurationStats | null>
+  /**
+   * 현지화 완료 이벤트의 단계별 분포(PR #217). 서버가 아직 주지 않으면 필드 자체가 없고,
+   * 단계 기록이 없는 단계는 null — 둘 다 화면에서 "측정 안 됨"으로 표시한다.
+   */
+  stageDurations?: Record<LocalizationStage, ProofDurationStats | null>
 }
 
 /**
@@ -55,3 +63,5 @@ export interface ProofSummary {
  * frontend/scripts/verify-proof.mjs가 이 열로 summary를 다시 계산해 화면 숫자와 맞는지 점검한다(QA-02).
  */
 export const PROOF_CSV_COLUMNS = ['event_name', 'client_event_id', 'occurred_at', 'anonymous_session_id', 'project_id', 'experiment_group', 'duration_ms', 'image_count'] as const
+/** PR #217 이후 CSV 맨 끝에 붙는 단계별 시간 열. 기록이 없는 행은 빈 값이다. */
+export const PROOF_CSV_STAGE_COLUMNS = ['recognizing_ms', 'translating_ms', 'cleaning_ms'] as const

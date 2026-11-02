@@ -18,4 +18,10 @@ export const MOCK_PROOF_SUMMARY: ProofSummary = {
     export_succeeded: { n: 8, p50Ms: 2300, p95Ms: 5100 },
     export_failed: null,
   },
+  // translating을 null로 둬서 단계별 표의 "측정 안 됨"도 같이 확인한다.
+  stageDurations: {
+    recognizing: { n: 19, p50Ms: 6400, p95Ms: 21800 },
+    translating: null,
+    cleaning: { n: 18, p50Ms: 9100, p95Ms: 30200 },
+  },
 }
