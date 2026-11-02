@@ -12,6 +12,7 @@ import { OUTPUT_PRESETS, type OutputPreset } from '../../lib/exportImage'
 import { restoreCloudProject, type CloudWorkspace } from '../../lib/api'
 import { RequestError, requestErrorMessage } from '../../lib/requestError'
 import { useAuth } from '../../store/AuthContext'
+import { useUploads } from '../../store/uploads'
 import { isQaReportStale, type QaProjectResponse } from '../../types/qa'
 import EvidenceDrawer from './EvidenceDrawer'
 import { MOCK_IMAGES, MOCK_QA_RESPONSE } from './mockQaReport'
@@ -43,6 +44,8 @@ export default function QaBoardPage() {
   // 목업은 개발 빌드에서만 켤 수 있다 — 배포 화면에 가짜 판정이 섞이지 않게 한다.
   const mock = import.meta.env.DEV && searchParams.get('mock') === '1'
   const { isAuthenticated, checkingSession, token } = useAuth()
+  // 업로드 스토어는 라우트가 바뀌어도 살아 있고 규격을 프로젝트가 바뀔 때만 다시 읽는다. 지금 로드된 프로젝트의 규격을 QA에서 바꾸면 스토어 상태도 같이 바꿔야 검사한 규격과 다운로드 규격이 같다.
+  const { projectStatus, setOutputPreset: setStorePreset } = useUploads()
 
   const [images, setImages] = useState<QaImage[]>([])
   const [workspace, setWorkspace] = useState<CloudWorkspace | null>(null)
@@ -183,7 +186,10 @@ export default function QaBoardPage() {
                     onChange={event => {
                       const next = event.target.value as OutputPreset
                       setPreset(next)
-                      if (projectId) saveSavedPreset(projectId, next)
+                      if (!projectId) return
+                      // 로드된 프로젝트면 스토어가 저장까지 한다. 아니면 다음에 그 프로젝트를 열 때 읽도록 저장소에만 쓴다.
+                      if (projectStatus?.projectId === projectId) setStorePreset(next)
+                      else saveSavedPreset(projectId, next)
                     }}
                     className="min-h-10 rounded-control border border-gray-200 bg-white px-3 text-sm font-bold text-ink"
                   >
