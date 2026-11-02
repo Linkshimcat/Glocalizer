@@ -98,18 +98,40 @@ describe('POST /projects/:projectId/qa/inspect', () => {
 });
 
 describe('GET /projects/:projectId/qa', () => {
+  const getUrl = `/api/v1/projects/${PROJECT_ID}/qa`;
+
   it('최신 리포트와 이력 요약을 돌려준다', async () => {
     const latest = { id: 'r2', projectId: PROJECT_ID, imageRevision: 'x', inspectedAt: '2026-10-30T01:00:00.000Z', rulesetVersion: 'v', findings: [] };
     vi.mocked(qaRepo.findLatestQaReport).mockResolvedValue(latest);
     vi.mocked(qaRepo.listQaHistory).mockResolvedValue([{ id: 'r2', inspectedAt: '2026-10-30T01:00:00.000Z', pass: 2, review: 0, fail: 0 }]);
-    const res = await request(app).get(`/api/v1/projects/${PROJECT_ID}/qa`).set('X-Project-Token', TOKEN);
+    const res = await request(app).get(getUrl).set('X-Project-Token', TOKEN);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ latest, history: [{ id: 'r2', inspectedAt: '2026-10-30T01:00:00.000Z', pass: 2, review: 0, fail: 0 }] });
+    expect(res.body).toEqual({ latest, history: [{ id: 'r2', inspectedAt: '2026-10-30T01:00:00.000Z', pass: 2, review: 0, fail: 0 }], currentRevision: expect.stringMatching(/^[0-9a-f]{16}$/) });
   });
 
-  it('검사한 적이 없으면 latest는 null이다', async () => {
+  it('검사한 적이 없으면 latest는 null이고, currentRevision은 그래도 내려준다', async () => {
     vi.mocked(qaRepo.listQaHistory).mockResolvedValue([]);
-    const res = await request(app).get(`/api/v1/projects/${PROJECT_ID}/qa`).set('X-Project-Token', TOKEN);
-    expect(res.body).toEqual({ latest: null, history: [] });
+    const res = await request(app).get(getUrl).set('X-Project-Token', TOKEN);
+    expect(res.body).toEqual({ latest: null, history: [], currentRevision: expect.stringMatching(/^[0-9a-f]{16}$/) });
+  });
+
+  it('검사 직후에는 currentRevision이 latest.imageRevision과 같고, 이후 편집하면 달라진다', async () => {
+    const inspected = await request(app).post(inspectUrl).set('X-Project-Token', TOKEN).attach(ASSET_A, await stickerPng(), 'a.png');
+    const latest = { id: 'r1', projectId: PROJECT_ID, imageRevision: inspected.body.imageRevision, inspectedAt: inspected.body.inspectedAt, rulesetVersion: 'v', findings: [] };
+    vi.mocked(qaRepo.findLatestQaReport).mockResolvedValue(latest);
+    vi.mocked(qaRepo.listQaHistory).mockResolvedValue([]);
+
+    const unchanged = await request(app).get(getUrl).set('X-Project-Token', TOKEN);
+    expect(unchanged.body.currentRevision).toBe(latest.imageRevision);
+
+    vi.mocked(editorStates.findEditorStatesByAssetIds).mockResolvedValue([
+      { asset_id: ASSET_A, ocr_region_id: `${ASSET_A.slice(0, 8)}-r`, language_code: 'en', style: { fontSize: 24 } },
+    ] as never);
+    const edited = await request(app).get(getUrl).set('X-Project-Token', TOKEN);
+    expect(edited.body.currentRevision).not.toBe(latest.imageRevision);
+  });
+
+  it('토큰이 없으면 401이다', async () => {
+    expect((await request(app).get(getUrl)).status).toBe(401);
   });
 });

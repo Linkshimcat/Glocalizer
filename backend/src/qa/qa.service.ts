@@ -18,21 +18,13 @@ export interface QaInspectResponse extends QaReport {
   passed: boolean;
 }
 
-/**
- * 현재 저장 상태(OCR·번역·편집)와 브라우저가 내보내 보낸 최종 PNG로 프로젝트를 검사하고 리포트를 쌓는다.
- * uploads: assetId → 내보낸 PNG 바이트. 받지 않은 이미지의 규격 판정은 직전 리포트에서 이어받는다.
- */
-export async function inspectProjectQa(project: ProjectRow, uploads: Map<string, Buffer>, focusAssetId?: string): Promise<QaInspectResponse> {
-  const assets = await findAssetsByProjectId(project.id);
-  const assetIds = new Set(assets.map((asset) => asset.id));
-  const unknown = [...uploads.keys(), ...(focusAssetId ? [focusAssetId] : [])].find((id) => !assetIds.has(id));
-  if (unknown) throw new AppError('INVALID_REQUEST', { assetId: unknown }, '이 프로젝트의 이미지가 아닙니다.');
-
-  const ids = [...assetIds];
+/** 저장된 OCR·번역·편집 상태를 이미지별 검사 입력으로 모은다. 검사와 currentRevision 계산이 같은 입력을 써야 revision이 맞물린다. */
+async function loadQaInputs(assets: Awaited<ReturnType<typeof findAssetsByProjectId>>, uploads: Map<string, Buffer>): Promise<QaAssetInput[]> {
+  const ids = assets.map((asset) => asset.id);
   const [regions, editorStates] = await Promise.all([findRegionsByAssetIds(ids), findEditorStatesByAssetIds(ids)]);
   const translations = await findTranslationsByOcrRegionIds(regions.map((region) => region.id));
 
-  const inputs: QaAssetInput[] = assets.map((asset) => {
+  return assets.map((asset) => {
     const assetRegions = regions.filter((region) => region.asset_id === asset.id);
     const regionIds = new Set(assetRegions.map((region) => region.id));
     return {
@@ -51,6 +43,19 @@ export async function inspectProjectQa(project: ProjectRow, uploads: Map<string,
       image: uploads.get(asset.id) ?? null,
     };
   });
+}
+
+/**
+ * 현재 저장 상태(OCR·번역·편집)와 브라우저가 내보내 보낸 최종 PNG로 프로젝트를 검사하고 리포트를 쌓는다.
+ * uploads: assetId → 내보낸 PNG 바이트. 받지 않은 이미지의 규격 판정은 직전 리포트에서 이어받는다.
+ */
+export async function inspectProjectQa(project: ProjectRow, uploads: Map<string, Buffer>, focusAssetId?: string): Promise<QaInspectResponse> {
+  const assets = await findAssetsByProjectId(project.id);
+  const assetIds = new Set(assets.map((asset) => asset.id));
+  const unknown = [...uploads.keys(), ...(focusAssetId ? [focusAssetId] : [])].find((id) => !assetIds.has(id));
+  if (unknown) throw new AppError('INVALID_REQUEST', { assetId: unknown }, '이 프로젝트의 이미지가 아닙니다.');
+
+  const inputs = await loadQaInputs(assets, uploads);
 
   // 방금 편집한 이미지(focusAssetId)는 예전 판정이 맞지 않을 수 있어 이어받지 않는다. PNG를 같이 보내면 새로 판정한다.
   const withoutUpload = assets
@@ -79,7 +84,12 @@ export async function inspectProjectQa(project: ProjectRow, uploads: Map<string,
   };
 }
 
-export async function getProjectQaSummary(projectId: string): Promise<QaSummaryResponse> {
-  const [latest, history] = await Promise.all([findLatestQaReport(projectId), listQaHistory(projectId)]);
-  return { latest, history };
+/**
+ * currentRevision은 지금 저장 상태의 지문이다. latest.imageRevision과 다르면 마지막 검사 이후 편집이 있었다는 뜻이라
+ * 프론트가 "다시 검사 필요"를 띄운다. 검사 기록이 없어도 내려준다.
+ */
+export async function getProjectQaSummary(project: ProjectRow): Promise<QaSummaryResponse> {
+  const [latest, history, assets] = await Promise.all([findLatestQaReport(project.id), listQaHistory(project.id), findAssetsByProjectId(project.id)]);
+  const inputs = await loadQaInputs(assets, new Map());
+  return { latest, history, currentRevision: computeImageRevision(inputs, project.target_languages) };
 }

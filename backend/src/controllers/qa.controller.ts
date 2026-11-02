@@ -21,5 +21,5 @@ export async function inspectQaHandler(req: Request, res: Response) {
 }
 
 export async function getQaHandler(req: Request, res: Response) {
-  res.json(await getProjectQaSummary(requireProject(req).id));
+  res.json(await getProjectQaSummary(requireProject(req)));
 }
