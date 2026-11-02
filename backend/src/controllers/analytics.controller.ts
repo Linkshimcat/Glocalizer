@@ -9,7 +9,8 @@ export async function recordEventHandler(req: Request, res: Response) {
 }
 
 export async function proofSummaryHandler(req: Request, res: Response) {
-  res.json(await getProofSummary((req.query as { group: ExperimentGroup }).group));
+  // 키 없는 공개 요청만 짧게 캐시한다. 키를 보낸 요청은 원자료(CSV)와 대조할 수 있도록 항상 최신값이다.
+  res.json(await getProofSummary((req.query as { group: ExperimentGroup }).group, { cached: res.locals.proofPublic === true }));
 }
 
 export async function proofCsvHandler(req: Request, res: Response) {

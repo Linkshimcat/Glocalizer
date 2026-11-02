@@ -68,8 +68,24 @@ export async function recordJobEvent(
   }
 }
 
-export async function getProofSummary(group: ExperimentGroup): Promise<ProofSummary> {
-  return summarizeEvents(await listAnalyticsEvents(group), group);
+const PUBLIC_SUMMARY_TTL_MS = 60_000;
+let publicSummaryCache: { at: number; value: ProofSummary } | null = null;
+
+/** 테스트에서 캐시를 비운다. */
+export function resetProofSummaryCache(): void {
+  publicSummaryCache = null;
+}
+
+/**
+ * cached=true는 키 없이 누구나 부르는 external 집계다. 이벤트 전체를 읽는 쿼리라 한 번 계산한 값을 1분간 재사용한다.
+ * 그 외에는 항상 새로 계산한다.
+ */
+export async function getProofSummary(group: ExperimentGroup, options: { cached?: boolean } = {}): Promise<ProofSummary> {
+  const useCache = options.cached === true && group === 'external';
+  if (useCache && publicSummaryCache && Date.now() - publicSummaryCache.at < PUBLIC_SUMMARY_TTL_MS) return publicSummaryCache.value;
+  const value = summarizeEvents(await listAnalyticsEvents(group), group);
+  if (useCache) publicSummaryCache = { at: Date.now(), value };
+  return value;
 }
 
 export async function getProofCsv(group: ExperimentGroup): Promise<string> {
