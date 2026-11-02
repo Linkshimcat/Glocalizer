@@ -8,21 +8,29 @@ import { useToast } from '../../components/Toast'
 import { useSiteLang } from '../../i18n/LanguageContext'
 import { qaCopy } from '../../i18n/qa'
 import { trackEvent } from '../../lib/analytics'
+import { OUTPUT_PRESETS, type OutputPreset } from '../../lib/exportImage'
 import { restoreCloudProject, type CloudWorkspace } from '../../lib/api'
 import { RequestError, requestErrorMessage } from '../../lib/requestError'
 import { useAuth } from '../../store/AuthContext'
+import { useUploads } from '../../store/uploads'
 import { isQaReportStale, type QaProjectResponse } from '../../types/qa'
 import EvidenceDrawer from './EvidenceDrawer'
 import { MOCK_IMAGES, MOCK_QA_RESPONSE } from './mockQaReport'
 import { fetchQaProject, runQaInspect } from './qaApi'
 import QaGrid from './QaGrid'
 import QaHistory from './QaHistory'
-import { renderWorkspacePngs } from './qaRender'
+import { loadSavedPreset, renderWorkspacePngs, saveSavedPreset } from './qaRender'
 import { editorLink, findingsByImage, imageVerdict, isInspectableStatus, severityCounts, type QaImage, type QaVerdict } from './qaReport'
 import { VerdictBadge } from './SeverityBadge'
 
 type Filter = QaVerdict | 'all'
 const FILTERS: Filter[] = ['all', 'fail', 'review', 'pass', 'pending']
+const PRESET_OPTIONS = [
+  ['default', 'qaPresetDefault'],
+  ['ogq-main', 'qaPresetOgqMain'],
+  ['ogq-sticker', 'qaPresetOgqSticker'],
+  ['ogq-tab', 'qaPresetOgqTab'],
+] as const satisfies ReadonlyArray<readonly [OutputPreset, 'qaPresetDefault' | 'qaPresetOgqMain' | 'qaPresetOgqSticker' | 'qaPresetOgqTab']>
 const EMPTY_RESPONSE: QaProjectResponse = { latest: null, history: [] }
 
 /** FEAT-02 QA Board — /qa?projectId=<id>. 개발 서버에서는 /qa?mock=1로 목업을 볼 수 있다. */
@@ -36,6 +44,8 @@ export default function QaBoardPage() {
   // 목업은 개발 빌드에서만 켤 수 있다 — 배포 화면에 가짜 판정이 섞이지 않게 한다.
   const mock = import.meta.env.DEV && searchParams.get('mock') === '1'
   const { isAuthenticated, checkingSession, token } = useAuth()
+  // 업로드 스토어는 라우트가 바뀌어도 살아 있고 규격을 프로젝트가 바뀔 때만 다시 읽는다. 지금 로드된 프로젝트의 규격을 QA에서 바꾸면 스토어 상태도 같이 바꿔야 검사한 규격과 다운로드 규격이 같다.
+  const { projectStatus, setOutputPreset: setStorePreset } = useUploads()
 
   const [images, setImages] = useState<QaImage[]>([])
   const [workspace, setWorkspace] = useState<CloudWorkspace | null>(null)
@@ -47,6 +57,9 @@ export default function QaBoardPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const reviewedProject = useRef<string | null>(null)
+  const [preset, setPreset] = useState<OutputPreset>('default')
+  // 에디터·결과 화면에서 이 프로젝트에 고른 규격이 같은 세션에 남아 있으면 그대로 이어받는다.
+  useEffect(() => { if (projectId) setPreset(loadSavedPreset(projectId)) }, [projectId])
 
   const load = useCallback(async () => {
     if (mock) {
@@ -94,7 +107,7 @@ export default function QaBoardPage() {
     setProgress({ done: 0, total: 0 })
     try {
       // 서버는 PNG를 받은 이미지만 규격을 판정하므로, 실제로 내려받을 이미지를 먼저 만들어 같이 보낸다.
-      const { pngs, failed } = await renderWorkspacePngs(workspace, (done, total) => setProgress({ done, total }))
+      const { pngs, failed } = await renderWorkspacePngs(workspace, (done, total) => setProgress({ done, total }), undefined, preset)
       await runQaInspect(projectId, token, workspace.projectToken, pngs)
       setQa(await fetchQaProject(projectId, token, workspace.projectToken))
       if (failed.length > 0) toast(copy.qaRenderPartial.replace('{n}', String(failed.length)), 'warning')
@@ -164,12 +177,35 @@ export default function QaBoardPage() {
               })}
             </div>
             {!mock && (
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-sub">
+                  {copy.qaPresetLabel}
+                  <select
+                    value={preset}
+                    disabled={running}
+                    onChange={event => {
+                      const next = event.target.value as OutputPreset
+                      setPreset(next)
+                      if (!projectId) return
+                      // 로드된 프로젝트면 스토어가 저장까지 한다. 아니면 다음에 그 프로젝트를 열 때 읽도록 저장소에만 쓴다.
+                      if (projectStatus?.projectId === projectId) setStorePreset(next)
+                      else saveSavedPreset(projectId, next)
+                    }}
+                    className="min-h-10 rounded-control border border-gray-200 bg-white px-3 text-sm font-bold text-ink"
+                  >
+                    {PRESET_OPTIONS.map(([value, label]) => (
+                      <option key={value} value={value}>{copy[label]} · {OUTPUT_PRESETS[value].width}×{OUTPUT_PRESETS[value].height}</option>
+                    ))}
+                  </select>
+                </label>
               <Button onClick={() => void runInspection()} disabled={running || !workspace || images.length === 0}>
                 {running ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
                 {running ? (progress && progress.total > 0 ? copy.qaPreparing.replace('{done}', String(progress.done)).replace('{total}', String(progress.total)) : copy.qaRunning) : qa.latest ? copy.qaRerun : copy.qaRun}
               </Button>
+              </div>
             )}
           </div>
+          {!mock && preset === 'default' && <p className="mt-2 text-xs text-sub">{copy.qaPresetDefaultHint}</p>}
 
           {isQaReportStale(qa) && <StateNotice className="mt-6">{copy.qaStale}</StateNotice>}
           {qa.latest

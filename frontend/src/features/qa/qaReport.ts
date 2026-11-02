@@ -52,8 +52,12 @@ export function imageSeverity(findings: QaFinding[] | undefined): QaSeverity {
   return worst
 }
 
+/**
+ * 서버는 검사한 이미지마다 finding을 하나 이상 남긴다(파이프라인 항목은 항상 나온다). 그래서 finding이 하나도 없는
+ * 이미지는 아직 검사하지 않은 것이다 — 통과로 세면 검사 기록이 없는 프로젝트에 PASS가 뜬다.
+ */
 export function imageVerdict(image: QaImage, findings: QaFinding[] | undefined): QaVerdict {
-  return image.inspectable ? imageSeverity(findings) : 'pending'
+  return image.inspectable && findings && findings.length > 0 ? imageSeverity(findings) : 'pending'
 }
 
 /** 검사 대상이 아닌 이미지는 PASS로 세지 않고 pending으로 따로 센다 — 서버 이력의 숫자와 맞추기 위해서다. */

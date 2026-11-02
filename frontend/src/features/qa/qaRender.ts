@@ -5,14 +5,27 @@ import type { CloudWorkspace } from '../../lib/api'
 import { imageStyleForItem, OUTPUT_PRESETS, renderItemToPng, textOverlaysForItem, type OutputPreset } from '../../lib/exportImage'
 import { restoreFile, restoreStyles } from '../../lib/workspaceRestore'
 
-/** 업로드 스토어가 프로젝트별로 저장해 둔 출력 규격 — store/uploads.tsx의 'glocalizer:exportPresets' */
-function savedPreset(projectId: string): OutputPreset {
+const PRESET_STORAGE_KEY = 'glocalizer:exportPresets'
+
+/** 업로드 스토어가 프로젝트별로 저장해 둔 출력 규격 — store/uploads.tsx의 'glocalizer:exportPresets'. 세션이 바뀌면 사라진다. */
+export function loadSavedPreset(projectId: string): OutputPreset {
   try {
-    const raw = sessionStorage.getItem('glocalizer:exportPresets')
+    const raw = sessionStorage.getItem(PRESET_STORAGE_KEY)
     const value: unknown = raw ? (JSON.parse(raw) as Record<string, unknown>)[projectId] : undefined
     return typeof value === 'string' && value in OUTPUT_PRESETS ? value as OutputPreset : 'default'
   } catch {
     return 'default'
+  }
+}
+
+/** QA Board에서 고른 규격을 에디터·결과 화면과 같은 곳에 저장해, 어느 화면에서 골라도 같은 규격으로 보이게 한다. */
+export function saveSavedPreset(projectId: string, preset: OutputPreset): void {
+  try {
+    const raw = sessionStorage.getItem(PRESET_STORAGE_KEY)
+    const stored = raw ? JSON.parse(raw) as Record<string, unknown> : {}
+    sessionStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify({ ...stored, [projectId]: preset }))
+  } catch {
+    // 저장소를 못 쓰는 환경 — 이번 화면에서만 유지한다.
   }
 }
 
@@ -33,6 +46,8 @@ export async function renderWorkspacePngs(
   workspace: CloudWorkspace,
   onProgress?: (done: number, total: number) => void,
   assetId?: string,
+  /** 규격 판정에 쓸 출력 규격. 없으면 이 프로젝트에서 마지막으로 고른 값(없으면 기본). */
+  preset: OutputPreset = loadSavedPreset(workspace.projectId),
 ): Promise<RenderedPngs> {
   const languageCodes = workspace.results.targetLanguages
   const languageCode = languageCodes[0]
@@ -44,7 +59,6 @@ export async function renderWorkspacePngs(
   // 파일이 없으면 toDemoItems가 데모 샘플을 돌려주므로 건너뛴다.
   if (!languageCode || files.length === 0) return { pngs, failed: [] }
 
-  const preset = savedPreset(workspace.projectId)
   const styles = restoreStyles(files, workspace.results, languageCodes)
   const failed: string[] = []
   const items = toDemoItems(files, languageCode)
