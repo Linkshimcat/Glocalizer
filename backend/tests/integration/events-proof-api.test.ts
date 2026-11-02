@@ -12,6 +12,7 @@ vi.mock('../../src/repositories/user.repository.js', async (importOriginal) => (
 const { createApp } = await import('../../src/app.js');
 const analyticsRepo = await import('../../src/repositories/analytics.repository.js');
 const users = await import('../../src/repositories/user.repository.js');
+const { resetProofSummaryCache } = await import('../../src/analytics/analytics.service.js');
 const { signAuthToken } = await import('../../src/utils/jwt.js');
 
 const app = createApp();
@@ -31,6 +32,7 @@ const event = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetProofSummaryCache();
   vi.mocked(analyticsRepo.insertAnalyticsEvent).mockResolvedValue(undefined);
 });
 
@@ -86,20 +88,37 @@ describe('GET /api/v1/proof/*', () => {
     { event_name: 'export_succeeded', client_event_id: 'c2', occurred_at: '2026-10-29T10:05:00.000Z', anonymous_session_id: 'anon-aaaa', project_id: 'p1', experiment_group: 'external', duration_ms: 900, image_count: 24 },
   ];
 
-  it('관리자 키가 없으면 401이다', async () => {
-    expect((await request(app).get('/api/v1/proof/summary')).status).toBe(401);
-    expect((await request(app).get('/api/v1/proof/export.csv')).status).toBe(401);
-  });
-
-  it('summary는 기본으로 external 그룹만 집계한다', async () => {
+  it('external 집계는 키 없이 볼 수 있다', async () => {
     vi.mocked(analyticsRepo.listAnalyticsEvents).mockResolvedValue(rows as never);
-    const res = await request(app).get('/api/v1/proof/summary').set('X-Admin-Key', ADMIN_KEY);
+    const res = await request(app).get('/api/v1/proof/summary');
     expect(res.status).toBe(200);
     expect(analyticsRepo.listAnalyticsEvents).toHaveBeenCalledWith('external');
     expect(res.body.completion).toEqual({ startedProjects: 1, exportedProjects: 1, rate: 1 });
   });
 
-  it('group 쿼리로 다른 그룹을 고를 수 있고, 모르는 값은 400이다', async () => {
+  it('internal·demo 집계와 원자료 CSV는 관리자 키가 없으면 401이다', async () => {
+    expect((await request(app).get('/api/v1/proof/summary?group=internal')).status).toBe(401);
+    expect((await request(app).get('/api/v1/proof/summary?group=demo')).status).toBe(401);
+    expect((await request(app).get('/api/v1/proof/export.csv')).status).toBe(401);
+    expect((await request(app).get('/api/v1/proof/export.csv?group=external')).status).toBe(401);
+    expect(analyticsRepo.listAnalyticsEvents).not.toHaveBeenCalled();
+  });
+
+  it('틀린 관리자 키는 external 집계에서도 거절한다', async () => {
+    expect((await request(app).get('/api/v1/proof/summary').set('X-Admin-Key', 'wrong-key-wrong-key-wrong')).status).toBe(401);
+  });
+
+  it('공개 요청은 1분간 같은 집계를 재사용하고, 키를 보낸 요청은 항상 새로 계산한다', async () => {
+    vi.mocked(analyticsRepo.listAnalyticsEvents).mockResolvedValue(rows as never);
+    await request(app).get('/api/v1/proof/summary');
+    await request(app).get('/api/v1/proof/summary');
+    expect(analyticsRepo.listAnalyticsEvents).toHaveBeenCalledTimes(1);
+
+    await request(app).get('/api/v1/proof/summary').set('X-Admin-Key', ADMIN_KEY);
+    expect(analyticsRepo.listAnalyticsEvents).toHaveBeenCalledTimes(2);
+  });
+
+  it('관리자 키로는 다른 그룹을 고를 수 있고, 모르는 값은 400이다', async () => {
     vi.mocked(analyticsRepo.listAnalyticsEvents).mockResolvedValue([]);
     expect((await request(app).get('/api/v1/proof/summary?group=demo').set('X-Admin-Key', ADMIN_KEY)).status).toBe(200);
     expect(analyticsRepo.listAnalyticsEvents).toHaveBeenCalledWith('demo');
