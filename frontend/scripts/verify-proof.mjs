@@ -5,7 +5,8 @@
 //   node scripts/verify-proof.mjs --summary summary.json --csv export.csv [--group external]   # 내려받은 파일로 오프라인 점검
 //
 // 백엔드(backend/src/analytics/proof.ts)와 같은 규칙으로 다시 계산한다: 표본=서로 다른 익명 세션,
-// 완주율=시작한 프로젝트 중 내보낸 프로젝트, 백분위수=nearest-rank. 불일치가 있으면 종료 코드 1.
+// 완주율=시작한 프로젝트 중 내보낸 프로젝트, 백분위수=nearest-rank, 단계별 시간(있으면). 불일치가 있으면 종료 코드 1.
+// 원자료 CSV는 관리자 키가 필요하므로 --api 모드에서는 --admin-key가 필수다(external summary 자체는 공개).
 import { readFile } from 'node:fs/promises'
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => {
@@ -14,6 +15,8 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, inde
 }, []))
 const group = args.group ?? 'external'
 const EVENTS = ['demo_started', 'localization_started', 'localization_completed', 'qa_reviewed', 'export_succeeded', 'export_failed']
+// PR #217: 현지화 완료 이벤트의 단계별 시간. CSV에는 맨 끝에 <stage>_ms 열로 붙는다.
+const STAGES = ['recognizing', 'translating', 'cleaning']
 
 async function load() {
   if (args.summary && args.csv) {
@@ -94,6 +97,21 @@ for (const name of EVENTS) {
   if (wanted === null || actual === null) { if (wanted !== actual) problems.push(`durations.${name}: 화면 ${JSON.stringify(actual)} / 원자료 ${JSON.stringify(wanted)}`) }
   else for (const key of ['n', 'p50Ms', 'p95Ms']) check(`durations.${name}.${key}`, actual[key], wanted[key])
 }
+// 단계별 시간: 서버가 stageDurations를 주고 CSV에 *_ms 열이 있을 때만 대조한다(둘 중 하나만 있으면 불일치로 본다).
+const csvHasStages = allRows.length > 0 && STAGES.every(stage => `${stage}_ms` in allRows[0])
+if (summary.stageDurations && (csvHasStages || allRows.length === 0)) {
+  for (const stage of STAGES) {
+    const values = rows.filter(row => row.event_name === 'localization_completed' && row[`${stage}_ms`] !== '' && row[`${stage}_ms`] !== undefined)
+      .map(row => Number(row[`${stage}_ms`])).filter(Number.isFinite)
+    const wanted = values.length === 0 ? null : { n: values.length, p50Ms: percentile(values, 50), p95Ms: percentile(values, 95) }
+    const actual = summary.stageDurations[stage] ?? null
+    if (wanted === null || actual === null) { if (wanted !== actual) problems.push(`stageDurations.${stage}: 화면 ${JSON.stringify(actual)} / 원자료 ${JSON.stringify(wanted)}`) }
+    else for (const key of ['n', 'p50Ms', 'p95Ms']) check(`stageDurations.${stage}.${key}`, actual[key], wanted[key])
+  }
+} else if (summary.stageDurations || csvHasStages) {
+  problems.push(`단계별 시간: summary.stageDurations ${summary.stageDurations ? '있음' : '없음'} / CSV *_ms 열 ${csvHasStages ? '있음' : '없음'} — 서버 버전이 섞였을 수 있음`)
+}
+
 const otherGroups = allRows.length - rows.length
 if (otherGroups > 0) problems.push(`요청한 그룹(${group}) 외의 행 ${otherGroups}개가 CSV에 섞여 있음`)
 
