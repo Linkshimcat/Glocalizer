@@ -11,6 +11,12 @@ export type AnalyticsEventName =
 
 export type ExperimentGroup = 'internal' | 'external' | 'demo';
 
+/** 처리 단계 이름. projects.stage 값과 같아서 진행 화면·Replay가 같은 이름으로 읽는다. */
+export type LocalizationStage = 'recognizing' | 'translating' | 'cleaning';
+
+/** 단계별 소요 시간(ms). 워커만 채우고 클라이언트 이벤트(AnalyticsEvent)에는 없다. 건너뛴 단계는 빠진다. */
+export type StageDurationsMs = Partial<Record<LocalizationStage, number>>;
+
 export interface AnalyticsEvent {
   eventName: AnalyticsEventName;
   /** 재시도 중복 제거용 UUID */

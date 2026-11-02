@@ -88,10 +88,41 @@ describe('eventsToCsv', () => {
   it('개인정보 없는 필드만 헤더 순서대로 내보내고 빈 값은 비운다', () => {
     const csv = eventsToCsv([row({ event_name: 'export_succeeded', project_id: 'p1', duration_ms: 1200, image_count: 24 })]);
     expect(csv).toBe([
-      'event_name,client_event_id,occurred_at,anonymous_session_id,project_id,experiment_group,duration_ms,image_count',
-      'export_succeeded,00000000-0000-4000-8000-000000000000,2026-10-29T10:00:00.000Z,session-aaaa,p1,external,1200,24',
+      'event_name,client_event_id,occurred_at,anonymous_session_id,project_id,experiment_group,duration_ms,image_count,recognizing_ms,translating_ms,cleaning_ms',
+      'export_succeeded,00000000-0000-4000-8000-000000000000,2026-10-29T10:00:00.000Z,session-aaaa,p1,external,1200,24,,,',
       '',
     ].join('\n'));
-    expect(eventsToCsv([row({})]).split('\n')[1]).toBe('localization_started,00000000-0000-4000-8000-000000000000,2026-10-29T10:00:00.000Z,session-aaaa,,external,,');
+    expect(eventsToCsv([row({})]).split('\n')[1]).toBe('localization_started,00000000-0000-4000-8000-000000000000,2026-10-29T10:00:00.000Z,session-aaaa,,external,,,,,');
+  });
+
+  it('단계별 시간은 컬럼으로 풀어 내고, 기록이 없는 단계는 비운다', () => {
+    const csv = eventsToCsv([row({ event_name: 'localization_completed', duration_ms: 9000, stage_durations: { recognizing: 3000, cleaning: 2500 } })]);
+    expect(csv.split('\n')[1]).toBe('localization_completed,00000000-0000-4000-8000-000000000000,2026-10-29T10:00:00.000Z,session-aaaa,,external,9000,,3000,,2500');
+  });
+});
+
+describe('summarizeEvents: 단계별 시간', () => {
+  const completed = (stage_durations: AnalyticsEventRow['stage_durations'], id: string) =>
+    row({ event_name: 'localization_completed', client_event_id: id, duration_ms: 10_000, stage_durations });
+
+  it('localization_completed의 단계별 시간으로 단계마다 n·p50·p95를 낸다', () => {
+    const summary = summarizeEvents([
+      completed({ recognizing: 1000, translating: 4000, cleaning: 2000 }, 'a'),
+      completed({ recognizing: 3000, translating: 6000, cleaning: 4000 }, 'b'),
+      completed({ recognizing: 2000, translating: 5000 }, 'c'), // 정리 단계 기록 없음
+    ], 'external');
+    expect(summary.stageDurations.recognizing).toEqual({ n: 3, p50Ms: 2000, p95Ms: 3000 });
+    expect(summary.stageDurations.translating).toEqual({ n: 3, p50Ms: 5000, p95Ms: 6000 });
+    expect(summary.stageDurations.cleaning).toEqual({ n: 2, p50Ms: 2000, p95Ms: 4000 });
+  });
+
+  it('기록이 하나도 없으면 단계마다 null이다 (화면에서 측정 안 됨)', () => {
+    const summary = summarizeEvents([completed(null, 'a'), completed(undefined, 'b')], 'external');
+    expect(summary.stageDurations).toEqual({ recognizing: null, translating: null, cleaning: null });
+  });
+
+  it('다른 이벤트에 단계 값이 섞여 있어도 세지 않는다', () => {
+    const summary = summarizeEvents([row({ event_name: 'localization_started', stage_durations: { recognizing: 999 } })], 'external');
+    expect(summary.stageDurations.recognizing).toBeNull();
   });
 });

@@ -4,12 +4,15 @@ import { runOcrPipeline } from '../ocr/ocr-pipeline.service.js';
 import { runProjectFontStyleAnalysis } from '../ocr/font-style-pipeline.service.js';
 import { findAssetsByProjectId } from '../repositories/asset.repository.js';
 import { updateProjectStage } from '../repositories/project.repository.js';
+import type { LocalizationStage, StageDurationsMs } from '../types/analytics.js';
 
 export interface PipelineOutcome {
   projectId: string;
   status: 'completed' | 'failed';
   completedAssetCount: number;
   failedAssetCount: number;
+  /** 이번 실행에서 단계마다 걸린 시간(ms). Proof와 Replay가 읽는다. */
+  stageDurationsMs: StageDurationsMs;
 }
 
 /**
@@ -18,21 +21,31 @@ export interface PipelineOutcome {
  * 최종 프로젝트 상태(전부 실패했는지 아닌지)만 책임진다.
  */
 export async function runLocalizationPipeline(projectId: string): Promise<PipelineOutcome> {
+  const stageDurationsMs: StageDurationsMs = {};
+  const timed = async (stage: LocalizationStage, work: () => Promise<unknown>) => {
+    const startedAt = Date.now();
+    await work();
+    stageDurationsMs[stage] = Date.now() - startedAt;
+  };
+
   await updateProjectStage(projectId, { status: 'processing', stage: 'validating', progress: 0 });
 
   await updateProjectStage(projectId, { stage: 'preprocessing', progress: 5 });
   await updateProjectStage(projectId, { stage: 'recognizing', progress: 15 });
-  await runOcrPipeline(projectId);
+  await timed('recognizing', () => runOcrPipeline(projectId));
 
   await updateProjectStage(projectId, { stage: 'translating', progress: 60 });
   // 번역과 폰트 분석이 같은 Groq 한도를 나눠 쓰므로 동시에 실행하면 짧은 시간에 429가
   // 발생하고 일부 OCR 영역의 번역이 비게 된다. 사용자 결과에 필수인 번역을 먼저 끝낸 뒤,
   // 실패해도 결과를 막지 않는 폰트 분석을 실행한다.
-  await runProjectTranslations(projectId);
-  await runProjectFontStyleAnalysis(projectId);
+  // 폰트 분석은 화면에서도 '번역' 단계에 속하므로 같은 구간으로 잰다.
+  await timed('translating', async () => {
+    await runProjectTranslations(projectId);
+    await runProjectFontStyleAnalysis(projectId);
+  });
 
   await updateProjectStage(projectId, { stage: 'cleaning', progress: 80 });
-  await runProjectCleanup(projectId);
+  await timed('cleaning', () => runProjectCleanup(projectId));
 
   await updateProjectStage(projectId, { stage: 'saving', progress: 95 });
 
@@ -54,5 +67,5 @@ export async function runLocalizationPipeline(projectId: string): Promise<Pipeli
       : { errorCode: null, errorMessage: null }),
   });
 
-  return { projectId, status: finalStatus, completedAssetCount, failedAssetCount };
+  return { projectId, status: finalStatus, completedAssetCount, failedAssetCount, stageDurationsMs };
 }

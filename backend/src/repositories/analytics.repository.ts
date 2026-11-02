@@ -3,7 +3,7 @@ import { supabase } from '../config/supabase.js';
 import { AppError } from '../errors/app-error.js';
 import type { ExperimentGroup } from '../types/analytics.js';
 
-const COLUMNS = 'event_name, client_event_id, occurred_at, anonymous_session_id, project_id, experiment_group, duration_ms, image_count';
+const COLUMNS = 'event_name, client_event_id, occurred_at, anonymous_session_id, project_id, experiment_group, duration_ms, image_count, stage_durations';
 // PostgREST는 한 번에 최대 1,000행만 돌려주므로 나눠서 읽는다.
 const PAGE_SIZE = 1000;
 
