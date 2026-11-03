@@ -120,14 +120,19 @@ export default function ProofPage() {
     setKeyError(copy.proofKeyRequired)
   }, [copy.proofKeyRequired])
 
+  // 탭·키가 바뀌면 이전 요청의 응답은 버린다. 늦게 온 실사용자 숫자가 다른 탭에 보이지 않게 한다.
+  const loadRequest = useRef(0)
   const load = useCallback(async () => {
+    const request = ++loadRequest.current
     if (mock) { setSummary({ ...MOCK_PROOF_SUMMARY, experimentGroup: group }); return }
     setLoadError(null)
-    if (group !== 'external' && !adminKey) { setSummary(null); return }
+    if (group !== 'external' && !adminKey) { setSummary(null); setLoading(false); return }
     setLoading(true)
     try {
-      setSummary(await fetchProofSummary(group, adminKey || null))
+      const next = await fetchProofSummary(group, adminKey || null)
+      if (request === loadRequest.current) setSummary(next)
     } catch (error) {
+      if (request !== loadRequest.current) return
       if (adminKey && error instanceof RequestError && (error.status === 401 || error.status === 403 || error.code === 'INVALID_STATS_KEY')) {
         setSummary(null)
         rejectKey()
@@ -135,7 +140,7 @@ export default function ProofPage() {
         setLoadError(requestErrorMessage(error, lang, copy.proofLoadFailed))
       }
     } finally {
-      setLoading(false)
+      if (request === loadRequest.current) setLoading(false)
     }
   }, [mock, group, adminKey, lang, copy.proofLoadFailed, rejectKey])
 
