@@ -75,6 +75,13 @@ export function runCvInpaint(request: CvInpaintRequest): Promise<Buffer> {
       }
     });
 
+    // bridge가 입력을 다 읽기 전에 죽으면 남은 쓰기가 EPIPE를 낸다. 리스너가 없으면 서버 프로세스 전체가 내려간다.
+    child.stdin.on('error', () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      rejectPromise(new AppError('IMAGE_CLEANUP_FAILED', { stderr: stderr || undefined }, 'OpenCV inpaint bridge에 입력을 보내지 못했습니다.'));
+    });
     child.stdin.write(JSON.stringify(request));
     child.stdin.end();
   });
