@@ -574,8 +574,10 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const requestQaInspect = useCallback(async (fileId: string): Promise<QaInspectResult> => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('재검사 세션을 찾을 수 없어요.')
+    // 서버는 저장된 편집 상태로 판정하므로, 방금 고친 내용이 저장된 뒤에 검사한다(markResultReady와 같음).
+    await flushEdits()
     return inspectQa(projectId, projectToken, file.assetId)
-  }, [files, projectId, projectToken])
+  }, [files, projectId, projectToken, flushEdits])
 
   const value = useMemo(
     () => ({
