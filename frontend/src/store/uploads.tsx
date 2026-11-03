@@ -381,12 +381,16 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const activeFiles: UploadFile[] = workspace?.files ?? files
     const activeLanguages = workspace ? LANGUAGES.filter(language => workspace.results.targetLanguages.includes(language.code)) : targetLangs
     if (!activeId || !activeToken) return null
+    // 응답을 기다리는 사이 다른 프로젝트를 열었으면(epoch 변경) 이전 프로젝트의 응답을 지금 화면에 적용하지 않는다.
+    const refreshEpoch = epoch.current
     const status = workspace?.status ?? await getProjectStatus(activeId, activeToken)
+    if (refreshEpoch !== epoch.current) return null
     setProjectStatus(status)
     // 부분 실패·전체 실패여도 실제 OCR 결과와 오류 상태를 복원해야 Editor가 데모 문구로
     // 대체하지 않고 사용자의 OCR 수정·수동 cleanup을 이어갈 수 있다.
     if (status.status === 'completed' || status.status === 'failed') {
       const results = workspace?.results ?? await getProjectResults(activeId, activeToken)
+      if (refreshEpoch !== epoch.current) return null
       setProjectResults(results)
       const languageCodes = activeLanguages.map(language => language.code)
       setStyles(previous => restoreStyles(activeFiles, results, languageCodes, previous))
