@@ -918,6 +918,15 @@ export default function Editor() {
     setDeletingRegionId(regionId)
     try {
       await deleteOcrRegion(current.id, regionId)
+      // 편집 중이던 영역을 지웠으면 남은 영역과 그 영역의 스타일을 함께 불러온다. 그대로 두면
+      // 지운 영역의 스타일이 남은 영역에 자동 저장돼 덮어써진다.
+      const next = regionId === activeRegion.id ? textRegions.find(region => region.id !== regionId) : undefined
+      if (next) {
+        setSelectedRegionId(next.id)
+        setStyle(savedStyles[styleKeyForRegion(current.id, next.id, current.analysis?.regionId)]?.[activeLanguage.code] ?? defaultStyleForRegion(next))
+        setPast([])
+        setFuture([])
+      }
     } catch (error) {
       toast(error instanceof Error ? error.message : t.toastAiFailed)
     } finally {

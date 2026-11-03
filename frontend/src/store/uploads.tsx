@@ -279,6 +279,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
   const styleQueue = useRef<Promise<unknown>>(Promise.resolve())
   const pendingStyles = useRef(new Map<string, { projectId: string; token: string; assetId: string; regionId: string; languageCode: string; style: Style }>())
+  // 삭제한 글자 영역(`${assetId}:${regionId}`). 서버에 없는 영역으로 저장하면 400이 나고 그 쓰기가 큐에 영구히 남아
+  // 이후 flushEdits(다운로드·완료)가 계속 실패하므로, 삭제된 영역의 편집 저장은 보내지 않는다.
+  const deletedRegions = useRef(new Set<string>())
   const flushEdits = useCallback(async () => {
     await styleQueue.current.catch(() => undefined)
     for (const [key, write] of pendingStyles.current) {
@@ -301,6 +304,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const styleKey = styleKeyForRegion(id, targetRegionId, file?.analysis?.regionId)
     setStyles(prev => ({ ...prev, [styleKey]: { ...prev[styleKey], [languageCode]: style } }))
     if (!projectId || !projectToken || !file?.assetId || !targetRegionId || !languageCode) return
+    if (deletedRegions.current.has(`${file.assetId}:${targetRegionId}`)) return
     const saveEpoch = epoch.current
     const key = `${file.assetId}:${targetRegionId}:${languageCode}`
     const write = { projectId, token: projectToken, assetId: file.assetId, regionId: targetRegionId, languageCode, style }
@@ -546,6 +550,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
     await deleteOcrRegion(projectId, projectToken, file.assetId, regionId)
+    // 지운 영역으로 대기 중이던 편집 저장은 버리고, 이후 저장도 보내지 않는다.
+    deletedRegions.current.add(`${file.assetId}:${regionId}`)
+    for (const [key, write] of pendingStyles.current) {
+      if (write.assetId === file.assetId && write.regionId === regionId) pendingStyles.current.delete(key)
+    }
     setFiles(previous => previous.map(candidate => (
       candidate.id === fileId && candidate.analysis
         ? { ...candidate, analysis: { ...candidate.analysis, regions: candidate.analysis.regions.filter(region => region.id !== regionId) } }
