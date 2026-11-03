@@ -45,7 +45,10 @@ export default function QaBoardPage() {
   const mock = import.meta.env.DEV && searchParams.get('mock') === '1'
   const { isAuthenticated, checkingSession, token } = useAuth()
   // 업로드 스토어는 라우트가 바뀌어도 살아 있고 규격을 프로젝트가 바뀔 때만 다시 읽는다. 지금 로드된 프로젝트의 규격을 QA에서 바꾸면 스토어 상태도 같이 바꿔야 검사한 규격과 다운로드 규격이 같다.
-  const { projectStatus, setOutputPreset: setStorePreset } = useUploads()
+  const { projectStatus, setOutputPreset: setStorePreset, flushCloudWork } = useUploads()
+  // load가 매번 다시 만들어져 재조회되지 않도록 최신 함수만 참조한다.
+  const flushCloudWorkRef = useRef(flushCloudWork)
+  useEffect(() => { flushCloudWorkRef.current = flushCloudWork }, [flushCloudWork])
 
   const [images, setImages] = useState<QaImage[]>([])
   const [workspace, setWorkspace] = useState<CloudWorkspace | null>(null)
@@ -71,6 +74,9 @@ export default function QaBoardPage() {
     setLoading(true)
     setLoadError(null)
     try {
+      // 에디터에서 막 돌아왔으면 편집 저장이 아직 큐에 있을 수 있다. 저장이 끝난 상태로 불러와야
+      // 검사용 PNG가 최신 편집으로 렌더된다. 저장 실패는 에디터 쪽 안내로 보이므로 여기서는 막지 않는다.
+      await flushCloudWorkRef.current().catch(() => undefined)
       const restored = await restoreCloudProject(projectId)
       setWorkspace(restored)
       setImages(restored.results.assets.map(asset => ({
