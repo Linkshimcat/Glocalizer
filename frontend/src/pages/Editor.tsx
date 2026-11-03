@@ -642,7 +642,16 @@ export default function Editor() {
   const selectItem = (idx: number) => {
     saveActiveStyle()
     setCurrentIdx(idx)
-    const next = items[idx]
+    loadItemStyle(items[idx])
+    setPast([])
+    setFuture([])
+    setSelected(true)
+    setCleanupSelected(false)
+    setZoom(DEFAULT_ZOOM)
+  }
+
+  /** 항목의 첫 글자 영역을 선택하고 저장된 스타일(없으면 추천 초기값)을 불러온다. */
+  const loadItemStyle = (next: typeof items[number]) => {
     const nextRegion = next.textRegions?.[0]
     const nextRegionId = nextRegion?.id ?? next.analysis?.regionId ?? next.id
     const nextKey = styleKeyForRegion(next.id, nextRegionId, next.analysis?.regionId)
@@ -650,11 +659,6 @@ export default function Editor() {
     setStyle(savedStyles[nextKey]?.[activeLanguage.code] ?? (nextRegion?.normalizedBox
       ? initialStyleFor(nextRegion.normalizedBox, nextRegion.textColor, nextRegion.suggestions, nextRegion.recommendedFont, nextRegion.recommendedAlignment, nextRegion.strokeRecommended, nextRegion.shadowRecommended)
       : next.analysis?.normalizedBox ? initialStyleFor(next.analysis.normalizedBox, next.analysis.textColor, next.suggestions, next.recommendedFont, next.recommendedAlignment, next.strokeRecommended, next.shadowRecommended) : DEFAULT_STYLE))
-    setPast([])
-    setFuture([])
-    setSelected(true)
-    setCleanupSelected(false)
-    setZoom(DEFAULT_ZOOM)
   }
 
   useEffect(() => {
@@ -776,7 +780,9 @@ export default function Editor() {
       setCurrentIdx(c => c - 1)
     } else if (idx === currentIdx) {
       setCurrentIdx(Math.min(currentIdx, items.length - 2))
-      setStyle(DEFAULT_STYLE)
+      // 화면이 넘어가는 이웃 항목의 스타일을 불러온다. DEFAULT_STYLE로 두면 이웃이 이미 초기화돼 있을 때
+      // 그 기본값이 자동 저장돼 이웃 이미지의 편집을 덮어쓴다.
+      loadItemStyle(items[idx + 1] ?? items[idx - 1])
       setPast([])
       setFuture([])
     }
