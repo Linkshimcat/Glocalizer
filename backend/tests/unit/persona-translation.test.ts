@@ -5,7 +5,7 @@ const provider = vi.hoisted(() => ({ name: 'test-provider', model: 'test-model',
 vi.mock('../../src/config/env.js', () => ({ env: { AI_CONCURRENCY: 2, MAX_REGENERATE_COUNT: 3, LOG_LEVEL: 'silent' } }));
 vi.mock('../../src/translation/translation-provider.js', () => ({ getTranslationProvider: () => provider }));
 vi.mock('../../src/repositories/ocr.repository.js', () => ({ findRegionById: vi.fn(), findRegionsByAssetId: vi.fn() }));
-vi.mock('../../src/repositories/asset.repository.js', () => ({ findAssetsByProjectAndStatus: vi.fn(), updateAsset: vi.fn() }));
+vi.mock('../../src/repositories/asset.repository.js', () => ({ findAssetsByIds: vi.fn(async (_projectId: string, ids: string[]) => ids.map((id) => ({ id }))), findAssetsByProjectAndStatus: vi.fn(), updateAsset: vi.fn() }));
 vi.mock('../../src/repositories/project.repository.js', () => ({ findProjectById: vi.fn(), updateProjectStage: vi.fn() }));
 vi.mock('../../src/repositories/translation.repository.js', () => ({ findTranslation: vi.fn(), incrementRegenerateCount: vi.fn(), upsertTranslation: vi.fn() }));
 
