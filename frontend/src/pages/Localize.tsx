@@ -351,7 +351,7 @@ export default function Localize() {
         )}
 
         {/* 언어 선택 (다중) */}
-        <section className={`mt-12 transition-opacity ${hasFiles ? 'opacity-100' : 'pointer-events-none opacity-40'}`}>
+        <section className="mt-12">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
               <h2 className="text-lg font-bold">{t.dashLangTitle}</h2>
@@ -362,11 +362,13 @@ export default function Localize() {
             <button
               onClick={toggleAllLangs}
               disabled={!hasFiles}
-              className="shrink-0 text-sm font-semibold text-brand-dark hover:underline"
+              className="shrink-0 text-sm font-semibold text-brand-dark hover:underline disabled:pointer-events-none disabled:opacity-40"
             >
               {allLangsSelected ? t.dashDeselectAll : t.dashSelectAll}
             </button>
           </div>
+          {/* 파일을 고르기 전에는 선택 영역만 흐리게 한다. 제목까지 흐리게 하면 글자 대비가 접근성 기준(4.5:1) 아래로 떨어진다. */}
+          <div className={`transition-opacity ${hasFiles ? 'opacity-100' : 'pointer-events-none opacity-40'}`}>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             {(showAllLangs ? LANGUAGES : LANGUAGES.slice(0, 7)).map(lang => {
               const selected = targetLangs.some(l => l.code === lang.code)
@@ -409,6 +411,7 @@ export default function Localize() {
             onChange={next => { personaTouched.current = true; setPersona(next) }}
             disabled={!hasFiles || starting}
           />
+          </div>
         </section>
 
         {/* CTA */}
