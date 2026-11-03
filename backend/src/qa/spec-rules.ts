@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { env } from '../config/env.js';
 import type { QaFinding } from '../types/qa.js';
 import { MARGIN_MIN_RATIO, OGQ_DIMENSIONS, OGQ_MAX_FILE_BYTES, OPAQUE_ALPHA_THRESHOLD, TRANSPARENT_ALPHA_THRESHOLD } from './constants.js';
 
@@ -47,7 +48,8 @@ export async function inspectSpec(imageId: string, buffer: Buffer): Promise<QaFi
   let pixels: PixelAnalysis;
   try {
     format = (await sharp(buffer).metadata()).format;
-    const raw = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    // 업로드와 같은 해상도 상한. 작은 PNG가 수 GB로 풀리는 압축 폭탄이 단일 서버의 메모리를 다 쓰지 않게 한다.
+    const raw = await sharp(buffer, { limitInputPixels: env.MAX_IMAGE_WIDTH * env.MAX_IMAGE_HEIGHT }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     width = raw.info.width;
     height = raw.info.height;
     pixels = analyzePixels(raw.data, width, height);

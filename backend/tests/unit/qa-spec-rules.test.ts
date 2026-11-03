@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { inspectSpec } from '../../src/qa/spec-rules.js';
 import { findingFor, jpegImage, noisyPng, opaquePng, stickerPng } from '../helpers/qa-fixtures.js';
@@ -79,5 +80,20 @@ describe('inspectSpec', () => {
     const findings = await inspectSpec(ID, Buffer.from('this is not an image'));
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatchObject({ code: 'IMAGE_LOAD_FAILED', severity: 'fail', source: 'rule', imageId: ID });
+  });
+
+  it('업로드 상한(4096×4096 픽셀)을 넘는 PNG는 픽셀을 풀지 않고 IMAGE_LOAD_FAILED다 (압축 폭탄으로 서버 메모리를 다 쓰지 않게)', async () => {
+    // 단색이라 파일은 작지만 풀면 4097×4097×4 ≈ 67 MB. 실제 공격은 16000×16000(≈1 GB)도 5 MB 안에 들어간다.
+    const huge = await sharp({ create: { width: 4097, height: 4097, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).png().toBuffer();
+    expect(huge.length).toBeLessThan(5 * 1024 * 1024);
+    const findings = await inspectSpec(ID, huge);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ code: 'IMAGE_LOAD_FAILED', severity: 'fail', imageId: ID });
+  });
+
+  it('업로드 상한 크기(4096×4096)의 PNG는 그대로 다섯 항목을 판정한다', async () => {
+    const edge = await sharp({ create: { width: 4096, height: 4096, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).png().toBuffer();
+    const findings = await inspectSpec(ID, edge);
+    expect(findings.map((f) => f.code)).toEqual(['SPEC_FORMAT', 'SPEC_FILE_SIZE', 'SPEC_DIMENSIONS', 'SPEC_TRANSPARENCY', 'SPEC_MARGIN']);
   });
 });
