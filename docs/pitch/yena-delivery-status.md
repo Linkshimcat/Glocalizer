@@ -64,3 +64,9 @@ Demo Lab·신규 preview/replay·demoLab i18n·LandingRemake·README·라이선�
 - 에디터에서 이미지 크기 85% 조정 후 QA Board에서 재검사했으나 판정은 REVIEW로 유지. 조정 내용이 검사 파일에 반영됐는지는 확인하지 못함.
 - 이 결과는 해당 QA 실행에서 렌더링한 파일 기준. 앞서 내보낸 후보별 PNG 9개에는 이 판정을 일괄 적용하지 않음.
 - 최신 main에서 공개 샘플별 Replay 이벤트 계약을 확인하지 못했으므로 미측정 상태를 유지.
+
+## 후보 PNG 9개 파일 규격 검사
+
+- 서비스에서 다운로드한 ZIP 3개의 PNG 9개에 저장소의 `inspectSpec` 규칙을 직접 실행했다. 원자료는 `outputs/finals/first-sample-pngs/local-spec-check.json`이며 파일별 SHA-256을 포함한다.
+- 9개 모두 PNG·1MB 이하·투명 픽셀 항목 통과. 실제 크기는 모두 512×512여서 OGQ 스티커 크기 항목 FAIL. 최소 여백은 0–14px로 모두 REVIEW.
+- 앞의 740×640 QA Board 검사와 대상 파일이 다르다. 공개 등록 전 에디터에서 740×640으로 다시 내보내고 새 파일을 검사해야 한다.
