@@ -1,4 +1,5 @@
 import { demoLabCopy } from '../i18n/demoLab'
+import { publishedSamples } from '../features/demo-lab/samples'
 import { ArrowDown, ArrowRight } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -622,10 +623,10 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
               <RollingText items={t.heroLine2Roll} per="char" className="remake-hero-roll" />
             </h1>
             <p key={`description-${lang}`} className="remake-hero-description">{copy.heroDescription}</p>
-            <p className="text-sm text-sub">{demoLabCopy(lang).intro}</p>
+            {publishedSamples.length > 0 && <p className="text-sm text-sub">{demoLabCopy(lang).intro}</p>}
             <div className="remake-hero-actions">
               <Button size="lg" onClick={() => navigate('/dashboard')}>{copy.heroCta}<ArrowRight size={18} /></Button>
-              <Link to="/demo-lab" className="remake-scroll-button">{demoLabCopy(lang).demoLabPageTitle}<ArrowRight size={18} /></Link>
+              {publishedSamples.length > 0 && <Link to="/demo-lab" className="remake-scroll-button">{demoLabCopy(lang).demoLabPageTitle}<ArrowRight size={18} /></Link>}
               <button type="button" onClick={jumpToStory} className="remake-scroll-button">{copy.scrollLabel}<ArrowDown size={17} /></button>
             </div>
           </div>
