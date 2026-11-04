@@ -1215,6 +1215,8 @@ export default function Editor() {
       toast(w.downloadStarted, 'success')
       markCurrentDone()
       if (resultPageReady) navigate('/result')
+      // 결과 페이지를 못 불러와 에디터에 남으면 자동 저장을 다시 켠다. 켜 두지 않으면 이후 편집이 저장되지 않는다.
+      else completingDownloadRef.current = false
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastPngFail)
@@ -1244,6 +1246,8 @@ export default function Editor() {
       toast(w.downloadStarted, 'success')
       setDoneIds(items.map(i => i.id)) // 전체 다운로드 시 모두 완료
       if (resultPageReady) navigate('/result')
+      // 결과 페이지를 못 불러와 에디터에 남으면 자동 저장을 다시 켠다. 켜 두지 않으면 이후 편집이 저장되지 않는다.
+      else completingDownloadRef.current = false
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastZipFail)
@@ -1273,6 +1277,8 @@ export default function Editor() {
       toast(w.downloadStarted, 'success')
       markCurrentDone()
       if (resultPageReady) navigate('/result')
+      // 결과 페이지를 못 불러와 에디터에 남으면 자동 저장을 다시 켠다. 켜 두지 않으면 이후 편집이 저장되지 않는다.
+      else completingDownloadRef.current = false
     } catch (error) {
       completingDownloadRef.current = false
       toast(error instanceof Error ? error.message : t.toastDownloadFail)
