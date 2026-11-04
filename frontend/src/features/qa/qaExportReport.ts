@@ -57,7 +57,9 @@ export function buildQaReportFiles(response: QaProjectResponse, images: Exported
 
   const rows = unique.map(image => {
     const findings = grouped.get(image.assetId!) ?? []
-    return `| ${image.name.replace(/\|/g, '\\|')} | ${imageSeverity(findings).toUpperCase()} | ${findings.length} |`
+    // 보드(imageVerdict)와 같이, 판정 항목이 없는 이미지는 통과가 아니라 아직 검사하지 않은 것으로 적는다.
+    const verdict = findings.length > 0 ? imageSeverity(findings).toUpperCase() : 'PENDING'
+    return `| ${image.name.replace(/\|/g, '\\|')} | ${verdict} | ${findings.length} |`
   })
   const details = unique.flatMap(image => {
     const findings = grouped.get(image.assetId!) ?? []
@@ -83,6 +85,7 @@ export function buildQaReportFiles(response: QaProjectResponse, images: Exported
     '',
     ...(stale ? ['> ⚠️ 마지막 검사 이후 편집한 내용이 있습니다. 이 리포트는 편집 전 상태 기준입니다.', ''] : []),
     '> PASS는 Glocalizer 자체 검사를 통과했다는 뜻이며, OGQ 마켓의 승인이나 심사 합격을 보장하지 않습니다.',
+    '> PENDING은 마지막 검사 이후 추가됐거나 처리 중이라 아직 검사하지 않은 이미지입니다.',
     '',
     '## 이미지별 판정',
     '',
