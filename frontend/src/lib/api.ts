@@ -145,8 +145,12 @@ export async function createProject(files: File[], targetLanguages: string[]): P
   })
 }
 
+const SIGNED_UPLOAD_TIMEOUT_MS = 10 * 60 * 1000
+
 export async function uploadToSignedUrl(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
+  // 업로드 하나가 응답 없이 멈추면 뒤의 초안 저장·시작이 새로고침 전까지 모두 기다리므로 시간 제한을 둔다.
+  // 최대 24장(장당 5 MB)을 동시에 올리므로 느린 모바일 회선에서도 끊기지 않게 일반 API(2분)보다 넉넉히 둔다.
+  const response = await apiFetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file }, SIGNED_UPLOAD_TIMEOUT_MS)
   if (!response.ok) throw new ApiError('이미지 파일 업로드에 실패했어요.')
 }
 
