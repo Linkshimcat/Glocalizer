@@ -51,6 +51,8 @@ class PaddleBridge {
     });
     child.once('exit', () => this.failPending('OCR bridge가 종료되었습니다. PaddleOCR 설치 상태를 확인해주세요.'));
     child.once('error', () => this.failPending('OCR bridge를 시작하지 못했습니다. OCR_PYTHON_EXECUTABLE 설정을 확인해주세요.'));
+    // bridge가 입력을 다 읽기 전에 죽으면 남은 쓰기가 EPIPE를 낸다. 리스너가 없으면 서버 프로세스 전체가 내려간다.
+    child.stdin.on('error', () => this.failPending('OCR bridge에 이미지를 보내지 못했습니다.'));
     this.child = child;
     return child;
   }
