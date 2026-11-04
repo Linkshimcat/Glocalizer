@@ -1,7 +1,7 @@
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { AppError, describeError } from '../../errors/app-error.js';
-import { findAssetsByProjectAndStatus, updateAsset } from '../../repositories/asset.repository.js';
+import { findAssetsByIds, findAssetsByProjectAndStatus, updateAsset } from '../../repositories/asset.repository.js';
 import { findRegionById, findRegionsByAssetId } from '../../repositories/ocr.repository.js';
 import { findProjectById, updateProjectStage } from '../../repositories/project.repository.js';
 import {
@@ -379,6 +379,12 @@ export async function regenerateTranslation(
 ): Promise<LanguageTranslationResult> {
   const project = await findProjectById(projectId);
   if (!project) throw new AppError('PROJECT_NOT_FOUND', { projectId });
+
+  // 다른 프로젝트의 assetId·regionId로 그 프로젝트의 번역을 덮어쓰지 못하게 URL의 프로젝트 안에서만 찾는다.
+  const [asset] = await findAssetsByIds(projectId, [assetId]);
+  if (!asset) {
+    throw new AppError('INVALID_REQUEST', { assetId }, '해당 프로젝트에 속하지 않는 이미지입니다.');
+  }
 
   const region = await findRegionById(regionId);
   if (!region || region.asset_id !== assetId) {
