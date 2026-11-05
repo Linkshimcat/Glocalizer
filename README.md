@@ -122,7 +122,7 @@ flowchart TB
     storage[("Supabase Private Storage<br/>원본·정리본 이미지")]
     editor["AI 에디터<br/>CSS 오버레이 · Canvas PNG · JSZip"]
 
-    user -->|"이미지 최대 20장 · 대상 언어 선택"| frontend
+    user -->|"이미지 최대 24장 · 대상 언어 선택"| frontend
     frontend -->|"프로젝트 생성 · 업로드 완료 · 처리 시작"| api
     api -->|"서명 업로드 URL"| frontend
     frontend -->|"원본 이미지 직접 업로드"| storage
@@ -158,7 +158,7 @@ flowchart TB
 
 **텍스트 상세 흐름**
 
-1. 사용자가 이미지 최대 20장과 대상 언어를 선택하면 Frontend가 프로젝트와 asset row를 만들고, Backend가 발급한 Supabase Storage 서명 URL로 원본을 직접 업로드함. 대용량 원본이 Backend를 한 번 더 통과하지 않음.
+1. 사용자가 이미지 최대 24장과 대상 언어를 선택하면 Frontend가 프로젝트와 asset row를 만들고, Backend가 발급한 Supabase Storage 서명 URL로 원본을 직접 업로드함. 대용량 원본이 Backend를 한 번 더 통과하지 않음.
 2. `POST /uploads/complete`가 업로드를 검증하고, `POST /process`는 job 테이블에 `process-project`를 등록한 뒤 즉시 `202`를 반환함.
 3. 같은 Node 프로세스의 Job Worker가 `WORKER_POLL_INTERVAL_MS` 주기로 job을 polling하며 lease와 heartbeat로 중복 실행을 막고, `runLocalizationPipeline(projectId)`를 실행함.
 4. OCR은 GPT-5.6 Luna로 이미지의 여러 한글 캡션과 줄바꿈을 한 번에 검출함. 실패하거나 한글을 찾지 못하면 별도 Python 프로세스의 PaddleOCR로 전환하고, 다중 변형 IoU·텍스트 유사도 합의와 `mergeWrappedLines` 병합을 수행함. 신뢰도가 낮은 짧은 캡션은 Groq/Gemini Vision으로 재판정함.
@@ -457,6 +457,8 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | OpenAI · gpt-image-2.5-sunburst | (`ENABLE_IMAGE_GENERATION=true`일 때만 활성, 저장소 기본값은 꺼짐) 텍스트 설명·선택적 참고 이미지로 오리지널 캐릭터 스티커 이미지 생성 | 캐릭터 설명, 선택적 참고 이미지 | 실패한 이미지는 실패 상태로 기록하고 선택 재생성 제공(프로젝트당 최대 6회), 일일 비용 예산 한도 도달 시 요청 자체를 거부 |
 | OpenAI · GPT-5.6 (chat) | (Generate 기능) 24종 표정·문구 구성 초안과 캡션 문구 제안 | 캐릭터 설명 | 실패 시 규칙 기반 fallback 표정 목록·문구 사용 |
 
+페르소나 번역은 별도 모델 호출을 추가하지 않고 기존 번역 요청에 프로젝트의 성격·말투·나이·피할 표현을 포함합니다. Culture Risk는 `backend/src/translation/culture-risk.service.ts`에서 `CULTURE_RISK_MODEL`로 한국어 원문·번역 후보·대상 언어를 보내 검토합니다. 결과는 `ai_suggestion`/`review`이며 법적·문화적 적합성을 보증하지 않습니다. 키 미설정·타임아웃·응답 검증 실패 시 사용자가 직접 확인해야 합니다.
+
 저장소 기본값은 `OCR_PROVIDER=paddle`, `TRANSLATION_PROVIDER=groq`이며, `OCR_PROVIDER`, `TRANSLATION_PROVIDER`, `VISION_PROVIDER`, `ENABLE_FONT_STYLE_ANALYSIS`, `ENABLE_IMAGE_GENERATION` 환경변수로 각 기능의 사용 여부를 제어함. production(Render)은 `OCR_PROVIDER=luna`, `TRANSLATION_PROVIDER=openai`로 배포됨(`render.yaml` 참고). `GROQ_VISION_MODEL`·`AI_REVIEW_MODEL`·`IMAGE_CAPTION_MODEL` 등으로 모델을 바꿀 수 있음. 프로젝트는 업로드 이미지를 자체 모델 학습 데이터로 사용하지 않으며, 외부 AI API를 사용하는 경우 해당 제공자의 데이터 처리 정책이 적용됨.
 
 **개발 과정에서 사용한 생성형 AI**
@@ -605,3 +607,14 @@ OCR 오인식 및 오역을 막고자 사용자에게 '검수 및 확인 단계'
 Glocalizer 소스 코드는 [Apache License 2.0](https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file)으로 배포함. 라이선스 전문과 조건은 [Apache License 2.0 공식 문서](https://www.apache.org/licenses/LICENSE-2.0)에서도 확인할 수 있음.
 
 <img width="1920" height="1080" alt="7" src="https://github.com/user-attachments/assets/8a26e859-910c-4ba5-9d6a-0d7575fbfc92" />
+
+### Demo Lab (본선 준비)
+
+`/demo-lab`은 로그인 없이 샘플 선택 → 원문 탐지 → 번역 후보 → 배경 정리 → QA → PNG/ZIP 다운로드 흐름을 제공합니다. 모든 화면에 미리 처리한 샘플임을 표시하고, 다운로드 이벤트는 `experimentGroup=demo`로 실사용 통계와 분리합니다. 일반 채팅 미리보기, 기록이 있는 단계만 보여주는 처리 기록, 출처·폰트·AI 생성 확인 체크리스트를 포함합니다.
+
+현재 공개용 서비스 처리 샘플은 미등록입니다. 권리 근거와 실제 처리 기록을 확인하기 전까지 운영 화면에서는 준비 안내를 표시합니다. 개발 전용 `?fixture=1`은 직접 작성한 기하 도형 예시이며 실제 OCR·번역·QA 성능 증거가 아닙니다. API 키·로그인 토큰·서명 URL을 샘플 데이터에 저장하지 않습니다.
+
+- 샘플 등록: `frontend/src/features/demo-lab/samples/README.md`
+- 권리 기록: `docs/licenses/demo-lab.md`
+- 발표 대본·녹화 순서: `docs/pitch/finals-10-minute-script.md`
+- 완료/외부 의존 현황: `docs/pitch/yena-delivery-status.md`

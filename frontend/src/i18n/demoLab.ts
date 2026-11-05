@@ -1,13 +1,45 @@
 import type { SiteLang } from './translations'
-
 const copy = {
+  light: ['라이트 모드', 'Light mode', 'ライトモード', '浅色模式'],
+  dark: ['다크 모드', 'Dark mode', 'ダークモード', '深色模式'],
   demoLabPageTitle: ['3분 샘플 체험', '3-minute sample tour', '3分サンプル体験', '3 分钟示例体验'],
-  comingSoon: ['준비 중인 화면이에요.', 'This page is coming soon.', '準備中の画面です。', '页面准备中。'],
+  intro: ['회원가입 없이, 샘플 선택부터 다운로드까지.', 'From sample to download, without signing up.', '登録せず、サンプル選択からダウンロードまで。', '无需注册，从示例选择到下载。'],
+  sampleNotice: ['샘플 데이터(미리 처리한 결과) · 실시간 AI 처리가 아닙니다.', 'Sample data (preprocessed results), not live AI processing.', 'サンプルデータ（処理済み結果）。リアルタイムAI処理ではありません。', '示例数据（预处理结果），非实时 AI 处理。'],
+  fixtureNotice: ['개발용 예시 · 실제 서비스 처리·검사 결과가 아닙니다.', 'Development fixture, not actual service or inspection results.', '開発用の例。実際の処理・検査結果ではありません。', '开发示例，非真实服务处理或检查结果。'],
+  select: ['샘플 선택', 'Choose sample', 'サンプル選択', '选择示例'],
+  ocr: ['원문 탐지', 'Source text', '原文検出', '原文识别'],
+  translation: ['번역 후보', 'Translations', '翻訳候補', '翻译候选'],
+  cleanup: ['배경 정리', 'Cleanup', '背景整理', '背景清理'],
+  qa: ['검사 결과', 'QA results', '検査結果', '检查结果'],
+  download: ['다운로드', 'Download', 'ダウンロード', '下载'],
+  previous: ['이전', 'Back', '戻る', '上一步'],
+  next: ['다음 단계', 'Continue', '次へ', '下一步'],
+  original: ['원본', 'Original', '原本', '原图'],
+  cleaned: ['정리본', 'Cleaned', '整理後', '清理后'],
+  language: ['번역 언어', 'Language', '翻訳言語', '翻译语言'],
+  missing: ['측정 안 됨', 'Not measured', '未測定', '未测量'],
+  empty: ['공개 가능한 샘플의 권리·처리 기록을 확인 중입니다. 준비가 끝나면 여기서 체험할 수 있어요.', 'Sample rights and processing records are being verified. The tour will be available here when ready.', 'サンプルの権利と処理記録を確認中です。準備ができ次第体験できます。', '正在核实示例授权和处理记录，完成后即可体验。'],
+  noReport: ['이 결과의 검사 기록이 없습니다. 통과로 표시하지 않습니다.', 'No inspection record for this result; it is not marked as passed.', 'この結果の検査記録はありません。合格とは表示しません。', '此结果没有检查记录，不标记为通过。'],
+  disclaimer: ['PASS는 Glocalizer 자체 검사 통과이며 OGQ 승인을 보장하지 않습니다.', 'PASS means Glocalizer checks passed, not OGQ approval.', 'PASSはGlocalizerの検査通過であり、OGQ承認を保証しません。', 'PASS 仅代表通过 Glocalizer 检查，不保证 OGQ 审核通过。'],
+  login: ['내 파일로 해 보기(로그인)', 'Try my own file (sign in)', '自分の画像で試す（ログイン）', '使用自己的图片（登录）'],
+  edit: ['에디터에서 직접 편집하기(로그인)', 'Edit in the editor (sign in)', 'エディターで編集（ログイン）', '在编辑器中编辑（登录）'],
+  save: ['저장하기(로그인)', 'Save (sign in)', '保存（ログイン）', '保存（登录）'],
+  busy: ['파일 준비 중…', 'Preparing file…', 'ファイル準備中…', '正在准备文件…'],
+  success: ['파일 다운로드를 요청했습니다.', 'File download requested.', 'ダウンロードを開始しました。', '已请求下载文件。'],
+  error: ['파일을 준비하지 못했어요. 다시 시도해주세요.', 'Could not prepare the file. Please retry.', 'ファイルを準備できませんでした。再試行してください。', '无法准备文件，请重试。'],
+  preview: ['출시 미리보기', 'Chat preview', '公開プレビュー', '发布预览'],
+  previewNote: ['일반 채팅 예시입니다. 실제 메신저 화면과 다를 수 있어요.', 'Generic chat example; actual messenger layouts may differ.', '一般的なチャット例です。実際の画面と異なる場合があります。', '通用聊天示例，实际聊天软件布局可能不同。'],
+  replay: ['처리 기록', 'Processing history', '処理記録', '处理记录'],
+  editStage: ['편집', 'Editing', '編集', '编辑'],
+  rights: ['출처·권리 확인', 'Source & rights', '出典・権利確認', '来源与权利'],
+  rightsImage: ['이미지 사용 근거 확인', 'Check image usage evidence', '画像の使用根拠を確認', '确认图片使用依据'],
+  rightsFont: ['폰트 라이선스 확인', 'Check font license', 'フォントライセンスを確認', '确认字体许可证'],
+  rightsAi: ['AI 생성 여부와 표기 확인', 'Check AI generation disclosure', 'AI生成の有無と表示を確認', '确认 AI 生成标注'],
+  rightsNote: ['이 체크리스트는 법적 안전을 보증하지 않습니다.', 'This checklist does not guarantee legal clearance.', 'このチェックリストは法的安全性を保証しません。', '此清单不保证法律合规。'],
+  restart: ['다른 샘플 보기', 'Choose another sample', '別のサンプル', '查看其他示例'],
 }
-
 export function demoLabCopy(lang: SiteLang) {
   const index = ({ ko: 0, en: 1, ja: 2, zh: 3 })[lang]
   return Object.fromEntries(Object.entries(copy).map(([key, values]) => [key, values[index]])) as Record<keyof typeof copy, string>
 }
-
 export type DemoLabCopy = ReturnType<typeof demoLabCopy>

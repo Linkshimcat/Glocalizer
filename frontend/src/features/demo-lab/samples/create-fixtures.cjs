@@ -1,0 +1,9 @@
+const sharp=require(process.cwd()+'/backend/node_modules/sharp');const fs=require('fs');const dir='frontend/src/features/demo-lab/samples/fixtures';fs.mkdirSync(dir,{recursive:true});
+(async()=>{for(let i=0;i<3;i++){
+const bg=i===1?'#f4d8bc':'#edf5ef';const decor=i===1?Array.from({length:12},(_,j)=>`<circle cx="${50+j*58}" cy="${130+(j%3)*110}" r="30" fill="#b7cead"/>`).join(''):'';
+const art=`<rect x="32" y="32" width="676" height="576" rx="64" fill="${bg}"/>${decor}<ellipse cx="370" cy="410" rx="125" ry="130" fill="#78b9a0"/><circle cx="330" cy="385" r="9" fill="#183b32"/><circle cx="410" cy="385" r="9" fill="#183b32"/><path d="M345 425 Q370 450 395 425" fill="none" stroke="#183b32" stroke-width="8" stroke-linecap="round"/><path d="M270 330 Q220 250 245 220 M470 330 Q520 250 495 220" fill="none" stroke="#78b9a0" stroke-width="40" stroke-linecap="round"/>`;
+const text=['고마워!','오늘도 힘내!','오늘 하루도 정말 정말 수고 많았어!'][i];
+const svg=(t)=>`<svg xmlns="http://www.w3.org/2000/svg" width="740" height="640">${art}<text x="370" y="130" text-anchor="middle" font-family="Arial,sans-serif" font-size="${i===2?38:54}" font-weight="bold" fill="#183b32">${t}</text></svg>`;
+await sharp(Buffer.from(svg(text))).png().toFile(`${dir}/${i}-original.png`);await sharp(Buffer.from(svg(''))).png().toFile(`${dir}/${i}-cleaned.png`);
+const candidates={en:[['Thanks!','Thank you!','Thanks a lot!'],['You can do it!','Keep going!','You got this!'],['You worked really hard today!','Great work today!','Thanks for all your hard work today!']],ja:[['ありがとう！','ありがとうございます！','本当にありがとう！'],['今日も頑張って！','応援してるよ！','きっとできるよ！'],['今日も一日本当にお疲れさま！','今日はお疲れさま！','今日もよく頑張ったね！']],zh:[['谢谢！','谢谢你！','非常感谢！'],['今天也加油！','继续加油！','你可以的！'],['今天一整天真的辛苦了！','今天辛苦了！','你今天也很努力！']]}; for(const [lang,sets] of Object.entries(candidates)){for(let j=0;j<3;j++)await sharp(Buffer.from(svg(sets[i][j]))).png().toFile(`${dir}/${i}-${lang}-${j}.png`);}
+}})();

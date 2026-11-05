@@ -6,7 +6,8 @@
 .main-restyle .remake-hero[data-lang="en"] h1, .main-restyle .remake-hero[data-lang="ja"] h1 { font-size: clamp(36px,3.75vw,54px); }
 .main-restyle .remake-hero-description { max-width: 460px; margin-top: 28px; color: var(--color-sub); font-size: 18px; font-weight: 400; line-height: 1.9; word-break: keep-all; animation: remake-hero-description-in .5s ease-out .55s both; }
 .main-restyle .remake-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 32px; }
-.main-restyle .remake-hero-actions > button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.main-restyle .remake-hero-actions > button,
+.main-restyle .remake-hero-actions > a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .main-restyle .remake-scroll-button { min-height: 44px; color: var(--color-sub); font-size: 14px; font-weight: 700; }
 .main-restyle .remake-scroll-button:hover { color: #15803d; }
 .main-restyle .remake-scroll-button { text-decoration: underline; text-underline-offset: 5px; }
