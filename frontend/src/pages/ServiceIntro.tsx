@@ -2,6 +2,7 @@ import { ArrowUpRight, Archive, Check, Globe2, MessageSquareQuote, ShieldCheck, 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import Footer from '../components/Footer'
+import ShareSection from '../components/ShareSection'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { serviceDict } from '../i18n/service'
@@ -133,6 +134,7 @@ export default function ServiceIntro() {
           <ul className="service-reveal mt-6 max-w-4xl list-disc space-y-3 pl-5 leading-7 text-sub">{s.notes.map(note => <li key={note}>{note}</li>)}</ul>
           <Link to="/dashboard" className="service-cta mt-8 inline-flex items-center gap-3 rounded-control bg-brand-soft px-6 py-4 font-extrabold text-ink">{s.start}<ArrowUpRight className="service-arrow" size={20} aria-hidden /></Link>
         </section>
+        <ShareSection />
       </main>
       <Footer />
     </div>
