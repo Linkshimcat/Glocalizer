@@ -53,7 +53,7 @@ export const publishedSamples: DemoSample[] = manifest.map(sample => {
       approved: true,
     },
     provenance: { kind: 'service', processedAt: sample.id === 'thanks' ? '2026-11-04' : '2026-11-07', record: 'docs/licenses/demo-lab.md' },
-    // Only the exact original project inspection timestamp is available.
-    stages: sample.id === 'thanks' ? [{ name: 'qa', occurredAt: '2026-11-04T11:42:11.672478+00:00' }] : [],
+    // The QA Board capture provides the inspection time. Other per-stage events are unavailable.
+    stages: [{ name: 'qa', occurredAt: sample.qaCapturedAt }],
   }
 })

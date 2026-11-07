@@ -72,5 +72,7 @@ Demo Lab·신규 preview/replay·demoLab i18n·LandingRemake·README·라이선�
 - 정확한 후보 PNG 27개에 QA 규격 규칙을 실행했다. 크기·형식·용량·투명도 27/27 통과. 가장자리 여백은 0–22px로 전부 REVIEW. ZIP 내 프로젝트 QA는 파일별 결과와 별개다.
 - 복잡·긴 문구 프로젝트를 QA Board에서 두 차례 검사했다. 두 번 모두 REVIEW 2 / PASS 0 / FAIL 0.
 - 긴 영어 사용자 문구는 자동 배치 후에도 최소 크기에서 넘쳤다. “Thanks for your hard work!”로 줄인 뒤 자동 배치를 실행하면 박스 안에 맞는다는 안내가 나왔다. 전체 QA PASS 장면은 미확보다.
-- Replay에는 원자료로 확인한 첫 샘플의 QA 시각만 표시했다. 원자료에 없는 OCR·번역·정리·편집 시각과 소요 시간은 미측정.
+- Replay에는 세 샘플의 QA Board에서 확인한 검사 시각을 분 단위로 표시한다. 원자료에 없는 OCR·번역·정리·편집 시각과 소요 시간은 미측정.
 - 최신 main 기반 운영 빌드와 린트 통과. 비로그인 로컬 브라우저에서 랜딩 → 샘플 선택 → OCR → 번역 → 정리 → QA → ZIP 요청까지 자동 조작 약 2.3초. 저장 ZIP을 열어 선택한 복잡 샘플 일본어 PNG와 바이트 일치 및 여백 REVIEW 근거 확인. 실제 발표자 리허설 시간과 별도.
+- 샘플 배포 PR [#238](https://github.com/Linkshimcat/Glocalizer/pull/238)은 CI를 통과했고 코드 소유자 리뷰 대기 중. Vercel 미리보기는 인증이 필요하다.
+- 오프라인 백업 영상 `outputs/finals/finals-demo-3m30-backup.mp4`은 확인된 실제 캡처와 합성 내레이션으로 구성했다. Demo Lab → 에디터 자동 배치 → QA Board REVIEW → 내보내기 순서이며, FAIL → PASS 전체 판정은 확인 전이다.
