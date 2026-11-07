@@ -19,6 +19,7 @@ const copy = {
   language: ['번역 언어', 'Language', '翻訳言語', '翻译语言'],
   missing: ['측정 안 됨', 'Not measured', '未測定', '未测量'],
   empty: ['공개 가능한 샘플의 권리·처리 기록을 확인 중입니다. 준비가 끝나면 여기서 체험할 수 있어요.', 'Sample rights and processing records are being verified. The tour will be available here when ready.', 'サンプルの権利と処理記録を確認中です。準備ができ次第体験できます。', '正在核实示例授权和处理记录，完成后即可体验。'],
+  fileChecks: ['선택한 PNG의 규격·투명도·여백 검사입니다. 번역·배치 품질은 이 판정에 포함되지 않습니다.', 'Checks on this PNG cover file specs, transparency, and margins. Translation and layout quality are outside this check.', '選択したPNGの規格・透明度・余白を検査しました。翻訳・配置の品質は対象外です。', '检查范围为所选 PNG 的规格、透明度和边距，不包含翻译或排版质量。'],
   noReport: ['이 결과의 검사 기록이 없습니다. 통과로 표시하지 않습니다.', 'No inspection record for this result; it is not marked as passed.', 'この結果の検査記録はありません。合格とは表示しません。', '此结果没有检查记录，不标记为通过。'],
   disclaimer: ['PASS는 Glocalizer 자체 검사 통과이며 OGQ 승인을 보장하지 않습니다.', 'PASS means Glocalizer checks passed, not OGQ approval.', 'PASSはGlocalizerの検査通過であり、OGQ承認を保証しません。', 'PASS 仅代表通过 Glocalizer 检查，不保证 OGQ 审核通过。'],
   login: ['내 파일로 해 보기(로그인)', 'Try my own file (sign in)', '自分の画像で試す（ログイン）', '使用自己的图片（登录）'],

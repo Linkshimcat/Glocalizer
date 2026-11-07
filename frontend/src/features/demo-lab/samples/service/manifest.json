@@ -1,0 +1,284 @@
+[
+  {
+    "id": "thanks",
+    "title": "단순한 배경",
+    "description": "원문 인식부터 세 언어 번역까지 살펴보세요.",
+    "sourceText": "고마워!",
+    "font": "Bangers",
+    "region": {
+      "x": 296,
+      "y": 13,
+      "width": 148,
+      "height": 40
+    },
+    "originalSha256": "8f0212b0189cb95f66f42dbbf92eceebe45dcb0b0422d69e161cbf8c19fb39b8",
+    "candidates": {
+      "en": [
+        {
+          "text": "Thx!",
+          "meaning": "고마워!",
+          "tone": "친근함",
+          "sha256": "c06b2b63c71347d521ba8ff254dfeea711f79ba721b642e86fdc8f907f785efb",
+          "bytes": 130968,
+          "margin": 17
+        },
+        {
+          "text": "Appreciate it!",
+          "meaning": "고맙게 생각해!",
+          "tone": "가벼운 말투",
+          "sha256": "023932cb314398436ad22d8c9e386b63fa271a0960965b0e8c276c65decc5bfa",
+          "bytes": 136168,
+          "margin": 0
+        },
+        {
+          "text": "Thanks a lot!",
+          "meaning": "정말 고마워!",
+          "tone": "무난함",
+          "sha256": "afcfd3da8de5d4df6cbe99ab71586977309fed7e7102e0572b48f683c006652b",
+          "bytes": 136105,
+          "margin": 0
+        }
+      ],
+      "ja": [
+        {
+          "text": "サンキュー！",
+          "meaning": "땡큐!",
+          "tone": "친근함",
+          "sha256": "1199cad48b0f31cd1797a0f7e46a20f50fd5e5daf9ba6156a5e82c07b2c4840c",
+          "bytes": 171083,
+          "margin": 0
+        },
+        {
+          "text": "ありがと！",
+          "meaning": "고마워!",
+          "tone": "친근함",
+          "sha256": "b948c9e2f104926c306907d7bc48b7b98d983b0fa05e4a4f15d3a2bfa2d877b6",
+          "bytes": 172629,
+          "margin": 0
+        },
+        {
+          "text": "助かった！",
+          "meaning": "덕분에 살았어!",
+          "tone": "장난스러움",
+          "sha256": "2d076357443a39400a193b541b118091b227d78f471cbf3c9df933f7c8ffb882",
+          "bytes": 172106,
+          "margin": 0
+        }
+      ],
+      "zh": [
+        {
+          "text": "谢啦！",
+          "meaning": "고마워!",
+          "tone": "친근함",
+          "sha256": "04f77a409746a68208999563e9d9eab827131648f7697eb7e31b036a20c7053b",
+          "bytes": 169092,
+          "margin": 15
+        },
+        {
+          "text": "多谢！",
+          "meaning": "정말 고마워!",
+          "tone": "무난함",
+          "sha256": "3ac65867f795eef84017c41fca57da5de5aa2940ef97ba1031ec5a9a72f98d64",
+          "bytes": 169489,
+          "margin": 16
+        },
+        {
+          "text": "太感谢了！",
+          "meaning": "너무 고마워!",
+          "tone": "감사 강조",
+          "sha256": "f47b277be80e5711ee608277e23341a40ce0da858798c12803592db5ff319214",
+          "bytes": 171379,
+          "margin": 0
+        }
+      ]
+    }
+  },
+  {
+    "id": "complex",
+    "title": "복잡한 배경",
+    "description": "장식이 많은 이미지의 글자 정리 전후를 비교해 보세요.",
+    "sourceText": "오늘도 힘내!",
+    "font": "Baloo 2",
+    "region": {
+      "x": 269,
+      "y": 19,
+      "width": 201,
+      "height": 33
+    },
+    "originalSha256": "7831ff871fef7c96f1be939e4c4db63cd1a55e8e1ecf56dbf0659913358d7e67",
+    "candidates": {
+      "en": [
+        {
+          "text": "You got this!",
+          "meaning": "넌 할 수 있어!",
+          "tone": "활기찬 응원",
+          "sha256": "138be9f93030555344e04f9c87eb3eb72921696fa226f3233c2fa9d9e9d327cb",
+          "bytes": 286548,
+          "margin": 21
+        },
+        {
+          "text": "Keep it up!",
+          "meaning": "계속 힘내!",
+          "tone": "격려",
+          "sha256": "f35b02256194a06d22d742d5d7518d52da297bf89f487a8b5693ebb7ca93c9d4",
+          "bytes": 285596,
+          "margin": 21
+        },
+        {
+          "text": "Hang in there!",
+          "meaning": "조금만 더 버텨!",
+          "tone": "위로",
+          "sha256": "df6dcf9b6c3a94532c1ca1f69d65929317810ff0867f77344273991a11b50762",
+          "bytes": 286492,
+          "margin": 21
+        }
+      ],
+      "ja": [
+        {
+          "text": "今日も頑張れ！",
+          "meaning": "오늘도 힘내!",
+          "tone": "활기찬 응원",
+          "sha256": "e70e44c41b3509629f03df2f9b3012e3b02ff6e9089954d6cf96243a176bf344",
+          "bytes": 288770,
+          "margin": 6
+        },
+        {
+          "text": "今日もやるぞ！",
+          "meaning": "오늘도 해보자!",
+          "tone": "의욕",
+          "sha256": "5b0337290063c0e73843a8a2a5014a86ebc24e58deafa9acc889473789209a38",
+          "bytes": 288971,
+          "margin": 6
+        },
+        {
+          "text": "今日も大丈夫",
+          "meaning": "오늘도 괜찮아",
+          "tone": "안심",
+          "sha256": "4572e8c553f82600a4ee7e4fa86629dcc9fa6102ce7d0bed8bbfd658fd53bb8d",
+          "bytes": 288027,
+          "margin": 21
+        }
+      ],
+      "zh": [
+        {
+          "text": "今天也要加油",
+          "meaning": "오늘도 힘내",
+          "tone": "응원",
+          "sha256": "8b6ee0c62c1da9a95147c62a51bae5a9fcafe715a65c0c9246ed0c0351fbebd4",
+          "bytes": 293986,
+          "margin": 19
+        },
+        {
+          "text": "今日冲鸭",
+          "meaning": "오늘도 가보자",
+          "tone": "장난스러움",
+          "sha256": "d42995ba0e17fd6edf6508d13f864b681ded393610b3594106dd989edb88774a",
+          "bytes": 289746,
+          "margin": 20
+        },
+        {
+          "text": "今天也给力",
+          "meaning": "오늘도 힘을 내자",
+          "tone": "친근함",
+          "sha256": "a4d2efc5f982dd1d7e6670a5f4e2b3c3f66bae1c3e2ed5b569864dcdb5d33849",
+          "bytes": 292107,
+          "margin": 22
+        }
+      ]
+    }
+  },
+  {
+    "id": "long",
+    "title": "긴 문구",
+    "description": "긴 원문과 짧은 번역 후보를 비교해 보세요.",
+    "sourceText": "오늘도 정말 수고 많았어요!",
+    "font": "Bangers",
+    "region": {
+      "x": 107,
+      "y": 14,
+      "width": 525,
+      "height": 45
+    },
+    "originalSha256": "fa40b2ac2bbfe26f599fece2c8eec2ac03e0bed85d5fd5259c7e76964a69615a",
+    "candidates": {
+      "en": [
+        {
+          "text": "Good job today!",
+          "meaning": "오늘 잘했어!",
+          "tone": "장난스러움",
+          "sha256": "ebe1261fa853ebfb80740d95202bba791f500c8359f293f90a7376b2b77cd6d3",
+          "bytes": 176944,
+          "margin": 19
+        },
+        {
+          "text": "You did great!",
+          "meaning": "정말 잘했어!",
+          "tone": "밝은 칭찬",
+          "sha256": "79840dcd4e26b7341c03db5f098853955b1b4180401988d514d2f2ae52c1740e",
+          "bytes": 175524,
+          "margin": 19
+        },
+        {
+          "text": "Good work!",
+          "meaning": "수고했어!",
+          "tone": "무난함",
+          "sha256": "239e26ad502a0f51c0a1ba4915a7e26e579f30bbbdf792d7cb8217f29366b742",
+          "bytes": 174170,
+          "margin": 19
+        }
+      ],
+      "ja": [
+        {
+          "text": "よく頑張ったね！",
+          "meaning": "정말 열심히 했네!",
+          "tone": "다정함",
+          "sha256": "46cb6eb81fe8584046f85e408068aba22a9c651e2cc7cc32a708d93cacf9b450",
+          "bytes": 178404,
+          "margin": 18
+        },
+        {
+          "text": "お疲れ様！",
+          "meaning": "수고했어!",
+          "tone": "감사 인사",
+          "sha256": "5cc58273a0c01090b5644d32319786877dd1a05297cc628d7caddbc871db0fdb",
+          "bytes": 174657,
+          "margin": 17
+        },
+        {
+          "text": "よくやった！",
+          "meaning": "잘했어!",
+          "tone": "활기참",
+          "sha256": "8a00dd38bdcfddf835d7c299edbcd4fc670df36924188fa8cbe06896fb27a5ff",
+          "bytes": 174307,
+          "margin": 18
+        }
+      ],
+      "zh": [
+        {
+          "text": "今天辛苦啦！",
+          "meaning": "오늘 수고했어!",
+          "tone": "친근함",
+          "sha256": "6358bb9d47bde3c651814cc62a4a582ad0129789c50c45f4bb9c16a8e77ad509",
+          "bytes": 173359,
+          "margin": 17
+        },
+        {
+          "text": "干得漂亮！",
+          "meaning": "멋지게 해냈어!",
+          "tone": "장난스러움",
+          "sha256": "13d46e0151783b51eccf058f3eda7dd488610418c1b3f0a49e43b7003e5a3a40",
+          "bytes": 171611,
+          "margin": 17
+        },
+        {
+          "text": "今天很棒！",
+          "meaning": "오늘 정말 잘했어!",
+          "tone": "밝은 칭찬",
+          "sha256": "6770d23b58d7be1e0ae44fc55f636132a095a380baca38f804ae04198fa7153d",
+          "bytes": 172905,
+          "margin": 17
+        }
+      ]
+    }
+  }
+]

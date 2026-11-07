@@ -1,6 +1,6 @@
 # Demo Lab 출처·권리 기록
 
-2026-11-02. 현재 공개 승인된 서비스 샘플: 0세트. 미확인 자료를 공개 가능으로 간주하지 않는다.
+2026-11-07. 팀이 Glocalizer 생성 기능으로 만든 3세트를 Demo Lab 샘플 브랜치에 등록했다.
 
 ## 개발 예시 3종
 
@@ -30,3 +30,13 @@
 - 코드상 생성 모델은 gpt-image-2.5-sunburst, 렌더링 폰트는 Noto Sans CJK KR로 지정. 실제 배포 모델·폰트 파일/라이선스는 별도 확인 전이므로 확정하지 않음.
 - 11/04 macOS 기본 파일 선택 창으로 원본 업로드 및 EN/JA/ZH 처리 요청 완료. 실제 OCR과 언어별 후보, 결과 PNG를 확보. 정리 이미지 원본 추출과 후보별 QA는 남아 있음. 프로젝트 QA Board에서 740×640 출력에 대해 REVIEW를 확인했으며, 판정 범위는 docs/pitch/yena-delivery-status.md에 기록.
 - 생성 원본 확보를 3세트 처리 완료 또는 권리 승인 완료로 집계하지 않음.
+
+## 2026-11-07 샘플 3세트 등록
+
+- 고마워!: 11/03 생성 원본, 11/04 OCR 및 번역, 11/07 740×640 재출력.
+- 오늘도 힘내!: 동일 생성 프로젝트에서 별·잎·색종이 배경 변형 생성, 11/07 OCR·번역·정리·출력.
+- 오늘도 정말 수고 많았어요!: 동일 캐릭터의 문구 변형, 11/07 OCR·번역·정리·출력.
+- 세 샘플 모두 생성 프로젝트 `8588b556-6419-486b-882a-9e3ff6744856`에서 기존 브랜드, 작가 또는 캐릭터 참고 없이 팀 계정으로 생성했다. 원본 및 후보 해시는 [샘플 manifest](../../frontend/src/features/demo-lab/samples/service/manifest.json)에 기록했다. 캐릭터 및 번역은 AI 생성, 원문 문구는 직접 입력했고 한국어 뜻 풀이는 샘플 설명으로 별도 작성했다.
+- 원문 합성 코드의 지정 글꼴은 Noto Sans CJK KR이며 실제 환경의 폴백 글꼴과 정확한 빌드 버전은 확인할 수 없다. 번역 출력의 에디터 표시 글꼴은 고마워·긴 문구 영어 Bangers, 복잡한 배경 영어 Baloo 2, 일본어 Noto Sans JP, 중국어 Noto Sans SC다. PNG에는 글꼴 바이너리를 포함하지 않는다.
+- 글꼴 근거: [Bangers](https://github.com/google/fonts/blob/main/ofl/bangers/OFL.txt), [Baloo 2](https://github.com/google/fonts/blob/main/ofl/baloo2/OFL.txt), [Noto Sans JP](https://github.com/google/fonts/blob/main/ofl/notosansjp/OFL.txt), [Noto Sans SC](https://github.com/google/fonts/blob/main/ofl/notosanssc/OFL.txt), [Noto Sans CJK](https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE).
+- 후보별 PNG는 파일 바이트를 검사해 PNG·1MB 이하·740×640·투명도 통과, 여백 REVIEW로 기록했다. 프로젝트 단위 QA Board 기록은 후보 파일별 검사와 별도로 보관했다.
