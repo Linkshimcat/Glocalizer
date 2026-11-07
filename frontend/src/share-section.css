@@ -9,8 +9,6 @@
 .share-button:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; }
 .share-button.share-button-primary { border-color: transparent; background: #15803d; color: #fff; }
 .share-button.share-button-primary:hover { background: #116b33; }
-.share-copy > .share-status { min-height: 24px; margin: 12px 0 0; color: var(--color-brand-dark); font-size: 14px; font-weight: 700; }
-.dark .share-copy > .share-status { color: var(--color-brand); }
 
 /* 기기 분기: 넓은 화면은 노트북, 좁은 화면(휴대폰)은 폰 목업 하나만 보인다. */
 .share-devices { position: relative; width: 100%; }

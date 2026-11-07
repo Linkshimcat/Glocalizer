@@ -1,5 +1,6 @@
 import { Check, Link2, Mail, MessageCircle, Share2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useToast } from './Toast'
 import { useSiteLang } from '../i18n/LanguageContext'
 import type { SiteLang } from '../i18n/translations'
 import macbookFrame from '../assets/LandingAssets/macbook_mockup_transparent.webp'
@@ -110,6 +111,7 @@ type Qr = { size: number; path: string }
 export default function ShareSection() {
   const { lang } = useSiteLang()
   const copy = COPY[lang]
+  const toast = useToast()
   const [copied, setCopied] = useState(false)
   const [canShare, setCanShare] = useState(false)
   const [qr, setQr] = useState<Qr | null>(null)
@@ -165,6 +167,7 @@ export default function ShareSection() {
   const copyLink = async () => {
     if (!(await copyText(url))) return
     setCopied(true)
+    toast(copy.copied, 'success')
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => setCopied(false), 2200)
   }
@@ -190,7 +193,6 @@ export default function ShareSection() {
             {canShare && <button type="button" className="share-button share-button-primary" onClick={share}><Share2 aria-hidden size={19} />{copy.share}</button>}
             <button type="button" className={`share-button${canShare ? '' : ' share-button-primary'}`} onClick={copyLink}>{copied ? <Check aria-hidden size={19} /> : <Link2 aria-hidden size={19} />}{copy.copy}</button>
           </div>
-          <p className="share-status" role="status" aria-live="polite">{copied ? copy.copied : ''}</p>
         </div>
 
         <div ref={devicesRef} className="share-devices" data-reveal={reveal}>
