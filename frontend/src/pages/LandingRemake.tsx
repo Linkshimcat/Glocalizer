@@ -39,6 +39,7 @@ import Button from '../components/Button'
 import Footer from '../components/Footer'
 import LandingEnding from '../components/LandingEnding'
 import { CaptionSuggestMock } from '../components/LandingSceneMocks'
+import CreatorVoices from '../components/CreatorVoices'
 import OgqStickerGallery from '../components/OgqStickerGallery'
 import RollingText from '../components/RollingText'
 import '../landing.css'
@@ -681,6 +682,8 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
         </section>}
 
         <div className="remake-ogq-proof"><OgqStickerGallery /></div>
+
+        <CreatorVoices />
 
         {ending ?? <LandingEnding />}
       </main>
