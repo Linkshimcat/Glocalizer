@@ -1,0 +1,19 @@
+/* 사이트 공통 푸터. 랜딩의 compact 푸터와 같은 모양을 어느 페이지에서나 내도록, 랜딩 전용 스타일
+   (landing.css·landing-ending.css)이 `.main-restyle >` 아래에서만 먹던 값을 범위 없이 옮겼다.
+   랜딩에서는 그 파일들의 더 구체적인 규칙이 같은 값을 다시 적용하므로 결과가 달라지지 않는다. */
+footer.landing-footer-compact { height: auto; overflow: hidden; border-radius: 0; background: var(--color-card); }
+footer.landing-footer-compact .landing-footer-inner { width: min(calc(100% - 96px), 1200px); height: auto; padding: 28px 0 32px; }
+footer.landing-footer-compact .landing-footer-top { position: relative; z-index: 1; flex-direction: row; align-items: center; gap: 24px; }
+footer.landing-footer-compact .landing-footer-brand { gap: 8px; }
+footer.landing-footer-compact .landing-footer-links { justify-content: flex-end; gap: 4px 20px; font-weight: 500; }
+footer.landing-footer-compact .landing-footer-links a { text-decoration: none; }
+footer.landing-footer-compact .landing-footer-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+footer.landing-footer-compact .landing-footer-meta { position: relative; z-index: 1; margin-top: 22px; padding-top: 18px; text-align: left; font-size: 12px; font-weight: 400; }
+footer.landing-footer-compact .landing-footer-meta > p:last-child { justify-content: flex-start; }
+@media (max-width: 1000px) {
+  footer.landing-footer-compact .landing-footer-top { align-items: flex-start; flex-direction: column; gap: 8px; }
+  footer.landing-footer-compact .landing-footer-links { justify-content: flex-start; }
+}
+@media (max-width: 767px) {
+  footer.landing-footer-compact .landing-footer-inner { width: calc(100% - 40px); }
+}

@@ -684,7 +684,7 @@ export default function LandingRemake({ ending }: { ending?: ReactNode } = {}) {
 
         {ending ?? <LandingEnding />}
       </main>
-      <Footer variant="landing-compact" />
+      <Footer />
     </div>
   )
 }
