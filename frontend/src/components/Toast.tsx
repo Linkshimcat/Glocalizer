@@ -37,7 +37,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[60] flex flex-col items-center gap-2 px-4">
+      {/* 모달 막(z-70)보다 위에 둔다. 피드백 전송처럼 모달을 닫으며 띄우는 알림이 막 뒤에 가려지지 않게 한다. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[80] flex flex-col items-center gap-2 px-4">
         {toasts.map(t => (
           <div
             key={t.id}
