@@ -60,6 +60,10 @@ export default function QaBoardPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const reviewedProject = useRef<string | null>(null)
+  // 검사용으로 캡션까지 합성해 만든 PNG를 썸네일 object URL로도 재사용한다 — assetId별 최신 URL을
+  // 들고 있다가, 다시 검사를 돌리거나 화면을 떠날 때 이전 URL을 해제해 메모리를 누수시키지 않는다.
+  const renderedThumbUrls = useRef<Map<string, string>>(new Map())
+  useEffect(() => () => { for (const url of renderedThumbUrls.current.values()) URL.revokeObjectURL(url) }, [])
   const [preset, setPreset] = useState<OutputPreset>('default')
   // 에디터·결과 화면에서 이 프로젝트에 고른 규격이 같은 세션에 남아 있으면 그대로 이어받는다.
   useEffect(() => { if (projectId) setPreset(loadSavedPreset(projectId)) }, [projectId])
@@ -116,6 +120,17 @@ export default function QaBoardPage() {
       const { pngs, failed } = await renderWorkspacePngs(workspace, (done, total) => setProgress({ done, total }), undefined, preset)
       await runQaInspect(projectId, token, workspace.projectToken, pngs)
       setQa(await fetchQaProject(projectId, token, workspace.projectToken))
+      // 판정에만 쓰고 버리던 PNG(캡션 합성본)를 썸네일에도 반영한다 — 이전엔 배경만 정리된 원본을
+      // 보여줘서 번역 캡션이 썸네일에 전혀 안 보였다.
+      setImages(previous => previous.map(image => {
+        const blob = pngs.get(image.id)
+        if (!blob) return image
+        const url = URL.createObjectURL(blob)
+        const previousUrl = renderedThumbUrls.current.get(image.id)
+        if (previousUrl) URL.revokeObjectURL(previousUrl)
+        renderedThumbUrls.current.set(image.id, url)
+        return { ...image, url }
+      }))
       if (failed.length > 0) toast(copy.qaRenderPartial.replace('{n}', String(failed.length)), 'warning')
     } catch (error) {
       toast(requestErrorMessage(error, lang, copy.qaRunFailed), 'warning')
