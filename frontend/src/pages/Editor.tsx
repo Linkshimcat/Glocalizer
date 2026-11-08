@@ -1935,23 +1935,32 @@ export default function Editor() {
             </article>
           </div>
 
-          {/* 이전 / 다음 (모바일 오버레이) */}
-          <div className="absolute bottom-14 left-4 flex gap-2 lg:hidden">
-            <button
-              onClick={goPrev}
-              disabled={currentIdx === 0}
-              className="rounded-control border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-ink disabled:text-gray-300"
-            >
-              ← {e.prev}
-            </button>
-            <button
-              onClick={goNext}
-              disabled={currentIdx === items.length - 1}
-              className="rounded-control bg-brand px-3.5 py-2 text-sm font-bold text-white disabled:bg-gray-200 disabled:text-gray-400"
-            >
-              {e.next} →
-            </button>
-          </div>
+          {/* 이전 / 다음 (모바일). 캔버스 위에 띄우면 결과물 아래쪽 글자를 가려서, 캔버스 아래 줄로 둔다.
+              이미지가 한 장이면 갈 곳이 없으니 보이지 않게 한다. */}
+          {items.length > 1 && (
+            <div className="flex w-full max-w-[480px] items-center gap-2 px-4 lg:hidden">
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={goPrev}
+                disabled={currentIdx === 0}
+                className="flex-1 gap-1 whitespace-nowrap"
+              >
+                <ChevronLeft className="h-4 w-4 shrink-0" /> {e.prev}
+              </Button>
+              <span className="shrink-0 px-1 text-xs font-bold tabular-nums text-sub" aria-live="polite">
+                {currentIdx + 1} / {items.length}
+              </span>
+              <Button
+                size="xs"
+                onClick={goNext}
+                disabled={currentIdx === items.length - 1}
+                className="flex-1 gap-1 whitespace-nowrap"
+              >
+                {e.next} <ChevronRight className="h-4 w-4 shrink-0" />
+              </Button>
+            </div>
+          )}
 
         </section>
 
