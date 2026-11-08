@@ -16,6 +16,14 @@ export default function Footer({ showPaymentAttribution = false }: { showPayment
   return (
     <footer className="landing-footer landing-footer-compact border-t border-gray-200 bg-white">
       <div className="relative layout-wide landing-footer-inner py-5">
+        {/* 이용 안내: 서비스가 AI로 결과를 만든다는 점과 이용자 확인 책임을 한곳에서 알린다(자세한 내용은 약관). */}
+        <div role="note" aria-label={copy.useNoticeTitle} className="landing-footer-notice mx-auto mb-6 max-w-3xl border-b border-gray-200 pb-6 text-center">
+          <p className="text-sm font-extrabold text-ink">{copy.useNoticeTitle}</p>
+          <p className="mt-2 break-keep text-xs leading-6 text-sub sm:text-[13px]">
+            {copy.useNotice}{' '}
+            <Link to="/terms" className="font-bold underline underline-offset-2 transition-colors hover:text-ink">{copy.useNoticeLink}</Link>
+          </p>
+        </div>
         <div className="landing-footer-top flex flex-col items-center justify-between gap-3 md:flex-row">
           <div className="landing-footer-brand flex items-center gap-3">
             <Logo />
