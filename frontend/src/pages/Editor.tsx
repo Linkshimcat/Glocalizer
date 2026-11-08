@@ -1296,6 +1296,10 @@ export default function Editor() {
     WebkitTextStroke: value.strokeOn
       ? `${value.strokeWidth}px ${value.strokeColor}`
       : undefined,
+    // 외곽선을 글자 아래에 먼저 그려 바깥쪽 절반만 보이게 한다. 기본값(fill → stroke)이면 외곽선이
+    // 글자 위에 덧칠돼 두꺼울수록 글자가 가려지는데, 다운로드 PNG(exportImage.ts: strokeText 뒤
+    // fillText)는 바깥쪽만 보여서 미리보기와 결과물이 달랐다.
+    paintOrder: value.strokeOn ? 'stroke fill' : undefined,
     backgroundColor: value.backgroundOn
       ? hexToRgba(value.backgroundColor, value.backgroundOpacity / 100)
       : undefined,
