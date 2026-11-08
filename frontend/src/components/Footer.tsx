@@ -4,17 +4,28 @@ import githubMark from '../assets/github-mark.svg'
 import { Link } from 'react-router-dom'
 import InstagramIcon from './InstagramIcon'
 import Logo from './Logo'
+import '../footer.css'
 
-export default function Footer({ variant = 'default', showPaymentAttribution = false }: { variant?: 'default' | 'landing' | 'landing-compact'; showPaymentAttribution?: boolean }) {
+// 모든 페이지가 랜딩과 같은 푸터를 쓴다. 예전에는 랜딩만 compact 레이아웃이고 나머지는 한 줄 3열 배치라
+// 페이지마다 모양과 내용이 달랐다. landing-footer-* 클래스는 랜딩 전용 스타일(landing*.css)과 검사
+// 스크립트가 쓰고 있어 그대로 둔다. 공통 모양은 footer.css가 어느 페이지에서나 같게 만든다.
+export default function Footer({ showPaymentAttribution = false }: { showPaymentAttribution?: boolean }) {
   const { lang } = useSiteLang()
   const copy = legalUi[lang]
-  const isLanding = variant !== 'default'
-  const isCompact = variant === 'landing-compact'
+  const linkClass = 'inline-flex min-h-11 items-center underline underline-offset-2 transition-colors hover:text-ink'
   return (
-    <footer className={`border-t border-gray-200 bg-white${isLanding ? ' landing-footer' : ''}${isCompact ? ' landing-footer-compact' : ''}`}>
-      <div className={`relative layout-wide py-5${isLanding ? ' landing-footer-inner' : ''}`}>
-        <div className={`flex flex-col items-center justify-between gap-3 md:flex-row${isLanding ? ' landing-footer-top' : ''}`}>
-          <div className={`flex items-center gap-3${isLanding ? ' landing-footer-brand' : ''}`}>
+    <footer className="landing-footer landing-footer-compact border-t border-gray-200 bg-white">
+      <div className="relative layout-wide landing-footer-inner py-5">
+        {/* 이용 안내: 서비스가 AI로 결과를 만든다는 점과 이용자 확인 책임을 한곳에서 알린다(자세한 내용은 약관). */}
+        <div role="note" aria-label={copy.useNoticeTitle} className="landing-footer-notice mx-auto mb-6 max-w-3xl border-b border-gray-200 pb-6 text-center">
+          <p className="text-sm font-extrabold text-ink">{copy.useNoticeTitle}</p>
+          <p className="mt-2 break-keep text-xs leading-6 text-sub sm:text-[13px]">
+            {copy.useNotice}{' '}
+            <Link to="/terms" className="font-bold underline underline-offset-2 transition-colors hover:text-ink">{copy.useNoticeLink}</Link>
+          </p>
+        </div>
+        <div className="landing-footer-top flex flex-col items-center justify-between gap-3 md:flex-row">
+          <div className="landing-footer-brand flex items-center gap-3">
             <Logo />
             <a
               href="https://github.com/Linkshimcat/Glocalizer"
@@ -37,43 +48,20 @@ export default function Footer({ variant = 'default', showPaymentAttribution = f
               <InstagramIcon className="h-5 w-5" />
             </a>
           </div>
-          <nav aria-label={copy.footerLinks} className={`flex flex-wrap justify-center gap-x-4 text-sm font-bold${isLanding ? ' landing-footer-links' : ''}`}>
-            <Link to="/privacy" className="inline-flex min-h-11 items-center underline underline-offset-2 transition-colors hover:text-ink">{copy.privacy}</Link>
-            <Link to="/terms" className="inline-flex min-h-11 items-center underline underline-offset-2 transition-colors hover:text-ink">{copy.terms}</Link>
-            <Link to="/support" className="inline-flex min-h-11 items-center underline underline-offset-2 transition-colors hover:text-ink">{copy.customerSupport}</Link>
-            {isLanding && <a href="https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center underline underline-offset-2 transition-colors hover:text-ink">Apache License 2.0</a>}
+          <nav aria-label={copy.footerLinks} className="landing-footer-links flex flex-wrap justify-center gap-x-4 text-sm font-bold">
+            <Link to="/privacy" className={linkClass}>{copy.privacy}</Link>
+            <Link to="/terms" className={linkClass}>{copy.terms}</Link>
+            <Link to="/support" className={linkClass}>{copy.customerSupport}</Link>
+            <a href="https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file" target="_blank" rel="noreferrer" className={linkClass}>Apache License 2.0</a>
           </nav>
         </div>
-        <div className={`mt-4 border-t border-gray-200 pt-3 text-center text-xs font-bold leading-relaxed text-sub sm:text-sm md:text-left${isLanding ? ' landing-footer-meta' : ''}`}>
-          {isLanding ? (
-            <>
-              <p>{copy.school}</p>
-              <p className="mt-1">{copy.team}</p>
-              <p className="mt-1 flex flex-wrap justify-center gap-x-3 md:justify-start">
-                <span>{copy.copyright}</span>
-                <span>{copy.hosting}</span>
-              </p>
-            </>
-          ) : (
-            <div className="grid gap-2 text-center md:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,1fr)] md:items-center md:text-left">
-              <p className="flex flex-wrap justify-center gap-x-3 md:justify-start">
-                <span>{copy.copyright}</span>
-                <span>{copy.hosting}</span>
-              </p>
-              <p className="text-center">{copy.team}</p>
-              <p className="md:text-right">
-                {copy.school} |{' '}
-                <a
-                  href="https://github.com/Linkshimcat/Glocalizer?tab=Apache-2.0-1-ov-file"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 transition-colors hover:text-ink"
-                >
-                  {copy.license}: Apache License 2.0
-                </a>
-              </p>
-            </div>
-          )}
+        <div className="landing-footer-meta mt-4 border-t border-gray-200 pt-3 text-center text-xs font-bold leading-relaxed text-sub sm:text-sm md:text-left">
+          <p>{copy.school}</p>
+          <p className="mt-1">{copy.team}</p>
+          <p className="mt-1 flex flex-wrap justify-center gap-x-3 md:justify-start">
+            <span>{copy.copyright}</span>
+            <span>{copy.hosting}</span>
+          </p>
           {showPaymentAttribution && <p className="mt-1 text-center md:text-left">
             Payment animation:{' '}
             <a href="https://iconscout.com/lottie-animations/payment-success" target="_blank" rel="noreferrer" className="underline underline-offset-2 transition-colors hover:text-ink">Payment Success</a>
@@ -83,10 +71,6 @@ export default function Footer({ variant = 'default', showPaymentAttribution = f
             <a href="https://iconscout.com/" target="_blank" rel="noreferrer" className="underline underline-offset-2 transition-colors hover:text-ink">IconScout</a>
           </p>}
         </div>
-        {isLanding && !isCompact && <div
-          className="landing-footer-watermark"
-          aria-hidden="true"
-        >THANK YOU CREATOR</div>}
       </div>
     </footer>
   )
