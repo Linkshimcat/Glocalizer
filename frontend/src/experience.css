@@ -3,6 +3,9 @@
 .page-title { margin: 0; font-size: clamp(28px,3vw,38px); font-weight: 800; line-height: 1.25; letter-spacing: -.035em; }
 .ui-input { display: block; width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--ui-line); border-radius: var(--radius-control); background: var(--color-card); padding: 10px 12px; color: var(--color-ink); font: inherit; font-size: 14px; }
 .ui-input:focus-visible { outline: 2px solid var(--color-action); outline-offset: 2px; }
+/* 기본 select 화살표는 오른쪽 끝에 붙어 어색해서, 화살표를 직접 그리고 안쪽 여백을 둔다. */
+select.ui-input { appearance: none; padding-right: 40px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px 16px; }
+.dark select.ui-input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
 .ui-link { display: inline-flex; min-height: 44px; align-items: center; color: var(--color-action); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .state-notice { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid var(--ui-line); border-radius: var(--radius-panel); background: var(--color-card); color: var(--color-ink); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
 .state-notice > svg { flex-shrink: 0; color: var(--color-sub); }
