@@ -600,6 +600,41 @@ export default function Editor() {
     toast(e.autoFitUndone, 'success')
   }
 
+  // 입력창의 실행 취소·방향키는 브라우저 기본 동작을 쓰고, 모달이 열려 있으면 뒤쪽 편집 상태를 건드리지 않는다.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing || document.querySelector('[role="dialog"]')) return
+      const target = event.target as HTMLElement | null
+      const typing = Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'))
+      const mod = event.metaKey || event.ctrlKey
+      const key = event.key.toLowerCase()
+      if (mod && !event.altKey && key === 's') {
+        event.preventDefault()
+        saveActiveStyle()
+        flushCloudWork().then(() => toast(tCloud.cloudSaved, 'success'), error => toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed))
+        return
+      }
+      if (typing) return
+      if (mod && !event.altKey && (key === 'z' || key === 'y')) {
+        event.preventDefault()
+        if (key === 'y' || event.shiftKey) redo()
+        else undo()
+        return
+      }
+      const direction = ({ arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] } as Record<string, [number, number] | undefined>)[key]
+      if (!direction || mod || event.altKey || preview || !selected) return
+      event.preventDefault()
+      const step = event.shiftKey ? 10 : 1
+      const clamp = (value: number) => Math.max(-160, Math.min(160, value))
+      const patch = { x: clamp(style.x + direction[0] * step), y: clamp(style.y + direction[1] * step), alignH: null, alignV: null }
+      // 누르고 있는 동안의 반복 입력은 실행 취소 한 번으로 되돌린다.
+      if (event.repeat) live(patch)
+      else update(patch)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
+
   const requestReinspect = async () => {
     if (reinspecting) return
     setReinspecting(true)
@@ -1384,7 +1419,7 @@ export default function Editor() {
       <button
         onClick={undo}
         disabled={past.length === 0}
-        title={e.undo}
+        title={`${e.undo} (⌘/Ctrl+Z)`}
         className="flex h-9 w-9 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface disabled:text-gray-300"
       >
         <Undo2 className="h-4 w-4" />
@@ -1392,7 +1427,7 @@ export default function Editor() {
       <button
         onClick={redo}
         disabled={future.length === 0}
-        title={e.redo}
+        title={`${e.redo} (⌘/Ctrl+Shift+Z)`}
         className="flex h-9 w-9 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface disabled:text-gray-300"
       >
         <Redo2 className="h-4 w-4" />
@@ -1939,6 +1974,7 @@ export default function Editor() {
                     : e.hintComposite
                   : e.hintDrag}
               </p>
+              <p className="mt-1 hidden text-center text-xs text-sub lg:block">{e.shortcutsHint}</p>
             </article>
           </div>
 

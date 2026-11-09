@@ -34,6 +34,7 @@ export interface EditorDict {
   hintManualOcr: string
   hintComposite: string
   hintDrag: string
+  shortcutsHint: string
   hintTextOverflowsOriginalArea: string
   autoFit: string
   autoFitAll: string
@@ -162,6 +163,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ 완료', statusEditing: '편집 중', statusWait: '대기', deleteEmoji: '이모티콘 삭제', prev: '이전', next: '다음',
     canvasOriginal: '원본', canvasPreview: '변환 미리보기', original: '원본',
     foundText: '텍스트를 찾았어요', notFoundText: '텍스트를 찾지 못했어요', enterTextTitle: '직접 문구를 입력해보세요', originalSize: '원래 크기',
+    shortcutsHint: '단축키: ⌘/Ctrl+Z 실행 취소 · ⌘/Ctrl+Shift+Z 다시 실행 · ⌘/Ctrl+S 저장 · 방향키 글자 이동 (Shift는 10px)',
     hintManualBg: '복잡한 배경은 수동 보정이 필요할 수 있어요.', hintManualOcr: '인식된 문구를 먼저 확인해주세요.', hintComposite: 'AI가 정리한 이미지 위에 번역을 합성해요.', hintDrag: '텍스트를 끌어서 옮기고, 모서리와 위 핸들로 다듬어보세요', hintTextOverflowsOriginalArea: '텍스트가 원래 문구 자리에서 많이 벗어났어요 — 캐릭터를 가릴 수 있어요.',
     autoFit: '자동 배치', autoFitAll: '전체 이미지에 자동 배치 적용', autoFitApplied: '{n}개 이미지에 자동 배치를 적용했어요', autoFitUndone: '자동 배치를 되돌렸어요', autoFitDone: '박스 안에 맞게 배치했어요', autoFitStillOverflows: '최소 글자 크기로도 박스를 넘쳐요. 직접 조정해주세요.', autoFitConfirmTitle: '전체 이미지에 자동 배치할까요?', autoFitConfirmBody: '모든 이미지의 글자 크기가 박스에 맞게 자동으로 바뀌어요. 직접 조정한 내용도 덮어씌워질 수 있어요.', autoFitConfirmAction: '적용', qaLoadFailed: '검사 결과에서 넘어온 프로젝트를 불러오지 못했어요.', qaReturnBanner: '검사 결과에서 왔어요', qaBackToResults: '검사 결과로 돌아가기', qaReinspect: '재검사', qaInspecting: '재검사하는 중…', qaPassed: '통과했어요', qaStillFailing: '아직 문제가 남아있어요', qaInspectFailed: '재검사에 실패했어요. 편집 내용은 그대로 있으니 다시 시도해주세요.', canvasAuto: '자동', canvasAutoChangedHint: '노란 테두리 {n}곳을 직접 고쳤어요', canvasAutoUnchangedHint: 'AI 추천 그대로예요 — 아직 고친 곳이 없어요', aiSuggestDisclosure: 'AI가 생성한 추천이에요. 참고해서 고를 수 있어요.', cultureRiskBadge: '확인 필요', cultureRiskTitle: '이 문구는 확인이 필요해요', cultureRiskAlternatives: '대안 표현', cultureRiskReasonLabel: '왜 이렇게 골랐나요? (선택)', cultureRiskReasonPlaceholder: '예: 대상 국가에서 더 자연스러운 표현이라서',
     tabTranslate: '번역', tabFont: '폰트', tabStyle: '스타일',
@@ -187,6 +189,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ Done', statusEditing: 'Editing', statusWait: 'Waiting', deleteEmoji: 'Delete emoji', prev: 'Prev', next: 'Next',
     canvasOriginal: 'Original', canvasPreview: 'Preview', original: 'Original',
     foundText: 'Text found', notFoundText: 'No text found', enterTextTitle: 'Type your own text', originalSize: 'Actual size',
+    shortcutsHint: 'Shortcuts: ⌘/Ctrl+Z undo · ⌘/Ctrl+Shift+Z redo · ⌘/Ctrl+S save · Arrow keys move text (Shift for 10px)',
     hintManualBg: 'Complex backgrounds may need manual touch-up.', hintManualOcr: 'Please review the detected text first.', hintComposite: 'Translation is composited on the cleaned image.', hintDrag: 'Drag the text to move it; use the corner and top handles to adjust.', hintTextOverflowsOriginalArea: 'The text has drifted far from where the original caption was — it may cover the character.',
     autoFit: 'Auto-fit', autoFitAll: 'Auto-fit all images', autoFitApplied: 'Auto-fit applied to {n} image(s)', autoFitUndone: 'Auto-fit undone', autoFitDone: 'Fit to the box', autoFitStillOverflows: 'Still overflows even at the smallest size. Please adjust it manually.', autoFitConfirmTitle: 'Auto-fit all images?', autoFitConfirmBody: 'The text size will be automatically adjusted to fit the box on every image. This may overwrite sizes you set manually.', autoFitConfirmAction: 'Apply', qaLoadFailed: 'Could not load the project from the QA result.', qaReturnBanner: 'From QA results', qaBackToResults: 'Back to QA results', qaReinspect: 'Re-inspect', qaInspecting: 'Re-inspecting…', qaPassed: 'Passed', qaStillFailing: 'Still has issues', qaInspectFailed: 'Re-inspection failed. Your edits are kept — please try again.', canvasAuto: 'Auto', canvasAutoChangedHint: 'You\'ve edited {n} highlighted region(s)', canvasAutoUnchangedHint: 'Still the AI recommendation — nothing edited yet', aiSuggestDisclosure: 'These are AI-generated suggestions — use them as a reference.', cultureRiskBadge: 'Review needed', cultureRiskTitle: 'This phrase may need review', cultureRiskAlternatives: 'Alternative phrasings', cultureRiskReasonLabel: 'Why did you pick this? (optional)', cultureRiskReasonPlaceholder: 'e.g. this reads more naturally in the target locale',
     tabTranslate: 'Translate', tabFont: 'Font', tabStyle: 'Style',
@@ -212,6 +215,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ 完了', statusEditing: '編集中', statusWait: '待機', deleteEmoji: '絵文字を削除', prev: '前へ', next: '次へ',
     canvasOriginal: '原本', canvasPreview: '変換プレビュー', original: '原本',
     foundText: 'テキストを検出しました', notFoundText: 'テキストが見つかりません', enterTextTitle: '文言を直接入力できます', originalSize: '元のサイズ',
+    shortcutsHint: 'ショートカット: ⌘/Ctrl+Z 元に戻す · ⌘/Ctrl+Shift+Z やり直し · ⌘/Ctrl+S 保存 · 矢印キーで文字を移動（Shiftで10px）',
     hintManualBg: '複雑な背景は手動調整が必要な場合があります。', hintManualOcr: '認識された文言をまず確認してください。', hintComposite: 'AIが整理した画像に翻訳を合成します。', hintDrag: 'テキストをドラッグして移動し、角と上のハンドルで調整してください。', hintTextOverflowsOriginalArea: 'テキストが元の文言の位置から大きく外れています — キャラクターを覆ってしまう可能性があります。',
     autoFit: '自動配置', autoFitAll: '全画像に自動配置を適用', autoFitApplied: '{n}枚の画像に自動配置を適用しました', autoFitUndone: '自動配置を元に戻しました', autoFitDone: 'ボックスに収まるよう配置しました', autoFitStillOverflows: '最小サイズでもボックスを超えています。手動で調整してください。', autoFitConfirmTitle: '全画像に自動配置しますか？', autoFitConfirmBody: 'すべての画像の文字サイズがボックスに合わせて自動調整されます。手動で調整した内容も上書きされる場合があります。', autoFitConfirmAction: '適用', qaLoadFailed: '検査結果から来たプロジェクトを読み込めませんでした。', qaReturnBanner: '検査結果から来ました', qaBackToResults: '検査結果に戻る', qaReinspect: '再検査', qaInspecting: '再検査中…', qaPassed: '合格しました', qaStillFailing: 'まだ問題が残っています', qaInspectFailed: '再検査に失敗しました。編集内容はそのまま残っているので、もう一度お試しください。', canvasAuto: '自動', canvasAutoChangedHint: '黄色い枠 {n}箇所を編集しました', canvasAutoUnchangedHint: 'まだAIのおすすめのままです — 編集していません', aiSuggestDisclosure: 'AIが生成したおすすめです。参考にして選べます。', cultureRiskBadge: '要確認', cultureRiskTitle: 'この文言は確認が必要かもしれません', cultureRiskAlternatives: '代替表現', cultureRiskReasonLabel: 'なぜこれを選びましたか？（任意）', cultureRiskReasonPlaceholder: '例：対象地域でより自然な表現だから',
     tabTranslate: '翻訳', tabFont: 'フォント', tabStyle: 'スタイル',
@@ -237,6 +241,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     statusDone: '✓ 完成', statusEditing: '编辑中', statusWait: '等待', deleteEmoji: '删除表情包', prev: '上一张', next: '下一张',
     canvasOriginal: '原图', canvasPreview: '转换预览', original: '原图',
     foundText: '已找到文字', notFoundText: '未找到文字', enterTextTitle: '直接输入文字', originalSize: '原始大小',
+    shortcutsHint: '快捷键：⌘/Ctrl+Z 撤销 · ⌘/Ctrl+Shift+Z 重做 · ⌘/Ctrl+S 保存 · 方向键移动文字（Shift 为 10px）',
     hintManualBg: '复杂背景可能需要手动修整。', hintManualOcr: '请先确认识别到的文字。', hintComposite: '在 AI 整理后的图片上合成翻译。', hintDrag: '拖动文字移动，用四角和顶部手柄调整。', hintTextOverflowsOriginalArea: '文字偏离原文位置太多 —— 可能会遮住角色。',
     autoFit: '自动排版', autoFitAll: '对全部图片应用自动排版', autoFitApplied: '已对 {n} 张图片应用自动排版', autoFitUndone: '已撤销自动排版', autoFitDone: '已适配到框内', autoFitStillOverflows: '即使用最小字号仍超出框，请手动调整。', autoFitConfirmTitle: '要对全部图片应用自动排版吗？', autoFitConfirmBody: '所有图片的文字大小都会自动调整以适配框。可能会覆盖你手动调整过的内容。', autoFitConfirmAction: '应用', qaLoadFailed: '未能加载来自检查结果的项目。', qaReturnBanner: '来自检查结果', qaBackToResults: '返回检查结果', qaReinspect: '重新检查', qaInspecting: '正在重新检查…', qaPassed: '已通过', qaStillFailing: '仍有问题', qaInspectFailed: '重新检查失败。编辑内容已保留，请重试。', canvasAuto: '自动', canvasAutoChangedHint: '已修改 {n} 处高亮区域', canvasAutoUnchangedHint: '仍是 AI 推荐 —— 还没有修改过', aiSuggestDisclosure: '这是 AI 生成的推荐，仅供参考选择。', cultureRiskBadge: '需确认', cultureRiskTitle: '这句话可能需要确认', cultureRiskAlternatives: '备选表达', cultureRiskReasonLabel: '为什么选择这个？（可选）', cultureRiskReasonPlaceholder: '例如：在目标地区这样表达更自然',
     tabTranslate: '翻译', tabFont: '字体', tabStyle: '样式',
