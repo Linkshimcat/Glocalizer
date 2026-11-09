@@ -83,4 +83,6 @@ export const detectOcrRegionSchema = z.object({
 export const createOcrRegionSchema = z.object({
   text: z.string().trim().min(1).max(500),
   normalizedBox: updateOcrSchema.shape.normalizedBox,
+  /** 'caption': AI 문구 추천으로 넣는 문구(원본에 지울 글자 없음). 생략하면 편집기의 영역 추가(실제 글자 위). */
+  origin: z.enum(['caption']).optional(),
 });

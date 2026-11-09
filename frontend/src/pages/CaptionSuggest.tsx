@@ -21,6 +21,7 @@ type Step = 'detect' | 'analyze' | 'review'
 const TOP_BOX: NormalizedRect = { x: 0.1, y: 0.04, width: 0.8, height: 0.22 }
 const BOTTOM_BOX: NormalizedRect = { x: 0.1, y: 0.74, width: 0.8, height: 0.22 }
 const defaultBoxFor = (anchor: Anchor): NormalizedRect => (anchor === 'top' ? TOP_BOX : BOTTOM_BOX)
+const TEXTLESS_ERROR_CODES = new Set(['OCR_TEXT_NOT_FOUND', 'OCR_KOREAN_NOT_FOUND'])
 const truncate12 = (value: string) => Array.from(value).slice(0, 12).join('')
 
 export default function CaptionSuggest() {
@@ -55,7 +56,13 @@ export default function CaptionSuggest() {
 
   useEffect(() => {
     if (step === 'review' || !projectStatus || projectStatus.status === 'completed') { setPipelineLoading(false); return }
-    if (projectStatus.status === 'failed') { setPipelineLoading(false); toast(projectStatus.message || t.loading); return }
+    if (projectStatus.status === 'failed') {
+      setPipelineLoading(false)
+      // 전부 문구 없는 이미지라 실패한 경우는 이 화면이 바로 다루는 정상 흐름이라 경고하지 않는다.
+      const onlyTextless = projectStatus.assets.length > 0 && projectStatus.assets.every(asset => asset.status !== 'failed' || TEXTLESS_ERROR_CODES.has(asset.errorCode ?? ''))
+      if (!onlyTextless) toast(projectStatus.message || t.loading)
+      return
+    }
     setPipelineLoading(true)
     const timer = window.setInterval(() => {
       refreshProject().catch(error => { setPipelineLoading(false); toast(error instanceof Error ? error.message : t.loading) })
@@ -116,7 +123,7 @@ export default function CaptionSuggest() {
         let accepted = submitted.current.has(file.id)
         try {
           if (!accepted) {
-            await addOcrRegion(file.id, choice.text, defaultBoxFor(choice.anchor))
+            await addOcrRegion(file.id, choice.text, defaultBoxFor(choice.anchor), 'caption')
             submitted.current.add(file.id)
             accepted = true
           }

@@ -46,7 +46,7 @@ export interface ApiRegion {
   text: string
   confidence: number
   normalizedBox: { x: number; y: number; width: number; height: number } | null
-  source: 'paddle-consensus' | 'vision-fallback'
+  source: 'paddle-consensus' | 'vision-fallback' | 'caption-suggestion'
   agreementScore: number
   needsManualReview: boolean
   fontStyle: ApiFontStyle | null
@@ -202,10 +202,10 @@ export function detectOcrRegion(projectId: string, token: string, assetId: strin
   }, token)
 }
 
-export async function createOcrRegion(projectId: string, token: string, assetId: string, text: string, normalizedBox: { x: number; y: number; width: number; height: number }): Promise<void> {
+export async function createOcrRegion(projectId: string, token: string, assetId: string, text: string, normalizedBox: { x: number; y: number; width: number; height: number }, origin?: 'caption'): Promise<void> {
   await request(`/projects/${projectId}/assets/${assetId}/ocr/regions`, {
     method: 'POST',
-    body: JSON.stringify({ text, normalizedBox }),
+    body: JSON.stringify(origin ? { text, normalizedBox, origin } : { text, normalizedBox }),
   }, token)
 }
 

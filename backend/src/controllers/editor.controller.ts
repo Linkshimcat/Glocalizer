@@ -36,7 +36,7 @@ export async function detectOcrRegionHandler(req: Request, res: Response) {
 export async function createOcrRegionHandler(req: Request, res: Response) {
   const projectId = requireProject(req).id;
   const assetId = requireParam(req, 'assetId');
-  const job = await queueOcrEdit(projectId, assetId, req.body.text, req.body.normalizedBox, 'create');
+  const job = await queueOcrEdit(projectId, assetId, req.body.text, req.body.normalizedBox, 'create', undefined, req.body.origin);
   const regionId = job.regionId;
   res.status(202).json({ assetId, regionId, status: 'reprocessing', jobId: job.jobId });
 }
