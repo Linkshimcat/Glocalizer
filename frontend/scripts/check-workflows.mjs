@@ -379,6 +379,61 @@ try {
     assert.equal(data[(info.width * info.height - 1) * 4 + 3], 0)
     await context.close()
   }
+  // Download preview follows the chosen background; dark theme hover keeps text readable.
+  {
+    const { context, page } = await setup({ count: 2 })
+    await page.goto(`${base}/editor`, { waitUntil: 'domcontentloaded' })
+    await page.locator('textarea').first().waitFor()
+    await page.getByRole('button', { name: '다운로드 미리보기', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.waitFor()
+    const preview = dialog.locator('img').nth(1).locator('..')
+    await preview.waitFor()
+    assert.match(await preview.getAttribute('class'), /checkerboard/)
+    await dialog.getByRole('button', { name: '다크', exact: true }).click()
+    assert.equal(await preview.evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(32, 37, 41)')
+    assert.equal(await dialog.locator('img').first().evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(32, 37, 41)')
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/download-preview-dark.png' })
+    await dialog.getByRole('button', { name: '라이트', exact: true }).click()
+    assert.equal(await preview.evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(255, 255, 255)')
+    await page.goto(`${base}/result`, { waitUntil: 'domcontentloaded' })
+    const back = page.getByRole('button', { name: /에디터로 돌아가기/ }).filter({ visible: true }).first()
+    await back.waitFor()
+    await page.evaluate(() => document.documentElement.classList.add('dark'))
+    await back.hover()
+    await page.waitForTimeout(400)
+    assert.equal(await back.evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(42, 45, 49)')
+    await context.close()
+  }
+  // Keyboard shortcuts edit the selected text but leave typing in fields alone.
+  {
+    const { context, page, state } = await setup({ count: 2 })
+    await page.goto(`${base}/editor`, { waitUntil: 'domcontentloaded' })
+    const input = page.locator('textarea').first()
+    await input.waitFor()
+    await page.waitForTimeout(500)
+    await page.evaluate(() => document.activeElement?.blur())
+    const last = () => state.saves.at(-1)?.style
+    await page.keyboard.press('ArrowRight')
+    await expectSaved(() => Number.isFinite(last()?.x))
+    await page.waitForTimeout(800)
+    const x = last().x, y = last().y
+    await page.keyboard.press('ArrowRight')
+    await expectSaved(() => last().x === x + 1)
+    await page.keyboard.press('Shift+ArrowDown')
+    await expectSaved(() => last().y === y + 10)
+    await page.keyboard.press('ControlOrMeta+z')
+    await expectSaved(() => last().y === y)
+    await page.keyboard.press('ControlOrMeta+Shift+z')
+    await expectSaved(() => last().y === y + 10)
+    await input.focus()
+    await page.keyboard.press('ArrowLeft')
+    await page.waitForTimeout(600)
+    assert.equal(last().x, x + 1)
+    await page.keyboard.press('ControlOrMeta+s')
+    await page.getByText('계정에 저장됨').first().waitFor()
+    await context.close()
+  }
   // The workspace card thumbnail follows the rendered edit, not the original upload.
   {
     const { context, page, state } = await setup({ count: 2 })

@@ -630,6 +630,41 @@ export default function Editor() {
   // 3초를 기다리기 전에 편집기를 나가도 마지막 편집이 카드에 남게 한다.
   useEffect(() => () => pendingThumbnail.current?.(), [])
 
+  // 입력창의 실행 취소·방향키는 브라우저 기본 동작을 쓰고, 모달이 열려 있으면 뒤쪽 편집 상태를 건드리지 않는다.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing || document.querySelector('[role="dialog"]')) return
+      const target = event.target as HTMLElement | null
+      const typing = Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'))
+      const mod = event.metaKey || event.ctrlKey
+      const key = event.key.toLowerCase()
+      if (mod && !event.altKey && key === 's') {
+        event.preventDefault()
+        saveActiveStyle()
+        flushCloudWork().then(() => toast(tCloud.cloudSaved, 'success'), error => toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed))
+        return
+      }
+      if (typing) return
+      if (mod && !event.altKey && (key === 'z' || key === 'y')) {
+        event.preventDefault()
+        if (key === 'y' || event.shiftKey) redo()
+        else undo()
+        return
+      }
+      const direction = ({ arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] } as Record<string, [number, number] | undefined>)[key]
+      if (!direction || mod || event.altKey || preview || !selected) return
+      event.preventDefault()
+      const step = event.shiftKey ? 10 : 1
+      const clamp = (value: number) => Math.max(-160, Math.min(160, value))
+      const patch = { x: clamp(style.x + direction[0] * step), y: clamp(style.y + direction[1] * step), alignH: null, alignV: null }
+      // 누르고 있는 동안의 반복 입력은 실행 취소 한 번으로 되돌린다.
+      if (event.repeat) live(patch)
+      else update(patch)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
+
   const requestReinspect = async () => {
     if (reinspecting) return
     setReinspecting(true)
@@ -1407,6 +1442,21 @@ export default function Editor() {
     ? undefined
     : { backgroundColor: previewBackground === 'dark' ? DARK_MODE_PREVIEW_COLOR : '#FFFFFF' }
   const canvasStageChecker = previewBackground === 'transparent' ? ' checkerboard' : ''
+  const previewBackgroundControl = (
+    <div className="grid grid-cols-3 gap-1">
+      {([['transparent', e.previewBgTransparent], ['light', e.previewBgLight], ['dark', e.previewBgDark]] as const).map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={previewBackground === value}
+          onClick={() => setPreviewBackground(value)}
+          className={`min-h-11 rounded-control text-sm font-bold transition-colors ${previewBackground === value ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
 
   /* ── 상단 바 도구 (모바일·데스크톱 공용) ──────────────────────── */
   const historyControls = (
@@ -1414,7 +1464,7 @@ export default function Editor() {
       <button
         onClick={undo}
         disabled={past.length === 0}
-        title={e.undo}
+        title={`${e.undo} (⌘/Ctrl+Z)`}
         className="flex h-9 w-9 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface disabled:text-gray-300"
       >
         <Undo2 className="h-4 w-4" />
@@ -1422,7 +1472,7 @@ export default function Editor() {
       <button
         onClick={redo}
         disabled={future.length === 0}
-        title={e.redo}
+        title={`${e.redo} (⌘/Ctrl+Shift+Z)`}
         className="flex h-9 w-9 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface disabled:text-gray-300"
       >
         <Redo2 className="h-4 w-4" />
@@ -1969,6 +2019,7 @@ export default function Editor() {
                     : e.hintComposite
                   : e.hintDrag}
               </p>
+              <p className="mt-1 hidden text-center text-xs text-sub lg:block">{e.shortcutsHint}</p>
             </article>
           </div>
 
@@ -2353,19 +2404,7 @@ export default function Editor() {
           <section className={tabClass('스타일')}>
             <PanelTitle>{e.darkCheckTitle}</PanelTitle>
             <p className="mt-1 break-keep text-xs leading-5 text-sub">{e.darkCheckHint}</p>
-            <div className="mt-3 grid grid-cols-3 gap-1">
-              {([['transparent', e.previewBgTransparent], ['light', e.previewBgLight], ['dark', e.previewBgDark]] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={previewBackground === value}
-                  onClick={() => setPreviewBackground(value)}
-                  className={`min-h-11 rounded-control text-sm font-bold transition-colors ${previewBackground === value ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <div className="mt-3">{previewBackgroundControl}</div>
             {isTextHardToSeeInDarkMode(style) && (
               <StateNotice className="mt-3">
                 <p className="break-keep">{e.darkCheckWarning}</p>
@@ -2844,9 +2883,10 @@ export default function Editor() {
       {downloadPreviewOpen && <Modal onClose={() => setDownloadPreviewOpen(false)} closeLabel={w.close} labelledBy="editor-png-preview" className="max-w-4xl">
         <h2 id="editor-png-preview" className="pr-8 font-bold">{w.preview} · {activeLanguage.label}</h2>
         <p className="mt-2 text-sm text-sub">{w.previewHint}</p>
+        <div className="mt-3 max-w-xs">{previewBackgroundControl}</div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div><p className="mb-2 text-sm text-sub">{e.original}</p><img src={current.analysis?.originalUrl ?? current.url} alt={current.name} className="checkerboard max-h-[60dvh] w-full rounded-panel object-contain" /></div>
-          <PngPreview large item={current} overlays={canvasOverlays} baseStyle={style} preset={outputPreset} />
+          <div><p className="mb-2 text-sm text-sub">{e.original}</p><img src={current.analysis?.originalUrl ?? current.url} alt={current.name} className={`${canvasStageChecker.trim()} max-h-[60dvh] w-full rounded-panel object-contain`} style={canvasStageBackground} /></div>
+          <PngPreview large item={current} overlays={canvasOverlays} baseStyle={style} preset={outputPreset} background={canvasStageBackground?.backgroundColor} />
         </div>
         <div className="mt-4 flex flex-wrap justify-between gap-2"><Button variant="outline" disabled={currentIdx === 0} onClick={goPrev}>{w.previous}</Button><Button disabled={busy} onClick={downloadCurrentPng}>PNG</Button><Button variant="outline" disabled={currentIdx === items.length - 1} onClick={goNext}>{w.next}</Button></div>
       </Modal>}
