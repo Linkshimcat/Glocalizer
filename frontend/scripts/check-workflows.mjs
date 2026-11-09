@@ -22,6 +22,10 @@ function workspace(count) {
   }))
   return { projectId: 'workflow-project', projectToken: 'account', resultReady: true, selectedClientIds: assets.map((_, i) => `file-${i}`), files: assets.map((asset, i) => ({ id: `file-${i}`, assetId: asset.id, name: asset.name, type: 'image/png', size: png.length })), results: { projectId: 'workflow-project', status: 'completed', targetLanguages: ['en', 'ja'], assets }, status: { projectId: 'workflow-project', status: 'completed', stage: null, progress: 100, message: '', assets: [] } }
 }
+async function expectThumbnail(state, count) {
+  for (let i = 0; i < 80 && (state.thumbnails?.length ?? 0) < count; i++) await new Promise(resolve => setTimeout(resolve, 100))
+  assert.ok((state.thumbnails?.length ?? 0) >= count, `expected ${count} thumbnail uploads`)
+}
 async function expectSaved(check) {
   for (let i = 0; i < 50 && !check(); i++) await new Promise(resolve => setTimeout(resolve, 100))
   assert.equal(check(), true)
@@ -62,6 +66,7 @@ async function setup({ width = 1280, count = 8, me = 200, signedIn = true, voice
       return route.fulfill({ status: 204 })
     }
     if (path.endsWith('/downloads')) { state.downloads.push(req.postDataJSON()); return route.fulfill({ status: 204 }) }
+    if (path.endsWith('/thumbnail')) { state.thumbnails = [...(state.thumbnails ?? []), req.postDataBuffer()]; return route.fulfill({ status: 204 }) }
     if (path.endsWith('/finish')) return route.fulfill({ status: 204 })
     if (path === '/generation/config') return reply({ enabled: true })
     if (path === '/generation/projects') return reply({ projects: state.generation ? [state.generation] : [] })
@@ -372,6 +377,23 @@ try {
     const { data, info } = await sharp(await readFile(await (await event).path())).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
     assert.equal(data[3], 0, 'exported corner stays transparent with the dark preview on')
     assert.equal(data[(info.width * info.height - 1) * 4 + 3], 0)
+    await context.close()
+  }
+  // The workspace card thumbnail follows the rendered edit, not the original upload.
+  {
+    const { context, page, state } = await setup({ count: 2 })
+    await page.goto(`${base}/editor`, { waitUntil: 'domcontentloaded' })
+    const input = page.locator('textarea').first()
+    await input.waitFor()
+    await expectThumbnail(state, 1)
+    await input.fill('Thumbnail edit')
+    await expectThumbnail(state, 2)
+    assert.equal((await sharp(state.thumbnails.at(-1)).metadata()).format, 'png')
+    await input.fill('Saved on leave')
+    await page.waitForTimeout(800)
+    await page.getByRole('button', { name: /전체 ZIP/ }).filter({ visible: true }).waitFor()
+    await page.evaluate(() => { history.pushState({}, '', '/dashboard'); dispatchEvent(new PopStateEvent('popstate')) })
+    await expectThumbnail(state, 3)
     await context.close()
   }
   // Queue recovery excludes completed/running slots and never repeats a lost paid POST.

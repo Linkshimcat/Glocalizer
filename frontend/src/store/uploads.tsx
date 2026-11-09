@@ -31,6 +31,7 @@ import {
   deleteOcrRegion,
   detectOcrRegion,
   suggestCaption,
+  saveProjectThumbnail,
   regenerateTranslation,
   saveEditorState,
   reviseOcr,
@@ -212,6 +213,8 @@ interface UploadState {
   reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => Promise<void>
   detectOcrRegion: (fileId: string, normalizedBox: NormalizedRect) => Promise<DetectedOcrSelection>
   /** origin 'caption': AI 문구 추천으로 새로 넣는 문구 — 원본에 지울 글자가 없어 서버가 글자 지우기를 건너뛴다. */
+  /** 편집 결과를 합성한 PNG로 워크스페이스 카드 썸네일을 바꾼다. */
+  uploadThumbnail: (fileId: string, image: Blob) => Promise<void>
   addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect, origin?: 'caption') => Promise<void>
   deleteOcrRegion: (fileId: string, regionId: string) => Promise<void>
   suggestCaption: (fileId: string) => Promise<ApiCaptionSuggestion>
@@ -596,6 +599,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     return suggestCaption(projectId, projectToken, file.assetId)
   }, [files, projectId, projectToken])
 
+  const uploadThumbnail = useCallback(async (fileId: string, image: Blob) => {
+    const file = files.find(candidate => candidate.id === fileId)
+    if (!projectId || !projectToken || !file?.assetId) return
+    await saveProjectThumbnail(projectId, projectToken, file.assetId, image)
+  }, [files, projectId, projectToken])
+
   const explainJapanese = useCallback(async (fileId: string, regionId: string, text: string) => {
     const file = files.find(item => item.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('뜻풀이 세션을 찾을 수 없어요.')
@@ -651,6 +660,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       reviseOcr: reviseAssetOcr,
       detectOcrRegion: detectAssetOcrRegion,
       addOcrRegion: addAssetOcrRegion,
+      uploadThumbnail,
       deleteOcrRegion: deleteAssetOcrRegion,
       suggestCaption: suggestAssetCaption,
       explainJapanese,
@@ -690,6 +700,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       reviseAssetOcr,
       detectAssetOcrRegion,
       addAssetOcrRegion,
+      uploadThumbnail,
       deleteAssetOcrRegion,
       suggestAssetCaption,
       explainJapanese,
