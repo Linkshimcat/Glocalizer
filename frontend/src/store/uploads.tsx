@@ -17,6 +17,7 @@ import { styleKeyForRegion, type Style } from '../lib/style'
 import type { NormalizedRect } from '../lib/style'
 import { restoreFile, restoreStyles } from '../lib/workspaceRestore'
 import { loadDefaultTargetLangCodes } from '../lib/defaultLanguages'
+import { RequestError } from '../lib/requestError'
 import {
   explainJapaneseText,
   type JapaneseMeaning,
@@ -81,6 +82,15 @@ export interface UploadFile {
     textColor: { r: number; g: number; b: number } | null
     regions: RegionAnalysis[]
   }
+}
+
+function isKnownRegion(file: UploadFile, regionId: string): boolean {
+  return regionId === file.analysis?.regionId || Boolean(file.analysis?.regions.some(region => region.id === regionId))
+}
+
+/** 다시 보내도 결과가 같은 거절(잘못된 영역·이미지). 인증·한도·서버 오류는 재시도 대상이라 제외한다. */
+function isPermanentRejection(error: unknown): boolean {
+  return error instanceof RequestError && (error.status === 400 || error.status === 404)
 }
 
 export interface RegionAnalysis {
@@ -201,7 +211,8 @@ interface UploadState {
   getLatestProjectResults: () => Promise<ProjectResults>
   reviseOcr: (fileId: string, text: string, normalizedBox: NormalizedRect, regionId?: string | null) => Promise<void>
   detectOcrRegion: (fileId: string, normalizedBox: NormalizedRect) => Promise<DetectedOcrSelection>
-  addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect) => Promise<void>
+  /** origin 'caption': AI 문구 추천으로 새로 넣는 문구 — 원본에 지울 글자가 없어 서버가 글자 지우기를 건너뛴다. */
+  addOcrRegion: (fileId: string, text: string, normalizedBox: NormalizedRect, origin?: 'caption') => Promise<void>
   deleteOcrRegion: (fileId: string, regionId: string) => Promise<void>
   suggestCaption: (fileId: string) => Promise<ApiCaptionSuggestion>
   explainJapanese: (fileId: string, regionId: string, text: string) => Promise<{ text: string; explanation: JapaneseMeaning }>
@@ -285,7 +296,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const flushEdits = useCallback(async () => {
     await styleQueue.current.catch(() => undefined)
     for (const [key, write] of pendingStyles.current) {
-      await saveEditorState(write.projectId, write.token, write.assetId, write.regionId, write.languageCode, write.style)
+      try {
+        await saveEditorState(write.projectId, write.token, write.assetId, write.regionId, write.languageCode, write.style)
+      } catch (error) {
+        // 서버에 없는 영역 등으로 영구 거절된 쓰기는 다시 보내도 같은 400이라, 큐에 남기면
+        // "다시 시도"·다운로드·완료가 계속 실패한다. 버리고 나머지 저장을 이어간다.
+        if (!isPermanentRejection(error)) throw error
+      }
       if (pendingStyles.current.get(key) === write) pendingStyles.current.delete(key)
     }
     setCloudError(null)
@@ -305,6 +322,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setStyles(prev => ({ ...prev, [styleKey]: { ...prev[styleKey], [languageCode]: style } }))
     if (!projectId || !projectToken || !file?.assetId || !targetRegionId || !languageCode) return
     if (deletedRegions.current.has(`${file.assetId}:${targetRegionId}`)) return
+    // 영역 정보가 아직 없을 때 Editor는 파일 id를 임시 영역 id로 쓴다. 서버에 없는 영역이라
+    // 저장하면 400("해당 이미지에 속하지 않는 OCR 영역")이 나므로 화면 상태만 바꾸고 보내지 않는다.
+    if (!isKnownRegion(file, targetRegionId)) return
     const saveEpoch = epoch.current
     const key = `${file.assetId}:${targetRegionId}:${languageCode}`
     const write = { projectId, token: projectToken, assetId: file.assetId, regionId: targetRegionId, languageCode, style }
@@ -316,7 +336,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       await saveEditorState(projectId, projectToken, file.assetId!, targetRegionId, languageCode, style)
       if (pendingStyles.current.get(key) === write) pendingStyles.current.delete(key)
       if (saveEpoch === epoch.current && !pendingStyles.current.size) setCloudError(null)
-    }).catch(() => {
+    }).catch(error => {
+      if (isPermanentRejection(error)) {
+        if (pendingStyles.current.get(key) === write) pendingStyles.current.delete(key)
+        return
+      }
       if (saveEpoch === epoch.current) setCloudError(tCloud.cloudSaveFailed)
     }).finally(() => { setPendingStyleSaves(value => Math.max(0, value - 1)) })
   }, [files, projectId, projectToken, tCloud.cloudSaveFailed])
@@ -540,10 +564,10 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     return detectOcrRegion(projectId, projectToken, file.assetId, normalizedBox)
   }, [files, projectId, projectToken])
 
-  const addAssetOcrRegion = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect) => {
+  const addAssetOcrRegion = useCallback(async (fileId: string, text: string, normalizedBox: NormalizedRect, origin?: 'caption') => {
     const file = files.find(candidate => candidate.id === fileId)
     if (!projectId || !projectToken || !file?.assetId) throw new ApiError('OCR 수정 세션을 찾을 수 없어요.')
-    await createOcrRegion(projectId, projectToken, file.assetId, text, normalizedBox)
+    await createOcrRegion(projectId, projectToken, file.assetId, text, normalizedBox, origin)
     setResultReady(false)
     setProjectStatus(previous => previous ? { ...previous, status: 'processing', stage: 'ocr-corrected' } : previous)
   }, [files, projectId, projectToken])

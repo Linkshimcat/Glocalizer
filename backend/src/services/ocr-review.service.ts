@@ -17,7 +17,7 @@ import type { RecognizedRegion } from '../ocr/ocr-provider.types.js';
 import { getOcrFallbackProvider, getOcrProvider } from '../ocr/ocr-provider.js';
 import { polygonToBox } from '../utils/bbox.js';
 import { containsKorean } from '../utils/language.js';
-import { classifyConfidence } from '../types/ocr.js';
+import { CAPTION_REGION_SOURCE, classifyConfidence } from '../types/ocr.js';
 import type { AssetRow } from '../types/asset.js';
 
 export interface DetectedSelection {
@@ -100,7 +100,7 @@ async function resetAssetForOcrReprocessing(asset: { id: string; cleaned_path: s
   await updateAsset(asset.id, { status: 'ocr', stage: 'ocr-corrected', progress: 55, cleanedPath: null, cleanupMethod: null, cleanupQuality: null, needsManualCleanup: false });
 }
 
-export async function createOcrRegionAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, requestedId: string = randomUUID()): Promise<string> {
+export async function createOcrRegionAndReprocess(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, requestedId: string = randomUUID(), origin?: 'caption'): Promise<string> {
   const activeJob = await findActiveJobForProject(projectId);
   if (activeJob && activeJob.id !== currentTask()?.id) throw new AppError('PROCESS_ALREADY_RUNNING', { projectId, jobId: activeJob.id }, '처리 중인 작업이 끝난 뒤 OCR 문구를 추가해주세요.');
   if (!containsKorean(text)) throw new AppError('INVALID_REQUEST', { text }, '한국어가 포함된 원문을 입력해주세요.');
@@ -128,7 +128,7 @@ export async function createOcrRegionAndReprocess(projectId: string, assetId: st
     containsKorean: true,
     readingOrder: Math.max(-1, ...regions.map((candidate) => candidate.reading_order)) + 1,
     isPrimary: regions.length === 0,
-    source: 'vision-fallback',
+    source: origin === 'caption' ? CAPTION_REGION_SOURCE : 'vision-fallback',
     agreementScore: 1,
     needsManualReview: false,
   });
@@ -219,7 +219,7 @@ export async function reviseOcrAndReprocess(projectId: string, assetId: string, 
 }
 
 /** Reserve the queue entry before mutating OCR, translations or cleanup results. */
-export async function queueOcrEdit(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, operation: 'revise' | 'create', regionId?: string) {
+export async function queueOcrEdit(projectId: string, assetId: string, text: string, normalizedBox: PixelBox, operation: 'revise' | 'create', regionId?: string, origin?: 'caption') {
   await requireEditableAsset(projectId, assetId);
   if (!containsKorean(text)) throw new AppError('INVALID_REQUEST', undefined, '한국어가 포함된 원문을 입력해주세요.');
   if (operation === 'revise') {
@@ -227,6 +227,6 @@ export async function queueOcrEdit(projectId: string, assetId: string, text: str
     if (!region || region.asset_id !== assetId) throw new AppError('INVALID_REQUEST', { regionId });
     regionId = region.id;
   } else regionId = randomUUID();
-  const job = await insertJob(projectId, ['ocr'], { operation, assetId, regionId, text, normalizedBox });
+  const job = await insertJob(projectId, ['ocr'], { operation, assetId, regionId, text, normalizedBox, ...(operation === 'create' && origin ? { origin } : {}) });
   return { jobId: job.id, regionId };
 }

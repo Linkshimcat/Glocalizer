@@ -98,6 +98,38 @@ describe('runCleanupForAsset multi-region behavior', () => {
     expect(result).toMatchObject({ method: 'manual-required', quality: 'low', needsManualCleanup: true });
   });
 
+  it('AI 문구 추천으로 넣은 영역은 지울 글자가 없으므로 원본을 그대로 두고 수동 정리도 요구하지 않는다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([
+      { ...regions[1], id: 'region-caption', source: 'caption-suggestion' },
+    ] as never);
+    vi.mocked(translationRepo.findTranslationsByOcrRegionIds).mockResolvedValue([{ ocr_region_id: 'region-caption', language_code: 'en' }] as never);
+
+    const result = await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(solidCleanup.applySolidColorCleanup).not.toHaveBeenCalled();
+    expect(directionalCleanup.applyDirectionalInpaint).not.toHaveBeenCalled();
+    expect(storageRepo.uploadToStorage).not.toHaveBeenCalled();
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-caption', { textColor: null, needsManualCleanup: false });
+    expect(assetRepo.updateAsset).toHaveBeenLastCalledWith('asset-1', expect.objectContaining({ status: 'completed', cleanedPath: null, needsManualCleanup: false }));
+    expect(result).toMatchObject({ needsManualCleanup: false });
+  });
+
+  it('AI 추천 문구와 실제 글자 영역이 섞이면 실제 글자 영역만 정리한다', async () => {
+    vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([
+      regions[1],
+      { ...regions[2], id: 'region-caption', source: 'caption-suggestion' },
+    ] as never);
+
+    await runCleanupForAsset({
+      id: 'asset-1', project_id: 'project-1', original_path: 'source.png', width: 10, height: 10,
+    } as never);
+
+    expect(solidCleanup.applySolidColorCleanup).toHaveBeenCalledTimes(1);
+    expect(ocrRepo.updateRegionCleanupMetadata).toHaveBeenCalledWith('region-caption', { textColor: null, needsManualCleanup: false });
+  });
+
   it('글자 판독만 엇갈려 검수 플래그가 붙은 영역(합의 점수 높음)은 단색 배경이면 자동으로 정리한다', async () => {
     vi.mocked(ocrRepo.findRegionsByAssetId).mockResolvedValue([regions[0]] as never);
 

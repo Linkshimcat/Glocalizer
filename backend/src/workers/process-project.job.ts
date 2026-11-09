@@ -17,7 +17,7 @@ export async function handleProcessProjectJob(job: JobRow): Promise<void> {
       if (asset && !(job.attempts > 1 && asset.status === 'completed')) {
         if (payload.operation === 'retry') await updateAsset(asset.id, { status: job.initial_states?.[asset.id] === 'ocr' ? 'ocr' : 'uploaded', stage: 'retrying', progress: 0, cleanedPath: null, cleanupMethod: null, cleanupQuality: null, needsManualCleanup: false });
         else if (payload.operation === 'revise') await reviseOcrAndReprocess(job.project_id, asset.id, payload.text as string, payload.normalizedBox as PixelBox, payload.regionId as string);
-        else if (payload.operation === 'create') await createOcrRegionAndReprocess(job.project_id, asset.id, payload.text as string, payload.normalizedBox as PixelBox, payload.regionId as string);
+        else if (payload.operation === 'create') await createOcrRegionAndReprocess(job.project_id, asset.id, payload.text as string, payload.normalizedBox as PixelBox, payload.regionId as string, payload.origin === 'caption' ? 'caption' : undefined);
       }
     }
     // 소요 시간은 이번 시도 기준이다. 워커가 죽어 복구된 작업은 재시도부터 다시 잰다.

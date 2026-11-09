@@ -23,11 +23,18 @@ export interface OcrRegion {
   containsKorean: boolean;
   readingOrder: number;
   isPrimary: boolean;
-  source: 'paddle-consensus' | 'vision-fallback';
+  source: OcrRegionSource;
   agreementScore: number;
   needsManualReview: boolean;
   fontStyle?: FontStyle | null;
 }
+
+/**
+ * 'caption-suggestion': 글자 없는 이모티콘에 AI 문구 추천으로 새로 넣은 문구. 원본에 지울 글자가 없으므로
+ * 이미지 정리(글자 지우기)와 원본 글자 폰트 분석을 건너뛴다 — 돌리면 캐릭터 위에 노이즈가 생긴다.
+ */
+export const CAPTION_REGION_SOURCE = 'caption-suggestion' as const;
+export type OcrRegionSource = 'paddle-consensus' | 'vision-fallback' | typeof CAPTION_REGION_SOURCE;
 
 export function classifyConfidence(confidence: number): ConfidenceTier {
   if (confidence >= 0.9) return 'auto-approved';
@@ -48,7 +55,7 @@ export interface OcrRegionRow {
   contains_korean: boolean;
   is_primary: boolean;
   reading_order: number;
-  source: 'paddle-consensus' | 'vision-fallback';
+  source: OcrRegionSource;
   agreement_score: number;
   needs_manual_review: boolean;
   font_style: FontStyle | null;

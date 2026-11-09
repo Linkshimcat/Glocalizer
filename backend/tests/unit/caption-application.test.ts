@@ -11,6 +11,15 @@ describe('caption application status', () => {
     await vi.advanceTimersByTimeAsync(10); await result;
     expect(refresh).toHaveBeenCalledTimes(2);
   });
+  it('ignores the stale failed state of a textless asset while the caption job is still processing', async () => {
+    const refresh = vi.fn()
+      .mockResolvedValueOnce(status('processing', 'failed'))
+      .mockResolvedValueOnce(status('processing', 'ocr'))
+      .mockResolvedValue(status('completed'));
+    const result = waitForCaptionApplication(refresh, 'a', 100, 10);
+    await vi.advanceTimersByTimeAsync(20); await result;
+    expect(refresh).toHaveBeenCalledTimes(3);
+  });
   it.each(['failed', 'expired', 'created'])('does not accept %s as success', async state => {
     await expect(waitForCaptionApplication(vi.fn().mockResolvedValue(status(state)), 'a')).rejects.toBeInstanceOf(Error);
   });

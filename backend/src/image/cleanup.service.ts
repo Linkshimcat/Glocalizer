@@ -13,6 +13,7 @@ import { decodeImagePixels } from './background-sampler.js';
 import { cleanRegionPixels } from './region-cleanup.js';
 import { verifyAndRepair } from './region-repair.js';
 import { OCR_AUTO_APPROVE_SCORE } from '../ocr/ocr-consensus.service.js';
+import { CAPTION_REGION_SOURCE } from '../types/ocr.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
 import { logger } from '../config/logger.js';
 
@@ -65,6 +66,12 @@ export async function runCleanupForAsset(asset: AssetRow): Promise<CleanupResult
     let primaryTextColor: { r: number; g: number; b: number } | null = null;
 
     for (const region of regions) {
+      if (region.source === CAPTION_REGION_SOURCE) {
+        // AI 문구 추천으로 넣은 문구는 원본에 지울 글자가 없다. 정리를 돌리면 캐릭터 위를 지워 노이즈가 생기므로
+        // 원본 픽셀을 그대로 두고 그 위에 번역문만 합성한다.
+        await updateRegionCleanupMetadata(region.id, { textColor: null, needsManualCleanup: false });
+        continue;
+      }
       const translatedLanguages = translatedLanguagesByRegion.get(region.id) ?? new Set<string>();
       const isTranslationComplete = project.target_languages.every((languageCode) => translatedLanguages.has(languageCode));
       if (!isTranslationComplete) {

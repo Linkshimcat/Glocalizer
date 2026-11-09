@@ -1,7 +1,7 @@
 import { jobMutation } from './job-mutation.js';
 import { supabase } from '../config/supabase.js';
 import { unwrapList, unwrapNullableRow, unwrapVoid } from '../utils/db-result.js';
-import type { FontStyle, OcrRegion, OcrRegionRow } from '../types/ocr.js';
+import { CAPTION_REGION_SOURCE, type FontStyle, type OcrRegion, type OcrRegionRow, type OcrRegionSource } from '../types/ocr.js';
 
 export async function replaceOcrRegions(assetId: string, regions: OcrRegion[]): Promise<void> {
   const records = regions.map((region) => ({
@@ -90,16 +90,22 @@ export async function deleteOcrRegion(regionId: string): Promise<void> {
   unwrapVoid(result, 'OCR 영역을 삭제하지 못했습니다.');
 }
 
+/** 문구를 고쳐도 AI 추천 문구 영역이라는 표식은 유지한다 — 잃으면 재처리 때 글자 지우기가 돌아 노이즈가 생긴다. */
+function revisedSource(current: OcrRegionRow['source'] | undefined): OcrRegionSource {
+  return current === CAPTION_REGION_SOURCE ? CAPTION_REGION_SOURCE : 'paddle-consensus';
+}
+
 export async function updatePrimaryRegion(assetId: string, input: { text: string; normalizedBox: OcrRegion['normalizedBox']; box: OcrRegion['box'] }): Promise<OcrRegionRow | null> {
   const primary = await findPrimaryRegion(assetId);
   if (!primary) return null;
-  const guarded = await jobMutation<OcrRegionRow>('ocr_patch', primary.id, { detected_text: input.text, normalized_bbox: input.normalizedBox, bbox: input.box, source: 'paddle-consensus', agreement_score: 1, needs_manual_review: false });
+  const source = revisedSource(primary.source);
+  const guarded = await jobMutation<OcrRegionRow>('ocr_patch', primary.id, { detected_text: input.text, normalized_bbox: input.normalizedBox, bbox: input.box, source, agreement_score: 1, needs_manual_review: false });
   if (guarded) return guarded.value;
   const payload = {
     detected_text: input.text,
     normalized_bbox: input.normalizedBox,
     bbox: input.box,
-    source: 'paddle-consensus',
+    source,
     agreement_score: 1,
     needs_manual_review: false,
   };
@@ -115,11 +121,12 @@ export async function updateRegionById(
   regionId: string,
   input: { text: string; normalizedBox: OcrRegion['normalizedBox']; box: OcrRegion['box'] },
 ): Promise<OcrRegionRow | null> {
+  const existing = await findRegionById(regionId);
   const payload = {
     detected_text: input.text,
     normalized_bbox: input.normalizedBox,
     bbox: input.box,
-    source: 'paddle-consensus',
+    source: revisedSource(existing?.source),
     agreement_score: 1,
     needs_manual_review: false,
   };

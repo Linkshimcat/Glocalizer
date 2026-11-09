@@ -4,13 +4,15 @@ import { findAssetsByProjectAndStatus } from '../repositories/asset.repository.j
 import { findRegionsByAssetId, updateRegionFontStyle } from '../repositories/ocr.repository.js';
 import { downloadFromStorage } from '../repositories/storage.repository.js';
 import type { AssetRow } from '../types/asset.js';
+import { CAPTION_REGION_SOURCE } from '../types/ocr.js';
 import { mapWithConcurrency } from '../utils/concurrency.js';
 import { analyzeFontStyle } from './font-style-vision.service.js';
 
 async function analyzeAssetFontStyle(asset: AssetRow): Promise<void> {
   try {
     if (!asset.original_path || !asset.width || !asset.height) return;
-    const regions = (await findRegionsByAssetId(asset.id)).filter((region) => region.contains_korean);
+    // AI 추천 문구 영역은 원본에 글자가 없어 읽을 글자 모양이 없다.
+    const regions = (await findRegionsByAssetId(asset.id)).filter((region) => region.contains_korean && region.source !== CAPTION_REGION_SOURCE);
     if (regions.length === 0) return;
     const buffer = await downloadFromStorage(asset.original_path);
     if (!buffer) return;
