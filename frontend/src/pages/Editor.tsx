@@ -35,6 +35,7 @@ import JapaneseMeaning from '../components/JapaneseMeaning'
 import { workflowCopy } from '../i18n/workflow'
 import Button from '../components/Button'
 import StateNotice from '../components/StateNotice'
+import { DARK_MODE_PREVIEW_COLOR, isTextHardToSeeInDarkMode } from '../lib/darkModeCheck'
 import SessionNotice from '../components/SessionNotice'
 import { experienceCopy } from '../i18n/experience'
 import { useToast } from '../components/Toast'
@@ -426,6 +427,8 @@ export default function Editor() {
         translationStatus: current.suggestions.length > 0 ? 'translated' as const : 'failed' as const,
       }], [current])
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
+  // 어두운 채팅 화면에서 어떻게 보일지 확인하는 보기 전용 값. 저장하지 않고 내보내기에도 쓰지 않는다.
+  const [previewBackground, setPreviewBackground] = useState<'transparent' | 'light' | 'dark'>('transparent')
   const activeRegion = textRegions.find(region => region.id === selectedRegionId) ?? textRegions[0]
   const activeStyleKey = styleKeyForRegion(current.id, activeRegion.id, current.analysis?.regionId)
   const [doneIds, setDoneIds] = useState<string[]>([])
@@ -1370,6 +1373,10 @@ export default function Editor() {
   /** 설정 패널 탭별 표시 */
   const tabClass = (tab: MobileTab) =>
     mobileTab === tab ? 'block' : 'hidden'
+  const canvasStageBackground = previewBackground === 'transparent'
+    ? undefined
+    : { backgroundColor: previewBackground === 'dark' ? DARK_MODE_PREVIEW_COLOR : '#FFFFFF' }
+  const canvasStageChecker = previewBackground === 'transparent' ? ' checkerboard' : ''
 
   /* ── 상단 바 도구 (모바일·데스크톱 공용) ──────────────────────── */
   const historyControls = (
@@ -1716,7 +1723,7 @@ export default function Editor() {
                   </button>
                 </div>
               </div>
-              <div ref={mobileCanvasTab === '원본' ? canvasViewportRef : undefined} className="studio-canvas-stage bg-white">
+              <div ref={mobileCanvasTab === '원본' ? canvasViewportRef : undefined} className="studio-canvas-stage bg-white" style={canvasStageBackground}>
                 <div className="studio-logical-canvas relative flex shrink-0 items-center justify-center" style={canvasZoomStyle}>
                   {current.url ? (
                     <div className="absolute inset-0 flex items-center justify-center p-2">
@@ -1776,7 +1783,7 @@ export default function Editor() {
             {/* 가운데: AI 추천 그대로의 자동 처리 결과 — 읽기 전용, 수정 결과와의 비교 대상 */}
             <article className={`${mobileCanvasTab === '자동' ? 'block' : 'hidden'}`}>
               <div className="mb-2 flex h-8 items-center justify-center"><p className="text-sm font-extrabold text-ink">{e.canvasAuto}</p></div>
-              <div className="studio-canvas-stage checkerboard relative">
+              <div className={`studio-canvas-stage${canvasStageChecker} relative`} style={canvasStageBackground}>
                 <div className="studio-logical-canvas relative flex shrink-0 items-center justify-center" style={canvasZoomStyle}>
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
                     <PngPreview item={current} overlays={pristineOverlays} baseStyle={pristineBaseStyle} preset={outputPreset} />
@@ -1807,7 +1814,7 @@ export default function Editor() {
             {/* 우측: 변환 미리보기와 편집 제스처 */}
             <article className={`${mobileCanvasTab === '미리보기' ? 'block' : 'hidden'}`}>
               <div className="mb-2 flex h-8 items-center justify-center"><p className="text-sm font-extrabold text-ink">{e.canvasPreview}</p></div>
-              <div ref={mobileCanvasTab === '미리보기' ? canvasViewportRef : undefined} className="studio-canvas-stage checkerboard">
+              <div ref={mobileCanvasTab === '미리보기' ? canvasViewportRef : undefined} className={`studio-canvas-stage${canvasStageChecker}`} style={canvasStageBackground}>
                 <div ref={cleanupPreviewRef} onPointerDown={() => { setSelected(false); setCleanupSelected(false) }} className="studio-logical-canvas relative flex shrink-0 items-center justify-center" style={canvasZoomStyle}>
                   {current.url ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
@@ -2313,6 +2320,30 @@ export default function Editor() {
           </section>
 
           {/* ── 스타일 탭 ── */}
+          <section className={tabClass('스타일')}>
+            <PanelTitle>{e.darkCheckTitle}</PanelTitle>
+            <p className="mt-1 break-keep text-xs leading-5 text-sub">{e.darkCheckHint}</p>
+            <div className="mt-3 grid grid-cols-3 gap-1">
+              {([['transparent', e.previewBgTransparent], ['light', e.previewBgLight], ['dark', e.previewBgDark]] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={previewBackground === value}
+                  onClick={() => setPreviewBackground(value)}
+                  className={`min-h-11 rounded-control text-sm font-bold transition-colors ${previewBackground === value ? 'bg-brand-soft text-brand-dark' : 'text-sub hover:bg-surface'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {isTextHardToSeeInDarkMode(style) && (
+              <StateNotice className="mt-3">
+                <p className="break-keep">{e.darkCheckWarning}</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => update({ strokeOn: true, strokeColor: '#FFFFFF', strokeWidth: Math.max(style.strokeWidth, 2) })}>{e.darkCheckAddStroke}</Button>
+              </StateNotice>
+            )}
+          </section>
+
           <section className={tabClass('스타일')}>
             <PanelTitle>{e.textColor}</PanelTitle>
             <div className="mt-3">
