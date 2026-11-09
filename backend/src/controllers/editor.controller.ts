@@ -4,6 +4,7 @@ import { requireProject } from '../middleware/project-auth.middleware.js';
 import { saveEditorState } from '../services/editor-state.service.js';
 import { queueOcrEdit, detectOcrSelection, deleteOcrRegionAndReprocess } from '../services/ocr-review.service.js';
 import { suggestCaptionForAsset } from '../ocr/caption-suggestion.service.js';
+import { saveEditedThumbnail } from '../services/thumbnail.service.js';
 import { requireParam } from '../utils/request-params.js';
 
 export async function saveEditorStateHandler(req: Request, res: Response) {
@@ -43,6 +44,11 @@ export async function createOcrRegionHandler(req: Request, res: Response) {
 
 export async function deleteOcrRegionHandler(req: Request, res: Response) {
   await deleteOcrRegionAndReprocess(requireProject(req).id, requireParam(req, 'assetId'), requireParam(req, 'regionId'));
+  res.status(204).send();
+}
+
+export async function saveThumbnailHandler(req: Request, res: Response) {
+  await saveEditedThumbnail(requireProject(req).id, requireParam(req, 'assetId'), req.body);
   res.status(204).send();
 }
 

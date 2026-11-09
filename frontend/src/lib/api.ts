@@ -241,6 +241,10 @@ export interface QaInspectResult {
 /** 윤재의 QA 재검사 엔드포인트 — 정확한 요청/응답 모양은 아직 합의 전이라 잠정이다.
  *  다른 project-scoped API처럼 /projects/:id/... 경로로 추정해 뒀다(실제 경로·응답
  *  모양이 다르면 이 함수와 QaInspectResult 타입만 고치면 된다). */
+export async function saveProjectThumbnail(projectId: string, token: string, assetId: string, image: Blob): Promise<void> {
+  await request(`/projects/${projectId}/assets/${assetId}/thumbnail`, { method: 'PUT', body: image, headers: { 'Content-Type': 'image/png' } }, token)
+}
+
 export async function inspectQa(projectId: string, token: string, assetId?: string): Promise<QaInspectResult> {
   return request(`/projects/${projectId}/qa/inspect`, { method: 'POST', body: JSON.stringify({ assetId }) }, token)
 }

@@ -51,6 +51,7 @@ import {
   downloadBlob,
   exportFileName,
   OUTPUT_PRESETS,
+  imageStyleForItem,
   renderItemToPng,
   textOverlaysForItem,
   zipLocalizedItems,
@@ -375,6 +376,7 @@ export default function Editor() {
     cloudSaving,
     cloudError,
     flushCloudWork,
+    uploadThumbnail,
     projectStatus,
     refreshProject,
     reviseOcr,
@@ -599,6 +601,34 @@ export default function Editor() {
     setBatchAutoFitUndo(null)
     toast(e.autoFitUndone, 'success')
   }
+
+  // 워크스페이스 카드에도 편집 결과가 보이도록, 첫 이미지를 합성해 썸네일로 올린다. 서버에는 완성본이 없어
+  // 브라우저만 만들 수 있다. 실패해도 편집과는 무관하고 다음 변경 때 다시 시도하므로 알리지 않는다.
+  const thumbnailItem = items[0]
+  const thumbnailReady = projectStatus?.status === 'completed' && Boolean(thumbnailItem?.analysis)
+  const thumbnailSnapshot = useMemo(() => {
+    if (!thumbnailReady) return null
+    const overlays = textOverlaysForItem(thumbnailItem, activeLanguage.code, savedStyles)
+    const imageStyle = imageStyleForItem(thumbnailItem, activeLanguage.code, savedStyles)
+    return { overlays, imageStyle, fingerprint: JSON.stringify([projectStatus?.projectId, thumbnailItem.id, activeLanguage.code, overlays, imageStyle]) }
+  }, [thumbnailReady, thumbnailItem, activeLanguage.code, savedStyles, projectStatus?.projectId])
+  const uploadedThumbnail = useRef('')
+  const pendingThumbnail = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    if (!thumbnailSnapshot || thumbnailSnapshot.fingerprint === uploadedThumbnail.current) return
+    const send = () => {
+      pendingThumbnail.current = null
+      uploadedThumbnail.current = thumbnailSnapshot.fingerprint
+      void renderItemToPng(thumbnailItem, thumbnailSnapshot.imageStyle, thumbnailSnapshot.overlays)
+        .then(image => uploadThumbnail(thumbnailItem.id, image))
+        .catch(() => { uploadedThumbnail.current = '' })
+    }
+    pendingThumbnail.current = send
+    const timer = window.setTimeout(send, 3000)
+    return () => window.clearTimeout(timer)
+  }, [thumbnailSnapshot, thumbnailItem, uploadThumbnail])
+  // 3초를 기다리기 전에 편집기를 나가도 마지막 편집이 카드에 남게 한다.
+  useEffect(() => () => pendingThumbnail.current?.(), [])
 
   // 입력창의 실행 취소·방향키는 브라우저 기본 동작을 쓰고, 모달이 열려 있으면 뒤쪽 편집 상태를 건드리지 않는다.
   useEffect(() => {

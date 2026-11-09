@@ -3,12 +3,13 @@ import { explainJapanese } from '../services/japanese-meaning.service.js';
 import { explainJapaneseSchema } from '../schemas/japanese-meaning.schema.js';
 import { requireProject } from '../middleware/project-auth.middleware.js';
 import { requireParam } from '../utils/request-params.js';
-import { Router } from 'express';
-import { createOcrRegionHandler, deleteOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, suggestCaptionHandler, updateOcrHandler } from '../controllers/editor.controller.js';
+import express, { Router } from 'express';
+import { createOcrRegionHandler, deleteOcrRegionHandler, detectOcrRegionHandler, regenerateHandler, saveEditorStateHandler, saveThumbnailHandler, suggestCaptionHandler, updateOcrHandler } from '../controllers/editor.controller.js';
 import { projectAuthMiddleware } from '../middleware/project-auth.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { assetParamsSchema, createOcrRegionSchema, detectOcrRegionSchema, ocrRegionParamsSchema, regenerateSchema, saveEditorStateSchema, updateOcrSchema } from '../schemas/editor-state.schema.js';
 import { asyncHandler } from '../utils/async-handler.js';
+import { ERROR_CODES } from '../errors/error-codes.js';
 
 export const editorRouter = Router();
 
@@ -18,6 +19,29 @@ editorRouter.put(
   projectAuthMiddleware,
   validate(saveEditorStateSchema, 'body'),
   asyncHandler(saveEditorStateHandler),
+);
+
+// 편집을 멈출 때마다 오므로 프로젝트별로 넉넉히 두되, 한 프로젝트가 저장소 쓰기를 독점하지 않게 막는다.
+const thumbnailRateLimit = rateLimit({
+  windowMs: 10 * 60_000,
+  limit: 120,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: (req) => `thumbnail:${req.params.projectId}`,
+  handler: (req, res) => {
+    res.status(ERROR_CODES.RATE_LIMITED.status).json({
+      error: { code: 'RATE_LIMITED', message: ERROR_CODES.RATE_LIMITED.message, requestId: req.id },
+    });
+  },
+});
+
+editorRouter.put(
+  '/projects/:projectId/assets/:assetId/thumbnail',
+  validate(assetParamsSchema, 'params'),
+  projectAuthMiddleware,
+  thumbnailRateLimit,
+  express.raw({ type: 'image/png', limit: '5mb' }),
+  asyncHandler(saveThumbnailHandler),
 );
 
 editorRouter.post(
