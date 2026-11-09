@@ -99,6 +99,13 @@ export interface EditorDict {
   size: string
   rotation: string
   textColor: string
+  darkCheckTitle: string
+  darkCheckHint: string
+  previewBgTransparent: string
+  previewBgLight: string
+  previewBgDark: string
+  darkCheckWarning: string
+  darkCheckAddStroke: string
   pickColor: string
   textBg: string
   opacity: string
@@ -163,6 +170,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiSuggest: 'AI 번역 추천', customHint: '마음에 드는 게 없다면 직접 써보세요', customPlaceholder: '원하는 문구를 직접 입력해보세요',
     font: '폰트', fontAiRec: '원본 글씨체와 어울리는 AI 추천', apply: '적용', recSuffix: '✨ 추천',
     weight: '굵기', oneWeightOnly: '이 폰트는 한 가지 굵기만 지원해요.', sizeRotation: '크기 · 회전', size: '크기', rotation: '회전',
+    darkCheckTitle: '다크모드 확인', darkCheckHint: 'OGQ는 어두운 화면에서도 잘 보이는지 심사해요. 다크로 바꿔 직접 확인해 보세요. 미리보기만 바뀌고 내보내는 이미지는 그대로예요.', previewBgTransparent: '투명', previewBgLight: '라이트', previewBgDark: '다크', darkCheckWarning: '선택한 글자가 어두워서 다크모드에서 안 보일 수 있어요.', darkCheckAddStroke: '흰 외곽선 켜기',
     textColor: '글자 색', pickColor: '원하는 색 직접 고르기', textBg: '글자 배경', opacity: '불투명도', padding: '여백', corner: '모서리',
     stroke: '테두리', shadow: '그림자', blur: '흐림', horizontal: '가로', vertical: '세로', transparency: '투명도',
     align: '정렬', alignLeft: '좌', alignCenter: '가운데', alignRight: '우', alignTop: '상', alignBottom: '하',
@@ -187,6 +195,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiSuggest: 'AI suggestions', customHint: 'Not a fan? Write your own', customPlaceholder: 'Type the text you want',
     font: 'Font', fontAiRec: 'AI pick matching the original', apply: 'Apply', recSuffix: '✨ pick',
     weight: 'Weight', oneWeightOnly: 'This font supports only one weight.', sizeRotation: 'Size · Rotation', size: 'Size', rotation: 'Rotation',
+    darkCheckTitle: 'Dark mode check', darkCheckHint: 'OGQ reviews whether stickers stay visible on dark screens. Switch to Dark to check. Only the preview changes, not the exported image.', previewBgTransparent: 'Transparent', previewBgLight: 'Light', previewBgDark: 'Dark', darkCheckWarning: 'The selected text is dark and may be hard to see in dark mode.', darkCheckAddStroke: 'Add white outline',
     textColor: 'Text color', pickColor: 'Pick a custom color', textBg: 'Text background', opacity: 'Opacity', padding: 'Padding', corner: 'Corner',
     stroke: 'Stroke', shadow: 'Shadow', blur: 'Blur', horizontal: 'X', vertical: 'Y', transparency: 'Transparency',
     align: 'Align', alignLeft: 'L', alignCenter: 'C', alignRight: 'R', alignTop: 'T', alignBottom: 'B',
@@ -211,6 +220,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiSuggest: 'AI翻訳のおすすめ', customHint: '気に入らなければ直接入力', customPlaceholder: '入力したい文言を書いてください',
     font: 'フォント', fontAiRec: '原本の書体に合うAIおすすめ', apply: '適用', recSuffix: '✨ おすすめ',
     weight: '太さ', oneWeightOnly: 'このフォントは1種類の太さのみ対応です。', sizeRotation: 'サイズ · 回転', size: 'サイズ', rotation: '回転',
+    darkCheckTitle: 'ダークモード確認', darkCheckHint: 'OGQは暗い画面でも見やすいかを審査します。ダークに切り替えて確認してください。変わるのはプレビューだけで、書き出す画像はそのままです。', previewBgTransparent: '透明', previewBgLight: 'ライト', previewBgDark: 'ダーク', darkCheckWarning: '選択した文字が暗いため、ダークモードでは見えにくい可能性があります。', darkCheckAddStroke: '白いフチを付ける',
     textColor: '文字色', pickColor: '好きな色を選ぶ', textBg: '文字背景', opacity: '不透明度', padding: '余白', corner: '角',
     stroke: '縁取り', shadow: '影', blur: 'ぼかし', horizontal: '横', vertical: '縦', transparency: '透明度',
     align: '配置', alignLeft: '左', alignCenter: '中央', alignRight: '右', alignTop: '上', alignBottom: '下',
@@ -235,6 +245,7 @@ export const editorDict: Record<SiteLang, EditorDict> = {
     aiSuggest: 'AI 翻译推荐', customHint: '不满意就自己输入', customPlaceholder: '输入你想要的文字',
     font: '字体', fontAiRec: '与原字体相配的 AI 推荐', apply: '应用', recSuffix: '✨ 推荐',
     weight: '粗细', oneWeightOnly: '该字体仅支持一种粗细。', sizeRotation: '大小 · 旋转', size: '大小', rotation: '旋转',
+    darkCheckTitle: '深色模式检查', darkCheckHint: 'OGQ 会审核表情在深色屏幕上是否清晰可见。请切换到深色进行确认。只有预览会变化，导出的图片不变。', previewBgTransparent: '透明', previewBgLight: '浅色', previewBgDark: '深色', darkCheckWarning: '所选文字颜色较深，在深色模式下可能看不清。', darkCheckAddStroke: '添加白色描边',
     textColor: '文字颜色', pickColor: '自选颜色', textBg: '文字背景', opacity: '不透明度', padding: '内边距', corner: '圆角',
     stroke: '描边', shadow: '阴影', blur: '模糊', horizontal: '横', vertical: '纵', transparency: '透明度',
     align: '对齐', alignLeft: '左', alignCenter: '居中', alignRight: '右', alignTop: '上', alignBottom: '下',

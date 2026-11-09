@@ -22,6 +22,10 @@ function workspace(count) {
   }))
   return { projectId: 'workflow-project', projectToken: 'account', resultReady: true, selectedClientIds: assets.map((_, i) => `file-${i}`), files: assets.map((asset, i) => ({ id: `file-${i}`, assetId: asset.id, name: asset.name, type: 'image/png', size: png.length })), results: { projectId: 'workflow-project', status: 'completed', targetLanguages: ['en', 'ja'], assets }, status: { projectId: 'workflow-project', status: 'completed', stage: null, progress: 100, message: '', assets: [] } }
 }
+async function expectSaved(check) {
+  for (let i = 0; i < 50 && !check(); i++) await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(check(), true)
+}
 async function setup({ width = 1280, count = 8, me = 200, signedIn = true, voice = true } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, acceptDownloads: true })
   const state = { workspace: workspace(count), saves: [], downloads: [], batchPosts: 0, authPosts: 0, me }
@@ -343,6 +347,31 @@ try {
     await page.getByRole('heading', { name: '이모티콘을 올려주세요' }).waitFor()
     assert.equal(await page.locator('input[type="file"]').count(), 1)
     await page.screenshot({ path: '/tmp/glocalizer-workflows/localize-after-new-task.png', fullPage: true })
+    await context.close()
+  }
+  // Dark preview is view-only; the warning's one-click outline is a saved edit.
+  {
+    const { context, page, state } = await setup({ count: 2 })
+    await page.goto(`${base}/editor`, { waitUntil: 'domcontentloaded' })
+    await page.getByRole('button', { name: '스타일', exact: true }).filter({ visible: true }).click()
+    const stage = page.locator('.studio-canvas-stage').filter({ visible: true }).first()
+    const addStroke = page.getByRole('button', { name: '흰 외곽선 켜기' })
+    await addStroke.waitFor()
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/editor-dark-before.png' })
+    assert.match(await stage.getAttribute('class'), /checkerboard/)
+    await page.getByRole('button', { name: '다크', exact: true }).click()
+    assert.doesNotMatch(await stage.getAttribute('class'), /checkerboard/)
+    assert.equal(await stage.evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(32, 37, 41)')
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/editor-dark-warning.png' })
+    await addStroke.click()
+    await addStroke.waitFor({ state: 'detached' })
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/editor-dark-outlined.png' })
+    await expectSaved(() => state.saves.some(save => save.style?.strokeOn === true && save.style?.strokeColor === '#FFFFFF'))
+    const event = page.waitForEvent('download')
+    await page.getByRole('button', { name: /PNG 저장/ }).filter({ visible: true }).click()
+    const { data, info } = await sharp(await readFile(await (await event).path())).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+    assert.equal(data[3], 0, 'exported corner stays transparent with the dark preview on')
+    assert.equal(data[(info.width * info.height - 1) * 4 + 3], 0)
     await context.close()
   }
   // Queue recovery excludes completed/running slots and never repeats a lost paid POST.
