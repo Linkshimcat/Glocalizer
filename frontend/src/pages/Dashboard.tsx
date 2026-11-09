@@ -17,6 +17,7 @@ import { cloudCopy } from '../i18n/cloud'
 import { useUploads } from '../store/uploads'
 import Modal from '../components/Modal'
 import { workspaceResumePath } from '../lib/workspaceResume'
+import type { CloudProject } from '../lib/api'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -26,8 +27,11 @@ export default function Dashboard() {
   const copy = studioCopy[lang]
   const [newTaskOpen, setNewTaskOpen] = useState(false)
   const [startingNew, setStartingNew] = useState(false)
+  // 목록을 한 번 더 요청하지 않고 아래 카드 목록이 받은 값을 쓴다. 받기 전에는 업로드한 원본을 보여준다.
+  const [cloudProjects, setCloudProjects] = useState<CloudProject[]>([])
   const { files, projectStatus, resultReady, resetWorkflow, flushCloudWork, cloudSaving } = useUploads()
   const hasWork = files.length > 0
+  const resumeThumbnail = cloudProjects.find(project => project.id === projectStatus?.projectId)?.thumbnailUrl
   const resumePath = workspaceResumePath(projectStatus?.status, resultReady)
   const startNew = async () => {
     setStartingNew(true)
@@ -60,7 +64,7 @@ export default function Dashboard() {
         </div>
         <div className="studio-start-grid">
           <section className="studio-resume" aria-label={hasWork ? copy.resume : copy.intro}>
-            <img src={hasWork && files[0]?.url ? files[0].url : heroCharacter} alt="" className="studio-resume-art" />
+            <img src={hasWork ? resumeThumbnail ?? files[0]?.url ?? heroCharacter : heroCharacter} alt="" className={`studio-resume-art${hasWork ? ' is-project' : ''}`} />
             <div className="studio-resume-body">
               <h2>{hasWork ? files[0].name : copy.intro}</h2>
               <p>{hasWork ? t.hubFiles.replace('{n}', String(files.length)) : t.hubLocalizeDesc}</p>
@@ -84,7 +88,7 @@ export default function Dashboard() {
         </div>
         <section className="studio-project-section" aria-labelledby="progress-title">
           <h2 id="progress-title">{copy.projects}</h2>
-          <ProjectLibrary loginMessage={copy.loginMessage} />
+          <ProjectLibrary loginMessage={copy.loginMessage} onCloudProjects={setCloudProjects} />
         </section>
       </main>
       {newTaskOpen ? <Modal onClose={() => { if (!startingNew) setNewTaskOpen(false) }} labelledBy="new-task-title" closeLabel={t.commonClose}>

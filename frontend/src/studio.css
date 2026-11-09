@@ -15,6 +15,7 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .studio-start-grid { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 32px; margin-top: 32px; }
 .studio-resume { display: flex; align-items: center; gap: 24px; padding: 24px; border-radius: var(--radius-panel); background: var(--color-brand-soft); min-width: 0; }
 .studio-resume-art { width: 132px; height: 132px; flex-shrink: 0; border-radius: 8px; object-fit: contain; background: var(--color-card); }
+.dark .studio-resume-art.is-project { background: #f2f4f6; } /* 투명 PNG의 어두운 글자가 카드에 묻히지 않게 한다. */
 .studio-resume-body { min-width: 0; }.studio-resume-body h2 { font-size: 20px; font-weight: 800; overflow-wrap: anywhere; }
 .studio-resume-body > p { margin: 8px 0 16px; color: var(--color-sub); font-size: 14px; }
 .studio-resume-actions { display: flex; flex-wrap: wrap; gap: 8px; }

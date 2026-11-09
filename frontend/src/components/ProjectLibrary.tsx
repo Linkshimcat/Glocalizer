@@ -21,7 +21,7 @@ const kinds = ['all', 'localization', 'generation'] as const
 const statuses = ['all', 'draft', 'running', 'editing', 'completed', 'attention'] as const
 const sorts = ['newest', 'oldest', 'name'] as const
 
-export default function ProjectLibrary({ archive = false, loginMessage }: { archive?: boolean; loginMessage?: string }) {
+export default function ProjectLibrary({ archive = false, loginMessage, onCloudProjects }: { archive?: boolean; loginMessage?: string; onCloudProjects?: (projects: CloudProject[]) => void }) {
   const { user, token, checkingSession } = useAuth()
   const { t, lang } = useSiteLang()
   const tCloud = cloudCopy(lang)
@@ -72,11 +72,12 @@ export default function ProjectLibrary({ archive = false, loginMessage }: { arch
       .then(([cloud, generation]) => {
         if (!active) return
         setLocalized(cloud.status === 'fulfilled' ? cloud.value.projects : [])
+        if (cloud.status === 'fulfilled') onCloudProjects?.(cloud.value.projects)
         setGenerated(generation.status === 'fulfilled' ? generation.value.projects : [])
         setFailed([...(cloud.status === 'rejected' ? ['localization'] : []), ...(generation.status === 'rejected' ? ['generation'] : [])])
       }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [token, userId, refresh, resultReady, projectStatus?.projectId, projectStatus?.status])
+  }, [token, userId, refresh, resultReady, projectStatus?.projectId, projectStatus?.status, onCloudProjects])
 
   useEffect(() => {
     const onVisible = () => { if (document.visibilityState === 'visible') setRefresh(value => value + 1) }
