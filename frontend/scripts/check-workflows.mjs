@@ -79,7 +79,7 @@ async function setup({ width = 1280, count = 8, me = 200, signedIn = true, voice
       state.generation.images.push(...slots.map(slot => ({ id: `queued-${slot}`, slot, status: 'queued', caption: '', prompt: '', url: null })))
       return route.abort('connectionreset') // server accepted the paid jobs, response was lost
     }
-    if (path === '/projects') return reply({ projects: [] })
+    if (path === '/projects') return reply({ projects: state.projects ?? [] })
     if (path === '/landing/showcases') return reply({ showcases: [] })
     return reply({})
   })
@@ -449,6 +449,17 @@ try {
     await page.getByRole('button', { name: /전체 ZIP/ }).filter({ visible: true }).waitFor()
     await page.evaluate(() => { history.pushState({}, '', '/dashboard'); dispatchEvent(new PopStateEvent('popstate')) })
     await expectThumbnail(state, 3)
+    await context.close()
+  }
+  // The resume card shows the same edited thumbnail as the project list.
+  {
+    const { context, page, state } = await setup({ count: 2 })
+    const edited = `data:image/png;base64,${(await sharp({ create: { width: 8, height: 8, channels: 4, background: '#22c55e' } }).png().toBuffer()).toString('base64')}`
+    state.projects = [{ id: 'workflow-project', name: 'frame-0.png', status: 'completed', resultReady: true, targetLanguages: ['en'], imageCount: 2, createdAt: '2026-11-09T00:00:00Z', updatedAt: '2026-11-09T00:00:00Z', thumbnailUrl: edited }]
+    await page.goto(`${base}/dashboard`, { waitUntil: 'domcontentloaded' })
+    const art = page.locator('.studio-resume-art.is-project')
+    await art.waitFor()
+    await page.waitForFunction(src => document.querySelector('.studio-resume-art')?.getAttribute('src') === src, edited)
     await context.close()
   }
   // Queue recovery excludes completed/running slots and never repeats a lost paid POST.
