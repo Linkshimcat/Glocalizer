@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import { useSiteLang } from '../i18n/LanguageContext'
+import '../payment.css'
 
 const labels = {
   ko: { title: '테스트 결제가 완료되지 않았어요', goPricing: '요금제로 돌아가기', test: 'TossPayments 테스트 모드 · 실제 결제나 청구는 발생하지 않습니다.' },
