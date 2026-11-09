@@ -4,10 +4,21 @@
 .creator-voices-heading h2 { margin: 0; font-size: clamp(32px, 3.2vw, 46px); font-weight: 800; letter-spacing: -.045em; line-height: 1.2; }
 .creator-voices-heading p { margin-top: 14px; color: var(--color-sub); font-size: 18px; line-height: 1.7; }
 
-/* 데스크톱: 3열로 줄바꿈, 마지막 줄 카드는 가운데 */
-.creator-voices-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; width: min(100%, 1120px); margin: 32px auto 0; }
+/* 데스크톱: 한 줄 캐러셀. 다음 카드가 일부 보이게 카드 폭을 줄여 뒤에 더 있다는 걸 알린다. */
+.creator-voices-controls { display: flex; justify-content: flex-end; gap: 8px; width: min(100%, 1120px); margin: 24px auto 0; }
+.creator-voices-arrow { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--color-line); border-radius: 50%; background: var(--color-card); color: var(--color-ink); cursor: pointer; transition: border-color .2s ease, opacity .2s ease; }
+.creator-voices-arrow:disabled { opacity: .35; cursor: default; }
+.creator-voices-arrow:not(:disabled):hover { border-color: var(--color-action); }
+.creator-voices-arrow:focus-visible { outline: 2px solid var(--color-action); outline-offset: 2px; }
+/* 위아래 여백은 호버로 떠오른 카드가 스크롤 영역에 잘리지 않게 한다. */
+.creator-voices-list { display: flex; gap: 22px; width: min(100%, 1120px); margin: 8px auto 0; padding: 4px 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.creator-voices-list::-webkit-scrollbar { display: none; }
 .creator-voices-list:focus-visible { outline: 2px solid var(--color-action); outline-offset: 4px; }
-.creator-voice-card { display: flex; flex: 0 0 calc((100% - 44px) / 3); flex-direction: column; gap: 16px; box-sizing: border-box; padding: 24px; border: 1px solid var(--color-line); border-radius: var(--radius-panel); background: var(--color-card); }
+.creator-voice-card { display: flex; flex: 0 0 calc((100% - 66px - 56px) / 3); flex-direction: column; gap: 16px; box-sizing: border-box; padding: 24px; border: 1px solid var(--color-line); border-radius: var(--radius-panel); background: var(--color-card); scroll-snap-align: start; transition: opacity .55s ease calc(var(--voice-index, 0) * 60ms), transform .55s cubic-bezier(.22,1,.36,1) calc(var(--voice-index, 0) * 60ms), translate .2s ease, border-color .2s ease; }
+.creator-voices[data-motion-ready="true"]:not(.is-visible) .creator-voice-card { opacity: 0; transform: translateY(16px); }
+@media (hover: hover) {
+  .creator-voice-card:hover { translate: 0 -2px; border-color: var(--color-action); }
+}
 .creator-voice-author { display: flex; align-items: center; gap: 12px; }
 .creator-voice-avatar { display: inline-flex; flex: 0 0 44px; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--color-brand-soft); color: var(--color-ink); font-size: 18px; font-weight: 800; object-fit: cover; }
 .creator-voice-name { margin: 0; font-size: 15px; font-weight: 800; line-height: 1.4; }
@@ -17,12 +28,21 @@
 .creator-voice-change strong { display: block; margin-bottom: 4px; color: var(--color-ink); font-size: 13px; font-weight: 800; }
 .creator-voices-note { margin: 28px auto 0; padding: 0 12px; max-width: 820px; color: var(--color-sub); font-size: 13px; line-height: 1.6; text-align: center; }
 
+@media (max-width: 1023px) {
+  .creator-voice-card { flex-basis: calc((100% - 44px - 56px) / 2); }
+}
+
 /* 모바일: 카드를 옆으로 밀어 넘긴다. 다음 카드가 살짝 보이게 폭을 줄인다. */
 @media (max-width: 767px) {
   .creator-voices { padding: 40px 0; }
   .creator-voices-heading, .creator-voices-note { padding-left: 20px; padding-right: 20px; }
   .creator-voices-heading h2 { font-size: 30px; }
   .creator-voices-heading p { font-size: 16px; }
-  .creator-voices-list { flex-wrap: nowrap; justify-content: flex-start; gap: 14px; overflow-x: auto; width: 100%; margin-top: 24px; padding: 4px 20px 12px; scroll-padding-inline: 20px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-  .creator-voice-card { flex: 0 0 min(84%, 340px); scroll-snap-align: start; padding: 20px; }
+  .creator-voices-controls { display: none; }
+  .creator-voices-list { gap: 14px; width: 100%; margin-top: 24px; padding: 4px 20px 12px; scroll-padding-inline: 20px; -webkit-overflow-scrolling: touch; }
+  .creator-voice-card { flex: 0 0 min(84%, 340px); padding: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creator-voice-card { transition: none; opacity: 1 !important; transform: none !important; translate: none !important; }
 }

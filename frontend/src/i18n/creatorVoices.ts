@@ -9,6 +9,8 @@ interface CreatorVoicesDict {
   /** 날짜 한 줄 (예: 2026.10.28 피드백) */
   dateLabel: (date: string) => string
   listLabel: string
+  previousLabel: string
+  nextLabel: string
   note: string
   cards: Record<CreatorFeedbackId, { quote: string; change: string }>
 }
@@ -23,6 +25,8 @@ export const creatorVoices: Record<SiteLang, CreatorVoicesDict> = {
     changeLabel: '이렇게 고쳤어요',
     dateLabel: date => `${date} 피드백`,
     listLabel: '작가님 피드백 카드 목록 (좌우로 넘겨 보기)',
+    previousLabel: '이전 피드백 보기',
+    nextLabel: '다음 피드백 보기',
     note: '아직 반영하지 못한 의견은 계속 개선하고 있습니다.',
     cards: {
       'jp-reading': {
@@ -62,6 +66,8 @@ export const creatorVoices: Record<SiteLang, CreatorVoicesDict> = {
     changeLabel: 'What we changed',
     dateLabel: date => `Feedback · ${date}`,
     listLabel: 'Artist feedback cards (scroll sideways)',
+    previousLabel: 'Previous feedback',
+    nextLabel: 'Next feedback',
     note: 'Quotes are translated from Korean. Feedback we have not been able to address yet is still being worked on.',
     cards: {
       'jp-reading': {
@@ -101,6 +107,8 @@ export const creatorVoices: Record<SiteLang, CreatorVoicesDict> = {
     changeLabel: '改善したこと',
     dateLabel: date => `${date} のご意見`,
     listLabel: 'スタンプ作家さんの声（左右にスクロール）',
+    previousLabel: '前のフィードバック',
+    nextLabel: '次のフィードバック',
     note: 'ご意見は韓国語から翻訳しています。まだ反映できていないご意見は、引き続き改善に取り組んでいます。',
     cards: {
       'jp-reading': {
@@ -140,6 +148,8 @@ export const creatorVoices: Record<SiteLang, CreatorVoicesDict> = {
     changeLabel: '我们的改进',
     dateLabel: date => `${date} 的反馈`,
     listLabel: '表情包作者的反馈（可左右滑动）',
+    previousLabel: '上一条反馈',
+    nextLabel: '下一条反馈',
     note: '引文由韩文翻译。尚未落实的意见，我们仍在持续改进。',
     cards: {
       'jp-reading': {
