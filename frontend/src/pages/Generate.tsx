@@ -19,6 +19,7 @@ import { generationCopy } from '../i18n/generation'
 import { CAPTION_ANCHOR_X, CAPTION_ANCHOR_Y, CAPTION_HORIZONTALS, CAPTION_SIZES, CAPTION_VERTICALS, DEFAULT_CAPTION_STYLE, displayPrompt, downloadGeneration, downloadGenerationSet, downloadGenerationSets, fetchGenerationFile, generationRequest, latestCompletedImages, prepareReference, projectDisplayName, thumbnailImage, type CaptionStyle, type GenerationImage, type GenerationProject, type StickerPlanItem } from '../lib/generationApi'
 import { useUploads } from '../store/uploads'
 import dragNDropImage from '../assets/GCFrontendUI/DragNDropIMG.svg'
+import { isProcessedProject } from '../lib/workspaceResume'
 
 const categories = ['animal', 'pet', 'person', 'baby', 'couple', 'food', 'drink', 'object', 'plant', 'fantasy', 'robot', 'monster'] as const
 // 그림체와 성격은 고르는 결이 달라 묶음을 나눈다. 선택 상태는 하나로 합쳐 프롬프트에 붙인다.
@@ -51,7 +52,7 @@ function GenerationPageSkeleton({ label }: { label: string }) {
 }
 
 export default function Generate() {
-  const { token, user, checkingSession } = useAuth(); const navigate = useNavigate(); const { addFiles } = useUploads(); const { lang } = useSiteLang(); const t = generationCopy(lang); const w = workflowCopy[lang]; const copy = experienceCopy[lang]
+  const { token, user, checkingSession } = useAuth(); const navigate = useNavigate(); const { addFiles, projectStatus: workspaceStatus, flushCloudWork, resetWorkflow } = useUploads(); const { lang } = useSiteLang(); const t = generationCopy(lang); const w = workflowCopy[lang]; const copy = experienceCopy[lang]
   const [params, setParams] = useSearchParams(); const [projects, setProjects] = useState<GenerationProject[]>([]); const [enabled, setEnabled] = useState(false); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
   const [prompt, setPrompt] = useState(''); const [reference, setReference] = useState<string>(); const [category, setCategory] = useState<typeof categories[number]>(); const [selectedTags, setSelectedTags] = useState<(typeof styleTags[number] | typeof moodTags[number])[]>([]); const [dragging, setDragging] = useState(false); const [uploading, setUploading] = useState(false)
   const [slot, setSlot] = useState(0); const [caption, setCaption] = useState(''); const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE); const [captionImageId, setCaptionImageId] = useState<string | null>(null); const [captionSaveStatus, setCaptionSaveStatus] = useState<CaptionSaveStatus>('idle'); const [revision, setRevision] = useState(''); const [planDraft, setPlanDraft] = useState<StickerPlanItem[]>([]); const [completeOpen, setCompleteOpen] = useState(false)
@@ -214,6 +215,8 @@ export default function Generate() {
     if (!project || projectStatus !== 'completed') return
     const files: File[] = []
     for (let start = 0; start < completedImages.length; start += 4) files.push(...await Promise.all(completedImages.slice(start, start + 4).map(item => fetchGenerationFile(token!, project.id, item.id, item.slot))))
+    // 처리가 끝난 현지화 작업이 열려 있으면 거기에 이어 붙일 수 없으니 먼저 닫는다.
+    if (isProcessedProject(workspaceStatus?.status)) { await flushCloudWork(); resetWorkflow() }
     addFiles(files); navigate('/localize')
   })
   const resetToNewWork = () => { setParams({ new: '1' }); setSlot(0); setPrompt(''); setReference(undefined); setCategory(undefined); setSelectedTags([]); setError('') }

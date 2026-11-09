@@ -10,6 +10,7 @@ import OgqSamplePicker from '../components/OgqSamplePicker'
 import UploadSpecBadge from '../components/UploadSpecBadge'
 import { useToast } from '../components/Toast'
 import { saveProjectPersona, type OgqSticker } from '../lib/api'
+import { isProcessedProject, workspaceResumePath } from '../lib/workspaceResume'
 import PersonaFields from '../features/persona/PersonaFields'
 import { EMPTY_PERSONA, personaPayload, type PersonaDraft } from '../features/persona/persona'
 import { personaCopy } from '../i18n/persona'
@@ -56,9 +57,13 @@ export default function Localize() {
     projectStatus,
     cloudError,
     saveDraft,
+    resultReady,
+    flushCloudWork,
+    resetWorkflow,
   } = useUploads()
   const [dragging, setDragging] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [startingNew, setStartingNew] = useState(false)
   const [showAllLangs, setShowAllLangs] = useState(false)
   const [showSamplePicker, setShowSamplePicker] = useState(false)
   const [selectingSampleId, setSelectingSampleId] = useState<string | null>(null)
@@ -183,6 +188,37 @@ export default function Localize() {
   // saveDraft()를 직접 호출하고, 진행 중인 저장 뒤에 순서대로 이어 붙기 때문에 바로 눌러도 안전하다.
   // 대신 이미 시작을 눌러 진행 중일 때는 더블클릭을 막는다.
   const canStart = isAuthenticated && !starting && selectedCount > 0 && targetLangs.length > 0
+
+  const startNewTask = async () => {
+    setStartingNew(true)
+    try {
+      await flushCloudWork()
+      resetWorkflow()
+    } catch (error) {
+      toast(error instanceof Error ? error.message : tCloud.cloudSaveFailed)
+    } finally {
+      setStartingNew(false)
+    }
+  }
+
+  // 메뉴 등으로 곧장 들어오면 처리가 끝난 작업이 그대로 열려 있다. 이 상태에서는 초안 저장이 막혀
+  // 시작을 눌러도 "클라우드 저장 실패"만 나므로 업로드 화면 대신 이어하기/새 작업을 고르게 한다.
+  // 방금 시작을 눌러 상태가 바뀐 경우(starting)는 다음 화면으로 넘어가는 중이라 제외한다.
+  if (isProcessedProject(projectStatus?.status) && !starting) {
+    return (
+      <div className="studio-localize min-h-screen bg-white">
+        <main id="main-content" tabIndex={-1} className="layout-app pb-32 pt-10 sm:py-16 lg:pb-16">
+          <SessionNotice />
+          <h1 className="mt-2 text-[32px] font-extrabold tracking-tight sm:text-[34px]">{tCloud.cloudOpenProjectTitle}</h1>
+          <p className="mt-3 max-w-xl break-keep text-[16px] font-medium leading-7 text-sub">{tCloud.cloudOpenProjectDescription}</p>
+          <div className="mt-8 flex max-w-xl flex-col gap-3 sm:flex-row">
+            <Button variant="secondary" className="min-h-12 flex-1" disabled={startingNew} onClick={() => navigate(workspaceResumePath(projectStatus?.status, resultReady))}>{t.hubContinue}</Button>
+            <Button className="min-h-12 flex-1" disabled={startingNew} onClick={() => { void startNewTask() }}>{tCloud.cloudNewProceed}</Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="studio-localize min-h-screen bg-white">

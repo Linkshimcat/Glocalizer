@@ -16,6 +16,7 @@ import { useSiteLang } from '../i18n/LanguageContext'
 import { cloudCopy } from '../i18n/cloud'
 import { useUploads } from '../store/uploads'
 import Modal from '../components/Modal'
+import { workspaceResumePath } from '../lib/workspaceResume'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -27,7 +28,7 @@ export default function Dashboard() {
   const [startingNew, setStartingNew] = useState(false)
   const { files, projectStatus, resultReady, resetWorkflow, flushCloudWork, cloudSaving } = useUploads()
   const hasWork = files.length > 0
-  const resumePath = !projectStatus || projectStatus.status === 'created' ? '/localize' : resultReady && ['completed', 'failed'].includes(projectStatus.status) ? '/result' : '/editor'
+  const resumePath = workspaceResumePath(projectStatus?.status, resultReady)
   const startNew = async () => {
     setStartingNew(true)
     try {

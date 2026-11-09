@@ -18,6 +18,8 @@ const copy = {
   cloudNewConfirm: ['현재 작업을 닫고 새 작업을 시작할까요? 클라우드에 저장된 작업은 유지돼요.', 'Close this work and start a new task? Work saved to the cloud will remain.', 'この作業を閉じて新しく始めますか？クラウドに保存した作業は残ります。', '关闭当前任务并新建任务吗？云端已保存的任务会保留。'],
   cloudNewTitle: ['새 작업을 시작할까요?', 'Start a new task?', '新しい作業を始めますか？', '开始新任务？'],
   cloudNewProceed: ['새 작업 시작', 'Start new task', '新しい作業を開始', '开始新任务'],
+  cloudOpenProjectTitle: ['처리가 끝난 작업이 열려 있어요', 'You have a processed task open', '処理済みの作業が開いています', '已打开一个处理过的任务'],
+  cloudOpenProjectDescription: ['이 작업에는 이미지를 더 넣을 수 없어요. 이어서 편집하거나 새 작업을 시작해 주세요. 클라우드에 저장된 작업은 유지돼요.', 'You can’t add images to this task. Continue editing or start a new task. Work saved to the cloud will remain.', 'この作業には画像を追加できません。編集を続けるか、新しい作業を始めてください。クラウドに保存した作業は残ります。', '此任务无法再添加图片。请继续编辑或新建任务。云端已保存的任务会保留。'],
   cloudDelete: ['삭제', 'Delete', '削除', '删除'],
   cloudDeleteTitle: ['작업을 삭제할까요?', 'Delete this work?', 'この作業を削除しますか？', '删除此任务？'],
   cloudDeleteDescription: ['“{name}” 작업과 저장된 이미지·편집 내용이 모두 사라져요. 삭제하면 되돌릴 수 없어요.', '“{name}” and all saved images and edits will be permanently deleted. This cannot be undone.', '「{name}」と保存された画像・編集内容がすべて削除されます。元に戻すことはできません。', '“{name}”以及已保存的图片和编辑内容将全部删除，且无法恢复。'],

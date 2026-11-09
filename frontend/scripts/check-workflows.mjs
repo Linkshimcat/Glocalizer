@@ -327,6 +327,24 @@ try {
     assert.deepEqual(returns, ['/dashboard', '/dashboard', '/dashboard', '/dashboard', '/generate?project=x#draft'])
     await context.close()
   }
+  // Opening /localize with a processed project must not offer an upload that can only fail.
+  {
+    const { context, page } = await setup({ count: 2 })
+    await page.goto(`${base}/localize`, { waitUntil: 'domcontentloaded' })
+    const heading = page.getByRole('heading', { name: '처리가 끝난 작업이 열려 있어요' })
+    await heading.waitFor()
+    assert.equal(await page.locator('input[type="file"]').count(), 0)
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/localize-open-project.png', fullPage: true })
+    await page.getByRole('button', { name: '이어하기' }).click()
+    await page.waitForURL('**/result')
+    await page.goBack()
+    await heading.waitFor()
+    await page.getByRole('button', { name: '새 작업 시작' }).click()
+    await page.getByRole('heading', { name: '이모티콘을 올려주세요' }).waitFor()
+    assert.equal(await page.locator('input[type="file"]').count(), 1)
+    await page.screenshot({ path: '/tmp/glocalizer-workflows/localize-after-new-task.png', fullPage: true })
+    await context.close()
+  }
   // Queue recovery excludes completed/running slots and never repeats a lost paid POST.
   {
     const { context, page, state } = await setup()
