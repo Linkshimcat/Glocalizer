@@ -8,6 +8,7 @@ import Footer from '../components/Footer'
 import { useSiteLang } from '../i18n/LanguageContext'
 import { confirmPayment } from '../lib/api'
 import { requestErrorMessage, RequestError } from '../lib/requestError'
+import '../payment.css'
 
 const labels = {
   ko: {

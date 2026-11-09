@@ -400,6 +400,35 @@ try {
     assert.equal(await back.evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(42, 45, 49)')
     await context.close()
   }
+  // Keyboard shortcuts edit the selected text but leave typing in fields alone.
+  {
+    const { context, page, state } = await setup({ count: 2 })
+    await page.goto(`${base}/editor`, { waitUntil: 'domcontentloaded' })
+    const input = page.locator('textarea').first()
+    await input.waitFor()
+    await page.waitForTimeout(500)
+    await page.evaluate(() => document.activeElement?.blur())
+    const last = () => state.saves.at(-1)?.style
+    await page.keyboard.press('ArrowRight')
+    await expectSaved(() => Number.isFinite(last()?.x))
+    await page.waitForTimeout(800)
+    const x = last().x, y = last().y
+    await page.keyboard.press('ArrowRight')
+    await expectSaved(() => last().x === x + 1)
+    await page.keyboard.press('Shift+ArrowDown')
+    await expectSaved(() => last().y === y + 10)
+    await page.keyboard.press('ControlOrMeta+z')
+    await expectSaved(() => last().y === y)
+    await page.keyboard.press('ControlOrMeta+Shift+z')
+    await expectSaved(() => last().y === y + 10)
+    await input.focus()
+    await page.keyboard.press('ArrowLeft')
+    await page.waitForTimeout(600)
+    assert.equal(last().x, x + 1)
+    await page.keyboard.press('ControlOrMeta+s')
+    await page.getByText('계정에 저장됨').first().waitFor()
+    await context.close()
+  }
   // Queue recovery excludes completed/running slots and never repeats a lost paid POST.
   {
     const { context, page, state } = await setup()
