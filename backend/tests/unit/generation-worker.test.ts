@@ -6,25 +6,25 @@ vi.mock('../../src/config/runtime.js',()=>({runtime:{workerId:'same-worker'}}));
 vi.mock('../../src/config/supabase.js',()=>({supabase:{rpc:mocks.rpc}}));
 vi.mock('../../src/services/generation.service.js',()=>({processGenerationImage:mocks.process}));
 beforeEach(()=>{vi.resetModules();vi.clearAllMocks();});
-it('does not start duplicate loops and waits for an in-flight claim and its paid work before stopping',async()=>{
+it('starts two workers once and waits for both paid jobs before stopping',async()=>{
  const {startGenerationWorker,stopGenerationWorker}=await import('../../src/workers/generation-worker.js');
  const {currentTask}=await import('../../src/utils/task-context.js');
- let releaseClaim!:(value:unknown)=>void,releaseWork!:()=>void, entered!:()=>void;
- const workEntered=new Promise<void>(r=>{entered=r});
- mocks.rpc.mockImplementation(async name=>name==='claim_generation_job'?new Promise(r=>{releaseClaim=r}):{data:0,error:null});
- mocks.process.mockImplementation(()=>{expect(currentTask()).toMatchObject({kind:'generation',id:'job',leaseToken:'fresh-lease'});entered();return new Promise<void>(r=>{releaseWork=r});});
+ const claims:((value:unknown)=>void)[]=[], work: (()=>void)[]=[];
+ let entered!:()=>void;const workEntered=new Promise<void>(r=>{entered=r});
+ mocks.rpc.mockImplementation(async name=>name==='claim_generation_job'?new Promise(r=>{claims.push(r)}):{data:0,error:null});
+ mocks.process.mockImplementation(()=>{expect(currentTask()).toMatchObject({kind:'generation',leaseToken:'fresh-lease'});if(mocks.process.mock.calls.length===2)entered();return new Promise<void>(r=>{work.push(r)});});
  startGenerationWorker();startGenerationWorker();
- for(let i=0;i<20&&!releaseClaim;i++)await Promise.resolve();
+ for(let i=0;i<20&&claims.length<2;i++)await Promise.resolve();
  let finished=false;const stopped=stopGenerationWorker().then(()=>{finished=true});
  expect(finished).toBe(false);
- releaseClaim({data:{id:'job',project_id:'project',lease_token:'fresh-lease'},error:null});
- await workEntered;expect(finished).toBe(false);releaseWork();await stopped;
- expect(mocks.process).toHaveBeenCalledOnce();expect(mocks.rpc.mock.calls.filter(([name])=>name==='claim_generation_job')).toHaveLength(1);
+ claims.forEach((release,index)=>release({data:{id:`job-${index}`,project_id:'project',lease_token:'fresh-lease'},error:null}));
+ await workEntered;expect(finished).toBe(false);work.forEach(release=>release());await stopped;
+ expect(mocks.process).toHaveBeenCalledTimes(2);expect(mocks.rpc.mock.calls.filter(([name])=>name==='claim_generation_job')).toHaveLength(2);
 });
 it('stops admission when shutdown begins during the recovery probe',async()=>{
  const {startGenerationWorker,stopGenerationWorker}=await import('../../src/workers/generation-worker.js');
- let release!:(value:unknown)=>void;
- mocks.rpc.mockImplementation(()=>new Promise(r=>{release=r}));
- startGenerationWorker();const stopped=stopGenerationWorker();release({data:0,error:null});await stopped;
- expect(mocks.rpc).toHaveBeenCalledTimes(1);expect(mocks.rpc).toHaveBeenCalledWith('recover_generation_jobs',{p_stale_ms:5000});expect(mocks.process).not.toHaveBeenCalled();
+ const releases:((value:unknown)=>void)[]=[];
+ mocks.rpc.mockImplementation(()=>new Promise(r=>{releases.push(r)}));
+ startGenerationWorker();const stopped=stopGenerationWorker();releases.forEach(release=>release({data:0,error:null}));await stopped;
+ expect(mocks.rpc).toHaveBeenCalledTimes(2);expect(mocks.rpc).toHaveBeenCalledWith('recover_generation_jobs',{p_stale_ms:5000});expect(mocks.process).not.toHaveBeenCalled();
 });

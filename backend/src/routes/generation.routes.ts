@@ -55,6 +55,7 @@ generationRouter.get('/generation/projects/:id',asyncHandler(async(req,res)=>{re
 generationRouter.post('/generation/projects/:id/images',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id); const {slot,prompt}=z.object({slot:z.number().int().min(0).max(23),prompt:z.string().trim().min(1).max(500)}).parse(req.body);
  const project=await ownedGeneration(id,requireAuth(req).sub);
+ if(slot>0&&project.selected_slots&&!project.selected_slots.includes(slot)) throw new AppError('INVALID_REQUEST',undefined,'선택한 표정만 생성할 수 있어요.');
  const imageId=await enqueueGeneration(requireAuth(req).sub,id,slot,prompt);
  const [caption]=await suggestStickerCaptions(project.prompt,[prompt]);
  await saveGeneratedCaption(imageId,caption);
@@ -75,16 +76,24 @@ generationRouter.post('/generation/projects/:id/plan',asyncHandler(async(req,res
 const stickerPlanSchema=z.array(z.object({slot:z.number().int().min(1).max(23),pose:z.string().trim().min(1).max(500),caption:z.string().trim().max(16)})).length(23).superRefine((items,ctx)=>{
  if(new Set(items.map(item=>item.slot)).size!==23) ctx.addIssue({code:'custom',message:'1번부터 23번까지 중복 없이 입력해주세요.'});
 });
+const selectedSlotsSchema=z.array(z.number().int().min(1).max(23)).refine(items=>[7,11,23].includes(items.length)&&new Set(items).size===items.length);
 generationRouter.patch('/generation/projects/:id/plan',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id);const project=await ownedGeneration(id,requireAuth(req).sub);
  if(project.status!=='active') throw new AppError('INVALID_REQUEST',undefined,'완료한 프로젝트는 수정할 수 없습니다.');
  const plan=stickerPlanSchema.parse(req.body.plan).sort((a,b)=>a.slot-b.slot);
- await saveGenerationPlan(id,plan);res.status(204).end();
+ const selectedSlots=req.body.selectedSlots===undefined ? undefined : selectedSlotsSchema.parse(req.body.selectedSlots).sort((a,b)=>a-b);
+ if(selectedSlots) {
+  const existing=unwrapList<{slot:number;status:string}>(await supabase.from('generation_images').select('slot,status').eq('project_id',id).in('status',['completed','queued','running']),'생성 결과 조회 실패');
+  if(existing.some(image=>image.slot>0&&!selectedSlots.includes(image.slot))) throw new AppError('INVALID_REQUEST',undefined,'이미 생성한 표정은 선택에서 제외할 수 없어요.');
+ }
+ await saveGenerationPlan(id,plan,selectedSlots);res.status(204).end();
 }));
 generationRouter.post('/generation/projects/:id/batch',asyncHandler(async(req,res)=>{
  const id=z.uuid().parse(req.params.id);const project=await ownedGeneration(id,requireAuth(req).sub);
  if(project.status!=='active'||!project.confirmed) throw new AppError('INVALID_REQUEST',undefined,'대표 캐릭터를 먼저 확정해주세요.');
  const {slots}=z.object({slots:z.array(z.number().int().min(1).max(23)).min(1).max(23).refine(values=>new Set(values).size===values.length)}).parse(req.body);
+ const selected=project.selected_slots;
+ if(selected && slots.some(slot=>!selected.includes(slot))) throw new AppError('INVALID_REQUEST',undefined,'선택한 표정만 생성할 수 있어요.');
  const plan=stickerPlanSchema.parse(project.plan).filter(item=>slots.includes(item.slot));
  if(plan.length!==slots.length) throw new AppError('INVALID_REQUEST',undefined,'표정·문구 구성을 먼저 저장해주세요.');
  if(!env.ENABLE_IMAGE_GENERATION||!env.OPENAI_API_KEY) throw new AppError('GENERATION_DISABLED');
@@ -113,7 +122,7 @@ generationRouter.post('/generation/projects/:id/complete',asyncHandler(async(req
  const result=await supabase.rpc('complete_generation',{p_owner:requireAuth(req).sub,p_project:id});
  if(result.error) {
   if(result.error.message.includes('RUNNING')) throw new AppError('PROCESS_ALREADY_RUNNING');
-  if(result.error.message.includes('INCOMPLETE')) throw new AppError('INVALID_REQUEST',undefined,'24장 생성을 모두 완료해주세요.');
+  if(result.error.message.includes('INCOMPLETE')) throw new AppError('INVALID_REQUEST',undefined,'선택한 이미지를 모두 생성해주세요.');
   throw new AppError(result.error.message.includes('NOT_FOUND')?'NOT_FOUND':'INVALID_REQUEST');
  }
  res.status(204).end();

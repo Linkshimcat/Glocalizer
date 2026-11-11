@@ -44,14 +44,14 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.0",
     "multer": "2.5.0",
-    "nodemailer": "10.0.10",
+    "nodemailer": "10.1.4",
     "pg": "^8.22.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "pino-pretty": "^13.1.3",
     "sharp": "^0.35.3",
     "yazl": "3.3.1",
-    "zod": "^4.4.3"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -65,6 +65,6 @@
     "supertest": "^7.2.2",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }
