@@ -11,7 +11,7 @@ export const CAPTION_HORIZONTALS = ['left', 'center', 'right'] as const
 export const CAPTION_SIZES = [30, 38, 46, 56]
 export const DEFAULT_CAPTION_STYLE: CaptionStyle = { anchor: 'top-center', size: 46, color: '#202630', stroke: '#ffffff' }
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
-export interface GenerationProject { id: string; prompt: string; name?: string | null; confirmed: boolean; day: string; created_at: string; status?: 'active' | 'completed'; completed_at?: string | null; plan?: StickerPlanItem[]; referenceUrl: string | null; images: GenerationImage[] }
+export interface GenerationProject { id: string; prompt: string; name?: string | null; confirmed: boolean; day: string; created_at: string; status?: 'active' | 'completed'; completed_at?: string | null; plan?: StickerPlanItem[]; selected_slots?: number[] | null; referenceUrl: string | null; images: GenerationImage[] }
 export async function generationRequest<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await apiFetch(`${BASE}/generation${path}`, { method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined })
   if (!response.ok) { const error = await responseFailure(response, `API (${response.status})`); throw new RequestError(error.message, error.status, error.code, error.retryAfterSeconds) }
@@ -25,14 +25,14 @@ export async function deleteGenerationProject(token: string, projectId: string) 
   await generationRequest(token, `/projects/${projectId}`, 'DELETE')
 }
 /** Reconcile a lost queue response using job identities; never retry a potentially paid POST. */
-export async function enqueueRemainingGeneration(token: string, projectId: string, plan: StickerPlanItem[]) {
+export async function enqueueRemainingGeneration(token: string, projectId: string, plan: StickerPlanItem[], selectedSlots: number[]) {
   const before = await generationRequest<GenerationProject>(token, `/projects/${projectId}`)
   if (before.status === 'completed') throw new Error('완료한 프로젝트는 수정할 수 없습니다.')
   const completed = new Set(latestCompletedImages(before).map(image => image.slot))
   const pending = new Set(before.images.filter(image => image.status === 'queued' || image.status === 'running').map(image => image.slot))
-  const slots = plan.filter(item => !completed.has(item.slot) && !pending.has(item.slot)).map(item => item.slot)
+  const slots = plan.filter(item => selectedSlots.includes(item.slot) && !completed.has(item.slot) && !pending.has(item.slot)).map(item => item.slot)
   if (!slots.length) return { slots, recovered: false }
-  await generationRequest(token, `/projects/${projectId}/plan`, 'PATCH', { plan })
+  await generationRequest(token, `/projects/${projectId}/plan`, 'PATCH', { plan, selectedSlots })
   const knownIds = new Set(before.images.map(image => image.id))
   try {
     await generationRequest(token, `/projects/${projectId}/batch`, 'POST', { slots })
@@ -66,7 +66,7 @@ export function thumbnailImage(project: GenerationProject) {
 }
 export async function downloadGenerationSet(token: string, project: GenerationProject) {
   const images = latestCompletedImages(project)
-  if (images.length !== 24) throw new Error('24장 생성을 모두 완료해주세요.')
+  if (images.length !== (project.selected_slots?.length ?? 23) + 1) throw new Error('선택한 이미지를 모두 생성해주세요.')
   const { default: JSZip } = await import('jszip')
   const zip = new JSZip()
   for (let start = 0; start < images.length; start += 4) {
@@ -74,7 +74,7 @@ export async function downloadGenerationSet(token: string, project: GenerationPr
     for (const file of files) zip.file(file.name, file)
   }
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } })
-  const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `glocalizer-${project.id.slice(0, 8)}-24.zip`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `glocalizer-${project.id.slice(0, 8)}-${images.length}.zip`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 /** 파일 시스템에 안전한 폴더명으로 줄인다 — 프롬프트 원문에 경로 구분자가 섞여 있어도 중첩 폴더가 생기지 않는다. */
 function safeFolderName(name: string): string {

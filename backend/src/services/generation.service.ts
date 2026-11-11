@@ -10,7 +10,7 @@ import { createSignedUrl, downloadFromStorage, uploadToStorage } from '../reposi
 import { unwrapList, unwrapNullableRow, unwrapRow, unwrapVoid } from '../utils/db-result.js';
 
 export interface StickerPlanItem { slot: number; pose: string; caption: string }
-export interface GenerationProject { deleting_at?: string | null; id: string; owner_id: string; prompt: string; name: string | null; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[] }
+export interface GenerationProject { deleting_at?: string | null; id: string; owner_id: string; prompt: string; name: string | null; reference_path: string | null; confirmed: boolean; created_at: string; day: string; status: 'active'|'completed'; completed_at: string|null; plan: StickerPlanItem[]; selected_slots: number[] | null }
 export interface CaptionStyle { anchor: string; size: number; color: string; stroke: string }
 export interface GenerationImage { lease_token?: string | null; worker_id?: string | null; heartbeat_at?: string | null; artifact_path?: string | null; artifact_removed_at?: string | null; id: string; project_id: string; slot: number; prompt: string; status: string; path: string | null; caption: string; caption_style: CaptionStyle | null; error: string | null; cost_usd: number | null; reserve_usd: number; usage: unknown; elapsed_ms: number | null }
 export async function ownedGeneration(id: string, owner: string, allowDeleting = false) {
@@ -124,8 +124,8 @@ export async function suggestStickerPlan(character:string):Promise<StickerPlanIt
   return FALLBACK_STICKER_PLAN;
  } finally { clearTimeout(timeout); }
 }
-export async function saveGenerationPlan(projectId:string,plan:StickerPlanItem[]) {
- unwrapVoid(await supabase.from('generation_projects').update({plan}).eq('id',projectId).eq('status','active'),'이모티콘 구성 저장 실패');
+export async function saveGenerationPlan(projectId:string,plan:StickerPlanItem[],selectedSlots?:number[]) {
+ unwrapVoid(await supabase.from('generation_projects').update(selectedSlots ? {plan,selected_slots:selectedSlots} : {plan}).eq('id',projectId).eq('status','active'),'이모티콘 구성 저장 실패');
 }
 export async function saveBatchCaptions(projectId:string,items:StickerPlanItem[]) {
  const slots=items.map(item=>item.slot);

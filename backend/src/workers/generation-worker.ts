@@ -7,15 +7,16 @@ import { unwrapNullableRow, unwrapRow } from '../utils/db-result.js';
 import { withTask } from '../utils/task-context.js';
 import { startHeartbeat } from '../utils/heartbeat.js';
 let stopped = true;
-let activeLoop: Promise<void> | null = null;
+let activeLoops: Promise<void>[] = [];
 export function startGenerationWorker() {
-  if (activeLoop || !env.ENABLE_IMAGE_GENERATION || !env.OPENAI_API_KEY) return;
+  if (activeLoops.length || !env.ENABLE_IMAGE_GENERATION || !env.OPENAI_API_KEY) return;
   stopped = false;
-  activeLoop = loop().finally(() => { activeLoop = null; });
+  activeLoops = Array.from({ length: 2 }, () => loop());
+  void Promise.all(activeLoops).finally(() => { activeLoops = []; });
 }
 export async function stopGenerationWorker() {
   stopped = true;
-  if (activeLoop) await activeLoop;
+  await Promise.all(activeLoops);
 }
 async function loop() {
   while (!stopped) {
