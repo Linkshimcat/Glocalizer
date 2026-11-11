@@ -541,6 +541,7 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | `GlocalizerLogo.webp`, `GCFrontendUI/*`, `ServicePageLending/about-*.png`, `ProCards.png` | Glocalizer Team이 제작·편집한 Figma 및 서비스 UI 에셋 | 로고, 업로드·소개 화면 |
 | `ServicePageLending/IntroduceVideo.mp4` | Glocalizer Team 제작 서비스 소개 영상 | 서비스 소개 페이지 |
 | `LendingPage/GreenBackground-web.jpg` | [Magnific 원본](https://www.magnific.com/kr/free-vector/colorful-gradient-blur-background_16330574.htm), [라이선스 증명서](docs/licenses/GreenBackground-Magnific-license.pdf) · Free for commercial use WITH ATTRIBUTION · 저작자 `rawpixel.com - Magnific.com` · 웹 표시 문구 `designed by rawpixel.com - Magnific.com` | 결과·랜딩 배경 |
+| `frontend/src/assets/icons/payment-success.json` | [Payment Success](https://iconscout.com/lottie-animations/payment-success) · 제작자 [Babaleo](https://iconscout.com/contributors/babaleo) · [IconScout Simple License](https://iconscout.com/licenses): 디지털 제품의 상업적 사용 가능, 출처 표기는 권장(필수 아님) | TossPayments 결제 완료 화면; 화면 하단에 에셋·제작자·플랫폼 출처 표시 |
 | `github-mark.svg` | [GitHub Logos and Usage](https://github.com/logos)의 표시 지침을 따름 | 공통 푸터 |
 
 ---
