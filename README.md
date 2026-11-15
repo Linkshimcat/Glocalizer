@@ -30,16 +30,17 @@ K-웹툰과 캐릭터 중심의 K-콘텐츠가 글로벌 시장에서 급격히 
 - **다국어 현지화(EN/JA/ZH)**: 원문의 존댓말·타이핑 감정 표현(ㅋㅋ/ㅠㅠ 등)까지 반영해 번역하고, 후보 3안 중 베스트를 추천
 - **AI 문구 추천**: 글자가 없어 OCR이 한글 문구를 찾지 못한 이모티콘은 "번역 실패"로 끝내지 않고, AI가 표정·동작·상황을 분석해 한국어 문구 3안을 추천함. 고르거나 직접 입력한 문구는 기존 OCR 영역 추가 흐름을 그대로 타고 번역·배경 정리·에디터로 이어짐
 - **클라우드 작업 저장**: 로그인 후 진행 중인 프로젝트가 자동 저장돼 다른 기기·세션에서 이어서 작업할 수 있고, 완료된 프로젝트는 보관함에서 다시 열람 가능
-- **이메일 · 네이버 · 구글 로그인**: 가입 시 이용약관·개인정보처리방침 동의를 받고, 신규 가입자에게 환영 메일을 발송하며 새 브라우저 로그인·비밀번호 변경·다른 기기 로그아웃 완료를 보안 이메일로 알림(SMTP 미설정 시 메일만 건너뛰고 가입은 정상 동작)
+- **계정 데이터 내보내기**: 설정에서 저장된 데이터와 완성 이미지를 ZIP으로 내려받거나 이메일 다운로드 링크를 요청할 수 있음. 이메일 링크는 24시간 유효하며 이메일 ZIP에는 완성 이미지가 포함되지 않음
+- **이메일 · 네이버 · 카카오 · 구글 로그인**: 가입 시 이용약관·개인정보처리방침 동의를 받고, 신규 가입자에게 환영 메일을 발송하며 새 브라우저 로그인·비밀번호 변경·다른 기기 로그아웃 완료를 보안 이메일로 알림(SMTP 미설정 시 메일만 건너뛰고 가입은 정상 동작)
 - **OGQ 마켓 연동**: 랜딩페이지 예시 갤러리, 업로드 페이지 샘플 체험, 완료된 프로젝트·직접 업로드 이미지의 OGQ 규격 검사, 유사 스티커 검색, AI 심층 검토, 출시 체크리스트("OGQ 출시 검토")
-- **AI 캐릭터 생성**: 텍스트 설명(카테고리·스타일 선택 포함)과 선택적 참고 이미지로 오리지널 캐릭터의 대표 이미지 1장 + 표정 23종을 자동 생성해 OGQ용 24장 세트를 만들고, 여러 캐릭터를 한 번에 이어서 생성할 수도 있음. 비용 보호를 위해 `ENABLE_IMAGE_GENERATION=true`와 `OPENAI_API_KEY`가 있는 환경에서만 켜지며 일일 예산 한도가 적용됨(저장소 기본값은 꺼짐)
+- **AI 캐릭터 생성**: 텍스트 설명(카테고리·스타일 선택 포함)과 선택적 참고 이미지로 대표 캐릭터 1장과 최대 23개의 표정 후보를 준비하고, 8·12·24장 중 세트 크기를 골라 생성함. 8장·12장 세트도 ZIP 다운로드와 현지화에 사용할 수 있고, OGQ 출시 검토에는 24장 세트가 필요함. 여러 캐릭터를 한 번에 이어서 생성할 수도 있음. 비용 보호를 위해 `ENABLE_IMAGE_GENERATION=true`와 `OPENAI_API_KEY`가 있는 환경에서만 켜지며 일일 예산 한도가 적용됨(저장소 기본값은 꺼짐)
 - **사이트 환경**: 한국어·영어·일본어·중국어 화면, 라이트·다크 모드(설정에서 선택), 멤버십 가격 안내·TossPayments 테스트 결제 흐름(`/pricing`), 공개 페이지의 빌드 시 프리렌더(SEO·초기 로딩)
 
 ---
 
 #### **[시스템 아키텍처 — 심사위원용]**
 
-Glocalizer는 **CREATE(생성) → LOCALIZE(현지화) → REVIEW(출시 검토)**를 하나의 계정과 프로젝트 흐름으로 연결함. 생성 결과 24장은 ZIP으로 받을 수 있을 뿐 아니라 현지화 입력이나 출시 검토 대상으로 바로 넘길 수 있고, 현지화가 끝난 프로젝트도 다시 출시 검토에서 불러올 수 있음.
+Glocalizer는 **CREATE(생성) → LOCALIZE(현지화) → REVIEW(출시 검토)**를 하나의 계정과 프로젝트 흐름으로 연결함. 생성할 세트는 8·12·24장 중 선택할 수 있으며 ZIP 다운로드와 현지화 입력으로 이어짐. OGQ 출시 검토에는 완료된 24장 세트가 필요하고, 현지화가 끝난 프로젝트도 다시 출시 검토에서 불러올 수 있음.
 
 ##### **[전체 서비스 구조]**
 
@@ -49,7 +50,7 @@ flowchart TB
 
     subgraph client["Frontend · React SPA @ Vercel"]
         dashboard["Dashboard<br/>프로젝트 진입·진행 상태"]
-        create["CREATE<br/>이모티콘 24장 생성"]
+        create["CREATE<br/>이모티콘 8·12·24장 선택 생성"]
         localize["LOCALIZE<br/>OCR·번역·AI 문구 추천·배경 정리·편집"]
         review["REVIEW<br/>규격·유사 작품·AI 피드백"]
     end
@@ -80,8 +81,8 @@ flowchart TB
     dashboard --> create
     dashboard --> localize
     dashboard --> review
-    create -->|"완성한 24장 전달"| localize
-    create -->|"완료 프로젝트 선택"| review
+    create -->|"선택한 세트 전달"| localize
+    create -->|"완료된 24장 세트 선택"| review
     localize -->|"완료 프로젝트 선택"| review
 
     create <--> api
@@ -183,11 +184,11 @@ flowchart TB
     imageApi["gpt-image-2.5-sunburst<br/>생성 또는 reference edit"]
     normalize["Sharp 규격화<br/>740×640 · 투명 배경 · 흰 외곽선 · 1MB 이하"]
     baseConfirm["대표 캐릭터 확인·확정"]
-    plan["23개 표정·포즈·문구 계획<br/>AI 제안 + 안전한 fallback + 사용자 수정"]
-    batch["slot 1~23 일괄 큐 등록<br/>DB에 진행 상태 지속"]
+    plan["최대 23개 표정·포즈·문구 계획<br/>AI 제안 + 안전한 fallback + 사용자 수정"]
+    batch["선택한 slot 일괄 큐 등록<br/>DB에 진행 상태 지속"]
     edit["슬롯별 미리보기·문구·9분할 위치·크기·색 수정<br/>필요한 슬롯만 재생성"]
-    done["24개 고유 slot 완료 확인<br/>프로젝트 completed 잠금"]
-    handoff["24장 ZIP 다운로드<br/>현지화로 보내기 · 출시 검토로 보내기"]
+    done["선택한 slot 완료 확인<br/>8·12·24장 프로젝트 완료"]
+    handoff["선택 세트 ZIP 다운로드<br/>현지화 · 24장 세트 출시 검토"]
     db[("generation_projects<br/>generation_images")]
     storage[("Private Storage<br/>reference · character PNG")]
 
@@ -207,14 +208,14 @@ flowchart TB
 
 1. 로그인한 사용자가 캐릭터 설명과 카테고리·스타일을 입력하고, 필요하면 PNG/JPEG/WebP 참고 이미지를 1장 첨부함. 브라우저가 긴 변 800px 이하 WebP로 축소하고, Backend가 다시 검증·정규화해 private Storage에 저장함.
 2. `generation_projects`에 active 프로젝트를 만들고 slot `0`의 대표 캐릭터 작업을 `generation_images`에 `queued`로 등록함. 사용자마다 active 프로젝트는 하나만 허용해 중복 프로젝트와 예산 경합을 줄임.
-3. Generation Worker가 가장 오래된 queued 작업을 원자적으로 `running`으로 점유함. slot 0은 사용자 참고 이미지가 있으면 image edit로, 없으면 새 이미지 생성으로 처리함. 이후 slot 1~23은 확정된 slot 0 PNG를 reference로 사용해 캐릭터 정체성·색상·비율을 유지함.
+3. Generation Worker가 가장 오래된 queued 작업을 원자적으로 `running`으로 점유함. slot 0은 사용자 참고 이미지가 있으면 image edit로, 없으면 새 이미지 생성으로 처리함. 사용자가 선택한 slot은 확정된 slot 0 PNG를 reference로 사용해 캐릭터 정체성·색상·비율을 유지함.
 4. 생성 결과는 Sharp로 OGQ 스티커 규격인 740×640 투명 PNG로 정규화함. 캐릭터에 흰 외곽선을 만들고, 알파 채널과 1MB 상한을 검증한 뒤 Storage 경로·실제 비용·처리 시간을 DB에 저장함.
 5. 대표 캐릭터를 확정해야 다음 단계로 갈 수 있음. 확정 후 AI가 23개 포즈와 짧은 한국어 문구 계획을 제안하며, 호출 실패 시에도 고정 fallback 계획을 제공함. 사용자는 생성 전에 각 포즈와 문구를 직접 수정할 수 있음.
-6. 저장한 plan의 남은 slot을 한 요청으로 큐에 넣으며, 브라우저를 닫아도 서버 worker가 계속 처리함. 사용자별 일일 예산, 프로젝트당 최대 작업 수, 동일 slot 동시 실행, 확정 전 후 slot 규칙은 PostgreSQL RPC에서 트랜잭션으로 검사함.
+6. 저장한 plan에서 선택한 slot만 한 요청으로 큐에 넣으며, 브라우저를 닫아도 서버 worker가 계속 처리함. 선택 가능한 세트는 대표 캐릭터를 포함해 8·12·24장임. 사용자별 일일 예산, 프로젝트당 최대 작업 수, 동일 slot 동시 실행, 확정 전후 slot 규칙은 PostgreSQL RPC에서 트랜잭션으로 검사함.
 7. 각 완성 이미지는 캐릭터의 알파 영역과 주요 색을 분석해 문구를 덜 가리는 위·아래 위치와 글자색을 자동 선택함. 사용자는 9분할 위치·크기·글자색·외곽선색·문구를 slot별로 고치고, 실패하거나 마음에 들지 않는 slot만 선택 재생성할 수 있음.
-8. `complete_generation`은 queued/running 작업이 없고 slot 0~23이 모두 completed일 때만 프로젝트를 완료 상태로 잠금. 이후 24장 ZIP 다운로드, 현지화 입력 전송, 출시 검토 프로젝트 선택으로 이어짐. 유료 요청이 중단된 경우 비용 중복을 막기 위해 자동 재시도하지 않고 실패 상태로 남김.
+8. `complete_generation`은 queued/running 작업이 없고 slot 0과 선택한 표정 slot이 모두 completed일 때 프로젝트를 완료 상태로 잠금. 기존 선택 정보가 없는 프로젝트는 24장 전체를 요구함. 완료 후에는 선택한 세트를 ZIP으로 받거나 현지화로 보낼 수 있고, 출시 검토는 24장 세트만 허용함. 유료 요청이 중단된 경우 비용 중복을 막기 위해 자동 재시도하지 않고 실패 상태로 남김.
 
-핵심 설계 포인트: 대표 캐릭터를 먼저 확정한 뒤 나머지 23장을 같은 reference에서 파생해 일관성을 확보함. 큐·비용·완료 조건을 DB에서 함께 강제하고, PNG 원본과 문구 스타일을 분리 저장해 미리보기 수정과 최종 다운로드 합성을 일치시킴.
+핵심 설계 포인트: 대표 캐릭터를 먼저 확정한 뒤 선택한 표정들을 같은 reference에서 파생해 일관성을 확보함. 세트 선택과 큐·비용·완료 조건을 DB에서 함께 강제하고, PNG 원본과 문구 스타일을 분리 저장해 미리보기 수정과 최종 다운로드 합성을 일치시킴.
 
 ##### **[3. 이모티콘 출시 검토 아키텍처]**
 
@@ -391,7 +392,7 @@ flowchart TB
 | DB · Storage | Supabase (PostgreSQL + Storage) |
 | OCR · 이미지 처리 | PaddleOCR(Python), OpenCV, Sharp |
 | AI 모델 | OpenAI GPT-5.6 · GPT-5.6 Luna · gpt-image-2.5-sunburst, Groq Qwen3.8 27B(Vision·문구 추천), Google Gemini 2.5 Flash |
-| 인증 | 이메일(자체 JWT), 네이버 로그인, 구글 로그인(Supabase Auth) |
+| 인증 | 이메일(자체 JWT), 네이버·카카오 로그인(커스텀 OAuth), 구글 로그인(Supabase Auth) |
 | 메일 | Nodemailer(SMTP) — 환영·보안 이메일 |
 | SEO·성능 | 공개 페이지 빌드 시 프리렌더(Vite SSR 빌드 + `scripts/prerender.mjs`), 라우트별 코드 분할 |
 | 배포 | Frontend → Vercel, Backend → Render, DB·Storage·Auth → Supabase |
@@ -455,7 +456,7 @@ AI가 만든 결과는 자동 확정하지 않음. OCR·번역·이미지 정리
 | Google · Gemini 2.5 Flash | OCR 합의도가 낮을 때 선택적으로 재판정하는 보조 Vision 모델 | 재판정이 필요한 이미지 | API 키가 없거나 호출에 실패하면 기존 OCR 결과와 수동 편집 경로 유지 |
 | Google · Gemini 3.7 Flash | 2026-08-24 내부 OCR 정확도 벤치마크에만 사용한 비교 모델 | 벤치마크용 이미지 | 제품의 현재 런타임 모델에는 포함하지 않음 |
 | OpenAI · gpt-image-2.5-sunburst | (`ENABLE_IMAGE_GENERATION=true`일 때만 활성, 저장소 기본값은 꺼짐) 텍스트 설명·선택적 참고 이미지로 오리지널 캐릭터 스티커 이미지 생성 | 캐릭터 설명, 선택적 참고 이미지 | 실패한 이미지는 실패 상태로 기록하고 선택 재생성 제공(프로젝트당 최대 6회), 일일 비용 예산 한도 도달 시 요청 자체를 거부 |
-| OpenAI · GPT-5.6 (chat) | (Generate 기능) 24종 표정·문구 구성 초안과 캡션 문구 제안 | 캐릭터 설명 | 실패 시 규칙 기반 fallback 표정 목록·문구 사용 |
+| OpenAI · GPT-5.6 (chat) | (Generate 기능) 최대 23종 표정·문구 후보 계획과 캡션 문구 제안 | 캐릭터 설명 | 실패 시 규칙 기반 fallback 표정 목록·문구 사용 |
 
 페르소나 번역은 별도 모델 호출을 추가하지 않고 기존 번역 요청에 프로젝트의 성격·말투·나이·피할 표현을 포함합니다. Culture Risk는 `backend/src/translation/culture-risk.service.ts`에서 `CULTURE_RISK_MODEL`로 한국어 원문·번역 후보·대상 언어를 보내 검토합니다. 결과는 `ai_suggestion`/`review`이며 법적·문화적 적합성을 보증하지 않습니다. 키 미설정·타임아웃·응답 검증 실패 시 사용자가 직접 확인해야 합니다.
 
