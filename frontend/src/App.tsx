@@ -33,7 +33,6 @@ const Archive = lazyPage(() => import('./pages/Archive'))
 const CaptionSuggest = lazyPage(() => import('./pages/CaptionSuggest'))
 const Editor = lazyPage(() => import('./pages/Editor'))
 const Login = lazyPage(() => import('./pages/Login'))
-const Landing = lazyPage(() => import('./pages/Landing'))
 const LandingDesignSample = lazyPage(() => import('./pages/LandingDesignSample'))
 const NaverCallback = lazyPage(() => import('./pages/NaverCallback'))
 const KakaoCallback = lazyPage(() => import('./pages/KakaoCallback'))
@@ -168,7 +167,6 @@ export function AppRoutes() {
                     <Routes>
                       <Route path="/" element={<HomeEntry />} />
                       <Route path="/landing-remake" element={<LandingRemake />} />
-                      <Route path="/landing-legacy" element={<Landing />} />
                       <Route path="/sub1" element={<LandingDesignSample />} />
                       <Route path="/sub2" element={<LandingDesignSample />} />
                       <Route path="/sub3" element={<LandingDesignSample />} />
