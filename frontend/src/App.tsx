@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react'
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { SiteLangProvider } from './i18n/LanguageContext'
 import LandingRemake from './pages/LandingRemake'
 import { AccountExportProvider } from './store/AccountExportContext'
-import { AuthProvider } from './store/AuthContext'
+import { AuthProvider, useAuth } from './store/AuthContext'
 import { ThemeProvider } from './store/ThemeContext'
 import { UploadProvider } from './store/uploads'
 import Header from './components/Header'
@@ -82,6 +82,12 @@ function RouteFallback() {
       </div>
     </main>
   )
+}
+
+function HomeEntry() {
+  const { isAuthenticated, checkingSession, sessionError } = useAuth()
+  if (isAuthenticated && !checkingSession && !sessionError) return <Navigate to="/dashboard" replace />
+  return <LandingRemake />
 }
 
 function ScrollToTop() {
@@ -160,7 +166,7 @@ export function AppRoutes() {
                   <Header />
                   <Suspense fallback={<RouteFallback />}>
                     <Routes>
-                      <Route path="/" element={<LandingRemake />} />
+                      <Route path="/" element={<HomeEntry />} />
                       <Route path="/landing-remake" element={<LandingRemake />} />
                       <Route path="/landing-legacy" element={<Landing />} />
                       <Route path="/sub1" element={<LandingDesignSample />} />
