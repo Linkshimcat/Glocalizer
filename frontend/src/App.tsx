@@ -33,7 +33,6 @@ const Archive = lazyPage(() => import('./pages/Archive'))
 const CaptionSuggest = lazyPage(() => import('./pages/CaptionSuggest'))
 const Editor = lazyPage(() => import('./pages/Editor'))
 const Login = lazyPage(() => import('./pages/Login'))
-const LandingDesignSample = lazyPage(() => import('./pages/LandingDesignSample'))
 const NaverCallback = lazyPage(() => import('./pages/NaverCallback'))
 const KakaoCallback = lazyPage(() => import('./pages/KakaoCallback'))
 const NotFound = lazyPage(() => import('./pages/NotFound'))
@@ -168,9 +167,9 @@ export function AppRoutes() {
                       <Route path="/" element={<HomeEntry />} />
                       <Route path="/landing" element={<LandingRemake />} />
                       <Route path="/landing-remake" element={<Navigate to="/landing" replace />} />
-                      <Route path="/sub1" element={<LandingDesignSample />} />
-                      <Route path="/sub2" element={<LandingDesignSample />} />
-                      <Route path="/sub3" element={<LandingDesignSample />} />
+                      <Route path="/sub1" element={<Navigate to="/landing" replace />} />
+                      <Route path="/sub2" element={<Navigate to="/landing" replace />} />
+                      <Route path="/sub3" element={<Navigate to="/landing" replace />} />
                       <Route path="/service" element={<ServiceIntro />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/privacy" element={<Privacy />} />
