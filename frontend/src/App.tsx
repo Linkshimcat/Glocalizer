@@ -166,7 +166,8 @@ export function AppRoutes() {
                   <Suspense fallback={<RouteFallback />}>
                     <Routes>
                       <Route path="/" element={<HomeEntry />} />
-                      <Route path="/landing-remake" element={<LandingRemake />} />
+                      <Route path="/landing" element={<LandingRemake />} />
+                      <Route path="/landing-remake" element={<Navigate to="/landing" replace />} />
                       <Route path="/sub1" element={<LandingDesignSample />} />
                       <Route path="/sub2" element={<LandingDesignSample />} />
                       <Route path="/sub3" element={<LandingDesignSample />} />
