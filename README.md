@@ -1,10 +1,10 @@
 # **NAVER OGQ PROJECT**
-<img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/673f60e1-6ba1-4531-9537-40ca9a9ba640" />
-
+<img width="1920" height="1080" alt="앞표지아트" src="https://github.com/user-attachments/assets/d45b8fa9-110f-4340-bb8c-f0970091555e" />
 
 ### [Glocalizer](https://glocalizer.vercel.app)
 
-🔗 **서비스 바로가기: https://glocalizer.vercel.app** · [Instagram](https://www.instagram.com/glocalizer__ogq/)
+🔗 **서비스 바로가기: https://glocalizer.vercel.app** · [Instagram](https://www.instagram.com/glocalizer__ogq/) <br>
+🔗 **스타프로젝트 공모전 본선 진출:**  [전국마이스터고 스타프로젝트](https://meister.itshin.com/results?team=3496afb8-8ae6-4887-b8bd-b37eaae0025e)
 
 Global + Localizer = 가장 로컬적인 것을 가장 글로벌하게 만들어주는 도구
 
