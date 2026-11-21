@@ -4,7 +4,19 @@
 ### [Glocalizer](https://glocalizer.vercel.app)
 
 🔗 **서비스 바로가기: https://glocalizer.vercel.app** · [Instagram](https://www.instagram.com/glocalizer__ogq/) <br>
-🔗 **스타프로젝트 공모전 본선 진출:**  [전국마이스터고 스타프로젝트](https://meister.itshin.com/results?team=3496afb8-8ae6-4887-b8bd-b37eaae0025e)
+🔗 **스타프로젝트 공모전 본선 진출:**  [전국마이스터고 스타프로젝트](https://meister.itshin.com/results?team=3496afb8-8ae6-4887-b8bd-b37eaae0025e) <br>
+🗓️ **프로덕트 개발 기간:** 2026년 7월 12일 ~ 2026년 11월 22일 (총 4개월 10일)
+
+### Contributor & Collaborator
+
+| <img src="https://github.com/Linkshimcat.png" width="200" alt="Linkshimcat 프로필"> | <img src="https://github.com/yena0208.png" width="200" alt="yena0208 프로필"> | <img src="https://github.com/soyeonpark327.png" width="200" alt="soyeonpark327 프로필"> | <img src="https://github.com/leone1218.png" width="200" alt="leone1218 프로필"> | <img src="https://github.com/GUnT0x9.png" width="200" alt="GUnT0x9 프로필"> |
+| :---: | :---: | :---: | :---: | :---: |
+| **[이윤재](https://github.com/Linkshimcat)** | **[장예나](https://github.com/yena0208)** | **[박소연](https://github.com/soyeonpark327)** |  **[김래원](https://github.com/leone1218)** | **[김건우](https://github.com/GUnT0x9)** |
+| FULL developer | FE developer | BE developer (팀장) | BE developer | FULL developer |
+
+
+
+<hr>
 
 Global + Localizer = 가장 로컬적인 것을 가장 글로벌하게 만들어주는 도구
 
