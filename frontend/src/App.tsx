@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
+import { Analytics } from '@vercel/analytics/react'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { SiteLangProvider } from './i18n/LanguageContext'
@@ -213,6 +214,7 @@ function App() {
     <BrowserRouter>
       <AppRoutes />
       <SpeedInsights />
+      <Analytics />
     </BrowserRouter>
   )
 }
