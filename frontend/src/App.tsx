@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from './store/AuthContext'
 import { ThemeProvider } from './store/ThemeContext'
 import { UploadProvider } from './store/uploads'
 import Header from './components/Header'
+import ServiceSuspensionNotice from './components/ServiceSuspensionNotice'
 import { useSiteLang } from './i18n/LanguageContext'
 import { experienceCopy } from './i18n/experience'
 
@@ -161,6 +162,7 @@ export function AppRoutes() {
               <AuthProvider>
                 <AccountExportProvider>
                 <UploadProvider>
+                  <ServiceSuspensionNotice />
                   <Header />
                   <Suspense fallback={<RouteFallback />}>
                     <Routes>
